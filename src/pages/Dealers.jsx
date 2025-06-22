@@ -193,7 +193,7 @@ const Dealers = () => {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Manage Dealers</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Manage Dealers</h1>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -205,9 +205,9 @@ const Dealers = () => {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-800">Dealers List</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800">Dealers List</h2>
             <p className="text-sm text-gray-500 mt-1">View and manage all dealers in the system</p>
           </div>
 
@@ -222,7 +222,7 @@ const Dealers = () => {
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
               />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
               <CustomSelect
                 name="status"
                 value={selectedStatus}
@@ -236,14 +236,14 @@ const Dealers = () => {
           <div className="mt-6 overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Dealer Name</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Phone Number</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">City</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Status</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Created By</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Created Date</th>
-                  <th className="text-right py-4 px-4 text-sm font-semibold text-gray-900">Actions</th>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Dealer Name</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone Number</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">City</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Created By</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Created Date</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody>
