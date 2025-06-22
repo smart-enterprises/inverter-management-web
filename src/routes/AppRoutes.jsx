@@ -11,6 +11,8 @@ import Products from "../pages/Products";
 import Orders from "../pages/Orders";
 import CreateOrder from "../pages/CreateOrder";
 import OrderDetails from "../pages/OrderDetails";
+import Billing from "../pages/Billing";
+import Delivery from "../pages/Delivery";
 
 export default function AppRoutes() {
   return (
@@ -28,10 +30,8 @@ export default function AppRoutes() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/create" element={<CreateOrder />} />
         <Route path="/orders/:id" element={<OrderDetails />} />
-        {/* <Route path="/delivery" element={<Delivery />} /> */}
-        {/* <Route path="/billing" element={<Billing />} /> */}
-        {/* <Route path="/account" element={<Account />} /> */}
-        {/* <Route path="/settings" element={<Settings />} /> */}
+        <Route path="/delivery" element={<Delivery />} />
+        <Route path="/billing" element={<Billing />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />
