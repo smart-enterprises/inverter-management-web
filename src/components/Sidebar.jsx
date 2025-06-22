@@ -12,23 +12,25 @@ import {
 } from "react-icons/fi";
 import { Link, useLocation } from "react-router-dom";
 
-const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
+const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
   const location = useLocation();
 
   const isPathActive = (path) => {
     if (path === '/dealers') {
-      return location.pathname === '/dealers' || location.pathname.startsWith('/dealers/');
+      return location.pathname.startsWith('/dealers');
     }
     if (path === '/orders') {
-      return location.pathname === '/orders' || location.pathname.startsWith('/orders/');
+      return location.pathname.startsWith('/orders');
     }
     return location.pathname === path;
   };
 
+  const finalIsCollapsed = isCollapsed && !isMobileMenuOpen;
+
   return (
     <aside
       className={`bg-white h-screen border-r border-gray-100 fixed left-0 top-0 transition-all duration-300 z-20 ${
-        isCollapsed ? "w-16" : "w-64"
+        finalIsCollapsed ? "w-16" : "w-64"
       }`}
     >
       <div className="flex flex-col h-full">
@@ -37,13 +39,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             <Link
               to="/dashboard"
               className={`flex items-center gap-2 ${
-                isCollapsed ? "justify-center" : ""
+                finalIsCollapsed ? "justify-center" : ""
               }`}
             >
               <span className="text-2xl">🌀</span>
               <span
                 className={`text-lg font-semibold transition-opacity duration-200 ${
-                  isCollapsed ? "opacity-0 absolute" : "opacity-100"
+                  finalIsCollapsed ? "opacity-0 absolute" : "opacity-100"
                 }`}
               >
                 Inverter MS
@@ -52,9 +54,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           </div>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute -right-3 top-9 bg-white rounded-full p-1 shadow-sm border border-gray-100 hover:border-gray-200 transition-all"
+            className="absolute -right-3 top-9 bg-white rounded-full p-1 shadow-sm border border-gray-100 hover:border-gray-200 transition-all hidden lg:block"
           >
-            {isCollapsed ? (
+            {finalIsCollapsed ? (
               <FiChevronRight size={16} />
             ) : (
               <FiChevronLeft size={16} />
@@ -69,49 +71,49 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             label="Dashboard"
             to="/dashboard"
             active={isPathActive("/dashboard")}
-            isCollapsed={isCollapsed}
+            isCollapsed={finalIsCollapsed}
           />
           <NavItem
             icon={<FiUsers />}
             label="Users"
             to="/users"
             active={isPathActive("/users")}
-            isCollapsed={isCollapsed}
+            isCollapsed={finalIsCollapsed}
           />
           <NavItem
             icon={<FiUser />}
             label="Dealers"
             to="/dealers"
             active={isPathActive("/dealers")}
-            isCollapsed={isCollapsed}
+            isCollapsed={finalIsCollapsed}
           />
           <NavItem
             icon={<FiBox />}
             label="Products"
             to="/products"
             active={isPathActive("/products")}
-            isCollapsed={isCollapsed}
+            isCollapsed={finalIsCollapsed}
           />
           <NavItem
             icon={<FiClipboard />}
             label="Orders"
             to="/orders"
             active={isPathActive("/orders")}
-            isCollapsed={isCollapsed}
+            isCollapsed={finalIsCollapsed}
           />
           <NavItem
             icon={<FiTruck />}
             label="Delivery"
             to="/delivery"
             active={isPathActive("/delivery")}
-            isCollapsed={isCollapsed}
+            isCollapsed={finalIsCollapsed}
           />
           <NavItem
             icon={<FiPackage />}
             label="Billing"
             to="/billing"
             active={isPathActive("/billing")}
-            isCollapsed={isCollapsed}
+            isCollapsed={finalIsCollapsed}
           />
         </nav>
 
@@ -121,7 +123,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             label="Settings"
             to="/settings"
             active={isPathActive("/settings")}
-            isCollapsed={isCollapsed}
+            isCollapsed={finalIsCollapsed}
           />
         </div>
       </div>
@@ -139,11 +141,7 @@ const NavItem = ({ icon, label, to, active, isCollapsed }) => (
     }`}
   >
     <span className={`text-xl ${active ? "text-[#9333EA]" : "text-gray-500"}`}>{icon}</span>
-    {isCollapsed ? (
-      <span className="absolute left-full ml-2 p-2 bg-gray-800 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 whitespace-nowrap z-50">
-        {label}
-      </span>
-    ) : (
+    {!isCollapsed && (
       <span className={`ml-3 text-sm font-medium ${active ? "text-[#9333EA]" : "text-gray-600"}`}>{label}</span>
     )}
   </Link>

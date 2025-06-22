@@ -44,7 +44,7 @@ export default function Layout() {
       </div>
 
       {/* Main Content Area */}
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'} min-h-screen`}>
+      <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed && !isMobileMenuOpen ? 'lg:ml-16' : 'lg:ml-64'} ${isMobileMenuOpen ? 'ml-64' : ''} lg:min-h-screen`}>
         {/* Navbar */}
         <Navbar 
           isMobileMenuOpen={isMobileMenuOpen}
