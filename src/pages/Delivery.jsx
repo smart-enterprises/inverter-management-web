@@ -12,6 +12,7 @@ import {
   FiX
 } from "react-icons/fi";
 import EmptyState from "../components/EmptyState";
+import DeliveryCard from "../components/DeliveryCard";
 
 const Delivery = () => {
   const [activeTab, setActiveTab] = useState("Pending");
@@ -59,70 +60,15 @@ const Delivery = () => {
   ];
 
   const renderDeliveryCard = (delivery, isPending = false) => (
-    <div
+    <DeliveryCard
       key={delivery.id}
-      className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
-    >
-      <div className="flex-grow">
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-xl font-bold text-gray-800">
-            {delivery.id}
-          </h3>
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-              isPending
-                ? "bg-orange-100 text-orange-700"
-                : "bg-green-100 text-green-700"
-            }`}
-          >
-            {isPending ? <FiClock size={14} /> : <FiCheckCircle size={14} />}
-            {delivery.status}
-          </span>
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-gray-700">
-            <FiFileText
-              className="text-gray-400 flex-shrink-0"
-              size={16}
-            />
-            <span className="font-semibold">
-              {delivery.dealerName}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-gray-500 text-sm pr-1">
-            <div className="flex items-center gap-2">
-              <FiCalendar className="text-gray-400" />
-              <span>{delivery.date}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <FiBox className="text-gray-400" />
-              <span>{delivery.items}</span>
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 flex items-start gap-3 text-gray-600 text-sm mt-1">
-            <FiMapPin
-              className="text-gray-400 flex-shrink-0 mt-0.5"
-              size={15}
-            />
-            <span>{delivery.address}</span>
-          </div>
-        </div>
-      </div>
-      {isPending && (
-        <div className="mt-5">
-          <button
-            className="w-full flex items-center justify-center gap-2.5 bg-blue-600 text-white px-4 py-3 rounded-xl text-md font-bold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-blue-500/30"
-            onClick={() => {
-              setSelectedDelivery(delivery);
-              setModalOpen(true);
-            }}
-          >
-            <FiTruck size={18} />
-            Manage Delivery
-          </button>
-        </div>
-      )}
-    </div>
+      delivery={delivery}
+      isPending={isPending}
+      onManage={() => {
+        setSelectedDelivery(delivery);
+        setModalOpen(true);
+      }}
+    />
   );
 
   return (
