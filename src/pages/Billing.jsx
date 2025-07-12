@@ -73,7 +73,7 @@ const Billing = () => {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                className="w-full sm:w-64 pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
               />
             </div>
           </div>
@@ -110,7 +110,7 @@ const Billing = () => {
             {bills.map((bill) => (
               <tr key={bill.billId}>
                 <td className="py-4 px-6 whitespace-nowrap">
-                  <span className="text-sm font-medium text-blue-600">
+                  <span className="text-sm font-medium text-[#9333EA]">
                     {bill.billId}
                   </span>
                 </td>
@@ -157,11 +157,11 @@ const Billing = () => {
                 <td className="py-4 px-6 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     {!isSent && (
-                      <button className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                      <button className="flex items-center gap-1.5 bg-[#9333EA] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#8829DD] transition-colors">
                         <FiSend size={14} /> Send
                       </button>
                     )}
-                    <button className="flex items-center gap-1.5 bg-white text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
+                    <button className="flex items-center gap-1.5 text-[#9333EA] bg-white px-3 py-1.5 rounded-lg text-sm font-medium border border-purple-300 hover:bg-purple-50 transition-colors">
                       <FiEye size={14} /> View
                     </button>
                     <button className="p-2 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
@@ -178,41 +178,43 @@ const Billing = () => {
   );
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+              Billing Management
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex justify-start sm:justify-center overflow-x-auto mb-6">
+          <div className="inline-flex items-center p-1 bg-gray-100 rounded-xl">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === tab
+                    ? "bg-white text-gray-700 shadow-sm"
+                    : "text-gray-500 hover:bg-white/60"
+                }`}
+              >
+                {tab === "Pending Bills" ? (
+                  <FiClock className="text-orange-500" />
+                ) : (
+                  <FiCheckCircle className="text-green-500" />
+                )}
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Billing Management
-          </h1>
+          {activeTab === "Pending Bills" && renderTable(pendingBills)}
+          {activeTab === "Sent Bills" && renderTable(sentBills, true)}
         </div>
-      </div>
-
-      <div className="flex justify-start sm:justify-center overflow-x-auto mb-6">
-        <div className="inline-flex gap-1 p-1 bg-gray-100 rounded-xl">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === tab
-                  ? "bg-white text-gray-800 shadow-sm"
-                  : "text-gray-500 hover:bg-white/50"
-              }`}
-            >
-              {tab === "Pending Bills" ? (
-                <FiClock className="text-orange-500" />
-              ) : (
-                <FiCheckCircle className="text-green-500" />
-              )}
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        {activeTab === "Pending Bills" && renderTable(pendingBills)}
-        {activeTab === "Sent Bills" && renderTable(sentBills, true)}
       </div>
     </div>
   );

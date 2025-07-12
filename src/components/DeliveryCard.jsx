@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiClock, FiFileText, FiCalendar, FiBox, FiMapPin, FiTruck } from 'react-icons/fi';
+import { FiClock, FiFileText, FiCalendar, FiBox, FiMapPin, FiTruck, FiCheckCircle } from 'react-icons/fi';
 
 const DeliveryCard = ({ delivery, isPending, onManage }) => {
   return (
@@ -7,8 +7,15 @@ const DeliveryCard = ({ delivery, isPending, onManage }) => {
       <div>
         <div className="flex justify-between items-start mb-4">
           <h3 className="text-xl font-bold text-gray-800">{delivery.id}</h3>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-600">
-            <FiClock size={14} />
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+            delivery.status === 'Pending'
+              ? 'bg-orange-100 text-orange-600'
+              : 'bg-green-100 text-green-600'
+          }`}>
+            {delivery.status === 'Pending' 
+              ? <FiClock size={14} />
+              : <FiCheckCircle size={14} />
+            }
             {delivery.status}
           </span>
         </div>
@@ -38,7 +45,7 @@ const DeliveryCard = ({ delivery, isPending, onManage }) => {
       </div>
 
       {isPending && (
-        <button onClick={onManage} className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors mt-6">
+        <button onClick={onManage} className="w-full flex items-center justify-center gap-2 bg-[#9333EA] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#8829DD] transition-colors mt-6">
           <FiTruck size={16} />
           Manage Delivery
         </button>

@@ -180,8 +180,8 @@ const Delivery = () => {
             <div className="p-8">
               {/* Info Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-5">
-                  <div className="text-blue-700 font-semibold text-sm mb-2 flex items-center gap-2">
+                <div className="bg-purple-50 border border-purple-100 rounded-xl p-5">
+                  <div className="text-purple-700 font-semibold text-sm mb-2 flex items-center gap-2">
                     <FiFileText /> Dealer Information
                   </div>
                   <div className="font-bold text-lg text-gray-800">
@@ -242,7 +242,7 @@ const Delivery = () => {
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-600">
                         <FiClock size={14} /> Pending
                       </span>
-                      <button className="border border-blue-300 text-blue-600 bg-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-50">
+                      <button className="border border-purple-300 text-purple-700 bg-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-purple-50">
                         Update
                       </button>
                     </div>
@@ -262,7 +262,7 @@ const Delivery = () => {
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-600">
                         <FiClock size={14} /> Pending
                       </span>
-                      <button className="border border-blue-300 text-blue-600 bg-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-50">
+                      <button className="border border-purple-300 text-purple-700 bg-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-purple-50">
                         Update
                       </button>
                     </div>
