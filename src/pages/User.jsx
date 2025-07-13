@@ -8,6 +8,8 @@ import {
   FiChevronRight,
   FiKey,
   FiX,
+  FiEye,
+  FiEyeOff
 } from "react-icons/fi";
 import CustomSelect from '../components/CustomSelect';
 
@@ -165,6 +167,7 @@ const CreateUserModal = ({ isOpen, onClose }) => {
     role: 'Salesman',
     address: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -178,6 +181,10 @@ const CreateUserModal = ({ isOpen, onClose }) => {
     e.preventDefault();
     console.log('Form submitted:', formData);
     onClose();
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword((prev) => !prev);
   };
 
   if (!isOpen) return null;
@@ -222,6 +229,7 @@ const CreateUserModal = ({ isOpen, onClose }) => {
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
                   placeholder="Enter full name"
+                  autoComplete="name"
                   required
                 />
               </div>
@@ -238,6 +246,7 @@ const CreateUserModal = ({ isOpen, onClose }) => {
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
                   placeholder="Enter email address"
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -246,16 +255,31 @@ const CreateUserModal = ({ isOpen, onClose }) => {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                   Password
                 </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                  placeholder="Enter password"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm pr-10"
+                    placeholder="Enter password"
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    ) : (
+                      <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>

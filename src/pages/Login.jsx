@@ -98,6 +98,7 @@ export default function Login() {
                 className="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2 transition-all focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
                 placeholder="Enter your email"
                 disabled={loading}
+                autoComplete="username"
               />
             </div>
             <div>
@@ -116,6 +117,7 @@ export default function Login() {
                   className="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2 pr-10 transition-all focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
                   placeholder="Enter your password"
                   disabled={loading}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
