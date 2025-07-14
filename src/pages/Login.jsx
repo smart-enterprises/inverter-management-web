@@ -54,10 +54,14 @@ export default function Login() {
         const from = location.state?.from?.pathname || "/dashboard";
         navigate(from, { replace: true });
       } else {
-        setError(result.message);
+        setError(result.message || 'Login failed');
       }
-    } catch {
-      setError("An error occurred. Please try again.");
+    } catch (err) {
+      if (err && err.message) {
+        setError(err.message);
+      } else {
+        setError("An error occurred. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

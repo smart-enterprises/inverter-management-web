@@ -28,13 +28,17 @@ export const apiRequest = async (endpoint, options = {}) => {
         window.location.href = '/login';
         return;
       }
-      throw new Error(data.message || 'API request failed');
     }
     
     return data;
   } catch (error) {
     console.error('API request error:', error);
-    throw error;
+
+    return {
+      success: false,
+      message: error.message || 'Network error',
+      errors: [],
+    };
   }
 };
 

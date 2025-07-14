@@ -6,9 +6,13 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef(null);
 
+  // Support both string and object options
+  const getOptionLabel = (option) => typeof option === 'object' ? option.label : option;
+  const getOptionValue = (option) => typeof option === 'object' ? option.value : option;
+
   // Filter options based on search query
   const filteredOptions = options.filter(option =>
-    option.toLowerCase().includes(searchQuery.toLowerCase())
+    getOptionLabel(option).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Close dropdown when clicking outside
@@ -31,7 +35,9 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-left text-sm flex items-center justify-between hover:border-[#9333EA] focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20 transition-all"
       >
-        <span className={value ? "text-gray-900" : "text-gray-500"}>{value || placeholder}</span>
+        <span className={value ? "text-gray-900" : "text-gray-500"}>{
+          getOptionLabel(options.find(opt => getOptionValue(opt) === value)) || placeholder
+        }</span>
         <FiChevronDown className={`text-gray-400 transition-transform ${isOpen ? 'transform rotate-180' : ''}`} />
       </button>
 
@@ -61,20 +67,20 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((option) => (
                   <button
-                    key={option}
+                    key={getOptionValue(option)}
                     type="button"
                     onClick={() => {
-                      onChange({ target: { name, value: option } });
+                      onChange({ target: { name, value: getOptionValue(option) } });
                       setIsOpen(false);
                       setSearchQuery('');
                     }}
                     className={`w-full px-4 py-2 text-sm text-left transition-colors ${
-                      value === option 
-                        ? 'bg-[#9333EA]/10 text-[#9333EA]' 
+                      value === getOptionValue(option)
+                        ? 'bg-[#9333EA]/10 text-[#9333EA]'
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    {option}
+                    {getOptionLabel(option)}
                   </button>
                 ))
               ) : (
