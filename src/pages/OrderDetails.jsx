@@ -76,16 +76,16 @@ const OrderDetails = () => {
         >
           <FiArrowLeft className="text-gray-500" size={20} />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Order Details</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Order Details</h1>
       </div>
 
       {/* Order Summary Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-        <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Order #{order.id}</h2>
+        <div className="p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Order #{order.id}</h2>
           <p className="text-sm text-gray-500 mb-6">Order details and summary</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm text-gray-500 mb-1">Dealer</label>
               <p className="text-sm font-medium text-gray-900">{order.dealer}</p>
@@ -135,22 +135,22 @@ const OrderDetails = () => {
 
       {/* Ordered Items Card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Ordered Items</h2>
+        <div className="p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Ordered Items</h2>
           <p className="text-sm text-gray-500 mb-6">Products included in this order</p>
 
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">#</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Product Name</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Brand</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Model</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Type</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Quantity</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Delivery Date</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Status</th>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Product Name</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Brand</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Model</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Quantity</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Delivery Date</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody>

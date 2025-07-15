@@ -50,16 +50,16 @@ const DealerDetails = () => {
         >
           <FiArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-2xl font-semibold text-gray-900">Dealer Details</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Dealer Details</h1>
       </div>
 
       {/* Dealer Information Card */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Dealer Information</h2>
           <p className="text-sm text-gray-500 mb-6">Personal and contact details</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm text-gray-500 mb-1">Name</label>
               <p className="text-sm font-medium text-gray-900">{dealer.name}</p>
@@ -97,7 +97,7 @@ const DealerDetails = () => {
 
       {/* Orders Summary Card */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Orders Summary</h2>
           <p className="text-sm text-gray-500 mb-6">Overview of dealer's orders</p>
 
@@ -127,21 +127,21 @@ const DealerDetails = () => {
 
       {/* Order History Card */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Order History</h2>
           <p className="text-sm text-gray-500 mb-6">All orders placed by this dealer</p>
 
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Order ID</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Date</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Items</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Priority</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Status</th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-gray-900">Delivery Date</th>
-                  <th className="text-right py-4 px-4 text-sm font-semibold text-gray-900">Actions</th>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Order ID</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Items</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Priority</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Delivery Date</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody>

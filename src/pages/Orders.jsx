@@ -306,7 +306,7 @@ const Orders = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Orders List</h2>
+            <h2 className="text-xl font-bold text-gray-800">Orders List</h2>
             <p className="text-sm text-gray-500 mt-1">Manage and track all orders</p>
           </div>
 

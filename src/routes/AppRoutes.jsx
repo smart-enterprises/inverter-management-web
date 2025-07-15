@@ -11,15 +11,45 @@ import Products from "../pages/Products";
 import Orders from "../pages/Orders";
 import CreateOrder from "../pages/CreateOrder";
 import OrderDetails from "../pages/OrderDetails";
+import Billing from "../pages/Billing";
+import Delivery from "../pages/Delivery";
+import ProtectedRoute from "../components/ProtectedRoute";
+import { useAuth } from "../hooks/useAuth";
 
 export default function AppRoutes() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/login" element={<Login />} />
+      {/* Public Routes */}
+      <Route 
+        path="/login" 
+        element={
+          isAuthenticated() ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Login />
+          )
+        } 
+      />
 
       {/* Protected Routes */}
-      <Route element={<Layout />}>
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Navigate to="/dashboard" replace />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/users" element={<Users />} />
         <Route path="/dealers" element={<Dealers />} />
@@ -28,12 +58,11 @@ export default function AppRoutes() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/create" element={<CreateOrder />} />
         <Route path="/orders/:id" element={<OrderDetails />} />
-        {/* <Route path="/delivery" element={<Delivery />} /> */}
-        {/* <Route path="/billing" element={<Billing />} /> */}
-        {/* <Route path="/account" element={<Account />} /> */}
-        {/* <Route path="/settings" element={<Settings />} /> */}
+        <Route path="/delivery" element={<Delivery />} />
+        <Route path="/billing" element={<Billing />} />
       </Route>
 
+      {/* Catch all route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
