@@ -1,4 +1,4 @@
-export const API_BASE_URL = '/api/v1';
+export const API_BASE_URL = 'http://88.222.245.191:1280/api/v1';
 
 export const apiRequest = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
