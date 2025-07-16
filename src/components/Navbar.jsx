@@ -12,6 +12,23 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
+const ROLE_DISPLAY_NAMES = {
+  ROLE_SUPER_ADMIN: 'Super Admin',
+  ROLE_ADMIN: 'Admin',
+  ROLE_MANAGER: 'Manager',
+  ROLE_SUPERVISOR: 'Supervisor',
+  ROLE_SALESMAN: 'Salesman',
+  ROLE_PRODUCTION: 'Production',
+  ROLE_PACKING: 'Packing',
+  ROLE_ACCOUNTS: 'Accounts',
+  ROLE_DELIVERY: 'Delivery',
+};
+
+const getDisplayRole = (role) => {
+  if (!role) return "";
+  return ROLE_DISPLAY_NAMES[role] || role.replace("ROLE_", "").replace("_", " ");
+};
+
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -75,7 +92,9 @@ const Navbar = () => {
                 <div className="px-4 py-2 border-b border-gray-100">
                   <div className="text-sm font-medium text-gray-900">{user?.employee_name}</div>
                   <div className="text-xs text-gray-500">{user?.employee_email}</div>
-                  <div className="text-xs text-purple-600 font-medium mt-1">{user?.role}</div>
+                  <div className="text-xs text-purple-600 font-medium mt-1">
+                    {getDisplayRole(user?.role)}
+                  </div>
                 </div>
                 
                 <button
