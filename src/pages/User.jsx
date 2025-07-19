@@ -13,7 +13,7 @@ import {
 } from "react-icons/fi";
 import CustomSelect from '../components/CustomSelect';
 import Swal from 'sweetalert2';
-import { apiRequest } from '../utils/api';
+import { fetchUsers, fetchUserById, createUser, updateUser, resetUserPasswordById, deleteUserById } from '../api/user';
 
 const ROLE_LABELS = {
   ROLE_SUPER_ADMIN: 'Super Admin',
@@ -64,7 +64,7 @@ const FilterTabs = ({ activeTab, onTabChange }) => {
   );
 };
 
-const UserTable = ({ users, onEdit, currentPage, totalPages, onPageChange }) => (
+const UserTable = ({ users, onEdit, onResetPassword, onDeleteUser, currentPage, totalPages, onPageChange }) => (
   <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -105,10 +105,10 @@ const UserTable = ({ users, onEdit, currentPage, totalPages, onPageChange }) => 
                   <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors group" onClick={() => onEdit && onEdit(user.employee_id)}>
                     <FiEdit2 className="text-gray-400 group-hover:text-blue-600" size={18} />
                   </button>
-                  <button className="p-2 hover:bg-indigo-50 rounded-lg transition-colors group">
+                  <button className="p-2 hover:bg-indigo-50 rounded-lg transition-colors group" onClick={() => onResetPassword && onResetPassword(user.employee_id)}>
                     <FiKey className="text-gray-400 group-hover:text-indigo-600" size={18} />
                   </button>
-                  <button className="p-2 hover:bg-red-50 rounded-lg transition-colors group">
+                  <button className="p-2 hover:bg-red-50 rounded-lg transition-colors group" onClick={() => onDeleteUser && onDeleteUser(user.employee_id)}>
                     <FiTrash2 className="text-gray-400 group-hover:text-red-600" size={18} />
                   </button>
                 </div>
@@ -186,10 +186,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserChanged, editingEmployeeId, ed
           role: formData.role,
           address: formData.address
         };
-        res = await apiRequest(`/employees/${editingEmployeeId}`, {
-          method: 'PUT',
-          body: JSON.stringify(payload),
-        });
+        res = await updateUser(editingEmployeeId, payload);
       } else {
         // Create user
         const payload = {
@@ -200,10 +197,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserChanged, editingEmployeeId, ed
           role: formData.role,
           address: formData.address
         };
-        res = await apiRequest('/employees/signup', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
+        res = await createUser(payload);
       }
       if (res && res.success) {
         onClose();
@@ -230,13 +224,8 @@ const CreateUserModal = ({ isOpen, onClose, onUserChanged, editingEmployeeId, ed
         setFieldErrors({});
       }
     } catch (err) {
-      if (err && err.message) {
-        setError(err.message);
-        setFieldErrors({});
-      } else {
-        setError('Network error. Please try again.');
-        setFieldErrors({});
-      }
+      setError(err?.message || 'Network error. Please try again.');
+      setFieldErrors({});
     } finally {
       setLoading(false);
     }
@@ -523,10 +512,21 @@ const User = () => {
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [editingEmployeeData, setEditingEmployeeData] = useState(null);
   const itemsPerPage = 5;
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [resetCurrentPassword, setResetCurrentPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
 
   const fetchEmployees = async () => {
     try {
-      const res = await apiRequest('/employees/?page=1&limit=100');
+      const res = await fetchUsers();
       if (res && res.success && res.data && res.data.employees) {
         setEmployees(res.data.employees);
       }
@@ -552,12 +552,73 @@ const User = () => {
     setIsModalOpen(true);
     // Fetch employee details
     try {
-      const res = await apiRequest(`/employees/${employeeId}`);
+      const res = await fetchUserById(employeeId);
       if (res && res.success && res.data) {
         setEditingEmployeeData(res.data);
       }
     } catch {
       // Optionally handle error
+    }
+  };
+
+  // Reset Password Handler
+  const handleOpenResetModal = (userId) => {
+    setSelectedUserId(userId);
+    setResetPassword('');
+    setResetCurrentPassword('');
+    setResetConfirmPassword('');
+    setResetError('');
+    setShowResetModal(true);
+  };
+  const handleResetPassword = async () => {
+    setResetLoading(true);
+    setResetError('');
+    if (resetPassword !== resetConfirmPassword) {
+      setResetError('Passwords do not match');
+      setResetLoading(false);
+      return;
+    }
+    try {
+      const res = await resetUserPasswordById(selectedUserId, {
+        password: resetPassword,
+        current_password: resetCurrentPassword,
+      });
+      if (res && res.success) {
+        setShowResetModal(false);
+        await Swal.fire({ icon: 'success', title: 'Password Reset', text: res.message || 'Password reset successfully!', confirmButtonText: 'OK' });
+      } else {
+        setResetError(res?.message || 'Failed to reset password');
+      }
+    } catch (err) {
+      setResetError(err?.message || 'Network error');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  // Delete User Handler
+  const handleOpenDeleteModal = (userId) => {
+    setSelectedUserId(userId);
+    setDeleteReason('');
+    setDeleteError('');
+    setShowDeleteModal(true);
+  };
+  const handleDeleteUser = async () => {
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      const res = await deleteUserById(selectedUserId, deleteReason);
+      if (res && res.success) {
+        setShowDeleteModal(false);
+        await Swal.fire({ icon: 'success', title: 'User Deleted', text: res.message || 'User deleted successfully!', confirmButtonText: 'OK' });
+        fetchEmployees();
+      } else {
+        setDeleteError(res?.message || 'Failed to delete user');
+      }
+    } catch (err) {
+      setDeleteError(err?.message || 'Network error');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -595,11 +656,113 @@ const User = () => {
         <UserTable 
           users={currentUsers}
           onEdit={handleEditUser}
+          onResetPassword={handleOpenResetModal}
+          onDeleteUser={handleOpenDeleteModal}
           currentPage={currentPage}
           totalPages={Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage))}
           onPageChange={page => setCurrentPage(page)}
         />
       </div>
+
+      {/* Reset Password Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative animate-fadeIn">
+            {/* Close Button */}
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
+              onClick={() => setShowResetModal(false)}
+              aria-label="Close"
+            >
+              <FiX size={22} />
+            </button>
+            {/* Icon and Title */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="bg-[#F3E8FF] text-[#9333EA] rounded-full p-3 mb-2">
+                <FiKey size={28} />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Reset User Password</h2>
+              <p className="text-sm text-gray-500 mt-1">Set a new password for this user</p>
+            </div>
+            {/* Form */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#9333EA] focus:ring-1 focus:ring-[#E9D5FF] text-sm"
+                  placeholder="Enter current password"
+                  value={resetCurrentPassword}
+                  onChange={e => setResetCurrentPassword(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#9333EA] focus:ring-1 focus:ring-[#E9D5FF] text-sm"
+                  placeholder="Enter new password"
+                  value={resetPassword}
+                  onChange={e => setResetPassword(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#9333EA] focus:ring-1 focus:ring-[#E9D5FF] text-sm"
+                  placeholder="Confirm new password"
+                  value={resetConfirmPassword}
+                  onChange={e => setResetConfirmPassword(e.target.value)}
+                />
+              </div>
+              {resetError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">{resetError}</div>
+              )}
+              <button
+                className="w-full bg-[#9333EA] hover:bg-[#8829DD] text-white py-2.5 rounded-lg font-semibold transition-colors mt-2"
+                onClick={handleResetPassword}
+                disabled={resetLoading || !resetPassword || !resetCurrentPassword || !resetConfirmPassword}
+              >
+                {resetLoading ? 'Resetting...' : 'Reset Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
+            <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition" onClick={() => setShowDeleteModal(false)} aria-label="Close">
+              <FiX size={22} />
+            </button>
+            <div className="flex flex-col items-center mb-6">
+              <div className="bg-[#fde5e5] text-[#fd2c2c] rounded-full p-3 mb-2">
+                <FiTrash2 size={28} />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Delete User</h2>
+              <p className="text-sm text-gray-500 mt-1">Are you sure you want to delete this user?</p>
+            </div>
+            <textarea
+              className="w-full px-4 py-2 rounded-lg border border-gray-200 mb-3"
+              placeholder="Reason for deletion (optional)"
+              value={deleteReason}
+              onChange={e => setDeleteReason(e.target.value)}
+              rows={2}
+            />
+            {deleteError && <div className="text-red-600 text-sm mb-2">{deleteError}</div>}
+            <button
+              className="w-full bg-[#fd2c2c] hover:bg-[#ff4747] text-white py-2.5 rounded-lg font-semibold transition-all duration-200 mt-2 shadow-md hover:shadow-lg hover:scale-105"
+              onClick={handleDeleteUser}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? 'Deleting...' : 'Delete User'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <CreateUserModal 
         isOpen={isModalOpen}

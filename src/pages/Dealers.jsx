@@ -7,6 +7,14 @@ import Swal from 'sweetalert2';
 import { Link } from 'react-router-dom';
 import CustomSelect from '../components/CustomSelect';
 import { apiRequest } from '../utils/api';
+import { fetchDealers, fetchDealerById, createDealer, updateDealer } from '../api/dealer';
+import PortalDropdown from '../components/PortalDropdown';
+
+// Add getAuthHeaders utility (copied from src/api/user.js)
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
 
 const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, editingDealerData }) => {
   const [formData, setFormData] = useState({
@@ -72,10 +80,7 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
           address: formData.address,
           role: 'ROLE_DEALER'
         };
-        res = await apiRequest(`/employees/${editingDealerId}`, {
-          method: 'PUT',
-          body: JSON.stringify(payload),
-        });
+        res = await updateDealer(editingDealerId, payload);
       } else {
         // Create dealer
         const payload = {
@@ -90,10 +95,7 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
           brand: formData.brand,
           address: formData.address
         };
-        res = await apiRequest('/employees/signup', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
+        res = await createDealer(payload);
       }
       if (res && res.success) {
         setFormData({ name: '', email: '', phone: '', password: '', shop_name: '', district: '', town: '', brand: '', address: '' });
@@ -106,7 +108,7 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
             text: res.message || (editingDealerId ? 'Dealer updated successfully!' : 'Dealer created successfully!'),
             confirmButtonText: 'OK',
           });
-        }, 300); // Delay to allow modal to close smoothly
+        }, 300);
       } else if (Array.isArray(res?.errors) && res.errors.length > 0) {
         const errorMap = {};
         res.errors.forEach(e => {
@@ -355,56 +357,49 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
   );
 };
 
-const ActionMenu = ({ dealerId, onEdit, menuUp }) => {
+const ActionMenu = ({ dealerId, onEdit, onDelete }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = React.useRef();
 
   return (
-    <div className="relative">
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
+    <div className="relative inline-block text-left">
+      <button
+        ref={buttonRef}
+        onClick={() => setIsOpen((v) => !v)}
         className="p-1 hover:bg-gray-50 rounded-lg transition-colors"
       >
         <FiMoreHorizontal className="text-gray-400" size={18} />
       </button>
-
-      {isOpen && (
-        <>
-          <div 
-            className="fixed inset-0 z-30" 
-            onClick={() => setIsOpen(false)}
-          />
-          <div className={`absolute right-0 ${menuUp ? 'bottom-full mb-2' : 'mt-1'} w-40 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-40`}>
-            <Link
-              to={`/dealers/${dealerId}`}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <FiEye size={16} />
-              View Details
-            </Link>
-            <button
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-              onClick={() => {
-                // Handle edit
-                setIsOpen(false);
-                onEdit();
-              }}
-            >
-              <FiEdit2 size={16} />
-              Edit
-            </button>
-            <button
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-              onClick={() => {
-                // Handle delete
-                setIsOpen(false);
-              }}
-            >
-              <FiTrash2 size={16} />
-              Delete
-            </button>
-          </div>
-        </>
-      )}
+      <PortalDropdown anchorRef={buttonRef} open={isOpen} onClose={() => setIsOpen(false)}>
+        <Link
+          to={`/dealers/${dealerId}`}
+          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          onClick={() => setIsOpen(false)}
+        >
+          <FiEye size={16} />
+          View Details
+        </Link>
+        <button
+          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          onClick={() => {
+            setIsOpen(false);
+            onEdit();
+          }}
+        >
+          <FiEdit2 size={16} />
+          Edit
+        </button>
+        <button
+          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+          onClick={() => {
+            setIsOpen(false);
+            onDelete();
+          }}
+        >
+          <FiTrash2 size={16} />
+          Delete
+        </button>
+      </PortalDropdown>
     </div>
   );
 };
@@ -477,10 +472,15 @@ const Dealers = () => {
   const [editingDealerId, setEditingDealerId] = useState(null);
   const [editingDealerData, setEditingDealerData] = useState(null);
   const [userMap, setUserMap] = useState({});
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedDealerId, setSelectedDealerId] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
-  const fetchDealers = async () => {
+  const fetchDealersList = async () => {
     try {
-      const res = await apiRequest('/employees/?role=ROLE_DEALER');
+      const res = await fetchDealers();
       if (res && res.success && res.data && res.data.employees) {
         setDealers(res.data.employees);
       }
@@ -492,7 +492,7 @@ const Dealers = () => {
   // Fetch all users for mapping created_by ID to name
   const fetchUsers = async () => {
     try {
-      const res = await apiRequest('/employees/?page=1&limit=100');
+      const res = await apiRequest('/employees/?page=1&limit=100'); // This can be refactored to use fetchUsers from user.js if needed
       if (res && res.success && res.data && res.data.employees) {
         const map = {};
         res.data.employees.forEach(user => {
@@ -506,13 +506,13 @@ const Dealers = () => {
   };
 
   React.useEffect(() => {
-    fetchDealers();
+    fetchDealersList();
     fetchUsers();
   }, []);
 
   // When a dealer is created or updated, re-fetch the dealer list and reset edit state
   const handleDealerChanged = () => {
-    fetchDealers();
+    fetchDealersList();
     setEditingDealerId(null);
     setEditingDealerData(null);
   };
@@ -523,12 +523,42 @@ const Dealers = () => {
     setIsModalOpen(true);
     // Fetch dealer details
     try {
-      const res = await apiRequest(`/employees/${dealerId}`);
+      const res = await fetchDealerById(dealerId);
       if (res && res.success && res.data) {
         setEditingDealerData(res.data);
       }
     } catch {
       // Optionally handle error
+    }
+  };
+
+  const handleOpenDeleteModal = (dealerId) => {
+    setSelectedDealerId(dealerId);
+    setDeleteReason('');
+    setDeleteError('');
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteDealer = async () => {
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      const res = await apiRequest('/employees/update/delete-employee', {
+        method: 'PUT',
+        body: JSON.stringify({ employeeId: selectedDealerId, reason: deleteReason }),
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      });
+      if (res && res.success) {
+        setShowDeleteModal(false);
+        await Swal.fire({ icon: 'success', title: 'Dealer Deleted', text: res.message || 'Dealer deleted successfully!', confirmButtonText: 'OK' });
+        fetchDealersList();
+      } else {
+        setDeleteError(res?.message || 'Failed to delete dealer');
+      }
+    } catch (err) {
+      setDeleteError(err?.message || 'Network error');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -606,7 +636,7 @@ const Dealers = () => {
                 </tr>
               </thead>
               <tbody>
-                {paginatedDealers.map((dealer, idx) => (
+                {paginatedDealers.map((dealer) => (
                   <tr key={dealer.employee_id || dealer.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
                     <td className="py-4 px-4">
                       <span className="text-sm font-medium text-gray-900">{dealer.employee_name}</span>
@@ -637,12 +667,11 @@ const Dealers = () => {
                         {dealer.created_at ? new Date(dealer.created_at).toISOString().slice(0, 10) : ''}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-right">
-                      {/* Use ActionMenu for actions (edit, delete, view) */}
+                    <td className="py-4 px-4 text-right relative">
                       <ActionMenu
                         dealerId={dealer.employee_id || dealer.id}
                         onEdit={() => handleEditDealer(dealer.employee_id || dealer.id)}
-                        menuUp={idx >= paginatedDealers.length - 2}
+                        onDelete={() => handleOpenDeleteModal(dealer.employee_id || dealer.id)}
                       />
                     </td>
                   </tr>
@@ -674,6 +703,38 @@ const Dealers = () => {
         editingDealerId={editingDealerId}
         editingDealerData={editingDealerData}
       />
+      {/* Delete Dealer Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
+            <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition" onClick={() => setShowDeleteModal(false)} aria-label="Close">
+              <FiX size={22} />
+            </button>
+            <div className="flex flex-col items-center mb-6">
+              <div className="bg-[#fde5e5] text-[#fd2c2c] rounded-full p-3 mb-2">
+                <FiTrash2 size={28} />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Delete Dealer</h2>
+              <p className="text-sm text-gray-500 mt-1">Are you sure you want to delete this dealer?</p>
+            </div>
+            <textarea
+              className="w-full px-4 py-2 rounded-lg border border-gray-200 mb-3"
+              placeholder="Reason for deletion (optional)"
+              value={deleteReason}
+              onChange={e => setDeleteReason(e.target.value)}
+              rows={2}
+            />
+            {deleteError && <div className="text-red-600 text-sm mb-2">{deleteError}</div>}
+            <button
+              className="w-full bg-[#fd2c2c] hover:bg-[#ff4747] text-white py-2.5 rounded-lg font-semibold transition-all duration-200 mt-2 shadow-md hover:shadow-lg hover:scale-105"
+              onClick={handleDeleteDealer}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? 'Deleting...' : 'Delete Dealer'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
