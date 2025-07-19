@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { API_BASE_URL } from '../utils/api';
 import { AuthContext } from './AuthContextValue';
+import { login as apiLogin, logout as apiLogout } from '../api/auth';
 
 const INACTIVITY_LIMIT = 30 * 60 * 1000;
 
@@ -28,24 +29,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        await fetch(`${API_BASE_URL}/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-      }
+      await apiLogout();
     } catch (error) {
       console.error('Logout API error:', error);
     } finally {
-      // Always clear local storage regardless of API call success
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // Broadcast logout to other tabs
-      localStorage.setItem('logout-event', Date.now().toString());
       setUser(null);
     }
   }, []);
@@ -110,27 +97,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/signin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          employee_email: email,
-          password: password,
-        }),
-      });
-
-      const data = await response.json();
-
+      const data = await apiLogin(email, password);
       if (data.success) {
         const userData = data.data.employee;
         const token = data.data.token;
-        
-        // Store user data and token
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
-        
         setUser(userData);
         return { success: true, message: data.message };
       } else {
