@@ -37,11 +37,11 @@ export const updateDealer = async (id, payload) => {
   return response.json();
 };
 
-export const deleteDealerById = async (dealerId, reason) => {
+export const deleteDealerById = async (employeeId, reason) => {
   const response = await fetch(`${API_BASE_URL}/employees/update/delete-employee`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify({ dealerId, reason }),
+    body: JSON.stringify({ employeeId, reason }),
   });
   return response.json();
 }; 

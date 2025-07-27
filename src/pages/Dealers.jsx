@@ -7,14 +7,8 @@ import Swal from 'sweetalert2';
 import { Link } from 'react-router-dom';
 import CustomSelect from '../components/CustomSelect';
 import { apiRequest } from '../utils/api';
-import { fetchDealers, fetchDealerById, createDealer, updateDealer } from '../api/dealer';
+import { fetchDealers, fetchDealerById, createDealer, updateDealer, deleteDealerById } from '../api/dealer';
 import PortalDropdown from '../components/PortalDropdown';
-
-// Add getAuthHeaders utility (copied from src/api/user.js)
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
-};
 
 const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, editingDealerData }) => {
   const [formData, setFormData] = useState({
@@ -543,11 +537,7 @@ const Dealers = () => {
     setDeleteLoading(true);
     setDeleteError('');
     try {
-      const res = await apiRequest('/employees/update/delete-employee', {
-        method: 'PUT',
-        body: JSON.stringify({ employeeId: selectedDealerId, reason: deleteReason }),
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      });
+      const res = await deleteDealerById(selectedDealerId, deleteReason);
       if (res && res.success) {
         setShowDeleteModal(false);
         await Swal.fire({ icon: 'success', title: 'Dealer Deleted', text: res.message || 'Dealer deleted successfully!', confirmButtonText: 'OK' });

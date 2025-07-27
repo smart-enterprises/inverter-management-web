@@ -521,8 +521,6 @@ const User = () => {
   const [deleteReason, setDeleteReason] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  const [resetCurrentPassword, setResetCurrentPassword] = useState('');
-  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
 
   const fetchEmployees = async () => {
     try {
@@ -565,23 +563,15 @@ const User = () => {
   const handleOpenResetModal = (userId) => {
     setSelectedUserId(userId);
     setResetPassword('');
-    setResetCurrentPassword('');
-    setResetConfirmPassword('');
     setResetError('');
     setShowResetModal(true);
   };
   const handleResetPassword = async () => {
     setResetLoading(true);
     setResetError('');
-    if (resetPassword !== resetConfirmPassword) {
-      setResetError('Passwords do not match');
-      setResetLoading(false);
-      return;
-    }
     try {
       const res = await resetUserPasswordById(selectedUserId, {
         password: resetPassword,
-        current_password: resetCurrentPassword,
       });
       if (res && res.success) {
         setShowResetModal(false);
@@ -685,48 +675,31 @@ const User = () => {
               <p className="text-sm text-gray-500 mt-1">Set a new password for this user</p>
             </div>
             {/* Form */}
-            <div className="space-y-4">
+            <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                <label htmlFor="resetPassword" className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                 <input
-                  type="password"
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#9333EA] focus:ring-1 focus:ring-[#E9D5FF] text-sm"
-                  placeholder="Enter current password"
-                  value={resetCurrentPassword}
-                  onChange={e => setResetCurrentPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                <input
+                  id="resetPassword"
                   type="password"
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#9333EA] focus:ring-1 focus:ring-[#E9D5FF] text-sm"
                   placeholder="Enter new password"
                   value={resetPassword}
                   onChange={e => setResetPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-                <input
-                  type="password"
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#9333EA] focus:ring-1 focus:ring-[#E9D5FF] text-sm"
-                  placeholder="Confirm new password"
-                  value={resetConfirmPassword}
-                  onChange={e => setResetConfirmPassword(e.target.value)}
+                  autoComplete="resetPassword"
+                  required
                 />
               </div>
               {resetError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">{resetError}</div>
               )}
               <button
+                type="submit"
                 className="w-full bg-[#9333EA] hover:bg-[#8829DD] text-white py-2.5 rounded-lg font-semibold transition-colors mt-2"
-                onClick={handleResetPassword}
-                disabled={resetLoading || !resetPassword || !resetCurrentPassword || !resetConfirmPassword}
+                disabled={resetLoading || !resetPassword}
               >
                 {resetLoading ? 'Resetting...' : 'Reset Password'}
               </button>
-            </div>
+            </form>
           </div>
         </div>
       )}
