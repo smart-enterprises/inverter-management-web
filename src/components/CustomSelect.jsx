@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiChevronDown, FiSearch } from 'react-icons/fi';
 
-const CustomSelect = ({ value, onChange, options, placeholder, name, searchable = false }) => {
+const CustomSelect = ({ value, onChange, options, placeholder, name, searchable = false, disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef(null);
@@ -32,8 +32,13 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
     <div className="relative" ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-left text-sm flex items-center justify-between hover:border-[#9333EA] focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20 transition-all"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-left text-sm flex items-center justify-between transition-all ${
+          disabled 
+            ? 'opacity-50 cursor-not-allowed bg-gray-50' 
+            : 'hover:border-[#9333EA] focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20'
+        }`}
       >
         <span className={value ? "text-gray-900" : "text-gray-500"}>{
           getOptionLabel(options.find(opt => getOptionValue(opt) === value)) || placeholder
@@ -41,7 +46,7 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
         <FiChevronDown className={`text-gray-400 transition-transform ${isOpen ? 'transform rotate-180' : ''}`} />
       </button>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => {
             setIsOpen(false);

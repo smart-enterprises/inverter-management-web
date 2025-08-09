@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AuthContext } from './AuthContextValue';
 import { login as apiLogin, logout as apiLogout } from '../api/auth';
 
-const INACTIVITY_LIMIT = 10 * 60 * 1000;
+const INACTIVITY_LIMIT = 60 * 60 * 1000;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

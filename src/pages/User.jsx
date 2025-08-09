@@ -521,15 +521,22 @@ const User = () => {
   const [deleteReason, setDeleteReason] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const fetchEmployees = async () => {
     try {
+      setLoading(true);
+      setError('');
       const res = await fetchUsers();
       if (res && res.success && res.data && res.data.employees) {
         setEmployees(res.data.employees);
       }
-    } catch {
-      // Optionally handle error
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load users. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -643,15 +650,31 @@ const User = () => {
       </div>
       
       <div className="flex-1 min-h-0">
-        <UserTable 
-          users={currentUsers}
-          onEdit={handleEditUser}
-          onResetPassword={handleOpenResetModal}
-          onDeleteUser={handleOpenDeleteModal}
-          currentPage={currentPage}
-          totalPages={Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage))}
-          onPageChange={page => setCurrentPage(page)}
-        />
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-red-600">{error}</p>
+            <button 
+              onClick={fetchEmployees}
+              className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : (
+          <UserTable 
+            users={currentUsers}
+            onEdit={handleEditUser}
+            onResetPassword={handleOpenResetModal}
+            onDeleteUser={handleOpenDeleteModal}
+            currentPage={currentPage}
+            totalPages={Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage))}
+            onPageChange={page => setCurrentPage(page)}
+          />
+        )}
       </div>
 
       {/* Reset Password Modal */}
