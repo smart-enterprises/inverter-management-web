@@ -8,6 +8,7 @@ import Users from "../pages/User";
 import Dealers from "../pages/Dealers";
 import DealerDetails from "../pages/DealerDetails";
 import Products from "../pages/Products";
+import Brands from "../pages/Brands";
 import Orders from "../pages/Orders";
 import CreateOrder from "../pages/CreateOrder";
 import OrderDetails from "../pages/OrderDetails";
@@ -55,6 +56,7 @@ export default function AppRoutes() {
         <Route path="/dealers" element={<Dealers />} />
         <Route path="/dealers/:id" element={<DealerDetails />} />
         <Route path="/products" element={<Products />} />
+        <Route path="/brands" element={<Brands />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/create" element={<CreateOrder />} />
         <Route path="/orders/:id" element={<OrderDetails />} />

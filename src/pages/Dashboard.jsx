@@ -1,6 +1,7 @@
 import React from 'react';
 import { FiUsers, FiPackage, FiShoppingBag, FiTruck, FiTrendingUp, FiBox, FiAlertCircle, FiClock, FiArrowRight } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import { fetchUsers } from '../api/user';
 
 const StatCard = ({ icon, title, value }) => (
   <div className="bg-white rounded-xl p-4 transition-transform hover:scale-[1.02] cursor-pointer shadow-sm border border-gray-100">
@@ -78,6 +79,23 @@ const OrderCard = ({ number, dealer, priority, status }) => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [adminCount, setAdminCount] = React.useState(0);
+  const [salesmanCount, setSalesmanCount] = React.useState(0);
+  const [dealerCount, setDealerCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const getCounts = async () => {
+      const res = await fetchUsers();
+      if (res && res.success && res.data && res.data.employees) {
+        const employees = res.data.employees;
+        setAdminCount(employees.filter(e => e.role === 'ROLE_ADMIN').length);
+        setSalesmanCount(employees.filter(e => e.role === 'ROLE_SALESMAN').length);
+        setDealerCount(employees.filter(e => e.role === 'ROLE_DEALER').length);
+      }
+    };
+    getCounts();
+  }, []);
+
   const orders = [
     { id: 1, number: "1", dealer: "Green Energy Solutions", priority: "High", status: "in-production" },
     { id: 2, number: "2", dealer: "Green Energy Solutions", priority: "Medium", status: "packed" },
@@ -90,9 +108,9 @@ const Dashboard = () => {
       <div className="grid grid-rows-[auto_auto_1fr] gap-4 h-full max-h-full">
         {/* Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={<FiUsers />} title="Total Admins" value="1" />
-          <StatCard icon={<FiUsers />} title="Total Salesmen" value="1" />
-          <StatCard icon={<FiUsers />} title="Total Dealers" value="2" />
+          <StatCard icon={<FiUsers />} title="Total Admins" value={adminCount} />
+          <StatCard icon={<FiUsers />} title="Total Salesmen" value={salesmanCount} />
+          <StatCard icon={<FiUsers />} title="Total Dealers" value={dealerCount} />
           <StatCard icon={<FiShoppingBag />} title="Total Orders" value="3" />
         </div>
 

@@ -7,14 +7,8 @@ import Swal from 'sweetalert2';
 import { Link } from 'react-router-dom';
 import CustomSelect from '../components/CustomSelect';
 import { apiRequest } from '../utils/api';
-import { fetchDealers, fetchDealerById, createDealer, updateDealer } from '../api/dealer';
+import { fetchDealers, fetchDealerById, createDealer, updateDealer, deleteDealerById } from '../api/dealer';
 import PortalDropdown from '../components/PortalDropdown';
-
-// Add getAuthHeaders utility (copied from src/api/user.js)
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
-};
 
 const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, editingDealerData }) => {
   const [formData, setFormData] = useState({
@@ -477,15 +471,22 @@ const Dealers = () => {
   const [deleteReason, setDeleteReason] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const fetchDealersList = async () => {
     try {
+      setLoading(true);
+      setError('');
       const res = await fetchDealers();
       if (res && res.success && res.data && res.data.employees) {
         setDealers(res.data.employees);
       }
     } catch (err) {
       console.error(err);
+      setError('Failed to load dealers. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -543,11 +544,7 @@ const Dealers = () => {
     setDeleteLoading(true);
     setDeleteError('');
     try {
-      const res = await apiRequest('/employees/update/delete-employee', {
-        method: 'PUT',
-        body: JSON.stringify({ employeeId: selectedDealerId, reason: deleteReason }),
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      });
+      const res = await deleteDealerById(selectedDealerId, deleteReason);
       if (res && res.success) {
         setShowDeleteModal(false);
         await Swal.fire({ icon: 'success', title: 'Dealer Deleted', text: res.message || 'Dealer deleted successfully!', confirmButtonText: 'OK' });
@@ -611,18 +608,35 @@ const Dealers = () => {
               />
             </div>
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <CustomSelect
-                name="status"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                options={['All Statuses', 'Active', 'Inactive']}
-                placeholder="Select status"
-              />
+              <div className="w-40">
+                <CustomSelect
+                  name="status"
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  options={['All Statuses', 'Active', 'Inactive']}
+                  placeholder="Select status"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 overflow-x-auto" style={{ maxHeight: '60vh' }}>
-            <table className="w-full">
+          {loading ? (
+            <div className="mt-6 flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
+            </div>
+          ) : error ? (
+            <div className="mt-6 text-center py-8">
+              <p className="text-sm text-red-600">{error}</p>
+              <button 
+                onClick={fetchDealersList}
+                className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <div className="mt-6 overflow-x-auto" style={{ maxHeight: '60vh' }}>
+              <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
                   <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Dealer Name</th>
@@ -693,6 +707,7 @@ const Dealers = () => {
               onPageChange={setCurrentPage}
             />
           </div>
+          )}
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import {
   FiBarChart2,
   FiChevronLeft,
   FiChevronRight,
+  FiShield,
 } from "react-icons/fi";
 import { Link, useLocation } from "react-router-dom";
 
@@ -92,6 +93,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
             label="Products"
             to="/products"
             active={isPathActive("/products")}
+            isCollapsed={finalIsCollapsed}
+          />
+          <NavItem
+            icon={<FiShield />}
+            label="Brands"
+            to="/brands"
+            active={isPathActive("/brands")}
             isCollapsed={finalIsCollapsed}
           />
           <NavItem
