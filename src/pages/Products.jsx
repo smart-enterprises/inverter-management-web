@@ -1,17 +1,61 @@
-import React, { useState } from 'react';
-import { FiPlus, FiSearch, FiBox, FiX } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiPlus, FiSearch, FiBox, FiX, FiTrash2, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import CustomSelect from '../components/CustomSelect';
+import { fetchProducts, createProduct } from '../api/products';
+import { getAllBrands } from '../api/brands';
+import Swal from 'sweetalert2';
 
-const CreateProductModal = ({ isOpen, onClose }) => {
+const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
   const [formData, setFormData] = useState({
-    brandName: '',
-    modelName: '',
-    materialType: 'Aluminum (AL)',
-    unit: '',
+    brand: '',
+    product_name: '',
+    model: '',
+    product_type: 'Smart Phone',
+    product_price: '',
     unpackedStock: 0,
     packedStock: 0,
-    description: ''
+    unpackedNotes: '',
+    packedNotes: ''
   });
+  
+  const [brands, setBrands] = useState([]);
+  const [availableModels, setAvailableModels] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Fetch brands when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchBrands();
+      // Reset form when modal opens
+      setFormData({
+        brand: '',
+        product_name: '',
+        model: '',
+        product_type: 'Smart Phone',
+        product_price: '',
+        unpackedStock: 0,
+        packedStock: 0,
+        unpackedNotes: '',
+        packedNotes: ''
+      });
+      setAvailableModels([]);
+      setError('');
+      setSuccess('');
+    }
+  }, [isOpen]);
+
+  const fetchBrands = async () => {
+    try {
+      const response = await getAllBrands();
+      if (response && response.success && response.data) {
+        setBrands(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching brands:', err);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,21 +63,108 @@ const CreateProductModal = ({ isOpen, onClose }) => {
       ...prev,
       [name]: value
     }));
+
+    // When brand changes, update available models
+    if (name === 'brand') {
+      const selectedBrand = brands.find(brand => brand.brand_name === value);
+      if (selectedBrand && selectedBrand.brand_models) {
+        setAvailableModels(selectedBrand.brand_models);
+      } else {
+        setAvailableModels([]);
+      }
+      // Reset model when brand changes
+      setFormData(prev => ({
+        ...prev,
+        model: ''
+      }));
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    onClose();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Validate required fields
+      if (!formData.brand || !formData.product_name || !formData.model || !formData.product_price) {
+        setError('Please fill in all required fields.');
+        return;
+      }
+
+      // Prepare stocks array
+      const stocks = [];
+      
+      if (formData.unpackedStock > 0) {
+        stocks.push({
+          stock: parseInt(formData.unpackedStock),
+          stock_type: "UNPACKED",
+          type: "ADD",
+          stock_notes: formData.unpackedNotes || `added stock ${formData.unpackedStock} - unpacked`
+        });
+      }
+      
+      if (formData.packedStock > 0) {
+        stocks.push({
+          stock: parseInt(formData.packedStock),
+          stock_type: "PACKED",
+          type: "ADD",
+          stock_notes: formData.packedNotes || `added stock ${formData.packedStock} - packed`
+        });
+      }
+
+      // Prepare API payload
+      const payload = {
+        brand: formData.brand,
+        product_name: formData.product_name,
+        model: formData.model,
+        product_type: formData.product_type,
+        product_price: parseFloat(formData.product_price),
+        stocks: stocks
+      };
+
+      console.log('Creating product with payload:', payload);
+
+      const response = await createProduct(payload);
+      
+      if (response && response.success) {
+        // Close modal first
+        onClose();
+        
+        // Refresh products list
+        if (onProductCreated) {
+          onProductCreated();
+        }
+        
+        // Show success message
+        setTimeout(async () => {
+          await Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: response.message || 'Product created successfully!',
+            confirmButtonText: 'OK',
+          });
+        }, 100);
+      } else {
+        setError(response.message || 'Failed to create product');
+      }
+    } catch (err) {
+      setError(err.message || 'Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;
 
-  const materialOptions = [
-    'Aluminum (AL)',
-    'Copper',
-    'Steel',
-    'Plastic'
+  const productTypeOptions = [
+    'Smart Phone',
+    'Tablet',
+    'Laptop',
+    'Accessory',
+    'Cable',
+    'Wire'
   ];
 
   return (
@@ -54,7 +185,18 @@ const CreateProductModal = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6">
+          <form onSubmit={handleSubmit} className="p-6 max-h-[70vh] overflow-y-auto">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm mb-4">
+                {success}
+              </div>
+            )}
+
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-medium text-gray-900 flex items-center gap-2">
@@ -63,64 +205,98 @@ const CreateProductModal = ({ isOpen, onClose }) => {
                 </h3>
                 
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Brand Selection */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Brand Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="brandName"
-                      value={formData.brandName}
-                      onChange={handleChange}
-                      placeholder="e.g. Finolex, Polycab"
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Model Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="modelName"
-                      value={formData.modelName}
-                      onChange={handleChange}
-                      placeholder="e.g. 1.5 Sqmm, 2.5 Sqmm"
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Material Type <span className="text-red-500">*</span>
+                      Brand <span className="text-red-500">*</span>
                     </label>
                     <CustomSelect
-                      name="materialType"
-                      value={formData.materialType}
+                      name="brand"
+                      value={formData.brand}
                       onChange={handleChange}
-                      options={materialOptions}
-                      placeholder="Select material type"
+                      options={['', ...brands.map(brand => brand.brand_name)]}
+                      placeholder="Select brand"
+                      required
                     />
                   </div>
 
+                  {/* Product Name */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Unit (Optional)
+                      Product Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      name="unit"
-                      value={formData.unit}
+                      name="product_name"
+                      value={formData.product_name}
                       onChange={handleChange}
-                      placeholder="e.g. meter, roll, piece"
+                      placeholder="e.g. ONE PLUS Super Save"
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                      required
                     />
-                    <p className="mt-1 text-xs text-gray-500">The unit of measurement for this product</p>
                   </div>
 
+                  {/* Model Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Model <span className="text-red-500">*</span>
+                    </label>
+                    <CustomSelect
+                      name="model"
+                      value={formData.model}
+                      onChange={handleChange}
+                      options={['', ...availableModels]}
+                      placeholder={formData.brand ? "Select model" : "Select brand first"}
+                      disabled={!formData.brand || availableModels.length === 0}
+                      required
+                    />
+                    {formData.brand && availableModels.length === 0 && (
+                      <p className="mt-1 text-xs text-gray-500">No models available for this brand</p>
+                    )}
+                  </div>
+
+                  {/* Product Type */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Product Type <span className="text-red-500">*</span>
+                    </label>
+                    <CustomSelect
+                      name="product_type"
+                      value={formData.product_type}
+                      onChange={handleChange}
+                      options={productTypeOptions}
+                      placeholder="Select product type"
+                      required
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price (₹) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="product_price"
+                      value={formData.product_price}
+                      onChange={handleChange}
+                      placeholder="e.g. 17500"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Stock Information */}
+              <div>
+                <h3 className="text-base font-medium text-gray-900">Stock Information</h3>
+                <p className="text-sm text-gray-500 mt-1">Add initial stock quantities for this product</p>
+                
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Unpacked Stock */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Unpacked Stock Quantity
@@ -133,9 +309,9 @@ const CreateProductModal = ({ isOpen, onClose }) => {
                       min="0"
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
                     />
-                    <p className="mt-1 text-xs text-gray-500">Number of items available in unpacked stock</p>
                   </div>
 
+                  {/* Packed Stock */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Packed Stock Quantity
@@ -148,39 +324,59 @@ const CreateProductModal = ({ isOpen, onClose }) => {
                       min="0"
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
                     />
-                    <p className="mt-1 text-xs text-gray-500">Number of items available in packed stock</p>
                   </div>
-                </div>
 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description (Optional)
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    rows={3}
-                    placeholder="Enter product description"
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                  />
+                  {/* Stock Notes */}
+                  {formData.unpackedStock > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Unpacked Stock Notes (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        name="unpackedNotes"
+                        value={formData.unpackedNotes}
+                        onChange={handleChange}
+                        placeholder="e.g. Initial stock addition"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {formData.packedStock > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Packed Stock Notes (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        name="packedNotes"
+                        value={formData.packedNotes}
+                        onChange={handleChange}
+                        placeholder="e.g. Initial stock addition"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 mt-6">
+            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium"
+                disabled={loading}
+                className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-lg bg-[#9333EA] text-white hover:bg-[#8829DD] transition-colors text-sm font-medium"
+                disabled={loading}
+                className="px-6 py-2.5 rounded-lg bg-[#9333EA] text-white hover:bg-[#8829DD] transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Create Product
+                {loading ? 'Creating...' : 'Create Product'}
               </button>
             </div>
           </form>
@@ -190,57 +386,129 @@ const CreateProductModal = ({ isOpen, onClose }) => {
   );
 };
 
+const ProductsPagination = ({ currentPage, totalPages, onPageChange }) => {
+  return (
+    <div className="border-t border-gray-100">
+      <div className="px-4 lg:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
+        <div className="flex items-center justify-center sm:justify-start">
+          <span className="text-sm text-gray-600">
+            Page <span className="font-medium text-gray-900">{currentPage}</span> of{' '}
+            <span className="font-medium text-gray-900">{totalPages}</span>
+          </span>
+        </div>
+        <div className="flex items-center justify-center gap-2">
+          <button 
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-400"
+          >
+            <FiChevronLeft size={18} />
+          </button>
+          <div className="flex gap-1">
+            {[...Array(totalPages)].map((_, idx) => {
+              const pageNumber = idx + 1;
+              const isActive = pageNumber === currentPage;
+              const isNearCurrent = Math.abs(pageNumber - currentPage) <= 1 || pageNumber === 1 || pageNumber === totalPages;
+              
+              if (!isNearCurrent && pageNumber !== 1 && pageNumber !== totalPages) {
+                if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                  return <span key={idx} className="inline-flex items-center justify-center w-9 h-9 text-gray-400">...</span>;
+                }
+                return null;
+              }
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => onPageChange(pageNumber)}
+                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-[#9333EA] text-white'
+                      : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+          <button 
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FiChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Products = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('All Types');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
-  const products = [
-    {
-      id: 'SI-1KW',
-      brandName: 'PowerMax',
-      modelName: 'X100',
-      materialType: 'Aluminum',
-      unpackedStock: 15,
-      packedStock: 5,
-      status: 'Active'
-    },
-    {
-      id: 'SI-2KW',
-      brandName: 'PowerMax',
-      modelName: 'X200',
-      materialType: 'Aluminum',
-      unpackedStock: 10,
-      packedStock: 3,
-      status: 'Active'
-    },
-    {
-      id: 'BI-500W',
-      brandName: 'Voltron',
-      modelName: 'A50',
-      materialType: 'Copper',
-      unpackedStock: 20,
-      packedStock: 8,
-      status: 'Active'
+  // Fetch products on component mount
+  useEffect(() => {
+    fetchProductsList();
+  }, []);
+
+  const fetchProductsList = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await fetchProducts();
+      
+      if (response && response.success && response.data) {
+        setProducts(response.data);
+      } else {
+        setError('Failed to fetch products.');
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   // Filter products based on search query, type and status
   const filteredProducts = products.filter(product => {
     const matchesSearch = 
-      product.brandName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.modelName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.id.toLowerCase().includes(searchQuery.toLowerCase());
+      product.product_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.product_id?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesType = selectedType === 'All Types' || 
-                       product.materialType === selectedType;
+                       product.product_type === selectedType;
     
     const matchesStatus = selectedStatus === 'All Status' || 
-                         product.status === selectedStatus;
+                         product.status === selectedStatus.toLowerCase();
     
     return matchesSearch && matchesType && matchesStatus;
   });
+
+  // Paginate filtered products
+  const currentProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
+
+  // When a product is created, refresh the products list
+  const handleProductCreated = () => {
+    fetchProductsList();
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -271,95 +539,160 @@ const Products = () => {
                 type="text"
                 placeholder="Search by Product Name, Code or Brand..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
               />
             </div>
             <div className="flex items-center gap-3">
-              <CustomSelect
-                name="type"
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                options={['All Types', 'Aluminum', 'Copper', 'Steel', 'Plastic']}
-                placeholder="Select type"
-              />
-              <CustomSelect
-                name="status"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                options={['All Status', 'Active', 'Inactive']}
-                placeholder="Select status"
-              />
+              <div className="w-48">
+                <CustomSelect
+                  name="type"
+                  value={selectedType}
+                  onChange={(e) => {
+                    setSelectedType(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  options={['All Types', 'Smartphone', 'Tablet', 'Laptop', 'Accessory', 'Cable', 'Wire']}
+                  placeholder="Select type"
+                />
+              </div>
+              <div className="w-40">
+                <CustomSelect
+                  name="status"
+                  value={selectedStatus}
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  options={['All Status', 'Active', 'Inactive']}
+                  placeholder="Select status"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Product ID</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Brand Name</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Model Name</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Material Type</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Stock (Unpacked)</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Stock (Packed)</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
-                  <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.map((product) => (
-                  <tr key={product.id} className="border-b border-gray-100 last:border-0">
-                    <td className="py-4 px-4">
-                      <span className="text-sm font-medium text-gray-900">{product.id}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-gray-600">{product.brandName}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-gray-600">{product.modelName}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-gray-600">{product.materialType}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-gray-600">{product.unpackedStock}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-gray-600">{product.packedStock}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        product.status === 'Active' 
-                          ? 'bg-green-50 text-green-700'
-                          : 'bg-red-50 text-red-700'
-                      }`}>
-                        {product.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <button className="text-sm text-[#9333EA] hover:text-[#8829DD] font-medium">
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {filteredProducts.length === 0 && (
-                  <tr>
-                    <td colSpan="8" className="py-8 text-center">
-                      <p className="text-sm text-gray-500">No products found matching your criteria</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {loading ? (
+            <div className="mt-6 flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
+            </div>
+          ) : error ? (
+            <div className="mt-6 text-center py-8">
+              <p className="text-sm text-red-600">{error}</p>
+              <button 
+                onClick={fetchProductsList}
+                className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <div className="mt-6 overflow-x-auto">
+              <table className="w-full">
+                                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">ID</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Name</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Brand</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Model</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Type</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Price</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Available Stock</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Stock Details</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
+                      <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
+                    </tr>
+                  </thead>
+                <tbody>
+                  {currentProducts.map((product) => {
+                    // Calculate stock details from stocks array
+                    const unpackedStock = product.stocks?.find(s => s.stock_type === 'UNPACKED')?.stock || 0;
+                    const packedStock = product.stocks?.find(s => s.stock_type === 'PACKED')?.stock || 0;
+                    
+                    return (
+                      <tr key={product.product_id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                        <td className="py-4 px-4">
+                          <span className="text-sm font-medium text-gray-900">{product.product_id}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm font-medium text-gray-900">{product.product_name}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-gray-600">{product.brand}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-gray-600">{product.model}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-gray-600">{product.product_type}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm font-medium text-gray-900">
+                            ₹{product.price ? product.price.toLocaleString('en-IN') : 'N/A'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm font-medium text-gray-900">{product.available_stock}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="text-xs text-gray-500">
+                            <div>Unpacked: {unpackedStock}</div>
+                            <div>Packed: {packedStock}</div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            product.status === 'active' 
+                              ? 'bg-green-50 text-green-700'
+                              : 'bg-red-50 text-red-700'
+                          }`}>
+                            {product.status === 'active' ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <button className="text-sm text-[#9333EA] hover:text-[#8829DD] font-medium">
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!loading && currentProducts.length === 0 && (
+                    <tr>
+                      <td colSpan="10" className="py-8 text-center">
+                        <p className="text-sm text-gray-500">
+                          {products.length === 0 
+                            ? 'No products available' 
+                            : filteredProducts.length === 0 
+                              ? 'No products found matching your criteria'
+                              : `No products on page ${currentPage}`
+                          }
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              
+              {/* Pagination */}
+              {!loading && !error && filteredProducts.length > 0 && (
+                <ProductsPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       <CreateProductModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onProductCreated={handleProductCreated}
       />
     </div>
   );
