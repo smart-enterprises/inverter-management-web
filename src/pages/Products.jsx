@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiSearch, FiBox, FiX, FiTrash2, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiBox, FiX, FiTrash2, FiChevronLeft, FiChevronRight, FiEdit3, FiPackage } from 'react-icons/fi';
 import CustomSelect from '../components/CustomSelect';
-import { fetchProducts, createProduct } from '../api/products';
-import { getAllBrands } from '../api/brands';
+import { fetchProducts, createProduct, updateProduct, updateProductStock, fetchProductById } from '../api/products';
+import { getAllBrands, getActiveBrands } from '../api/brands';
 import Swal from 'sweetalert2';
 
 const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
@@ -386,6 +386,588 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
   );
 };
 
+const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
+  const [formData, setFormData] = useState({
+    product_name: '',
+    model: '',
+    product_type: 'Smart Phone',
+    brand: '',
+    product_price: '',
+    status: 'active',
+    status_reason: ''
+  });
+  
+  const [brands, setBrands] = useState([]);
+  const [availableModels, setAvailableModels] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Fetch product data and brands when modal opens
+  useEffect(() => {
+    if (isOpen && productId) {
+      // Only reset error and success states, not the form data
+      setError('');
+      setSuccess('');
+      
+      // First fetch brands, then fetch product data
+      const loadData = async () => {
+        try {
+          // Fetch brands first
+          const brandsResponse = await getActiveBrands();
+          if (brandsResponse && brandsResponse.success && brandsResponse.data) {
+            setBrands(brandsResponse.data);
+            
+            // Then fetch product data
+            const productResponse = await fetchProductById(productId);
+            if (productResponse && productResponse.success && productResponse.data) {
+              const product = productResponse.data;
+              
+              setFormData({
+                product_name: product.product_name || '',
+                model: product.model || '',
+                product_type: product.product_type || 'Smart Phone',
+                brand: product.brand || '',
+                product_price: product.product_price || product.price || '',
+                status: product.status || 'active',
+                status_reason: ''
+              });
+              
+              // Set available models for the product's brand
+              if (product.brand) {
+                const selectedBrand = brandsResponse.data.find(brand => brand.brand_name === product.brand);
+                if (selectedBrand && selectedBrand.brand_models) {
+                  setAvailableModels(selectedBrand.brand_models);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error loading data:', err);
+          setError('Failed to load product data');
+        }
+      };
+      
+      loadData();
+    }
+  }, [isOpen, productId]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset form data when modal closes
+      setFormData({
+        product_name: '',
+        model: '',
+        product_type: 'Smart Phone',
+        brand: '',
+        product_price: '',
+        status: 'active',
+        status_reason: ''
+      });
+      setAvailableModels([]);
+      setError('');
+      setSuccess('');
+    }
+  }, [isOpen]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // When brand changes, update available models
+    if (name === 'brand') {
+      const selectedBrand = brands.find(brand => brand.brand_name === value);
+      if (selectedBrand && selectedBrand.brand_models) {
+        setAvailableModels(selectedBrand.brand_models);
+      } else {
+        setAvailableModels([]);
+      }
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Validate required fields
+      if (!formData.product_name || !formData.model || !formData.product_type || !formData.brand || !formData.product_price) {
+        setError('Please fill in all required fields.');
+        return;
+      }
+
+      // Prepare API payload
+      const payload = {
+        product_name: formData.product_name,
+        model: formData.model,
+        product_type: formData.product_type,
+        brand: formData.brand,
+        product_price: parseFloat(formData.product_price),
+        status: formData.status
+      };
+
+      // Add status_reason if status is inactive
+      if (formData.status === 'inactive' && formData.status_reason) {
+        payload.status_reason = formData.status_reason;
+      }
+
+      const response = await updateProduct(productId, payload);
+      
+      if (response && response.success) {
+        // Close modal first
+        onClose();
+        
+        // Refresh products list
+        if (onProductUpdated) {
+          onProductUpdated();
+        }
+        
+        // Show success message
+        setTimeout(async () => {
+          await Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: response.message || 'Product updated successfully!',
+            confirmButtonText: 'OK',
+          });
+        }, 100);
+      } else {
+        setError(response.message || 'Failed to update product');
+      }
+    } catch (err) {
+      setError(err.message || 'Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  // Create dynamic product type options that include the current product's type
+  const baseProductTypeOptions = [
+    'Smart Phone',
+    'Tablet',
+    'Laptop',
+    'Accessory',
+    'Cable',
+    'Wire'
+  ];
+  
+  // Add current product type if it's not in the base options
+  const productTypeOptions = formData.product_type && !baseProductTypeOptions.includes(formData.product_type)
+    ? [...baseProductTypeOptions, formData.product_type]
+    : baseProductTypeOptions;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={onClose} />
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Edit Product</h2>
+              <p className="text-sm text-gray-500 mt-1">Update product information</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <FiX className="text-gray-500" size={20} />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 max-h-[70vh] overflow-y-auto">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm mb-4">
+                {success}
+              </div>
+            )}
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-base font-medium text-gray-900 flex items-center gap-2">
+                  <FiBox className="text-[#9333EA]" />
+                  Product Information
+                </h3>
+                
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Brand Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Brand <span className="text-red-500">*</span>
+                    </label>
+                    <CustomSelect
+                      name="brand"
+                      value={formData.brand}
+                      onChange={handleChange}
+                      options={['', ...brands.map(brand => brand.brand_name)]}
+                      placeholder="Select brand"
+                      required
+                    />
+                  </div>
+
+                  {/* Product Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Product Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="product_name"
+                      value={formData.product_name}
+                      onChange={handleChange}
+                      placeholder="e.g. ONE PLUS Super Save"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                      required
+                    />
+                  </div>
+
+                  {/* Model Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Model <span className="text-red-500">*</span>
+                    </label>
+                    <CustomSelect
+                      name="model"
+                      value={formData.model}
+                      onChange={handleChange}
+                      options={['', ...availableModels]}
+                      placeholder={formData.brand ? "Select model" : "Select brand first"}
+                      disabled={!formData.brand || availableModels.length === 0}
+                      required
+                    />
+                  </div>
+
+                  {/* Product Type */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Product Type <span className="text-red-500">*</span>
+                    </label>
+                    <CustomSelect
+                      name="product_type"
+                      value={formData.product_type}
+                      onChange={handleChange}
+                      options={productTypeOptions}
+                      placeholder="Select product type"
+                      required
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price (₹) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="product_price"
+                      value={formData.product_price}
+                      onChange={handleChange}
+                      placeholder="e.g. 17500"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                      required
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status <span className="text-red-500">*</span>
+                    </label>
+                    <CustomSelect
+                      name="status"
+                      value={formData.status}
+                      onChange={handleChange}
+                      options={['active', 'inactive']}
+                      placeholder="Select status"
+                      required
+                    />
+                  </div>
+
+                  {/* Status Reason */}
+                  {formData.status === 'inactive' && (
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Status Reason
+                      </label>
+                      <input
+                        type="text"
+                        name="status_reason"
+                        value={formData.status_reason}
+                        onChange={handleChange}
+                        placeholder="e.g. Product discontinued"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-2.5 rounded-lg bg-[#9333EA] text-white hover:bg-[#8829DD] transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Updating...' : 'Update Product'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const StockUpdateModal = ({ isOpen, onClose, onStockUpdated, productId, productName }) => {
+  const [formData, setFormData] = useState({
+    unpackedStock: 0,
+    packedStock: 0,
+    unpackedNotes: '',
+    packedNotes: ''
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        unpackedStock: 0,
+        packedStock: 0,
+        unpackedNotes: '',
+        packedNotes: ''
+      });
+      setError('');
+      setSuccess('');
+    }
+  }, [isOpen]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Validate that at least one stock type has quantity
+      if (formData.unpackedStock <= 0 && formData.packedStock <= 0) {
+        setError('Please add stock quantity for at least one type.');
+        return;
+      }
+
+      // Prepare stocks array
+      const stocks = [];
+      
+      if (formData.unpackedStock > 0) {
+        stocks.push({
+          stock: parseInt(formData.unpackedStock),
+          stock_type: "UNPACKED",
+          type: "ADD",
+          stock_notes: formData.unpackedNotes || `Added stock ${formData.unpackedStock} - unpacked`
+        });
+      }
+      
+      if (formData.packedStock > 0) {
+        stocks.push({
+          stock: parseInt(formData.packedStock),
+          stock_type: "PACKED",
+          type: "ADD",
+          stock_notes: formData.packedNotes || `Added stock ${formData.packedStock} - packed`
+        });
+      }
+
+      // Prepare API payload
+      const payload = {
+        stock_map: {
+          [productId]: stocks
+        }
+      };
+
+      const response = await updateProductStock(payload);
+      
+      if (response && response.success) {
+        // Close modal immediately
+        onClose();
+        
+        // Refresh products list
+        if (onStockUpdated) {
+          onStockUpdated();
+        }
+        
+        // Show SweetAlert success message immediately
+        Swal.fire({
+          icon: 'success',
+          title: 'Stock Updated Successfully! 🎉',
+          text: response.message || 'Product stock has been updated successfully!',
+          confirmButtonText: 'OK',
+          timer: 3000,
+          timerProgressBar: true,
+        });
+      } else {
+        setError(response.message || 'Failed to update stock');
+      }
+    } catch (err) {
+      setError(err.message || 'Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={onClose} />
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm w-full max-w-lg" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Update Stock</h2>
+              <p className="text-sm text-gray-500 mt-1">{productName}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <FiX className="text-gray-500" size={20} />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm mb-4">
+                {success}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {/* Unpacked Stock */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Unpacked Stock Quantity
+                </label>
+                <input
+                  type="number"
+                  name="unpackedStock"
+                  value={formData.unpackedStock}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                />
+              </div>
+
+              {/* Unpacked Stock Notes */}
+              {formData.unpackedStock > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Unpacked Stock Notes (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    name="unpackedNotes"
+                    value={formData.unpackedNotes}
+                    onChange={handleChange}
+                    placeholder="e.g. New stock addition"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                  />
+                </div>
+              )}
+
+              {/* Packed Stock */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Packed Stock Quantity
+                </label>
+                <input
+                  type="number"
+                  name="packedStock"
+                  value={formData.packedStock}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                />
+              </div>
+
+              {/* Packed Stock Notes */}
+              {formData.packedStock > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Packed Stock Notes (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    name="packedNotes"
+                    value={formData.packedNotes}
+                    onChange={handleChange}
+                    placeholder="e.g. New stock addition"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-2.5 rounded-lg bg-[#9333EA] text-white hover:bg-[#8829DD] transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Updating...' : 'Update Stock'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+};
+
 const ProductsPagination = ({ currentPage, totalPages, onPageChange }) => {
   return (
     <div className="border-t border-gray-100">
@@ -447,6 +1029,10 @@ const ProductsPagination = ({ currentPage, totalPages, onPageChange }) => {
 
 const Products = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [selectedProductName, setSelectedProductName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('All Types');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
@@ -455,11 +1041,22 @@ const Products = () => {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [success, setSuccess] = useState('');
 
   // Fetch products on component mount
   useEffect(() => {
     fetchProductsList();
   }, []);
+
+  // Auto-hide success message after 5 seconds
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   const fetchProductsList = async () => {
     try {
@@ -492,7 +1089,7 @@ const Products = () => {
                        product.product_type === selectedType;
     
     const matchesStatus = selectedStatus === 'All Status' || 
-                         product.status === selectedStatus.toLowerCase();
+                         product.status === selectedStatus;
     
     return matchesSearch && matchesType && matchesStatus;
   });
@@ -510,8 +1107,52 @@ const Products = () => {
     fetchProductsList();
   };
 
+  // When a product is updated, refresh the products list
+  const handleProductUpdated = () => {
+    fetchProductsList();
+    setSuccess('Product updated successfully! 🎉');
+  };
+
+  // When stock is updated, refresh the products list
+  const handleStockUpdated = () => {
+    fetchProductsList();
+    setSuccess('Stock updated successfully! 📦');
+  };
+
+  // Open edit modal
+  const openEditModal = (productId, productName) => {
+    setSelectedProductId(productId);
+    setSelectedProductName(productName);
+    setIsEditModalOpen(true);
+  };
+
+  // Open stock update modal
+  const openStockModal = (productId, productName) => {
+    setSelectedProductId(productId);
+    setSelectedProductName(productName);
+    setIsStockModalOpen(true);
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
+      {/* Success Notification Banner */}
+      {success && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <p className="text-sm font-medium text-green-800">{success}</p>
+            </div>
+            <button
+              onClick={() => setSuccess('')}
+              className="text-green-400 hover:text-green-600 transition-colors"
+            >
+              <FiX size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
@@ -555,7 +1196,7 @@ const Products = () => {
                     setSelectedType(e.target.value);
                     setCurrentPage(1);
                   }}
-                  options={['All Types', 'Smartphone', 'Tablet', 'Laptop', 'Accessory', 'Cable', 'Wire']}
+                  options={['All Types', 'Smart Phone', 'Tablet', 'Laptop', 'Accessory', 'Cable', 'Wire']}
                   placeholder="Select type"
                 />
               </div>
@@ -567,7 +1208,7 @@ const Products = () => {
                     setSelectedStatus(e.target.value);
                     setCurrentPage(1);
                   }}
-                  options={['All Status', 'Active', 'Inactive']}
+                  options={['All Status', 'active', 'inactive']}
                   placeholder="Select status"
                 />
               </div>
@@ -634,7 +1275,9 @@ const Products = () => {
                           </span>
                         </td>
                         <td className="py-4 px-4">
-                          <span className="text-sm font-medium text-gray-900">{product.available_stock}</span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {product.available_stock || 0}
+                          </span>
                         </td>
                         <td className="py-4 px-4">
                           <div className="text-xs text-gray-500">
@@ -652,9 +1295,24 @@ const Products = () => {
                           </span>
                         </td>
                         <td className="py-4 px-4 text-right">
-                          <button className="text-sm text-[#9333EA] hover:text-[#8829DD] font-medium">
-                            Edit
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              onClick={() => openEditModal(product.product_id, product.product_name)}
+                              className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 rounded-lg transition-colors"
+                              title="Edit Product"
+                            >
+                              <FiEdit3 size={16} />
+                            </button>
+                            {product.status === 'active' && (
+                              <button 
+                                onClick={() => openStockModal(product.product_id, product.product_name)}
+                                className="inline-flex items-center justify-center p-2 text-[#059669] hover:text-[#047857] hover:bg-[#059669]/5 rounded-lg transition-colors"
+                                title="Update Stock"
+                              >
+                                <FiPackage size={16} />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -693,6 +1351,21 @@ const Products = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onProductCreated={handleProductCreated}
+      />
+
+      <EditProductModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onProductUpdated={handleProductUpdated}
+        productId={selectedProductId}
+      />
+
+      <StockUpdateModal 
+        isOpen={isStockModalOpen}
+        onClose={() => setIsStockModalOpen(false)}
+        onStockUpdated={handleStockUpdated}
+        productId={selectedProductId}
+        productName={selectedProductName}
       />
     </div>
   );

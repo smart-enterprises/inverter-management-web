@@ -13,7 +13,7 @@ export const fetchProducts = async () => {
 };
 
 export const fetchProductById = async (productId) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/get/${productId}`, {
+  const response = await fetch(`${API_BASE_URL}/product-details/${productId}`, {
     headers: { ...getAuthHeaders() },
   });
   return response.json();
@@ -29,7 +29,7 @@ export const createProduct = async (productData) => {
 };
 
 export const updateProduct = async (productId, productData) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/update/${productId}`, {
+  const response = await fetch(`${API_BASE_URL}/product-details/${productId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(productData),
@@ -45,9 +45,8 @@ export const deleteProduct = async (productId) => {
   return response.json();
 };
 
-// Additional product-specific endpoints (if needed)
-export const updateProductStock = async (productId, stockData) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/stock/update/${productId}`, {
+export const updateProductStock = async (stockData) => {
+  const response = await fetch(`${API_BASE_URL}/product-details/createOrUpdate/product-stocks`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(stockData),
