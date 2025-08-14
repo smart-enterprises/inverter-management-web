@@ -1,8 +1,68 @@
-import React, { useState } from 'react';
-import { FiPlus, FiSearch, FiBox, FiCalendar, FiChevronDown, FiCheck, FiEye, FiArrowLeft } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiPlus, FiSearch, FiBox, FiCalendar, FiChevronDown, FiCheck, FiEye, FiArrowLeft, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CustomSelect from '../components/CustomSelect';
+import { fetchOrders } from '../api/orders';
 
+// Pagination Component
+const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
+  return (
+    <div className="border-t border-gray-100">
+      <div className="px-4 lg:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
+        <div className="flex items-center justify-center sm:justify-start">
+          <span className="text-sm text-gray-600">
+            Page <span className="font-medium text-gray-900">{currentPage}</span> of{' '}
+            <span className="font-medium text-gray-900">{totalPages}</span>
+          </span>
+        </div>
+        <div className="flex items-center justify-center gap-2">
+          <button 
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-400"
+          >
+            <FiChevronLeft size={18} />
+          </button>
+          <div className="flex gap-1">
+            {[...Array(totalPages)].map((_, idx) => {
+              const pageNumber = idx + 1;
+              const isActive = pageNumber === currentPage;
+              const isNearCurrent = Math.abs(pageNumber - currentPage) <= 1 || pageNumber === 1 || pageNumber === totalPages;
+              
+              if (!isNearCurrent && pageNumber !== 1 && pageNumber !== totalPages) {
+                if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                  return <span key={idx} className="inline-flex items-center justify-center w-9 h-9 text-gray-400">...</span>;
+                }
+                return null;
+              }
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => onPageChange(pageNumber)}
+                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-[#9333EA] text-white'
+                      : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+          <button 
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FiChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const CreateOrder = () => {
   const navigate = useNavigate();
@@ -215,40 +275,38 @@ const CreateOrder = () => {
 
 const Orders = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('All Statuses');
   const [selectedPriority, setSelectedPriority] = useState('All Priorities');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
-  const orders = [
-    {
-      id: 'ORD-2025-0001',
-      dealer: 'Green Energy Solutions',
-      createdDate: '06 Jun 2025',
-      totalItems: '3 items',
-      priority: 'High',
-      status: 'In Production'
-    },
-    {
-      id: '2',
-      dealer: 'Power Tech Distributors',
-      createdDate: '05 Jun 2025',
-      totalItems: '3 items',
-      priority: 'Medium',
-      status: 'Packed'
-    },
-    {
-      id: '3',
-      dealer: 'Green Energy Solutions',
-      createdDate: '04 Jun 2025',
-      totalItems: '2 items',
-      priority: 'Low',
-      status: 'Billed'
-    }
-  ];
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        setLoading(true);
+        const response = await fetchOrders();
+        if (response.success) {
+          setOrders(response.data);
+        } else {
+          setError(response.message || 'Failed to load orders');
+        }
+      } catch (err) {
+        console.error('Error loading orders:', err);
+        setError('Failed to load orders');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOrders();
+  }, []);
 
   const getPriorityStyle = (priority) => {
-    switch (priority.toLowerCase()) {
+    switch (priority?.toLowerCase()) {
       case 'high':
         return 'bg-red-50 text-red-700';
       case 'medium':
@@ -261,23 +319,46 @@ const Orders = () => {
   };
 
   const getStatusStyle = (status) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-50 text-yellow-700';
       case 'in production':
         return 'bg-blue-50 text-blue-700';
       case 'packed':
         return 'bg-purple-50 text-purple-700';
-      case 'billed':
-        return 'bg-teal-50 text-teal-700';
+      case 'delivered':
+        return 'bg-green-50 text-green-700';
+      case 'cancelled':
+        return 'bg-red-50 text-red-700';
       default:
         return 'bg-gray-50 text-gray-700';
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const getTotalItems = (orderDetails) => {
+    if (!orderDetails || !Array.isArray(orderDetails)) return 0;
+    return orderDetails.reduce((total, item) => total + (item.qty_ordered || 0), 0);
+  };
+
   // Filter orders based on search query, status and priority
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = orders.filter(orderData => {
+    const order = orderData.order;
+    if (!order) return false;
+    
     const matchesSearch = 
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.dealer.toLowerCase().includes(searchQuery.toLowerCase());
+      order.order_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.dealer?.employee_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.dealer?.shop_name?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = selectedStatus === 'All Statuses' || 
                          order.status === selectedStatus;
@@ -288,11 +369,189 @@ const Orders = () => {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
+  // Pagination logic
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStatus, selectedPriority]);
+
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
+            <p className="text-sm text-gray-500 mt-1">Total Orders: Loading...</p>
+          </div>
+          <button 
+            onClick={() => navigate('/orders/create')}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
+          >
+            <FiPlus className="text-lg" />
+            Create New Order
+          </button>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">Orders List</h2>
+              <p className="text-sm text-gray-500 mt-1">Manage and track all orders</p>
+            </div>
+
+            <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="relative flex-1">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search by Order ID, Dealer Name, or Shop Name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                  disabled
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <CustomSelect
+                  name="status"
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  options={['All Statuses', 'PENDING', 'IN PRODUCTION', 'PACKED', 'DELIVERED', 'CANCELLED']}
+                  placeholder="Select status"
+                  disabled
+                />
+                <CustomSelect
+                  name="priority"
+                  value={selectedPriority}
+                  onChange={(e) => setSelectedPriority(e.target.value)}
+                  options={['All Priorities', 'HIGH', 'MEDIUM', 'LOW']}
+                  placeholder="Select priority"
+                  disabled
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 overflow-x-auto">
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Order Number</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Dealer Info</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Created Date</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Total Items</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Priority</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Order Note</th>
+                      <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedOrders.map((orderData) => {
+                      const order = orderData.order;
+                      if (!order) return null;
+                      
+                      return (
+                        <tr key={order.order_number} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                          <td className="py-4 px-4">
+                            <span className="text-sm font-medium text-gray-900 font-mono">{order.order_number}</span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="text-sm">
+                              <p className="font-medium text-gray-900">{order.dealer?.employee_name || 'N/A'}</p>
+                              <p className="text-gray-500">{order.dealer?.shop_name || 'N/A'}</p>
+                              <p className="text-xs text-gray-400">{order.dealer?.town}, {order.dealer?.district}</p>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="text-sm text-gray-600">{formatDate(order.created_at)}</span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="text-sm text-gray-600">
+                              {getTotalItems(order.order_details)} items
+                            </span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityStyle(order.priority)}`}>
+                              {order.priority || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(order.status)}`}>
+                              {order.status || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="text-sm text-gray-600 max-w-xs truncate block" title={order.order_note || 'No notes'}>
+                              {order.order_note || 'No notes'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <button 
+                              onClick={() => navigate(`/orders/${order.order_number}`)}
+                              className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium hover:bg-[#9333EA]/5 px-2 py-1 rounded transition-colors"
+                            >
+                              <FiEye size={16} />
+                              View Details
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {paginatedOrders.length === 0 && (
+                      <tr>
+                        <td colSpan="8" className="py-8 text-center">
+                          <p className="text-sm text-gray-500">
+                            {filteredOrders.length === 0 
+                              ? 'No orders found matching your criteria' 
+                              : `No orders on page ${currentPage}`
+                            }
+                          </p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
+          <p className="text-sm text-gray-500 mt-1">Total Orders: {orders.length}</p>
         </div>
         <button 
           onClick={() => navigate('/orders/create')}
@@ -315,7 +574,7 @@ const Orders = () => {
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Search by Order ID or Dealer Name..."
+                placeholder="Search by Order ID, Dealer Name, or Shop Name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
@@ -326,14 +585,14 @@ const Orders = () => {
                 name="status"
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                options={['All Statuses', 'In Production', 'Packed', 'Billed']}
+                options={['All Statuses', 'PENDING', 'IN PRODUCTION', 'PACKED', 'DELIVERED', 'CANCELLED']}
                 placeholder="Select status"
               />
               <CustomSelect
                 name="priority"
                 value={selectedPriority}
                 onChange={(e) => setSelectedPriority(e.target.value)}
-                options={['All Priorities', 'High', 'Medium', 'Low']}
+                options={['All Priorities', 'HIGH', 'MEDIUM', 'LOW']}
                 placeholder="Select priority"
               />
             </div>
@@ -343,55 +602,77 @@ const Orders = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100">
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Order ID</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Dealer Name</th>
+                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Order Number</th>
+                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Dealer Info</th>
                   <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Created Date</th>
                   <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Total Items</th>
                   <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Priority</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Current Status</th>
+                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
+                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Order Note</th>
                   <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map((order) => (
-                  <tr key={order.id} className="border-b border-gray-100 last:border-0">
-                    <td className="py-4 px-4">
-                      <span className="text-sm font-medium text-gray-900">{order.id}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-gray-600">{order.dealer}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-gray-600">{order.createdDate}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-gray-600">{order.totalItems}</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityStyle(order.priority)}`}>
-                        {order.priority}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(order.status)}`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <button 
-                        onClick={() => navigate(`/orders/${order.id}`)}
-                        className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium"
-                      >
-                        <FiEye size={16} />
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {filteredOrders.length === 0 && (
+                {paginatedOrders.map((orderData) => {
+                  const order = orderData.order;
+                  if (!order) return null;
+                  
+                  return (
+                    <tr key={order.order_number} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                      <td className="py-4 px-4">
+                        <span className="text-sm font-medium text-gray-900 font-mono">{order.order_number}</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-sm">
+                          <p className="font-medium text-gray-900">{order.dealer?.employee_name || 'N/A'}</p>
+                          <p className="text-gray-500">{order.dealer?.shop_name || 'N/A'}</p>
+                          <p className="text-xs text-gray-400">{order.dealer?.town}, {order.dealer?.district}</p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-sm text-gray-600">{formatDate(order.created_at)}</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-sm text-gray-600">
+                          {getTotalItems(order.order_details)} items
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityStyle(order.priority)}`}>
+                          {order.priority || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(order.status)}`}>
+                          {order.status || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-sm text-gray-600 max-w-xs truncate block" title={order.order_note || 'No notes'}>
+                          {order.order_note || 'No notes'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <button 
+                          onClick={() => navigate(`/orders/${order.order_number}`)}
+                          className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium hover:bg-[#9333EA]/5 px-2 py-1 rounded transition-colors"
+                        >
+                          <FiEye size={16} />
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {paginatedOrders.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="py-8 text-center">
-                      <p className="text-sm text-gray-500">No orders found matching your criteria</p>
+                    <td colSpan="8" className="py-8 text-center">
+                      <p className="text-sm text-gray-500">
+                        {filteredOrders.length === 0 
+                          ? 'No orders found matching your criteria' 
+                          : `No orders on page ${currentPage}`
+                        }
+                      </p>
                     </td>
                   </tr>
                 )}
@@ -400,6 +681,11 @@ const Orders = () => {
           </div>
         </div>
       </div>
+      <OrdersPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 };
