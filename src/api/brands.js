@@ -12,6 +12,13 @@ export const getAllBrands = async () => {
   return response.json();
 };
 
+export const getActiveBrands = async () => {
+  const response = await fetch(`${API_BASE_URL}/product-details/getActive/brands`, {
+    headers: { ...getAuthHeaders() },
+  });
+  return response.json();
+};
+
 export const createBrand = async (brandData) => {
   const response = await fetch(`${API_BASE_URL}/product-details/create/brands`, {
     method: 'POST',
