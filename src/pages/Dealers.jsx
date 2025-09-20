@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  FiPlus, FiSearch, FiMoreHorizontal, FiX, FiCheck, FiChevronDown, 
+  FiPlus, FiSearch, FiX, FiCheck, FiChevronDown, 
   FiEdit2, FiTrash2, FiEye, FiEyeOff, FiChevronLeft, FiChevronRight 
 } from 'react-icons/fi';
 import Swal from 'sweetalert2';
@@ -8,7 +8,6 @@ import { Link } from 'react-router-dom';
 import CustomSelect from '../components/CustomSelect';
 import { apiRequest } from '../utils/api';
 import { fetchDealers, fetchDealerById, createDealer, updateDealer, deleteDealerById } from '../api/dealer';
-import PortalDropdown from '../components/PortalDropdown';
 
 const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, editingDealerData }) => {
   const [formData, setFormData] = useState({
@@ -351,49 +350,31 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
   );
 };
 
-const ActionMenu = ({ dealerId, onEdit, onDelete }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const buttonRef = React.useRef();
-
+// Inline action buttons (view, edit, delete) replacing dropdown menu
+const DealerActions = ({ dealerId, onEdit, onDelete }) => {
   return (
-    <div className="relative inline-block text-left">
-      <button
-        ref={buttonRef}
-        onClick={() => setIsOpen((v) => !v)}
-        className="p-1 hover:bg-gray-50 rounded-lg transition-colors"
+    <div className="flex items-center justify-end gap-2">
+      <Link 
+        to={`/dealers/${dealerId}`}
+        className="inline-flex items-center justify-center p-2 text-[#2563EB] hover:text-[#1D4ED8] hover:bg-[#2563EB]/5 rounded-lg transition-colors"
+        title="View Details"
       >
-        <FiMoreHorizontal className="text-gray-400" size={18} />
+        <FiEye size={16} />
+      </Link>
+      <button 
+        onClick={onEdit}
+        className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 rounded-lg transition-colors"
+        title="Edit Dealer"
+      >
+        <FiEdit2 size={16} />
       </button>
-      <PortalDropdown anchorRef={buttonRef} open={isOpen} onClose={() => setIsOpen(false)}>
-        <Link
-          to={`/dealers/${dealerId}`}
-          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          onClick={() => setIsOpen(false)}
-        >
-          <FiEye size={16} />
-          View Details
-        </Link>
-        <button
-          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          onClick={() => {
-            setIsOpen(false);
-            onEdit();
-          }}
-        >
-          <FiEdit2 size={16} />
-          Edit
-        </button>
-        <button
-          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-          onClick={() => {
-            setIsOpen(false);
-            onDelete();
-          }}
-        >
-          <FiTrash2 size={16} />
-          Delete
-        </button>
-      </PortalDropdown>
+      <button 
+        onClick={onDelete}
+        className="inline-flex items-center justify-center p-2 text-[#DC2626] hover:text-[#B91C1C] hover:bg-[#DC2626]/5 rounded-lg transition-colors"
+        title="Delete Dealer"
+      >
+        <FiTrash2 size={16} />
+      </button>
     </div>
   );
 };
@@ -682,7 +663,7 @@ const Dealers = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4 text-right relative">
-                      <ActionMenu
+                      <DealerActions
                         dealerId={dealer.employee_id || dealer.id}
                         onEdit={() => handleEditDealer(dealer.employee_id || dealer.id)}
                         onDelete={() => handleOpenDeleteModal(dealer.employee_id || dealer.id)}
