@@ -502,7 +502,7 @@ const Orders = () => {
                               className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium hover:bg-[#9333EA]/5 px-2 py-1 rounded transition-colors"
                             >
                               <FiEye size={16} />
-                              View Details
+                              
                             </button>
                           </td>
                         </tr>
@@ -658,7 +658,6 @@ const Orders = () => {
                           className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium hover:bg-[#9333EA]/5 px-2 py-1 rounded transition-colors"
                         >
                           <FiEye size={16} />
-                          View Details
                         </button>
                       </td>
                     </tr>
