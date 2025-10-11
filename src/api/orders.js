@@ -6,7 +6,7 @@ const getAuthHeaders = () => {
 };
 
 export const createOrder = async (orderData) => {
-  const response = await fetch(`${API_BASE_URL}/order-details/create`, {
+  const response = await fetch(`${API_BASE_URL}/order-details/create-order`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(orderData),
