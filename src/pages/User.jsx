@@ -72,10 +72,16 @@ const ROLE_CONFIG = {
   },
 };
 
-const getRoleColor = (role) =>
-  ROLE_CONFIG[role]?.badge || "bg-slate-50 text-slate-600 border-slate-200";
-
 const ROLE_LABELS = {
+  ROLE_SUPER_ADMIN: 'SUPER ADMIN',
+  ROLE_ADMIN: 'ADMIN',
+  ROLE_MANAGER: 'MANAGER',
+  ROLE_SUPERVISOR: 'SUPERVISOR',
+  ROLE_SALESMAN: 'SALESMAN',
+  ROLE_PRODUCTION: 'PRODUCTION',
+  ROLE_PACKING: 'PACKING',
+  ROLE_ACCOUNTS: 'ACCOUNTS',
+  ROLE_DELIVERY: 'DELIVERY',
   ROLE_SUPER_ADMIN: 'SUPER ADMIN',
   ROLE_ADMIN: 'ADMIN',
   ROLE_MANAGER: 'MANAGER',
@@ -88,6 +94,16 @@ const ROLE_LABELS = {
 };
 
 const ALL_TABS = [
+  'ALL USERS',
+  'SUPER ADMIN',
+  'ADMIN',
+  'MANAGER',
+  'SUPERVISOR',
+  'SALESMAN',
+  'PRODUCTION',
+  'PACKING',
+  'ACCOUNTS',
+  'DELIVERY',
   'ALL USERS',
   'SUPER ADMIN',
   'ADMIN',
@@ -558,67 +574,353 @@ const User = () => {
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 resize-none transition-all"
                 />
               </div>
-              <div className="px-6 py-4 border-t border-slate-100 flex-shrink-0">
-                <button onClick={handleCreate} disabled={loading} className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-indigo-200">
-                  {loading ? "Creating…" : "Create User"}
-                </button>
-              </div>
             </div>
-          </div>
-        </>
-      )}
 
-      {/* ── EDIT USER MODAL ── */}
-      {editingUser && (
-        <>
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" onClick={() => setEditingUser(null)} />
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 flex flex-col" style={{ maxHeight: "90vh" }}>
-              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-sky-50 text-sky-600 border border-sky-100"><FiEdit2 size={14} /></div>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900">Edit User</h2>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">Update user information</p>
-                  </div>
-                </div>
-                <button onClick={() => setEditingUser(null)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"><FiX size={16} /></button>
-              </div>
-              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
-                {[
-                  { placeholder: "Name", key: "employee_name" },
-                  { placeholder: "Email", key: "employee_email", type: "email" },
-                  { placeholder: "Phone", key: "employee_phone" },
-                  { placeholder: "District", key: "district" },
-                  { placeholder: "Town", key: "town" },
-                ].map(({ placeholder, key, type = "text" }) => (
-                  <ModalInput key={key} type={type} placeholder={placeholder} value={formData[key] || ""} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} />
-                ))}
-                <select value={formData.role || ""} onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all">
-                  {Object.values(ROLES).map((role) => <option key={role} value={role}>{getRoleLabel(role)}</option>)}
-                </select>
-                <select value={formData.status || ""} onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all">
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-                <textarea placeholder="Address" value={formData.address || ""} onChange={(e) => setFormData({ ...formData, address: e.target.value })} rows={3}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 resize-none transition-all"
-                />
-              </div>
-              <div className="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0">
-                <button onClick={() => setEditingUser(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
-                <button onClick={handleUpdate} className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200">
-                  Update User
-                </button>
-              </div>
+            <div className="flex items-center justify-end gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-lg bg-[#9333EA] text-white hover:bg-[#8829DD] transition-colors text-sm font-medium"
+                disabled={loading}
+              >
+                {loading ? (editingEmployeeId ? 'Updating...' : 'Creating...') : (editingEmployeeId ? 'Update User' : 'Create User')}
+              </button>
             </div>
           </div>
-        </>
-      )}
-    </div>
+        </div>
+    </>
   );
 };
 
-export default User;
+const getRoleColor = (role) => {
+  const colors = {
+    "ROLE_SUPER_ADMIN": "bg-[#9333EA]/10 text-[#9333EA]",
+    "ROLE_ADMIN": "bg-blue-50 text-blue-600",
+    "ROLE_MANAGER": "bg-purple-50 text-purple-600",
+    "ROLE_SUPERVISOR": "bg-indigo-50 text-indigo-600",
+    "ROLE_SALESMAN": "bg-green-50 text-green-600",
+    "ROLE_PRODUCTION": "bg-yellow-50 text-yellow-600",
+    "ROLE_PACKING": "bg-orange-50 text-orange-600",
+    "ROLE_ACCOUNTS": "bg-pink-50 text-pink-600",
+    "ROLE_DELIVERY": "bg-cyan-50 text-cyan-600",
+  };
+  return colors[role] || "bg-gray-50 text-gray-600";
+};
+
+function UserPagination({ currentPage, totalPages, onPageChange }) {
+  return (
+    <div className="border-t border-gray-100">
+      <div className="px-4 lg:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
+        <div className="flex items-center justify-center sm:justify-start">
+          <span className="text-sm text-gray-600">
+            Page <span className="font-medium text-gray-900">{currentPage}</span> of{' '}
+            <span className="font-medium text-gray-900">{totalPages}</span>
+          </span>
+        </div>
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-400"
+          >
+            <FiChevronLeft size={18} />
+          </button>
+          <div className="flex gap-1">
+            {[...Array(totalPages)].map((_, idx) => {
+              const pageNumber = idx + 1;
+              const isActive = pageNumber === currentPage;
+              const isNearCurrent = Math.abs(pageNumber - currentPage) <= 1 || pageNumber === 1 || pageNumber === totalPages;
+
+              if (!isNearCurrent && pageNumber !== 1 && pageNumber !== totalPages) {
+                if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                  return <span key={idx} className="inline-flex items-center justify-center w-9 h-9 text-gray-400">...</span>;
+                }
+                return null;
+              }
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => onPageChange(pageNumber)}
+                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isActive
+                    ? 'bg-[#9333EA] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FiChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const User = () => {
+  const [activeTab, setActiveTab] = useState('ALL USERS');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [editingEmployeeId, setEditingEmployeeId] = useState(null);
+  const [editingEmployeeData, setEditingEmployeeData] = useState(null);
+  const itemsPerPage = 5;
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const res = await fetchUsers();
+      if (res && res.success && res.data && res.data.employees) {
+        setEmployees(res.data.employees);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load users. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  // When a user is created or updated, re-fetch the user list from the backend
+  const handleUserChanged = () => {
+    fetchEmployees();
+    setEditingEmployeeId(null);
+    setEditingEmployeeData(null);
+  };
+
+  // Edit button handler
+  const handleEditUser = async (employeeId) => {
+    setEditingEmployeeId(employeeId);
+    setIsModalOpen(true);
+    // Fetch employee details
+    try {
+      const res = await fetchUserById(employeeId);
+      if (res && res.success && res.data) {
+        setEditingEmployeeData(res.data);
+      }
+    } catch {
+      // Optionally handle error
+    }
+  };
+
+  // Reset Password Handler
+  const handleOpenResetModal = (userId) => {
+    setSelectedUserId(userId);
+    setResetPassword('');
+    setResetError('');
+    setShowResetModal(true);
+  };
+  const handleResetPassword = async () => {
+    setResetLoading(true);
+    setResetError('');
+    try {
+      const res = await resetUserPasswordById(selectedUserId, {
+        password: resetPassword,
+      });
+      if (res && res.success) {
+        setShowResetModal(false);
+        await Swal.fire({ icon: 'success', title: 'Password Reset', text: res.message || 'Password reset successfully!', confirmButtonText: 'OK' });
+      } else {
+        setResetError(res?.message || 'Failed to reset password');
+      }
+    } catch (err) {
+      setResetError(err?.message || 'Network error');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  // Delete User Handler
+  const handleOpenDeleteModal = (userId) => {
+    setSelectedUserId(userId);
+    setDeleteReason('');
+    setDeleteError('');
+    setShowDeleteModal(true);
+  };
+  const handleDeleteUser = async () => {
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      const res = await deleteUserById(selectedUserId, deleteReason);
+      if (res && res.success) {
+        setShowDeleteModal(false);
+        await Swal.fire({ icon: 'success', title: 'User Deleted', text: res.message || 'User deleted successfully!', confirmButtonText: 'OK' });
+        fetchEmployees();
+      } else {
+        setDeleteError(res?.message || 'Failed to delete user');
+      }
+    } catch (err) {
+      setDeleteError(err?.message || 'Network error');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Filter employees based on active tab, but exclude ROLE_DEALER
+  const filteredEmployees = activeTab === 'ALL USERS'
+    ? employees.filter(emp => emp && emp.role !== 'ROLE_DEALER')
+    : employees.filter(emp => emp && getRoleLabel(emp.role) === activeTab && emp.role !== 'ROLE_DEALER');
+
+  const currentUsers = filteredEmployees.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-[#F9FAFB]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Manage Users</h1>
+          <p className="text-sm text-gray-500">Add and manage system users</p>
+        </div>
+        <button
+          onClick={() => { setIsModalOpen(true); setEditingEmployeeId(null); setEditingEmployeeData(null); }}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
+        >
+          <FiPlus className="text-lg" />
+          Add New User
+        </button>
+      </div>
+
+      <div className="mb-6 -mx-4 sm:mx-0">
+        <FilterTabs activeTab={activeTab} onTabChange={tab => { setActiveTab(tab); setCurrentPage(1); }} />
+      </div>
+
+      <div className="flex-1 min-h-0">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-red-600">{error}</p>
+            <button
+              onClick={fetchEmployees}
+              className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : (
+          <UserTable
+            users={currentUsers}
+            onEdit={handleEditUser}
+            onResetPassword={handleOpenResetModal}
+            onDeleteUser={handleOpenDeleteModal}
+            currentPage={currentPage}
+            totalPages={Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage))}
+            onPageChange={page => setCurrentPage(page)}
+          />
+        )}
+      </div>
+
+      {/* Reset Password Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative animate-fadeIn">
+            {/* Close Button */}
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
+              onClick={() => setShowResetModal(false)}
+              aria-label="Close"
+            >
+              <FiX size={22} />
+            </button>
+            {/* Icon and Title */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="bg-[#F3E8FF] text-[#9333EA] rounded-full p-3 mb-2">
+                <FiKey size={28} />
+                <div className="px-6 py-4 border-t border-slate-100 flex-shrink-0">
+                  <button onClick={handleCreate} disabled={loading} className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-indigo-200">
+                    {loading ? "Creating…" : "Create User"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+      )}
+
+          {/* ── EDIT USER MODAL ── */}
+          {editingUser && (
+            <>
+              <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" onClick={() => setEditingUser(null)} />
+              <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 flex flex-col" style={{ maxHeight: "90vh" }}>
+                  <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-sky-50 text-sky-600 border border-sky-100"><FiEdit2 size={14} /></div>
+                      <div>
+                        <h2 className="text-sm font-bold text-slate-900">Edit User</h2>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">Update user information</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setEditingUser(null)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"><FiX size={16} /></button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
+                    {[
+                      { placeholder: "Name", key: "employee_name" },
+                      { placeholder: "Email", key: "employee_email", type: "email" },
+                      { placeholder: "Phone", key: "employee_phone" },
+                      { placeholder: "District", key: "district" },
+                      { placeholder: "Town", key: "town" },
+                    ].map(({ placeholder, key, type = "text" }) => (
+                      <ModalInput key={key} type={type} placeholder={placeholder} value={formData[key] || ""} onChange={(e) => setFormData({ ...formData, [key]: e.target.value })} />
+                    ))}
+                    <select value={formData.role || ""} onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all">
+                      {Object.values(ROLES).map((role) => <option key={role} value={role}>{getRoleLabel(role)}</option>)}
+                    </select>
+                    <select value={formData.status || ""} onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all">
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                    <textarea placeholder="Address" value={formData.address || ""} onChange={(e) => setFormData({ ...formData, address: e.target.value })} rows={3}
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 resize-none transition-all"
+                    />
+                  </div>
+                  <div className="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0">
+                    <button onClick={() => setEditingUser(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
+                    <button onClick={handleUpdate} className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200">
+                      Update User
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      );
+};
+
+      export default User;
