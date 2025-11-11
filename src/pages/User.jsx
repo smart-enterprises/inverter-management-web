@@ -1,5 +1,4 @@
 // users.jsx — Redesigned with colorful role tabs
-
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   FiSearch, FiEye, FiEyeOff, FiEdit2, FiChevronLeft, FiChevronRight,
@@ -75,6 +74,31 @@ const ROLE_CONFIG = {
 
 const getRoleColor = (role) =>
   ROLE_CONFIG[role]?.badge || "bg-slate-50 text-slate-600 border-slate-200";
+
+const ROLE_LABELS = {
+  ROLE_SUPER_ADMIN: 'SUPER ADMIN',
+  ROLE_ADMIN: 'ADMIN',
+  ROLE_MANAGER: 'MANAGER',
+  ROLE_SUPERVISOR: 'SUPERVISOR',
+  ROLE_SALESMAN: 'SALESMAN',
+  ROLE_PRODUCTION: 'PRODUCTION',
+  ROLE_PACKING: 'PACKING',
+  ROLE_ACCOUNTS: 'ACCOUNTS',
+  ROLE_DELIVERY: 'DELIVERY',
+};
+
+const ALL_TABS = [
+  'ALL USERS',
+  'SUPER ADMIN',
+  'ADMIN',
+  'MANAGER',
+  'SUPERVISOR',
+  'SALESMAN',
+  'PRODUCTION',
+  'PACKING',
+  'ACCOUNTS',
+  'DELIVERY',
+];
 
 //  PAGINATION
 const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
