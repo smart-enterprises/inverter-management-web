@@ -103,13 +103,13 @@ const UserTable = ({ users, onEdit, onResetPassword, onDeleteUser, currentPage, 
               <td className="p-4 lg:p-6 text-center">
                 <div className="flex items-center justify-center gap-2">
                   <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors group" onClick={() => onEdit && onEdit(user.employee_id)}>
-                    <FiEdit2 className="text-gray-400 group-hover:text-blue-600" size={18} />
+                    <FiEdit2 className="text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 transition-colors" size={18} />
                   </button>
                   <button className="p-2 hover:bg-indigo-50 rounded-lg transition-colors group" onClick={() => onResetPassword && onResetPassword(user.employee_id)}>
-                    <FiKey className="text-gray-400 group-hover:text-indigo-600" size={18} />
+                    <FiKey className="text-indigo-400 hover:text-indigo-600 hover:bg-[#DC2626]/5 transition-colors" size={18} />
                   </button>
                   <button className="p-2 hover:bg-red-50 rounded-lg transition-colors group" onClick={() => onDeleteUser && onDeleteUser(user.employee_id)}>
-                    <FiTrash2 className="text-gray-400 group-hover:text-red-600" size={18} />
+                    <FiTrash2 className="text-[#DC2626] hover:text-[#B91C1C] hover:bg-[#DC2626]/5 transition-colors" size={18} />
                   </button>
                 </div>
               </td>

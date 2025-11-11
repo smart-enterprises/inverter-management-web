@@ -923,7 +923,6 @@ const Brands = () => {
                             className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium transition-colors"
                           >
                             <FiEdit2 size={14} />
-                            Edit
                           </button>
                         </td>
                       </tr>

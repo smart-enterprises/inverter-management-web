@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  FiPlus, FiSearch, FiMoreHorizontal, FiX, FiCheck, FiChevronDown, 
+  FiPlus, FiSearch, FiX, FiCheck, FiChevronDown, 
   FiEdit2, FiTrash2, FiEye, FiEyeOff, FiChevronLeft, FiChevronRight 
 } from 'react-icons/fi';
 import Swal from 'sweetalert2';
@@ -8,7 +8,133 @@ import { Link } from 'react-router-dom';
 import CustomSelect from '../components/CustomSelect';
 import { apiRequest } from '../utils/api';
 import { fetchDealers, fetchDealerById, createDealer, updateDealer, deleteDealerById } from '../api/dealer';
-import PortalDropdown from '../components/PortalDropdown';
+import { getActiveBrands } from '../api/brands';
+
+// Multi-select dropdown component
+const MultiSelectDropdown = ({ options = [], selectedValues = [], onChange, placeholder, disabled, loading, searchable = false }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState('');
+
+  const filteredOptions = React.useMemo(() => {
+    if (!searchable || !searchTerm) return options;
+    return options.filter(option =>
+      option.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [options, searchTerm, searchable]);
+
+  const handleToggleOption = (optionValue) => {
+    if (selectedValues.includes(optionValue)) {
+      onChange(selectedValues.filter(val => val !== optionValue));
+    } else {
+      onChange([...selectedValues, optionValue]);
+    }
+  };
+
+  const handleRemoveTag = (valueToRemove) => {
+    onChange(selectedValues.filter(val => val !== valueToRemove));
+  };
+
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.multiselect-container')) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  return (
+    <div className="relative multiselect-container">
+      <div
+        className={`w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm min-h-[42px] flex flex-wrap items-center gap-1 cursor-pointer ${
+          disabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'bg-white hover:border-gray-300'
+        } ${isOpen ? 'ring-1 ring-gray-300 focus:ring-gray-300' : ''}`}
+        onClick={() => !disabled && !loading && setIsOpen(!isOpen)}
+      >
+        {loading ? (
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#9333EA]"></div>
+            <span className="text-gray-500">{placeholder}</span>
+          </div>
+        ) : selectedValues.length > 0 ? (
+          <>
+            {selectedValues.map((value, index) => {
+              const option = options.find(opt => opt.value === value);
+              return (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#9333EA]/10 text-[#9333EA] max-w-[120px] truncate"
+                >
+                  <span className="truncate">{option?.label || value}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveTag(value);
+                    }}
+                    className="ml-1 text-[#9333EA]/70 hover:text-[#9333EA] flex-shrink-0"
+                  >
+                    <FiX size={10} />
+                  </button>
+                </span>
+              );
+            })}
+          </>
+        ) : (
+          <span className="text-gray-400">{placeholder}</span>
+        )}
+        <div className="ml-auto flex-shrink-0">
+          <FiChevronDown 
+            className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-hidden">
+          {searchable && (
+            <div className="p-2 border-b border-gray-100">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search brands..."
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded focus:border-gray-300 focus:ring-1 focus:ring-gray-300"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+          <div className="max-h-48 overflow-y-auto">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option, index) => (
+                <div
+                  key={index}
+                  className={`px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 flex items-center justify-between ${
+                    selectedValues.includes(option.value) ? 'bg-[#9333EA]/5' : ''
+                  }`}
+                  onClick={() => handleToggleOption(option.value)}
+                >
+                  <span>{option.label}</span>
+                  {selectedValues.includes(option.value) && (
+                    <FiCheck className="w-4 h-4 text-[#9333EA]" />
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                {searchTerm ? 'No brands found' : 'No brands available'}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, editingDealerData }) => {
   const [formData, setFormData] = useState({
@@ -19,14 +145,40 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
     shop_name: '',
     district: '',
     town: '',
-    brand: '',
+    brands: [],
     address: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [brands, setBrands] = useState([]);
+  const [brandsLoading, setBrandsLoading] = useState(false);
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
+
+  // Fetch brands data when modal opens
+  React.useEffect(() => {
+    if (isOpen && brands.length === 0) {
+      const fetchBrands = async () => {
+        try {
+          setBrandsLoading(true);
+          const response = await getActiveBrands();
+          if (response && response.success && Array.isArray(response.data)) {
+            setBrands(response.data);
+          } else {
+            console.warn('Brands response structure:', response);
+            setBrands([]);
+          }
+        } catch (err) {
+          console.error('Error loading brands:', err);
+          setBrands([]);
+        } finally {
+          setBrandsLoading(false);
+        }
+      };
+      fetchBrands();
+    }
+  }, [isOpen, brands.length]);
 
   // Populate form when editingDealerData changes
   React.useEffect(() => {
@@ -39,11 +191,11 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
         shop_name: editingDealerData.shop_name || '',
         district: editingDealerData.district || '',
         town: editingDealerData.town || '',
-        brand: editingDealerData.brand || '',
+        brands: Array.isArray(editingDealerData.brand) ? editingDealerData.brand : (editingDealerData.brand ? [editingDealerData.brand] : []),
         address: editingDealerData.address || ''
       });
     } else if (!editingDealerId) {
-      setFormData({ name: '', email: '', phone: '', password: '', shop_name: '', district: '', town: '', brand: '', address: '' });
+      setFormData({ name: '', email: '', phone: '', password: '', shop_name: '', district: '', town: '', brands: [], address: '' });
     }
   }, [editingDealerId, editingDealerData]);
 
@@ -59,6 +211,32 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
     setLoading(true);
     setError('');
     setFieldErrors({});
+
+    // Validate required fields
+    if (!formData.name.trim()) {
+      setFieldErrors({ ...fieldErrors, employee_name: ['Dealer name is required'] });
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setFieldErrors({ ...fieldErrors, employee_email: ['Email is required'] });
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.phone.trim()) {
+      setFieldErrors({ ...fieldErrors, employee_phone: ['Phone number is required'] });
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.brands || formData.brands.length === 0) {
+      setFieldErrors({ ...fieldErrors, brand: ['Please select at least one brand'] });
+      setLoading(false);
+      return;
+    }
+
     try {
       let res;
       if (editingDealerId) {
@@ -70,7 +248,7 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
           shop_name: formData.shop_name,
           district: formData.district,
           town: formData.town,
-          brand: formData.brand,
+          brand: formData.brands, // Backend expects 'brand' field
           address: formData.address,
           role: 'ROLE_DEALER'
         };
@@ -86,13 +264,13 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
           shop_name: formData.shop_name,
           district: formData.district,
           town: formData.town,
-          brand: formData.brand,
+          brand: formData.brands, // Backend expects 'brand' field
           address: formData.address
         };
         res = await createDealer(payload);
       }
       if (res && res.success) {
-        setFormData({ name: '', email: '', phone: '', password: '', shop_name: '', district: '', town: '', brand: '', address: '' });
+        setFormData({ name: '', email: '', phone: '', password: '', shop_name: '', district: '', town: '', brands: [], address: '' });
         if (onDealerChanged) onDealerChanged();
         onClose();
         setTimeout(() => {
@@ -298,17 +476,25 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Brand
+                    Brands <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="brand"
-                    value={formData.brand}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                    placeholder="Enter brand"
-                    autoComplete='brand'
+                  <MultiSelectDropdown
+                    options={brandsLoading ? [] : (Array.isArray(brands) ? brands.map(brand => ({
+                      value: brand.brand_name || brand.name || brand,
+                      label: brand.brand_name || brand.name || brand
+                    })) : [])}
+                    selectedValues={formData.brands}
+                    onChange={(selectedBrands) => setFormData(prev => ({ ...prev, brands: selectedBrands }))}
+                    placeholder={brandsLoading ? "Loading brands..." : "Select brands"}
+                    disabled={brandsLoading}
+                    loading={brandsLoading}
+                    searchable={true}
                   />
+                  {fieldErrors['brand'] && (
+                    <div className="text-red-600 text-xs mt-1">
+                      {fieldErrors['brand'].map((msg, idx) => <div key={idx}>{msg}</div>)}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -351,49 +537,31 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
   );
 };
 
-const ActionMenu = ({ dealerId, onEdit, onDelete }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const buttonRef = React.useRef();
-
+// Inline action buttons (view, edit, delete) replacing dropdown menu
+const DealerActions = ({ dealerId, onEdit, onDelete }) => {
   return (
-    <div className="relative inline-block text-left">
-      <button
-        ref={buttonRef}
-        onClick={() => setIsOpen((v) => !v)}
-        className="p-1 hover:bg-gray-50 rounded-lg transition-colors"
+    <div className="flex items-center justify-end gap-2">
+      <Link 
+        to={`/dealers/${dealerId}`}
+        className="inline-flex items-center justify-center p-2 text-[#2563EB] hover:text-[#1D4ED8] hover:bg-[#2563EB]/5 rounded-lg transition-colors"
+        title="View Details"
       >
-        <FiMoreHorizontal className="text-gray-400" size={18} />
+        <FiEye size={16} />
+      </Link>
+      <button 
+        onClick={onEdit}
+        className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 rounded-lg transition-colors"
+        title="Edit Dealer"
+      >
+        <FiEdit2 size={16} />
       </button>
-      <PortalDropdown anchorRef={buttonRef} open={isOpen} onClose={() => setIsOpen(false)}>
-        <Link
-          to={`/dealers/${dealerId}`}
-          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          onClick={() => setIsOpen(false)}
-        >
-          <FiEye size={16} />
-          View Details
-        </Link>
-        <button
-          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          onClick={() => {
-            setIsOpen(false);
-            onEdit();
-          }}
-        >
-          <FiEdit2 size={16} />
-          Edit
-        </button>
-        <button
-          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-          onClick={() => {
-            setIsOpen(false);
-            onDelete();
-          }}
-        >
-          <FiTrash2 size={16} />
-          Delete
-        </button>
-      </PortalDropdown>
+      <button 
+        onClick={onDelete}
+        className="inline-flex items-center justify-center p-2 text-[#DC2626] hover:text-[#B91C1C] hover:bg-[#DC2626]/5 rounded-lg transition-colors"
+        title="Delete Dealer"
+      >
+        <FiTrash2 size={16} />
+      </button>
     </div>
   );
 };
@@ -682,7 +850,7 @@ const Dealers = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4 text-right relative">
-                      <ActionMenu
+                      <DealerActions
                         dealerId={dealer.employee_id || dealer.id}
                         onEdit={() => handleEditDealer(dealer.employee_id || dealer.id)}
                         onDelete={() => handleOpenDeleteModal(dealer.employee_id || dealer.id)}

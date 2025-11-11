@@ -5,6 +5,8 @@ import CustomSelect from '../components/CustomSelect';
 import { fetchDealers } from '../api/dealer';
 import { fetchProducts } from '../api/products';
 import { createOrder } from '../api/orders';
+import { fetchSalespersons } from '../api/user';
+import { useAuth } from '../contexts/AuthContext';
 import Swal from 'sweetalert2';
 
 const CreateOrder = () => {
@@ -13,31 +15,44 @@ const CreateOrder = () => {
     dealer_id: '',
     priority: 'MEDIUM',
     order_note: '',
-    salesperson_id: '',
+    salesman_id: '',
+    amount_paid: '',
+    payment_method: 'CASH',
     order_details: [{ 
       product_id: '', 
       product_brand: '', 
       product_name: '', 
       product_model: '', 
-      product_type: '', 
-      qty_ordered: 0, 
-      delivery_date: '' 
+      product_type: '',
+      product_price: 0,
+      discount_price: 0,
+      qty_ordered: 1, 
+      delivery_date: '',
+      dealer_discount_id: '',
+      is_product_sceme: false
     }]
   });
 
   const [dealers, setDealers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [salespersons, setSalespersons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { user } = useAuth();
 
-  // Fetch dealers and products on component mount
+  // Fetch dealers, products, and salespersons on component mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [dealersResponse, productsResponse] = await Promise.all([
-          fetchDealers(),
-          fetchProducts()
-        ]);
+        const promises = [fetchDealers(), fetchProducts()];
+        
+        // Only fetch salespersons if user can select salesman
+        if (['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_MANAGER'].includes(user?.role)) {
+          promises.push(fetchSalespersons());
+        }
+
+        const responses = await Promise.all(promises);
+        const [dealersResponse, productsResponse, salespersonsResponse] = responses;
 
         if (dealersResponse && dealersResponse.success && dealersResponse.data && dealersResponse.data.employees) {
           // Filter only dealers (ROLE_DEALER) from the employees array
@@ -53,16 +68,23 @@ const CreateOrder = () => {
           console.warn('Products response structure:', productsResponse);
           setProducts([]);
         }
+
+        if (salespersonsResponse && salespersonsResponse.success && salespersonsResponse.data && salespersonsResponse.data.employees) {
+          setSalespersons(salespersonsResponse.data.employees);
+        } else {
+          setSalespersons([]);
+        }
       } catch (err) {
         console.error('Error loading data:', err);
-        setError('Failed to load dealers and products');
+        setError('Failed to load data');
         setDealers([]);
         setProducts([]);
+        setSalespersons([]);
       }
     };
 
     loadData();
-  }, []);
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -85,7 +107,9 @@ const CreateOrder = () => {
           product_brand: selectedProduct.brand || '',
           product_name: selectedProduct.product_name || '',
           product_model: selectedProduct.model || '',
-          product_type: selectedProduct.product_type || ''
+          product_type: selectedProduct.product_type || '',
+          product_price: selectedProduct.price || 0,
+          discount_price: selectedProduct.discount_price || 0
         };
       }
     }
@@ -104,9 +128,13 @@ const CreateOrder = () => {
         product_brand: '', 
         product_name: '', 
         product_model: '', 
-        product_type: '', 
-        qty_ordered: 0, 
-        delivery_date: '' 
+        product_type: '',
+        product_price: 0,
+        discount_price: 0,
+        qty_ordered: 1, 
+        delivery_date: '',
+        dealer_discount_id: '',
+        is_product_sceme: false
       }]
     }));
   };
@@ -133,15 +161,21 @@ const CreateOrder = () => {
       dealer_id: '',
       priority: 'MEDIUM',
       order_note: '',
-      salesperson_id: '',
+      salesman_id: '',
+      amount_paid: '',
+      payment_method: 'CASH',
       order_details: [{ 
         product_id: '', 
         product_brand: '', 
         product_name: '', 
         product_model: '', 
-        product_type: '', 
-        qty_ordered: 0, 
-        delivery_date: '' 
+        product_type: '',
+        product_price: 0,
+        discount_price: 0,
+        qty_ordered: 1, 
+        delivery_date: '',
+        dealer_discount_id: '',
+        is_product_sceme: false
       }]
     });
     setError('');
@@ -165,6 +199,22 @@ const CreateOrder = () => {
 
       if (!formData.priority) {
         setError('Please select priority');
+        return;
+      }
+
+      if (!formData.amount_paid || formData.amount_paid <= 0) {
+        setError('Please enter a valid amount paid');
+        return;
+      }
+
+      if (!formData.payment_method) {
+        setError('Please select a payment method');
+        return;
+      }
+
+      // Validate salesman_id based on user role
+      if (canSelectSalesman && !formData.salesman_id) {
+        setError('Please select a salesman');
         return;
       }
 
@@ -223,15 +273,21 @@ const CreateOrder = () => {
         dealer_id: formData.dealer_id,
         priority: formData.priority,
         order_note: formData.order_note,
-        salesperson_id: formData.salesperson_id || 'N/A', // You might want to get this from user context
+        salesman_id: canSelectSalesman ? formData.salesman_id : user.employee_id,
+        amount_paid: parseInt(formData.amount_paid),
+        payment_method: formData.payment_method,
         order_details: validItems.map(item => ({
           product_id: item.product_id,
           product_brand: item.product_brand,
           product_name: item.product_name,
           product_model: item.product_model,
           product_type: item.product_type,
+          product_price: item.product_price || 0,
+          discount_price: item.discount_price || 0,
           qty_ordered: parseInt(item.qty_ordered),
-          delivery_date: item.delivery_date
+          delivery_date: item.delivery_date,
+          dealer_discount_id: item.dealer_discount_id || '',
+          is_product_sceme: item.is_product_sceme || false
         }))
       };
 
@@ -262,6 +318,10 @@ const CreateOrder = () => {
   };
 
   const priorityOptions = ['HIGH', 'MEDIUM', 'LOW'];
+  const paymentMethodOptions = ['CASH', 'CARD', 'UPI', 'CHEQUE', 'BANK_TRANSFER'];
+
+  // Check if current user can select salesman (superadmin, admin, manager)
+  const canSelectSalesman = ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_MANAGER'].includes(user?.role);
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -355,6 +415,56 @@ const CreateOrder = () => {
                       disabled={loading}
                     />
                   </div>
+
+                  {canSelectSalesman && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Select Salesman <span className="text-red-500">*</span>
+                      </label>
+                      <CustomSelect
+                        name="salesman_id"
+                        value={formData.salesman_id}
+                        onChange={handleChange}
+                        options={['', ...(Array.isArray(salespersons) ? salespersons.map(salesperson => ({
+                          value: salesperson.employee_id,
+                          label: salesperson.employee_name
+                        })) : [])]}
+                        placeholder={loading ? "Loading salesmen..." : "Select a salesman"}
+                        searchable={true}
+                        disabled={loading}
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Amount Paid <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="amount_paid"
+                      value={formData.amount_paid}
+                      onChange={handleChange}
+                      placeholder="Enter amount"
+                      min="0"
+                      disabled={loading}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]/20 transition-all placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Payment Method <span className="text-red-500">*</span>
+                    </label>
+                    <CustomSelect
+                      name="payment_method"
+                      value={formData.payment_method}
+                      onChange={handleChange}
+                      options={paymentMethodOptions}
+                      placeholder="Select payment method"
+                      disabled={loading}
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -392,8 +502,10 @@ const CreateOrder = () => {
               <div className="space-y-4">
                 <div className="hidden lg:flex items-center gap-6 px-3">
                   <div className="flex-1 text-sm font-medium text-gray-700">Product</div>
-                  <div className="w-32 text-sm font-medium text-gray-700">Quantity</div>
-                  <div className="w-40 text-sm font-medium text-gray-700">Delivery Date</div>
+                  <div className="w-20 text-sm font-medium text-gray-700">Quantity</div>
+                  <div className="w-28 text-sm font-medium text-gray-700">Price</div>
+                  <div className="w-28 text-sm font-medium text-gray-700">Discount</div>
+                  <div className="w-32 text-sm font-medium text-gray-700">Delivery Date</div>
                   <div className="w-10"></div>
                 </div>
 
@@ -414,20 +526,46 @@ const CreateOrder = () => {
                       />
                     </div>
 
-                    <div className="w-full lg:w-32">
+                    <div className="w-full lg:w-20">
                       <label className="block lg:hidden text-sm font-medium text-gray-700 mb-1.5">Quantity <span className="text-red-500">*</span></label>
                       <input
                         type="number"
                         value={item.qty_ordered}
                         onChange={(e) => handleItemChange(index, 'qty_ordered', e.target.value)}
                         min="1"
+                        placeholder="1"
+                        disabled={loading}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]/20 transition-all placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div className="w-full lg:w-28">
+                      <label className="block lg:hidden text-sm font-medium text-gray-700 mb-1.5">Price</label>
+                      <input
+                        type="number"
+                        value={item.product_price}
+                        onChange={(e) => handleItemChange(index, 'product_price', e.target.value)}
+                        min="0"
                         placeholder="0"
                         disabled={loading}
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]/20 transition-all placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
 
-                    <div className="w-full lg:w-40">
+                    <div className="w-full lg:w-28">
+                      <label className="block lg:hidden text-sm font-medium text-gray-700 mb-1.5">Discount Price</label>
+                      <input
+                        type="number"
+                        value={item.discount_price}
+                        onChange={(e) => handleItemChange(index, 'discount_price', e.target.value)}
+                        min="0"
+                        placeholder="0"
+                        disabled={loading}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]/20 transition-all placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div className="w-full lg:w-32">
                       <label className="block lg:hidden text-sm font-medium text-gray-700 mb-1.5">Delivery Date <span className="text-red-500">*</span></label>
                       <input
                         type="date"
