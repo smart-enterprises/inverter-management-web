@@ -16,28 +16,28 @@ import Swal from 'sweetalert2';
 import { fetchUsers, fetchUserById, createUser, updateUser, resetUserPasswordById, deleteUserById } from '../api/user';
 
 const ROLE_LABELS = {
-  ROLE_SUPER_ADMIN: 'Super Admin',
-  ROLE_ADMIN: 'Admin',
-  ROLE_MANAGER: 'Manager',
-  ROLE_SUPERVISOR: 'Supervisor',
-  ROLE_SALESMAN: 'Salesman',
-  ROLE_PRODUCTION: 'Production',
-  ROLE_PACKING: 'Packing',
-  ROLE_ACCOUNTS: 'Accounts',
-  ROLE_DELIVERY: 'Delivery',
+  ROLE_SUPER_ADMIN: 'SUPER ADMIN',
+  ROLE_ADMIN: 'ADMIN',
+  ROLE_MANAGER: 'MANAGER',
+  ROLE_SUPERVISOR: 'SUPERVISOR',
+  ROLE_SALESMAN: 'SALESMAN',
+  ROLE_PRODUCTION: 'PRODUCTION',
+  ROLE_PACKING: 'PACKING',
+  ROLE_ACCOUNTS: 'ACCOUNTS',
+  ROLE_DELIVERY: 'DELIVERY',
 };
 
 const ALL_TABS = [
-  'All Users',
-  'Super Admin',
-  'Admin',
-  'Manager',
-  'Supervisor',
-  'Salesman',
-  'Production',
-  'Packing',
-  'Accounts',
-  'Delivery',
+  'ALL USERS',
+  'SUPER ADMIN',
+  'ADMIN',
+  'MANAGER',
+  'SUPERVISOR',
+  'SALESMAN',
+  'PRODUCTION',
+  'PACKING',
+  'ACCOUNTS',
+  'DELIVERY',
 ];
 
 const getRoleLabel = (role) => ROLE_LABELS[role] || role;
@@ -505,7 +505,7 @@ function UserPagination({ currentPage, totalPages, onPageChange }) {
 }
 
 const User = () => {
-  const [activeTab, setActiveTab] = useState('All Users');
+  const [activeTab, setActiveTab] = useState('ALL USERS');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [employees, setEmployees] = useState([]);
@@ -620,7 +620,7 @@ const User = () => {
   };
 
   // Filter employees based on active tab, but exclude ROLE_DEALER
-  const filteredEmployees = activeTab === 'All Users'
+  const filteredEmployees = activeTab === 'ALL USERS'
     ? employees.filter(emp => emp && emp.role !== 'ROLE_DEALER')
     : employees.filter(emp => emp && getRoleLabel(emp.role) === activeTab && emp.role !== 'ROLE_DEALER');
 
