@@ -16,28 +16,28 @@ import Swal from 'sweetalert2';
 import { fetchUsers, fetchUserById, createUser, updateUser, resetUserPasswordById, deleteUserById } from '../api/user';
 
 const ROLE_LABELS = {
-  ROLE_SUPER_ADMIN: 'Super Admin',
-  ROLE_ADMIN: 'Admin',
-  ROLE_MANAGER: 'Manager',
-  ROLE_SUPERVISOR: 'Supervisor',
-  ROLE_SALESMAN: 'Salesman',
-  ROLE_PRODUCTION: 'Production',
-  ROLE_PACKING: 'Packing',
-  ROLE_ACCOUNTS: 'Accounts',
-  ROLE_DELIVERY: 'Delivery',
+  ROLE_SUPER_ADMIN: 'SUPER ADMIN',
+  ROLE_ADMIN: 'ADMIN',
+  ROLE_MANAGER: 'MANAGER',
+  ROLE_SUPERVISOR: 'SUPERVISOR',
+  ROLE_SALESMAN: 'SALESMAN',
+  ROLE_PRODUCTION: 'PRODUCTION',
+  ROLE_PACKING: 'PACKING',
+  ROLE_ACCOUNTS: 'ACCOUNTS',
+  ROLE_DELIVERY: 'DELIVERY',
 };
 
 const ALL_TABS = [
-  'All Users',
-  'Super Admin',
-  'Admin',
-  'Manager',
-  'Supervisor',
-  'Salesman',
-  'Production',
-  'Packing',
-  'Accounts',
-  'Delivery',
+  'ALL USERS',
+  'SUPER ADMIN',
+  'ADMIN',
+  'MANAGER',
+  'SUPERVISOR',
+  'SALESMAN',
+  'PRODUCTION',
+  'PACKING',
+  'ACCOUNTS',
+  'DELIVERY',
 ];
 
 const getRoleLabel = (role) => ROLE_LABELS[role] || role;
@@ -103,13 +103,13 @@ const UserTable = ({ users, onEdit, onResetPassword, onDeleteUser, currentPage, 
               <td className="p-4 lg:p-6 text-center">
                 <div className="flex items-center justify-center gap-2">
                   <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors group" onClick={() => onEdit && onEdit(user.employee_id)}>
-                    <FiEdit2 className="text-gray-400 group-hover:text-blue-600" size={18} />
+                    <FiEdit2 className="text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 transition-colors" size={18} />
                   </button>
                   <button className="p-2 hover:bg-indigo-50 rounded-lg transition-colors group" onClick={() => onResetPassword && onResetPassword(user.employee_id)}>
-                    <FiKey className="text-gray-400 group-hover:text-indigo-600" size={18} />
+                    <FiKey className="text-indigo-400 hover:text-indigo-600 hover:bg-[#DC2626]/5 transition-colors" size={18} />
                   </button>
                   <button className="p-2 hover:bg-red-50 rounded-lg transition-colors group" onClick={() => onDeleteUser && onDeleteUser(user.employee_id)}>
-                    <FiTrash2 className="text-gray-400 group-hover:text-red-600" size={18} />
+                    <FiTrash2 className="text-[#DC2626] hover:text-[#B91C1C] hover:bg-[#DC2626]/5 transition-colors" size={18} />
                   </button>
                 </div>
               </td>
@@ -505,7 +505,7 @@ function UserPagination({ currentPage, totalPages, onPageChange }) {
 }
 
 const User = () => {
-  const [activeTab, setActiveTab] = useState('All Users');
+  const [activeTab, setActiveTab] = useState('ALL USERS');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [employees, setEmployees] = useState([]);
@@ -620,7 +620,7 @@ const User = () => {
   };
 
   // Filter employees based on active tab, but exclude ROLE_DEALER
-  const filteredEmployees = activeTab === 'All Users'
+  const filteredEmployees = activeTab === 'ALL USERS'
     ? employees.filter(emp => emp && emp.role !== 'ROLE_DEALER')
     : employees.filter(emp => emp && getRoleLabel(emp.role) === activeTab && emp.role !== 'ROLE_DEALER');
 
