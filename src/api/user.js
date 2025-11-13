@@ -53,4 +53,24 @@ export const deleteUserById = async (employeeId, reason) => {
     body: JSON.stringify({ employeeId, reason }),
   });
   return response.json();
+};
+
+export const fetchSalespersons = async () => {
+  const response = await fetch(`${API_BASE_URL}/employees/?page=1&limit=100`, {
+    headers: { ...getAuthHeaders() },
+  });
+  const data = await response.json();
+  
+  if (data.success && data.data && data.data.employees) {
+    // Filter only salespersons (ROLE_SALESMAN) from the employees array
+    const salespersonEmployees = data.data.employees.filter(employee => employee.role === 'ROLE_SALESMAN');
+    return {
+      success: true,
+      data: {
+        employees: salespersonEmployees
+      }
+    };
+  }
+  
+  return data;
 }; 

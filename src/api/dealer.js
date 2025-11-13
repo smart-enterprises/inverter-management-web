@@ -71,3 +71,21 @@ export const createDealerDiscounts = async (payloadArray) => {
   });
   return response.json();
 };
+
+export const getDealerDiscountByProduct = async (dealerId, productId, page = 1, limit = 30) => {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('limit', String(limit));
+
+  const payload = {
+    dealer_id: dealerId,
+    product_id: productId
+  };
+
+  const response = await fetch(`${API_BASE_URL}/employees/dealer/get-discounts?${params.toString()}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+  return response.json();
+};
