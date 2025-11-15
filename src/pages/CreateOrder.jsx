@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { FiPlus, FiArrowLeft, FiTrash2, FiPackage, FiChevronDown, FiSend } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import CustomSelect from '../components/CustomSelect';
-import { fetchDealers } from '../api/dealer';
-import { fetchProducts } from '../api/products';
+import { fetchDealers, getDealerDiscountByProduct } from '../api/dealer';
+import { fetchProductsByBrands } from '../api/products';
 import { createOrder } from '../api/orders';
+import { fetchSalespersons } from '../api/user';
+import { getBrandsByDealer } from '../api/brands';
+import { useAuth } from '../contexts/AuthContext';
 import Swal from 'sweetalert2';
 
 const CreateOrder = () => {
@@ -13,31 +16,46 @@ const CreateOrder = () => {
     dealer_id: '',
     priority: 'MEDIUM',
     order_note: '',
-    salesperson_id: '',
+    salesman_id: '',
+    amount_paid: '',
+    payment_method: 'CASH',
     order_details: [{ 
       product_id: '', 
       product_brand: '', 
       product_name: '', 
       product_model: '', 
-      product_type: '', 
-      qty_ordered: 0, 
-      delivery_date: '' 
+      product_type: '',
+      product_price: 0,
+      discount_price: 0,
+      qty_ordered: 1, 
+      delivery_date: '',
+      dealer_discount_id: '',
+      is_product_sceme: false
     }]
   });
 
   const [dealers, setDealers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [groupedProducts, setGroupedProducts] = useState([]);
+  const [salespersons, setSalespersons] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [error, setError] = useState('');
+  const { user } = useAuth();
 
-  // Fetch dealers and products on component mount
+  // Fetch dealers and salespersons on component mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [dealersResponse, productsResponse] = await Promise.all([
-          fetchDealers(),
-          fetchProducts()
-        ]);
+        const promises = [fetchDealers()];
+        
+        // Only fetch salespersons if user can select salesman
+        if (['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_MANAGER'].includes(user?.role)) {
+          promises.push(fetchSalespersons());
+        }
+
+        const responses = await Promise.all(promises);
+        const [dealersResponse, salespersonsResponse] = responses;
 
         if (dealersResponse && dealersResponse.success && dealersResponse.data && dealersResponse.data.employees) {
           // Filter only dealers (ROLE_DEALER) from the employees array
@@ -47,22 +65,107 @@ const CreateOrder = () => {
           setDealers([]);
         }
 
-        if (productsResponse && productsResponse.success && Array.isArray(productsResponse.data)) {
-          setProducts(productsResponse.data);
+        if (salespersonsResponse && salespersonsResponse.success && salespersonsResponse.data && salespersonsResponse.data.employees) {
+          setSalespersons(salespersonsResponse.data.employees);
         } else {
-          console.warn('Products response structure:', productsResponse);
-          setProducts([]);
+          setSalespersons([]);
         }
       } catch (err) {
         console.error('Error loading data:', err);
-        setError('Failed to load dealers and products');
+        setError('Failed to load data');
         setDealers([]);
-        setProducts([]);
+        setSalespersons([]);
       }
     };
 
     loadData();
-  }, []);
+  }, [user]);
+
+  // Fetch brands and products when dealer is selected
+  useEffect(() => {
+    const loadProductsByDealer = async () => {
+      if (!formData.dealer_id) {
+        setProducts([]);
+        setGroupedProducts([]);
+        // Clear product selections when dealer is cleared
+        setFormData(prev => ({
+          ...prev,
+          order_details: prev.order_details.map(item => ({
+            ...item,
+            product_id: '',
+            product_brand: '',
+            product_name: '',
+            product_model: '',
+            product_type: '',
+            product_price: 0,
+            discount_price: 0
+          }))
+        }));
+        return;
+      }
+
+      setLoadingProducts(true);
+      try {
+        // First, fetch brands for the selected dealer
+        const brandsResponse = await getBrandsByDealer(formData.dealer_id, 'active');
+        
+        if (brandsResponse && brandsResponse.success && Array.isArray(brandsResponse.data) && brandsResponse.data.length > 0) {
+          // Extract brand names
+          const brandNames = brandsResponse.data.map(brand => brand.brand_name);
+          
+          // Then, fetch products by brands
+          const productsResponse = await fetchProductsByBrands(brandNames);
+          
+          if (productsResponse && productsResponse.success && Array.isArray(productsResponse.data)) {
+            setProducts(productsResponse.data);
+            
+            // Group products by brand
+            const grouped = brandNames.map(brandName => {
+              const brandProducts = productsResponse.data.filter(product => product.brand === brandName);
+              return {
+                group: brandName,
+                options: brandProducts.map(product => ({
+                  value: product.product_id,
+                  label: `${product.product_name} - ${product.model} (${product.product_type})`
+                }))
+              };
+            }).filter(group => group.options.length > 0); // Only include brands with products
+            
+            setGroupedProducts(grouped);
+            
+            // Clear product selections when dealer changes (products list changes)
+            setFormData(prev => ({
+              ...prev,
+              order_details: prev.order_details.map(item => ({
+                ...item,
+                product_id: '',
+                product_brand: '',
+                product_name: '',
+                product_model: '',
+                product_type: '',
+                product_price: 0,
+                discount_price: 0
+              }))
+            }));
+          } else {
+            setProducts([]);
+            setGroupedProducts([]);
+          }
+        } else {
+          setProducts([]);
+          setGroupedProducts([]);
+        }
+      } catch (err) {
+        console.error('Error loading products by dealer:', err);
+        setProducts([]);
+        setGroupedProducts([]);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    loadProductsByDealer();
+  }, [formData.dealer_id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -72,11 +175,11 @@ const CreateOrder = () => {
     }));
   };
 
-  const handleItemChange = (index, field, value) => {
+  const handleItemChange = async (index, field, value) => {
     const newOrderDetails = [...formData.order_details];
     newOrderDetails[index] = { ...newOrderDetails[index], [field]: value };
     
-    // If product_id changed, update other product fields
+    // If product_id changed, update other product fields and fetch discount
     if (field === 'product_id') {
       const selectedProduct = products.find(p => p.product_id === value);
       if (selectedProduct) {
@@ -85,8 +188,44 @@ const CreateOrder = () => {
           product_brand: selectedProduct.brand || '',
           product_name: selectedProduct.product_name || '',
           product_model: selectedProduct.model || '',
-          product_type: selectedProduct.product_type || ''
+          product_type: selectedProduct.product_type || '',
+          product_price: selectedProduct.price || 0,
+          discount_price: 0,
+          dealer_discount_id: ''
         };
+
+        // Fetch discount if dealer is selected
+        if (formData.dealer_id && value) {
+          try {
+            const discountResponse = await getDealerDiscountByProduct(formData.dealer_id, value);
+            if (discountResponse && discountResponse.success && discountResponse.data && discountResponse.data.length > 0) {
+              // Get the first active discount (or first one if no active filter)
+              const discount = discountResponse.data.find(d => d.status === 'active') || discountResponse.data[0];
+              
+              if (discount) {
+                const basePrice = selectedProduct.price || 0;
+                let calculatedDiscount = 0;
+                
+                if (discount.is_percentage) {
+                  // Percentage discount
+                  calculatedDiscount = (basePrice * discount.discount_value) / 100;
+                } else {
+                  // Fixed amount discount
+                  calculatedDiscount = discount.discount_value;
+                }
+                
+                newOrderDetails[index] = {
+                  ...newOrderDetails[index],
+                  discount_price: calculatedDiscount,
+                  dealer_discount_id: discount.dealer_discount_id
+                };
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching discount:', err);
+            // Continue without discount if fetch fails
+          }
+        }
       }
     }
     
@@ -104,9 +243,13 @@ const CreateOrder = () => {
         product_brand: '', 
         product_name: '', 
         product_model: '', 
-        product_type: '', 
-        qty_ordered: 0, 
-        delivery_date: '' 
+        product_type: '',
+        product_price: 0,
+        discount_price: 0,
+        qty_ordered: 1, 
+        delivery_date: '',
+        dealer_discount_id: '',
+        is_product_sceme: false
       }]
     }));
   };
@@ -133,15 +276,21 @@ const CreateOrder = () => {
       dealer_id: '',
       priority: 'MEDIUM',
       order_note: '',
-      salesperson_id: '',
+      salesman_id: '',
+      amount_paid: '',
+      payment_method: 'CASH',
       order_details: [{ 
         product_id: '', 
         product_brand: '', 
         product_name: '', 
         product_model: '', 
-        product_type: '', 
-        qty_ordered: 0, 
-        delivery_date: '' 
+        product_type: '',
+        product_price: 0,
+        discount_price: 0,
+        qty_ordered: 1, 
+        delivery_date: '',
+        dealer_discount_id: '',
+        is_product_sceme: false
       }]
     });
     setError('');
@@ -165,6 +314,22 @@ const CreateOrder = () => {
 
       if (!formData.priority) {
         setError('Please select priority');
+        return;
+      }
+
+      if (!formData.amount_paid || formData.amount_paid <= 0) {
+        setError('Please enter a valid amount paid');
+        return;
+      }
+
+      if (!formData.payment_method) {
+        setError('Please select a payment method');
+        return;
+      }
+
+      // Validate salesman_id based on user role
+      if (canSelectSalesman && !formData.salesman_id) {
+        setError('Please select a salesman');
         return;
       }
 
@@ -223,15 +388,21 @@ const CreateOrder = () => {
         dealer_id: formData.dealer_id,
         priority: formData.priority,
         order_note: formData.order_note,
-        salesperson_id: formData.salesperson_id || 'N/A', // You might want to get this from user context
+        salesman_id: canSelectSalesman ? formData.salesman_id : user.employee_id,
+        amount_paid: parseInt(formData.amount_paid),
+        payment_method: formData.payment_method,
         order_details: validItems.map(item => ({
           product_id: item.product_id,
           product_brand: item.product_brand,
           product_name: item.product_name,
           product_model: item.product_model,
           product_type: item.product_type,
+          product_price: item.product_price || 0,
+          discount_price: item.discount_price || 0,
           qty_ordered: parseInt(item.qty_ordered),
-          delivery_date: item.delivery_date
+          delivery_date: item.delivery_date,
+          dealer_discount_id: item.dealer_discount_id || '',
+          is_product_sceme: item.is_product_sceme || false
         }))
       };
 
@@ -262,6 +433,10 @@ const CreateOrder = () => {
   };
 
   const priorityOptions = ['HIGH', 'MEDIUM', 'LOW'];
+  const paymentMethodOptions = ['CASH', 'CARD', 'UPI', 'CHEQUE', 'BANK_TRANSFER'];
+
+  // Check if current user can select salesman (superadmin, admin, manager)
+  const canSelectSalesman = ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN', 'ROLE_MANAGER'].includes(user?.role);
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -282,7 +457,7 @@ const CreateOrder = () => {
             </div>
             <button
               type="submit"
-              disabled={loading || !Array.isArray(dealers) || !Array.isArray(products)}
+              disabled={loading || !Array.isArray(dealers) || loadingProducts}
               className="w-full sm:w-auto px-6 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#7928CC] transition-colors text-sm font-medium inline-flex items-center justify-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FiSend className="w-4 h-4" />
@@ -305,9 +480,23 @@ const CreateOrder = () => {
           )}
 
           {/* Data Loading Error */}
-          {!loading && (!Array.isArray(dealers) || !Array.isArray(products)) && (
+          {!loading && !Array.isArray(dealers) && (
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg text-sm">
-              Some data failed to load. Please refresh the page or try again later.
+              Dealers failed to load. Please refresh the page or try again later.
+            </div>
+          )}
+
+          {/* Products Loading State */}
+          {loadingProducts && formData.dealer_id && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
+              Loading products for selected dealer...
+            </div>
+          )}
+
+          {/* Products Loading Error */}
+          {!loadingProducts && formData.dealer_id && groupedProducts.length === 0 && products.length === 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg text-sm">
+              No products available for the selected dealer.
             </div>
           )}
 
@@ -355,6 +544,56 @@ const CreateOrder = () => {
                       disabled={loading}
                     />
                   </div>
+
+                  {canSelectSalesman && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Select Salesman <span className="text-red-500">*</span>
+                      </label>
+                      <CustomSelect
+                        name="salesman_id"
+                        value={formData.salesman_id}
+                        onChange={handleChange}
+                        options={['', ...(Array.isArray(salespersons) ? salespersons.map(salesperson => ({
+                          value: salesperson.employee_id,
+                          label: salesperson.employee_name
+                        })) : [])]}
+                        placeholder={loading ? "Loading salesmen..." : "Select a salesman"}
+                        searchable={true}
+                        disabled={loading}
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Amount Paid <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="amount_paid"
+                      value={formData.amount_paid}
+                      onChange={handleChange}
+                      placeholder="Enter amount"
+                      min="0"
+                      disabled={loading}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]/20 transition-all placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Payment Method <span className="text-red-500">*</span>
+                    </label>
+                    <CustomSelect
+                      name="payment_method"
+                      value={formData.payment_method}
+                      onChange={handleChange}
+                      options={paymentMethodOptions}
+                      placeholder="Select payment method"
+                      disabled={loading}
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -392,8 +631,10 @@ const CreateOrder = () => {
               <div className="space-y-4">
                 <div className="hidden lg:flex items-center gap-6 px-3">
                   <div className="flex-1 text-sm font-medium text-gray-700">Product</div>
-                  <div className="w-32 text-sm font-medium text-gray-700">Quantity</div>
-                  <div className="w-40 text-sm font-medium text-gray-700">Delivery Date</div>
+                  <div className="w-20 text-sm font-medium text-gray-700">Quantity</div>
+                  <div className="w-28 text-sm font-medium text-gray-700">Price</div>
+                  <div className="w-28 text-sm font-medium text-gray-700">Discount</div>
+                  <div className="w-32 text-sm font-medium text-gray-700">Delivery Date</div>
                   <div className="w-10"></div>
                 </div>
 
@@ -404,30 +645,65 @@ const CreateOrder = () => {
                       <CustomSelect
                         value={item.product_id}
                         onChange={(e) => handleItemChange(index, 'product_id', e.target.value)}
-                        options={['', ...(Array.isArray(products) ? products.map(product => ({
-                          value: product.product_id,
-                          label: `${product.product_name} - ${product.brand} (${product.model})`
-                        })) : [])]}
-                        placeholder={loading ? "Loading products..." : "Select product"}
+                        options={formData.dealer_id && groupedProducts.length > 0 
+                          ? groupedProducts 
+                          : ['', ...(Array.isArray(products) ? products.map(product => ({
+                              value: product.product_id,
+                              label: `${product.product_name} - ${product.brand} (${product.model})`
+                            })) : [])]}
+                        placeholder={
+                          !formData.dealer_id 
+                            ? "Select dealer first" 
+                            : loadingProducts 
+                            ? "Loading products..." 
+                            : "Select product"
+                        }
                         searchable={true}
-                        disabled={loading}
+                        disabled={loading || loadingProducts || !formData.dealer_id}
+                        grouped={formData.dealer_id && groupedProducts.length > 0}
                       />
                     </div>
 
-                    <div className="w-full lg:w-32">
+                    <div className="w-full lg:w-20">
                       <label className="block lg:hidden text-sm font-medium text-gray-700 mb-1.5">Quantity <span className="text-red-500">*</span></label>
                       <input
                         type="number"
                         value={item.qty_ordered}
                         onChange={(e) => handleItemChange(index, 'qty_ordered', e.target.value)}
                         min="1"
+                        placeholder="1"
+                        disabled={loading}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]/20 transition-all placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div className="w-full lg:w-28">
+                      <label className="block lg:hidden text-sm font-medium text-gray-700 mb-1.5">Price</label>
+                      <input
+                        type="number"
+                        value={item.product_price}
+                        onChange={(e) => handleItemChange(index, 'product_price', e.target.value)}
+                        min="0"
                         placeholder="0"
                         disabled={loading}
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]/20 transition-all placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
 
-                    <div className="w-full lg:w-40">
+                    <div className="w-full lg:w-28">
+                      <label className="block lg:hidden text-sm font-medium text-gray-700 mb-1.5">Discount Price</label>
+                      <input
+                        type="number"
+                        value={item.discount_price}
+                        onChange={(e) => handleItemChange(index, 'discount_price', e.target.value)}
+                        min="0"
+                        placeholder="0"
+                        disabled={loading}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA]/20 transition-all placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div className="w-full lg:w-32">
                       <label className="block lg:hidden text-sm font-medium text-gray-700 mb-1.5">Delivery Date <span className="text-red-500">*</span></label>
                       <input
                         type="date"

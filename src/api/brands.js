@@ -37,6 +37,13 @@ export const updateBrand = async (brandName, brandData) => {
   return response.json();
 };
 
+export const getBrandsByDealer = async (dealerId, status = 'active') => {
+  const response = await fetch(`${API_BASE_URL}/product-details/getAll/brands?dealerId=${dealerId}&status=${status}`, {
+    headers: { ...getAuthHeaders() },
+  });
+  return response.json();
+};
+
 // export const deleteBrand = async (brandId) => {
 //   const response = await fetch(`${API_BASE_URL}/product-details/brands/${brandId}`, {
 //     method: 'DELETE',
