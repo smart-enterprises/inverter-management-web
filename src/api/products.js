@@ -53,3 +53,12 @@ export const updateProductStock = async (stockData) => {
   });
   return response.json();
 };
+
+export const fetchProductsByBrands = async (brands) => {
+  const response = await fetch(`${API_BASE_URL}/product-details/getAllProductsByBrand`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ brands }),
+  });
+  return response.json();
+};

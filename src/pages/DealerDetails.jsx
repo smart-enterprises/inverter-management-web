@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiUser, FiMapPin, FiPhone, FiMail, FiBox, FiCalendar, FiPackage, FiTruck, FiPercent, FiPlus, FiTrash2 } from 'react-icons/fi';
 import Swal from 'sweetalert2';
 import { fetchDealerById, fetchDealerDiscounts, createDealerDiscounts } from '../api/dealer';
-import { getAllBrands } from '../api/brands';
+import { getBrandsByDealer } from '../api/brands';
 import { fetchOrders } from '../api/orders';
 import { fetchProducts } from '../api/products';
 import CustomSelect from '../components/CustomSelect';
@@ -21,7 +21,6 @@ const DealerDetails = () => {
   const [discountsPage, setDiscountsPage] = useState(1);
   const [discountsLimit] = useState(30);
   const [discountsTotal, setDiscountsTotal] = useState(0);
-  const [brandIdToName, setBrandIdToName] = useState({});
   const [brandToModels, setBrandToModels] = useState({});
   const [allBrands, setAllBrands] = useState([]);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
@@ -119,24 +118,22 @@ const DealerDetails = () => {
 
   useEffect(() => {
     const loadBrands = async () => {
+      if (!id) return;
+      
       try {
-        const res = await getAllBrands();
+        const res = await getBrandsByDealer(id, 'active');
         if (res?.success && Array.isArray(res.data)) {
-          const map = {};
-          res.data.forEach((b) => {
-            // Accept both id/code and name
-            const key = b.brand_id || b.brand_code || b.brand_name;
-            if (key) map[key] = b.brand_name || b.name || key;
-          });
-          setBrandIdToName(map);
           setAllBrands(res.data);
+        } else {
+          setAllBrands([]);
         }
       } catch (err) {
-        console.error('Failed to load brands', err);
+        console.error('Failed to load brands for dealer', err);
+        setAllBrands([]);
       }
     };
     loadBrands();
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -360,17 +357,17 @@ const DealerDetails = () => {
               </div>
             </div>
 
-            {dealer.brand && dealer.brand.length > 0 && (
+            {allBrands && allBrands.length > 0 && (
               <div className="flex items-center gap-3">
                 <FiBox className="text-gray-400" size={16} />
                 <div>
                   <label className="block text-sm text-gray-500 mb-1">Brands</label>
                   <div className="flex flex-wrap gap-1">
-                    {dealer.brand.map((brandId, index) => {
-                      const display = brandIdToName[brandId] || brandId;
+                    {allBrands.map((brand, index) => {
+                      const display = brand.brand_name || brand.name || brand.brand_id;
                       return (
                       <span 
-                        key={index}
+                        key={brand.brand_id || index}
                         className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
                       >
                         {display}
@@ -543,7 +540,7 @@ const DealerDetails = () => {
                               const v = e.target.value;
                               setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, brand_name: v, model_name: '' } : r));
                             }}
-                            options={Array.from(new Set((dealer?.brand || []).map((id) => brandIdToName[id] || id))).filter(Boolean).sort()}
+                            options={allBrands.map(brand => brand.brand_name || brand.name).filter(Boolean).sort()}
                             placeholder="Select brand"
                             searchable
                           />
