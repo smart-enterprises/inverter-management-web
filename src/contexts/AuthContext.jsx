@@ -1,16 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AuthContext } from './AuthContextValue';
 import { login as apiLogin, logout as apiLogout } from '../api/auth';
+import { canManageUsers } from '../utils/roles';
 
 const INACTIVITY_LIMIT = 60 * 60 * 1000;
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -169,12 +162,21 @@ export const AuthProvider = ({ children }) => {
     return !!user;
   };
 
+  const hasRole = (roles = []) => {
+    if (!Array.isArray(roles) || roles.length === 0) return false;
+    return roles.includes(user?.role);
+  };
+
+  const canManageUsersFromRole = () => canManageUsers(user?.role);
+
   const value = {
     user,
     login,
     logout,
     isAuthenticated,
     loading,
+    hasRole,
+    canManageUsers: canManageUsersFromRole,
   };
 
   return (

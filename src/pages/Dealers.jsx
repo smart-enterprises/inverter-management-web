@@ -24,6 +24,8 @@ import {
   deleteDealerById,
 } from "../api/dealer";
 import { getActiveBrands } from "../api/brands";
+import { useAuth } from "../hooks/useAuth";
+import { ROLES } from "../utils/roles";
 
 // Multi-select dropdown component
 const MultiSelectDropdown = ({
@@ -651,7 +653,7 @@ const CreateDealerModal = ({
 };
 
 // Inline action buttons (view, edit, delete) replacing dropdown menu
-const DealerActions = ({ dealerId, onEdit, onDelete }) => {
+const DealerActions = ({ dealerId, onEdit, onDelete, isSalesman }) => {
   return (
     <div className="flex items-center justify-end gap-2">
       <Link
@@ -661,20 +663,24 @@ const DealerActions = ({ dealerId, onEdit, onDelete }) => {
       >
         <FiEye size={16} />
       </Link>
-      <button
-        onClick={onEdit}
-        className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 rounded-lg transition-colors"
-        title="Edit Dealer"
-      >
-        <FiEdit2 size={16} />
-      </button>
-      <button
-        onClick={onDelete}
-        className="inline-flex items-center justify-center p-2 text-[#DC2626] hover:text-[#B91C1C] hover:bg-[#DC2626]/5 rounded-lg transition-colors"
-        title="Delete Dealer"
-      >
-        <FiTrash2 size={16} />
-      </button>
+      {!isSalesman && (
+        <>
+          <button
+            onClick={onEdit}
+            className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 rounded-lg transition-colors"
+            title="Edit Dealer"
+          >
+            <FiEdit2 size={16} />
+          </button>
+          <button
+            onClick={onDelete}
+            className="inline-flex items-center justify-center p-2 text-[#DC2626] hover:text-[#B91C1C] hover:bg-[#DC2626]/5 rounded-lg transition-colors"
+            title="Delete Dealer"
+          >
+            <FiTrash2 size={16} />
+          </button>
+        </>
+      )}
     </div>
   );
 };
@@ -772,6 +778,8 @@ const Dealers = () => {
   const [deleteError, setDeleteError] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { user } = useAuth();
+  const isSalesman = user?.role === ROLES.SALESMAN;
 
   const fetchDealersList = async () => {
     try {
@@ -824,6 +832,7 @@ const Dealers = () => {
 
   // Edit button handler
   const handleEditDealer = async (dealerId) => {
+    if (isSalesman) return;
     setEditingDealerId(dealerId);
     setIsModalOpen(true);
     // Fetch dealer details
@@ -838,6 +847,7 @@ const Dealers = () => {
   };
 
   const handleOpenDeleteModal = (dealerId) => {
+    if (isSalesman) return;
     setSelectedDealerId(dealerId);
     setDeleteReason("");
     setDeleteError("");
@@ -893,17 +903,19 @@ const Dealers = () => {
             Manage Dealers
           </h1>
         </div>
-        <button
-          onClick={() => {
-            setIsModalOpen(true);
-            setEditingDealerId(null);
-            setEditingDealerData(null);
-          }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
-        >
-          <FiPlus className="text-lg" />
-          Add New Dealer
-        </button>
+        {!isSalesman && (
+          <button
+            onClick={() => {
+              setIsModalOpen(true);
+              setEditingDealerId(null);
+              setEditingDealerData(null);
+            }}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
+          >
+            <FiPlus className="text-lg" />
+            Add New Dealer
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -984,9 +996,11 @@ const Dealers = () => {
                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Created Date
                     </th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    {!isSalesman && (
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -1040,19 +1054,22 @@ const Dealers = () => {
                             : ""}
                         </span>
                       </td>
-                      <td className="py-4 px-4 text-right relative">
-                        <DealerActions
-                          dealerId={dealer.employee_id || dealer.id}
-                          onEdit={() =>
-                            handleEditDealer(dealer.employee_id || dealer.id)
-                          }
-                          onDelete={() =>
-                            handleOpenDeleteModal(
-                              dealer.employee_id || dealer.id
-                            )
-                          }
-                        />
-                      </td>
+                      {!isSalesman && (
+                        <td className="py-4 px-4 text-right relative">
+                          <DealerActions
+                            dealerId={dealer.employee_id || dealer.id}
+                            onEdit={() =>
+                              handleEditDealer(dealer.employee_id || dealer.id)
+                            }
+                            onDelete={() =>
+                              handleOpenDeleteModal(
+                                dealer.employee_id || dealer.id
+                              )
+                            }
+                            isSalesman={isSalesman}
+                          />
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {paginatedDealers.length === 0 && (
@@ -1081,17 +1098,19 @@ const Dealers = () => {
         </div>
       </div>
 
-      <CreateDealerModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingDealerId(null);
-          setEditingDealerData(null);
-        }}
-        onDealerChanged={handleDealerChanged}
-        editingDealerId={editingDealerId}
-        editingDealerData={editingDealerData}
-      />
+      {!isSalesman && (
+        <CreateDealerModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingDealerId(null);
+            setEditingDealerData(null);
+          }}
+          onDealerChanged={handleDealerChanged}
+          editingDealerId={editingDealerId}
+          editingDealerData={editingDealerData}
+        />
+      )}
       {/* Delete Dealer Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">

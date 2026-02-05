@@ -7,7 +7,7 @@ import { fetchProductsByBrands } from '../api/products';
 import { createOrder } from '../api/orders';
 import { fetchSalespersons } from '../api/user';
 import { getBrandsByDealer } from '../api/brands';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import Swal from 'sweetalert2';
 
 const CreateOrder = () => {
