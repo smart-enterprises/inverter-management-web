@@ -3,6 +3,8 @@ import { FiPlus, FiSearch, FiBox, FiX, FiChevronLeft, FiChevronRight, FiTrash2, 
 import CustomSelect from '../components/CustomSelect';
 import { getAllBrands, createBrand, updateBrand } from '../api/brands';
 import Swal from 'sweetalert2';
+import { useAuth } from '../hooks/useAuth';
+import { ROLES } from '../utils/roles';
 
 const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
   const [brands, setBrands] = useState([
@@ -713,6 +715,8 @@ const Brands = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const { user } = useAuth();
+  const isSalesman = user?.role === ROLES.SALESMAN;
 
   useEffect(() => {
     const fetchBrands = async () => {
@@ -776,6 +780,7 @@ const Brands = () => {
   };
 
   const handleEditBrand = (brand) => {
+    if (isSalesman) return;
     setSelectedBrand(brand);
     setIsEditModalOpen(true);
   };
@@ -808,13 +813,15 @@ const Brands = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Brands Management</h1>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
-        >
-          <FiPlus className="text-lg" />
-          Create New Brand
-        </button>
+        {!isSalesman && (
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
+          >
+            <FiPlus className="text-lg" />
+            Create New Brand
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -879,7 +886,9 @@ const Brands = () => {
                       <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Models</th>
                       <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Created Date</th>
                       <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
-                      <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
+                      {!isSalesman && (
+                        <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -917,14 +926,16 @@ const Brands = () => {
                             {brand.status.charAt(0).toUpperCase() + brand.status.slice(1)}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-right">
-                          <button 
-                            onClick={() => handleEditBrand(brand)}
-                            className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium transition-colors"
-                          >
-                            <FiEdit2 size={14} />
-                          </button>
-                        </td>
+                        {!isSalesman && (
+                          <td className="py-4 px-4 text-right">
+                            <button 
+                              onClick={() => handleEditBrand(brand)}
+                              className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium transition-colors"
+                            >
+                              <FiEdit2 size={14} />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                     {currentBrands.length === 0 && !loading && (
@@ -953,21 +964,25 @@ const Brands = () => {
         </div>
       </div>
 
-      <CreateBrandModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onBrandCreated={handleBrandCreated}
-      />
+      {!isSalesman && (
+        <>
+          <CreateBrandModal 
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onBrandCreated={handleBrandCreated}
+          />
 
-      <EditBrandModal 
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedBrand(null);
-        }}
-        onBrandUpdated={handleBrandUpdated}
-        brandData={selectedBrand}
-      />
+          <EditBrandModal 
+            isOpen={isEditModalOpen}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setSelectedBrand(null);
+            }}
+            onBrandUpdated={handleBrandUpdated}
+            brandData={selectedBrand}
+          />
+        </>
+      )}
     </div>
   );
 };

@@ -16,6 +16,7 @@ import Billing from "../pages/Billing";
 import Delivery from "../pages/Delivery";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
+import { ROUTE_PERMISSIONS } from "./routePermissions";
 
 export default function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -23,15 +24,15 @@ export default function AppRoutes() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route 
-        path="/login" 
+      <Route
+        path="/login"
         element={
           isAuthenticated() ? (
             <Navigate to="/dashboard" replace />
           ) : (
             <Login />
           )
-        } 
+        }
       />
 
       {/* Protected Routes */}
@@ -52,16 +53,63 @@ export default function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/users" element={<Users />} />
-        <Route path="/dealers" element={<Dealers />} />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/users"]}>
+              <Users />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/dealers" element={
+          <ProtectedRoute
+            allowedRoles={ROUTE_PERMISSIONS["/dealers"]}
+          >
+            <Dealers />
+          </ProtectedRoute>
+        } />
         <Route path="/dealers/:id" element={<DealerDetails />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/brands" element={<Brands />} />
-        <Route path="/orders" element={<Orders />} />
+        <Route path="/products" element={
+          <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/products"]}>
+            <Products />
+          </ProtectedRoute>
+        } />
+        <Route path="/brands" element={
+          <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/brands"]}>
+            <Brands />
+          </ProtectedRoute>
+        } />
+        <Route path="/orders" element={
+          <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/orders"]}>
+            <Orders />
+          </ProtectedRoute>
+        } />
         <Route path="/orders/create" element={<CreateOrder />} />
-        <Route path="/orders/:id" element={<OrderDetails />} />
-        <Route path="/delivery" element={<Delivery />} />
-        <Route path="/billing" element={<Billing />} />
+        <Route path="/orders/:id" element={
+          <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/orders/:id"]}>
+            <OrderDetails />
+          </ProtectedRoute>
+        } />
+        <Route
+          path="/delivery"
+          element={
+            <ProtectedRoute
+              allowedRoles={ROUTE_PERMISSIONS["/delivery"]}
+            >
+              <Delivery />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/billing"
+          element={
+            <ProtectedRoute
+              allowedRoles={ROUTE_PERMISSIONS["/billing"]}
+            >
+              <Billing />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* Catch all route */}

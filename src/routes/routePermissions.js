@@ -1,0 +1,57 @@
+import { ROLES } from '../utils/roles';
+
+export const ROUTE_PERMISSIONS = {
+  '/users': [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER],
+  '/dealers': [
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.SUPERVISOR,
+    ROLES.SALESMAN,
+  ],
+  '/products': [
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.SALESMAN,
+  ],
+  '/brands': [
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.SALESMAN,
+  ],
+  '/orders': [
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.SALESMAN,
+  ],
+  '/orders/:id': [
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.SALESMAN,
+  ],
+  '/delivery': [
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.SUPERVISOR,
+    ROLES.PRODUCTION,
+    ROLES.PACKING,
+    ROLES.ACCOUNTS,
+    ROLES.DELIVERY,
+  ],
+  '/billing': [
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.SUPERVISOR,
+    ROLES.PRODUCTION,
+    ROLES.PACKING,
+    ROLES.ACCOUNTS,
+    ROLES.DELIVERY,
+  ],
+};
+
