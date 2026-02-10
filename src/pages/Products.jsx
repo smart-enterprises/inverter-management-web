@@ -4,6 +4,8 @@ import CustomSelect from '../components/CustomSelect';
 import { fetchProducts, createProduct, updateProduct, updateProductStock, fetchProductById } from '../api/products';
 import { getAllBrands, getActiveBrands } from '../api/brands';
 import Swal from 'sweetalert2';
+import { useAuth } from '../hooks/useAuth';
+import { ROLES } from '../utils/roles';
 
 const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
   const [formData, setFormData] = useState({
@@ -1042,6 +1044,8 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const [success, setSuccess] = useState('');
+  const { user } = useAuth();
+  const isSalesman = user?.role === ROLES.SALESMAN;
 
   // Fetch products on component mount
   useEffect(() => {
@@ -1121,6 +1125,7 @@ const Products = () => {
 
   // Open edit modal
   const openEditModal = (productId, productName) => {
+    if (isSalesman) return;
     setSelectedProductId(productId);
     setSelectedProductName(productName);
     setIsEditModalOpen(true);
@@ -1128,6 +1133,7 @@ const Products = () => {
 
   // Open stock update modal
   const openStockModal = (productId, productName) => {
+    if (isSalesman) return;
     setSelectedProductId(productId);
     setSelectedProductName(productName);
     setIsStockModalOpen(true);
@@ -1157,13 +1163,15 @@ const Products = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
-        >
-          <FiPlus className="text-lg" />
-          Create New Product
-        </button>
+        {!isSalesman && (
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
+          >
+            <FiPlus className="text-lg" />
+            Create New Product
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -1243,7 +1251,9 @@ const Products = () => {
                       <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Available Stock</th>
                       <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Stock Details</th>
                       <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
-                      <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
+                      {!isSalesman && (
+                        <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
+                      )}
                     </tr>
                   </thead>
                 <tbody>
@@ -1294,26 +1304,28 @@ const Products = () => {
                             {product.status === 'active' ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button 
-                              onClick={() => openEditModal(product.product_id, product.product_name)}
-                              className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 rounded-lg transition-colors"
-                              title="Edit Product"
-                            >
-                              <FiEdit3 size={16} />
-                            </button>
-                            {product.status === 'active' && (
+                        {!isSalesman && (
+                          <td className="py-4 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
                               <button 
-                                onClick={() => openStockModal(product.product_id, product.product_name)}
-                                className="inline-flex items-center justify-center p-2 text-[#059669] hover:text-[#047857] hover:bg-[#059669]/5 rounded-lg transition-colors"
-                                title="Update Stock"
+                                onClick={() => openEditModal(product.product_id, product.product_name)}
+                                className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 rounded-lg transition-colors"
+                                title="Edit Product"
                               >
-                                <FiPackage size={16} />
+                                <FiEdit3 size={16} />
                               </button>
-                            )}
-                          </div>
-                        </td>
+                              {product.status === 'active' && (
+                                <button 
+                                  onClick={() => openStockModal(product.product_id, product.product_name)}
+                                  className="inline-flex items-center justify-center p-2 text-[#059669] hover:text-[#047857] hover:bg-[#059669]/5 rounded-lg transition-colors"
+                                  title="Update Stock"
+                                >
+                                  <FiPackage size={16} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -1347,26 +1359,30 @@ const Products = () => {
         </div>
       </div>
 
-      <CreateProductModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onProductCreated={handleProductCreated}
-      />
+      {!isSalesman && (
+        <>
+          <CreateProductModal 
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onProductCreated={handleProductCreated}
+          />
 
-      <EditProductModal 
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onProductUpdated={handleProductUpdated}
-        productId={selectedProductId}
-      />
+          <EditProductModal 
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onProductUpdated={handleProductUpdated}
+            productId={selectedProductId}
+          />
 
-      <StockUpdateModal 
-        isOpen={isStockModalOpen}
-        onClose={() => setIsStockModalOpen(false)}
-        onStockUpdated={handleStockUpdated}
-        productId={selectedProductId}
-        productName={selectedProductName}
-      />
+          <StockUpdateModal 
+            isOpen={isStockModalOpen}
+            onClose={() => setIsStockModalOpen(false)}
+            onStockUpdated={handleStockUpdated}
+            productId={selectedProductId}
+            productName={selectedProductName}
+          />
+        </>
+      )}
     </div>
   );
 };

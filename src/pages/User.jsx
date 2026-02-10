@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   FiPlus,
   FiEdit2,
@@ -14,18 +14,14 @@ import {
 import CustomSelect from '../components/CustomSelect';
 import Swal from 'sweetalert2';
 import { fetchUsers, fetchUserById, createUser, updateUser, resetUserPasswordById, deleteUserById } from '../api/user';
-
-const ROLE_LABELS = {
-  ROLE_SUPER_ADMIN: 'Super Admin',
-  ROLE_ADMIN: 'Admin',
-  ROLE_MANAGER: 'Manager',
-  ROLE_SUPERVISOR: 'Supervisor',
-  ROLE_SALESMAN: 'Salesman',
-  ROLE_PRODUCTION: 'Production',
-  ROLE_PACKING: 'Packing',
-  ROLE_ACCOUNTS: 'Accounts',
-  ROLE_DELIVERY: 'Delivery',
-};
+import { useAuth } from "../hooks/useAuth";
+import {
+  ROLES,
+  getAssignableRoles,
+  getRoleLabel,
+  canManageUsers,
+  canManageTargetRole,
+} from "../utils/roles";
 
 const ALL_TABS = [
   'All Users',
@@ -40,13 +36,11 @@ const ALL_TABS = [
   'Delivery',
 ];
 
-const getRoleLabel = (role) => ROLE_LABELS[role] || role;
-
-const FilterTabs = ({ activeTab, onTabChange }) => {
+const FilterTabs = ({ activeTab, onTabChange, tabs }) => {
   return (
     <div className="flex justify-start sm:justify-center overflow-x-auto">
       <div className="inline-flex gap-1 p-1">
-        {ALL_TABS.map((tab) => (
+        {(tabs || []).map((tab) => (
           <button
             key={tab}
             onClick={() => onTabChange(tab)}
@@ -64,7 +58,16 @@ const FilterTabs = ({ activeTab, onTabChange }) => {
   );
 };
 
-const UserTable = ({ users, onEdit, onResetPassword, onDeleteUser, currentPage, totalPages, onPageChange }) => (
+const UserTable = ({
+  users,
+  onEdit,
+  onResetPassword,
+  onDeleteUser,
+  currentPage,
+  totalPages,
+  onPageChange,
+  canManageUser = () => false,
+}) => (
   <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -101,17 +104,30 @@ const UserTable = ({ users, onEdit, onResetPassword, onDeleteUser, currentPage, 
                 <span className="text-sm text-gray-600">{new Date(user.created_at).toLocaleDateString()}</span>
               </td>
               <td className="p-4 lg:p-6 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <button className="p-2 hover:bg-blue-50 rounded-lg transition-colors group" onClick={() => onEdit && onEdit(user.employee_id)}>
-                    <FiEdit2 className="text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 transition-colors" size={18} />
-                  </button>
-                  <button className="p-2 hover:bg-indigo-50 rounded-lg transition-colors group" onClick={() => onResetPassword && onResetPassword(user.employee_id)}>
-                    <FiKey className="text-indigo-400 hover:text-indigo-600 hover:bg-[#DC2626]/5 transition-colors" size={18} />
-                  </button>
-                  <button className="p-2 hover:bg-red-50 rounded-lg transition-colors group" onClick={() => onDeleteUser && onDeleteUser(user.employee_id)}>
-                    <FiTrash2 className="text-[#DC2626] hover:text-[#B91C1C] hover:bg-[#DC2626]/5 transition-colors" size={18} />
-                  </button>
-                </div>
+                {canManageUser(user) ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      className="p-2 hover:bg-blue-50 rounded-lg transition-colors group"
+                      onClick={() => onEdit && onEdit(user)}
+                    >
+                      <FiEdit2 className="text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 transition-colors" size={18} />
+                    </button>
+                    <button
+                      className="p-2 hover:bg-indigo-50 rounded-lg transition-colors group"
+                      onClick={() => onResetPassword && onResetPassword(user)}
+                    >
+                      <FiKey className="text-indigo-400 hover:text-indigo-600 hover:bg-[#DC2626]/5 transition-colors" size={18} />
+                    </button>
+                    <button
+                      className="p-2 hover:bg-red-50 rounded-lg transition-colors group"
+                      onClick={() => onDeleteUser && onDeleteUser(user)}
+                    >
+                      <FiTrash2 className="text-[#DC2626] hover:text-[#B91C1C] hover:bg-[#DC2626]/5 transition-colors" size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-400">No access</span>
+                )}
               </td>
             </tr>
           ))}
@@ -127,7 +143,14 @@ const UserTable = ({ users, onEdit, onResetPassword, onDeleteUser, currentPage, 
   </div>
 );
 
-const CreateUserModal = ({ isOpen, onClose, onUserChanged, editingEmployeeId, editingEmployeeData }) => {
+const CreateUserModal = ({
+  isOpen,
+  onClose,
+  onUserChanged,
+  editingEmployeeId,
+  editingEmployeeData,
+  roleOptions = [],
+}) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -236,18 +259,6 @@ const CreateUserModal = ({ isOpen, onClose, onUserChanged, editingEmployeeId, ed
   };
 
   if (!isOpen) return null;
-
-  const roleOptions = [
-    { label: 'Super Admin', value: 'ROLE_SUPER_ADMIN' },
-    { label: 'Admin', value: 'ROLE_ADMIN' },
-    { label: 'Manager', value: 'ROLE_MANAGER' },
-    { label: 'Supervisor', value: 'ROLE_SUPERVISOR' },
-    { label: 'Salesman', value: 'ROLE_SALESMAN' },
-    { label: 'Production', value: 'ROLE_PRODUCTION' },
-    { label: 'Packing', value: 'ROLE_PACKING' },
-    { label: 'Accounts', value: 'ROLE_ACCOUNTS' },
-    { label: 'Delivery', value: 'ROLE_DELIVERY' },
-  ];
 
   return (
     <>
@@ -523,6 +534,28 @@ const User = () => {
   const [deleteError, setDeleteError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user: currentUser } = useAuth();
+
+  const canCurrentUserManageUsers = canManageUsers(currentUser?.role);
+  const assignableRoleOptions = getAssignableRoles(currentUser?.role).map(role => ({
+    label: getRoleLabel(role),
+    value: role,
+  }));
+  const canManageTarget = (targetRole) => canManageTargetRole(currentUser?.role, targetRole);
+  const visibleTabs = useMemo(() => {
+    if (currentUser?.role === ROLES.MANAGER) {
+      return ALL_TABS.filter(
+        (tab) => !['Super Admin', 'Admin', 'Manager'].includes(tab)
+      );
+    }
+    return ALL_TABS;
+  }, [currentUser?.role]);
+
+  useEffect(() => {
+    if (!visibleTabs.includes(activeTab)) {
+      setActiveTab('All Users');
+    }
+  }, [visibleTabs, activeTab]);
 
   const fetchEmployees = async () => {
     try {
@@ -552,23 +585,39 @@ const User = () => {
   };
 
   // Edit button handler
-  const handleEditUser = async (employeeId) => {
-    setEditingEmployeeId(employeeId);
+  const handleEditUser = async (employee) => {
+    if (!canManageTarget(employee.role)) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Access denied',
+        text: 'You do not have permission to edit this user.',
+      });
+      return;
+    }
+
+    setEditingEmployeeId(employee.employee_id);
     setIsModalOpen(true);
-    // Fetch employee details
     try {
-      const res = await fetchUserById(employeeId);
+      const res = await fetchUserById(employee.employee_id);
       if (res && res.success && res.data) {
         setEditingEmployeeData(res.data);
       }
     } catch {
-      // Optionally handle error
+      setEditingEmployeeData(null);
     }
   };
 
   // Reset Password Handler
-  const handleOpenResetModal = (userId) => {
-    setSelectedUserId(userId);
+  const handleOpenResetModal = (employee) => {
+    if (!canManageTarget(employee.role)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Access denied',
+        text: 'You do not have permission to reset this user password.',
+      });
+      return;
+    }
+    setSelectedUserId(employee.employee_id);
     setResetPassword('');
     setResetError('');
     setShowResetModal(true);
@@ -594,8 +643,16 @@ const User = () => {
   };
 
   // Delete User Handler
-  const handleOpenDeleteModal = (userId) => {
-    setSelectedUserId(userId);
+  const handleOpenDeleteModal = (employee) => {
+    if (!canManageTarget(employee.role)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Access denied',
+        text: 'You do not have permission to delete this user.',
+      });
+      return;
+    }
+    setSelectedUserId(employee.employee_id);
     setDeleteReason('');
     setDeleteError('');
     setShowDeleteModal(true);
@@ -620,9 +677,18 @@ const User = () => {
   };
 
   // Filter employees based on active tab, but exclude ROLE_DEALER
+  const baseVisibleEmployees = employees
+    .filter(emp => emp && emp.role !== ROLES.DEALER)
+    .filter(emp => {
+      if (currentUser?.role === ROLES.MANAGER) {
+        return ![ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(emp.role);
+      }
+      return true;
+    });
+
   const filteredEmployees = activeTab === 'All Users'
-    ? employees.filter(emp => emp && emp.role !== 'ROLE_DEALER')
-    : employees.filter(emp => emp && getRoleLabel(emp.role) === activeTab && emp.role !== 'ROLE_DEALER');
+    ? baseVisibleEmployees
+    : baseVisibleEmployees.filter(emp => getRoleLabel(emp.role) === activeTab);
 
   const currentUsers = filteredEmployees.slice(
     (currentPage - 1) * itemsPerPage,
@@ -637,8 +703,21 @@ const User = () => {
           <p className="text-sm text-gray-500">Add and manage system users</p>
         </div>
         <button 
-          onClick={() => { setIsModalOpen(true); setEditingEmployeeId(null); setEditingEmployeeData(null); }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
+          onClick={async () => { 
+            if (!canCurrentUserManageUsers) {
+              await Swal.fire({
+                icon: 'warning',
+                title: 'Access denied',
+                text: 'You do not have permission to create users.',
+              });
+              return;
+            }
+            setIsModalOpen(true); 
+            setEditingEmployeeId(null); 
+            setEditingEmployeeData(null); 
+          }}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled={!canCurrentUserManageUsers}
         >
           <FiPlus className="text-lg" />
           Add New User
@@ -646,7 +725,11 @@ const User = () => {
       </div>
 
       <div className="mb-6 -mx-4 sm:mx-0">
-        <FilterTabs activeTab={activeTab} onTabChange={tab => { setActiveTab(tab); setCurrentPage(1); }} />
+        <FilterTabs
+          tabs={visibleTabs}
+          activeTab={activeTab}
+          onTabChange={tab => { setActiveTab(tab); setCurrentPage(1); }}
+        />
       </div>
       
       <div className="flex-1 min-h-0">
@@ -673,6 +756,7 @@ const User = () => {
             currentPage={currentPage}
             totalPages={Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage))}
             onPageChange={page => setCurrentPage(page)}
+            canManageUser={(user) => canManageTarget(user.role)}
           />
         )}
       </div>
@@ -766,6 +850,7 @@ const User = () => {
         onUserChanged={handleUserChanged}
         editingEmployeeId={editingEmployeeId}
         editingEmployeeData={editingEmployeeData}
+        roleOptions={assignableRoleOptions}
       />
     </div>
   );

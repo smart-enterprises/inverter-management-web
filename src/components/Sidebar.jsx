@@ -12,9 +12,12 @@ import {
   FiShield,
 } from "react-icons/fi";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { ROUTE_PERMISSIONS } from "../routes/routePermissions";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
   const location = useLocation();
+  const { user } = useAuth();
 
   const isPathActive = (path) => {
     if (path === '/dealers') {
@@ -27,6 +30,59 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
   };
 
   const finalIsCollapsed = isCollapsed && !isMobileMenuOpen;
+  const role = user?.role;
+
+  const NAV_ITEMS = [
+    {
+      icon: <FiBarChart2 />,
+      label: "Dashboard",
+      to: "/dashboard",
+    },
+    {
+      icon: <FiUsers />,
+      label: "Users",
+      to: "/users",
+    },
+    {
+      icon: <FiUser />,
+      label: "Dealers",
+      to: "/dealers",
+    },
+    {
+      icon: <FiBox />,
+      label: "Products",
+      to: "/products",
+    },
+    {
+      icon: <FiShield />,
+      label: "Brands",
+      to: "/brands",
+    },
+    {
+      icon: <FiClipboard />,
+      label: "Orders",
+      to: "/orders",
+    },
+    {
+      icon: <FiTruck />,
+      label: "Delivery",
+      to: "/delivery",
+    },
+    {
+      icon: <FiPackage />,
+      label: "Billing",
+      to: "/billing",
+    },
+  ];
+
+  const isItemVisibleForRole = (item, currentRole) => {
+    const allowedRoles = ROUTE_PERMISSIONS[item.to];
+    if (!allowedRoles || allowedRoles.length === 0) return true; // public / default
+    if (!currentRole) return false;
+    return allowedRoles.includes(currentRole);
+  };
+
+  const navItems = NAV_ITEMS.filter((item) => isItemVisibleForRole(item, role));
 
   return (
     <aside
@@ -67,62 +123,16 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          <NavItem
-            icon={<FiBarChart2 />}
-            label="Dashboard"
-            to="/dashboard"
-            active={isPathActive("/dashboard")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiUsers />}
-            label="Users"
-            to="/users"
-            active={isPathActive("/users")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiUser />}
-            label="Dealers"
-            to="/dealers"
-            active={isPathActive("/dealers")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiBox />}
-            label="Products"
-            to="/products"
-            active={isPathActive("/products")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiShield />}
-            label="Brands"
-            to="/brands"
-            active={isPathActive("/brands")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiClipboard />}
-            label="Orders"
-            to="/orders"
-            active={isPathActive("/orders")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiTruck />}
-            label="Delivery"
-            to="/delivery"
-            active={isPathActive("/delivery")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiPackage />}
-            label="Billing"
-            to="/billing"
-            active={isPathActive("/billing")}
-            isCollapsed={finalIsCollapsed}
-          />
+          {navItems.map((item) => (
+            <NavItem
+              key={item.to}
+              icon={item.icon}
+              label={item.label}
+              to={item.to}
+              active={isPathActive(item.to)}
+              isCollapsed={finalIsCollapsed}
+            />
+          ))}
         </nav>
 
         <div className="px-3 py-4 space-y-1">

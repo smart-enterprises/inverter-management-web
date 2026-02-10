@@ -20,7 +20,7 @@ export const fetchProductById = async (productId) => {
 };
 
 export const createProduct = async (productData) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/create`, {
+  const response = await fetch(`${API_BASE_URL}/product-details/create-product`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(productData),
