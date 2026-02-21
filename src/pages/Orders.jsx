@@ -5,6 +5,7 @@ import {
   FiEye,
   FiChevronLeft,
   FiChevronRight,
+  FiEdit2,
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import CustomSelect from '../components/CustomSelect';
@@ -15,32 +16,36 @@ import { ORDER_STATUS_LIST } from '../utils/status';
 /* Pagination Component */
 /* ============================= */
 
-const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
+const OrdersPagination = ({
+  currentPage,
+  totalPages,
+  onPageChange,
+}) => {
+  if (totalPages <= 1) return null;
+
   return (
-    <div className="border-t border-gray-100">
-      <div className="px-4 lg:px-6 py-4 flex justify-between items-center bg-white">
-        <span className="text-sm text-gray-600">
-          Page <span className="font-medium">{currentPage}</span> of{' '}
-          <span className="font-medium">{totalPages}</span>
-        </span>
+    <div className="border-t border-gray-100 bg-white px-6 py-4 flex justify-between items-center">
+      <span className="text-sm text-gray-600">
+        Page <span className="font-medium">{currentPage}</span> of{' '}
+        <span className="font-medium">{totalPages}</span>
+      </span>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="w-9 h-9 rounded-lg border border-gray-200 disabled:opacity-40 flex items-center justify-center"
-          >
-            <FiChevronLeft />
-          </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="w-9 h-9 rounded-lg border border-gray-200 disabled:opacity-40 flex items-center justify-center hover:bg-gray-50"
+        >
+          <FiChevronLeft />
+        </button>
 
-          <button
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="w-9 h-9 rounded-lg border border-gray-200 disabled:opacity-40 flex items-center justify-center"
-          >
-            <FiChevronRight />
-          </button>
-        </div>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="w-9 h-9 rounded-lg border border-gray-200 disabled:opacity-40 flex items-center justify-center hover:bg-gray-50"
+        >
+          <FiChevronRight />
+        </button>
       </div>
     </div>
   );
@@ -54,6 +59,13 @@ const Orders = () => {
   const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 10,
+  });
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -61,11 +73,8 @@ const Orders = () => {
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [selectedPriority, setSelectedPriority] = useState('ALL');
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const limit = 10;
-
   /* ============================= */
-  /* Load Orders */
+  /* Fetch Orders (Backend Pagination) */
   /* ============================= */
 
   useEffect(() => {
@@ -74,13 +83,21 @@ const Orders = () => {
         setLoading(true);
 
         const response = await fetchOrders({
-          page: currentPage,
-          limit,
-          status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+          page: pagination.page,
+          limit: pagination.limit,
+          status:
+            selectedStatus !== 'ALL'
+              ? selectedStatus
+              : undefined,
         });
 
         if (response.success) {
           setOrders(response.data || []);
+          setPagination((prev) => ({
+            ...prev,
+            totalPages: response.pagination?.totalPages || 1,
+            total: response.pagination?.total || 0,
+          }));
         } else {
           setError(response.message || 'Failed to load orders');
         }
@@ -92,7 +109,7 @@ const Orders = () => {
     };
 
     loadOrders();
-  }, [currentPage, selectedStatus]);
+  }, [pagination.limit, pagination.page, selectedStatus]);
 
   /* ============================= */
   /* Utility Functions */
@@ -137,18 +154,19 @@ const Orders = () => {
     }
   };
 
-  const formatDate = (date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-IN');
-  };
+  const formatDate = (date) =>
+    date
+      ? new Date(date).toLocaleDateString('en-IN')
+      : 'N/A';
 
-  const getTotalItems = (details) => {
-    if (!details) return 0;
-    return details.reduce((sum, item) => sum + (item.qty_ordered || 0), 0);
-  };
+  const getTotalItems = (details) =>
+    details?.reduce(
+      (sum, item) => sum + (item.qty_ordered || 0),
+      0
+    ) || 0;
 
   /* ============================= */
-  /* Local Filtering */
+  /* Local Filtering (Search + Priority) */
   /* ============================= */
 
   const filteredOrders = orders.filter((orderData) => {
@@ -156,8 +174,7 @@ const Orders = () => {
     if (!order) return false;
 
     const searchMatch =
-      order.order_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.dealer?.employee_name
+      order.order_number
         ?.toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
       order.dealer?.shop_name
@@ -171,14 +188,8 @@ const Orders = () => {
     return searchMatch && priorityMatch;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / limit));
-  const paginatedOrders = filteredOrders.slice(
-    (currentPage - 1) * limit,
-    currentPage * limit
-  );
-
   /* ============================= */
-  /* UI */
+  /* UI States */
   /* ============================= */
 
   if (loading) {
@@ -197,27 +208,37 @@ const Orders = () => {
     );
   }
 
+  /* ============================= */
+  /* UI */
+  /* ============================= */
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex justify-between mb-6">
-        <h1 className="text-2xl font-bold">Orders Overview</h1>
+        <h1 className="text-2xl font-bold">
+          Orders Overview
+        </h1>
+
         <button
           onClick={() => navigate('/orders/create')}
-          className="bg-[#9333EA] text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          className="bg-[#9333EA] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition"
         >
           <FiPlus /> Create Order
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex gap-4 mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        {/* Filters */}
+        <div className="p-6 flex gap-4">
           <div className="relative flex-1">
             <FiSearch className="absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
               placeholder="Search orders..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) =>
+                setSearchQuery(e.target.value)
+              }
               className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm"
             />
           </div>
@@ -227,41 +248,66 @@ const Orders = () => {
             value={selectedStatus}
             onChange={(e) => {
               setSelectedStatus(e.target.value);
-              setCurrentPage(1);
+              setPagination((prev) => ({
+                ...prev,
+                page: 1,
+              }));
             }}
             options={ORDER_STATUS_LIST}
-            placeholder="Select Status"
           />
 
           <CustomSelect
             name="priority"
             value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
+            onChange={(e) =>
+              setSelectedPriority(e.target.value)
+            }
             options={['ALL', 'HIGH', 'MEDIUM', 'LOW']}
           />
         </div>
 
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-4 px-4">Order Number</th>
-                <th className="text-left py-4 px-4">Dealer</th>
-                <th className="text-left py-4 px-4">Created</th>
-                <th className="text-left py-4 px-4">Items</th>
-                <th className="text-left py-4 px-4">Priority</th>
-                <th className="text-left py-4 px-4">Status</th>
-                <th className="text-right py-4 px-4">Action</th>
+            <thead className="border-b bg-gray-50 text-sm text-gray-600">
+              <tr>
+                <th className="text-left py-4 px-4">
+                  Order Number
+                </th>
+                <th className="text-left py-4 px-4">
+                  Dealer
+                </th>
+                <th className="text-left py-4 px-4">
+                  Created
+                </th>
+                <th className="text-left py-4 px-4">
+                  Items
+                </th>
+                <th className="text-left py-4 px-4">
+                  Priority
+                </th>
+                <th className="text-left py-4 px-4">
+                  Status
+                </th>
+                <th className="text-right py-4 px-4">
+                  Action
+                </th>
               </tr>
             </thead>
+
             <tbody>
-              {paginatedOrders.map((orderData) => {
+              {filteredOrders.map((orderData) => {
                 const order = orderData.order;
                 if (!order) return null;
 
                 return (
-                  <tr key={order.order_number} className="border-b hover:bg-gray-50">
-                    <td className="py-4 px-4 font-mono">{order.order_number}</td>
+                  <tr
+                    key={order.order_number}
+                    className="border-b hover:bg-gray-50 transition"
+                  >
+                    <td className="py-4 px-4 font-mono">
+                      {order.order_number}
+                    </td>
                     <td className="py-4 px-4">
                       {order.dealer?.shop_name}
                     </td>
@@ -269,25 +315,54 @@ const Orders = () => {
                       {formatDate(order.created_at)}
                     </td>
                     <td className="py-4 px-4">
-                      {getTotalItems(order.order_details)}
+                      {getTotalItems(
+                        order.order_details
+                      )}
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityStyle(order.priority)}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${getPriorityStyle(
+                          order.priority
+                        )}`}
+                      >
                         {order.priority}
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(order.status)}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(
+                          order.status
+                        )}`}
+                      >
                         {order.status}
                       </span>
                     </td>
                     <td className="py-4 px-4 text-right">
-                      <button
-                        onClick={() => navigate(`/orders/${order.order_number}`)}
-                        className="text-[#9333EA]"
-                      >
-                        <FiEye />
-                      </button>
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/orders/${order.order_number}`
+                            )
+                          }
+                          className="text-[#9333EA]"
+                          title="View Order"
+                        >
+                          <FiEye />
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/orders/update/${order.order_number}`
+                            )
+                          }
+                          className="text-blue-600 hover:text-blue-700 transition"
+                          title="Edit Order"
+                        >
+                          <FiEdit2 />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -295,13 +370,19 @@ const Orders = () => {
             </tbody>
           </table>
         </div>
-      </div>
 
-      <OrdersPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+        {/* Backend Pagination */}
+        <OrdersPagination
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          onPageChange={(page) =>
+            setPagination((prev) => ({
+              ...prev,
+              page,
+            }))
+          }
+        />
+      </div>
     </div>
   );
 };
