@@ -6,22 +6,22 @@ const getAuthHeaders = () => {
 };
 
 // ✅ Create Order
-export const createOrder = async(orderData) => {
+export const createOrder = async (orderData) => {
     const response = await fetch(
         `${API_BASE_URL}/order-details/create-order`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
-            body: JSON.stringify(orderData),
-        }
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+        },
+        body: JSON.stringify(orderData),
+    }
     );
     return response.json();
 };
 
 // ✅ Get Orders with params
-export const fetchOrders = async({
+export const fetchOrders = async ({
     page = 1,
     limit = 10,
     includeRejected = false,
@@ -39,40 +39,88 @@ export const fetchOrders = async({
 
     const response = await fetch(
         `${API_BASE_URL}/order-details?${queryParams.toString()}`, {
-            headers: {...getAuthHeaders() },
-        }
+        headers: { ...getAuthHeaders() },
+    }
     );
 
     return response.json();
 };
 
 // ✅ Get Order by ID
-export const fetchOrderById = async(orderId) => {
+export const fetchOrderById = async (orderId) => {
     const response = await fetch(
         `${API_BASE_URL}/order-details/${orderId}`, {
-            headers: {...getAuthHeaders() },
-        }
+        headers: { ...getAuthHeaders() },
+    }
     );
     return response.json();
 };
 
 // ✅ Update Order Status
-export const updateOrderStatus = async(orderNumber, payload) => {
-    const response = await fetch(
-        `${API_BASE_URL}/order-details/status/${orderNumber}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
-            body: JSON.stringify(payload),
-        }
-    );
-    return response.json();
+// export const updateOrderStatus = async (orderNumber, payload) => {
+//     const response = await fetch(
+//         `${API_BASE_URL}/order-details/status/${orderNumber}`, {
+//         method: 'PUT',
+//         headers: {
+//             'Content-Type': 'application/json',
+//             ...getAuthHeaders(),
+//         },
+//         body: JSON.stringify(payload),
+//     }
+//     );
+//     return response.json();
+// };
+
+// ✅ Update Order Status
+export const updateOrderStatus = async (orderNumber, payload) => {
+    const url = `${API_BASE_URL}/order-details/status/${orderNumber}`;
+    const headers = {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+    };
+
+    /* ============================= */
+    /* Debug Logs */
+    /* ============================= */
+
+    console.group('📦 UPDATE ORDER API');
+    console.log('🔗 URL:', url);
+    console.log('📨 Method: PUT');
+    console.log('📋 Headers:', headers);
+    console.log('📦 Payload:', payload);
+
+    // Generate equivalent cURL
+    const curlCommand = `
+        curl --location --request PUT '${url}' \
+        --header 'Content-Type: application/json' \
+        ${headers.Authorization ? `--header 'Authorization: ${headers.Authorization}' \\` : ''}
+        --data '${JSON.stringify(payload, null, 2)}'
+        `.trim();
+
+    console.log('🧾 Equivalent cURL:\n', curlCommand);
+    console.groupEnd();
+
+    /* ============================= */
+    /* API Call */
+    /* ============================= */
+
+    const response = await fetch(url, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    console.group('📦 UPDATE ORDER RESPONSE');
+    console.log(result);
+    console.groupEnd();
+
+    return result;
 };
 
 // ✅ Get Orders by Date Filter
-export const fetchOrdersByDateFilter = async({
+export const fetchOrdersByDateFilter = async ({
     year,
     month,
     start_date,
@@ -87,12 +135,12 @@ export const fetchOrdersByDateFilter = async({
 
     const response = await fetch(
         `${API_BASE_URL}/order-details/date-filter?${queryParams.toString()}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
-        }
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+        },
+    }
     );
 
     return response.json();
