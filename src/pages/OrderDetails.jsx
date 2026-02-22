@@ -1,344 +1,405 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiUser, FiMapPin, FiPhone, FiMail, FiBox, FiCalendar, FiPackage, FiTruck } from 'react-icons/fi';
-import { fetchOrderById } from '../api/orders';
+import React, { useState, useEffect, useMemo } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  FiArrowLeft,
+  FiUser,
+  FiMapPin,
+  FiPhone,
+  FiMail,
+  FiBox,
+  FiCalendar,
+  FiTruck,
+  FiCreditCard,
+  FiDollarSign,
+} from "react-icons/fi";
+import { fetchOrderById } from "../api/orders";
+
+/* ================= FORMAT HELPERS ================= */
+
+const formatDate = (date) =>
+  date
+    ? new Date(date).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    })
+    : "N/A";
+
+const formatCurrency = (amount) =>
+  `₹ ${Number(amount || 0).toLocaleString("en-IN")}`;
+
+const formatNotes = (notes) => {
+  if (!notes) return [];
+
+  return notes
+    .split("|")
+    .map((n) => n.trim())
+    .filter((n) =>
+      /^(production|required|unpacked|delivered)/i.test(n)
+    );
+};
+
+/* ================= REUSABLE INFO ================= */
+
+const Info = ({ icon, label, children }) => (
+  <div className="flex items-start gap-3">
+    <div className="p-2 bg-gray-100 rounded-lg text-gray-600">
+      {icon}
+    </div>
+    <div>
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-sm font-semibold text-gray-900">
+        {children || "N/A"}
+      </p>
+    </div>
+  </div>
+);
 
 const OrderDetails = () => {
-  const { id: orderId } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
+
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  /* ================= FETCH ================= */
+
   useEffect(() => {
-    const loadOrderDetails = async () => {
+    const load = async () => {
       try {
-        setLoading(true);
-        const response = await fetchOrderById(orderId);
-        if (response.success) {
-          setOrder(response.data.order);
+        const res = await fetchOrderById(id);
+        if (res?.success) {
+          setOrder(res.data.order);
         } else {
-          setError(response.message || 'Failed to load order details');
+          setError(res?.message || "Failed to load order");
         }
-      } catch (err) {
-        console.error('Error loading order details:', err);
-        setError('Failed to load order details');
+      } catch {
+        setError("Failed to load order");
       } finally {
         setLoading(false);
       }
     };
 
-    if (orderId) {
-      loadOrderDetails();
-    }
-  }, [orderId]);
+    if (id) load();
+  }, [id]);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const totalItems = useMemo(
+    () =>
+      order?.order_details?.reduce(
+        (sum, i) => sum + (i.qty_ordered || 0),
+        0
+      ) || 0,
+    [order]
+  );
 
-  const getPriorityStyle = (priority) => {
-    switch (priority?.toLowerCase()) {
-      case 'high':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'medium':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      case 'low':
-        return 'bg-green-50 text-green-700 border-green-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getStatusStyle = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      case 'in production':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'packed':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'delivered':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'cancelled':
-        return 'bg-red-50 text-red-700 border-red-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getItemStatusStyle = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return 'bg-yellow-50 text-yellow-700';
-      case 'in production':
-        return 'bg-blue-50 text-blue-700';
-      case 'packed':
-        return 'bg-purple-50 text-purple-700';
-      case 'delivered':
-        return 'bg-green-50 text-green-700';
-      case 'cancelled':
-        return 'bg-red-50 text-red-700';
-      default:
-        return 'bg-gray-50 text-gray-700';
-    }
-  };
-
-  if (loading) {
+  if (loading)
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#9333EA] mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading order details...</p>
-          </div>
-        </div>
+      <div className="p-10 text-center">
+        <div className="animate-spin h-8 w-8 border-b-2 border-purple-600 rounded-full mx-auto" />
       </div>
     );
-  }
 
-  if (error) {
+  if (error)
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={() => navigate('/orders')} 
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Back to Orders
-          </button>
-        </div>
+      <div className="p-10 text-center text-red-600">
+        {error}
       </div>
     );
-  }
 
-  if (!order) {
+  if (!order)
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-          <p className="text-yellow-600 mb-4">Order not found</p>
-          <button 
-            onClick={() => navigate('/orders')} 
-            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
-          >
-            Back to Orders
-          </button>
-        </div>
+      <div className="p-10 text-center">
+        Order not found
       </div>
     );
-  }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
+
+      {/* ================= HEADER ================= */}
+      <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/orders')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          onClick={() => navigate("/orders")}
+          className="p-2 hover:bg-gray-100 rounded-lg"
         >
-          <FiArrowLeft className="text-gray-500" size={20} />
+          <FiArrowLeft />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Order Details</h1>
-          <p className="text-sm text-gray-500 mt-1">Order #{order.order_number}</p>
+          <h1 className="text-2xl font-bold">
+            Order #{order.order_number}
+          </h1>
+          <p className="text-sm text-gray-500">
+            Created {formatDate(order.created_at)}
+          </p>
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Order Summary Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Order Summary</h2>
-              <div className="flex items-center gap-3">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getPriorityStyle(order.priority)}`}>
-                  {order.priority || 'N/A'}
+      {/* ================= ORDER SUMMARY ================= */}
+      <section className="bg-white rounded-xl border shadow-sm p-6 space-y-6">
+        <h2 className="text-lg font-semibold">Order Summary</h2>
+
+        <div className="grid md:grid-cols-3 gap-6">
+
+          <Info icon={<FiCalendar />} label="Created">
+            {formatDate(order.created_at)}
+          </Info>
+
+          <Info icon={<FiCalendar />} label="Updated">
+            {formatDate(order.updated_at)}
+          </Info>
+
+          <Info icon={<FiTruck />} label="Promised Delivery">
+            {formatDate(order.promised_delivery_date)}
+          </Info>
+
+          <Info icon={<FiDollarSign />} label="Total Price">
+            {formatCurrency(order.order_total_price)}
+          </Info>
+
+          <Info icon={<FiDollarSign />} label="Discount">
+            {formatCurrency(order.order_total_discount)}
+          </Info>
+
+          <Info icon={<FiCreditCard />} label="Payment Status">
+            {order.payment_status}
+          </Info>
+
+          <Info icon={<FiDollarSign />} label="Amount Paid">
+            {formatCurrency(order.amount_paid)}
+          </Info>
+
+          <Info icon={<FiDollarSign />} label="Amount Due">
+            {formatCurrency(order.amount_due)}
+          </Info>
+
+          <Info icon={<FiCreditCard />} label="Payment Type">
+            {order.payment_type}
+          </Info>
+
+          <Info icon={<FiCalendar />} label="Last Payment">
+            {formatDate(order.last_payment_date)}
+          </Info>
+
+          <Info icon={<FiUser />} label="Salesman ID">
+            {order.salesman_id}
+          </Info>
+
+          <Info icon={<FiUser />} label="Created By">
+            {order.created_by}
+          </Info>
+
+        </div>
+
+        {order.order_note && (
+          <div className="mt-4">
+            <p className="text-sm font-medium text-gray-600">
+              Order Note
+            </p>
+            <p className="text-sm text-gray-800 mt-1">
+              {order.order_note}
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* ================= DEALER ================= */}
+      <section className="bg-white rounded-xl border shadow-sm p-6">
+        <h2 className="text-lg font-semibold mb-6">
+          Dealer Information
+        </h2>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Info icon={<FiUser />} label="Dealer Name">
+            {order.dealer?.employee_name}
+          </Info>
+
+          <Info icon={<FiBox />} label="Shop Name">
+            {order.dealer?.shop_name}
+          </Info>
+
+          <Info icon={<FiMail />} label="Email">
+            {order.dealer?.employee_email}
+          </Info>
+
+          <Info icon={<FiPhone />} label="Phone">
+            {order.dealer?.employee_phone}
+          </Info>
+
+          <Info icon={<FiMapPin />} label="Address">
+            {order.dealer?.address}
+          </Info>
+        </div>
+      </section>
+
+      {/* ================= ORDER ITEMS ================= */}
+      <section className="bg-white rounded-xl border shadow-sm p-6">
+        <h2 className="text-lg font-semibold mb-6">
+          Order Items ({totalItems})
+        </h2>
+
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50 text-gray-600">
+              <tr>
+                <th className="px-4 py-3 text-left">Product</th>
+                <th className="px-4 py-3 text-center">Qty</th>
+                <th className="px-4 py-3 text-right">Unit</th>
+                <th className="px-4 py-3 text-right">Total</th>
+                <th className="px-4 py-3 text-center">Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {order.order_details?.map((d) => (
+                <tr key={d.order_details_number} className="border-b">
+                  <td className="px-4 py-4">
+                    <div className="font-semibold">
+                      {d.product_name}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {d.product_brand} • {d.product_model}
+                    </div>
+
+                    <div className="mt-2 flex gap-2 flex-wrap">
+                      {d.is_free && (
+                        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
+                          Free Item
+                        </span>
+                      )}
+
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${d.is_free
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-600"
+                          }`}
+                      >
+                        {d.is_free
+                          ? "Product Scheme"
+                          : "Regular Product"}
+                      </span>
+                    </div>
+
+                    {/* Notes */}
+                    {d.notes && formatNotes(d.notes).length > 0 && (
+                      <div className="mt-3 bg-gray-50 border rounded-md p-3">
+                        <p className="text-xs font-semibold text-gray-500 mb-2">
+                          Notes
+                        </p>
+
+                        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                          {formatNotes(d.notes).map((note, idx) => (
+                            <li key={idx}>
+                              {note.replace(
+                                /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z/,
+                                (match) => formatDate(match)
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </td>
+
+                  <td className="text-center">
+                    {d.qty_ordered}
+                  </td>
+
+                  <td className="text-right whitespace-nowrap">
+                    {formatCurrency(d.unit_product_price)}
+                  </td>
+
+                  <td className="text-right whitespace-nowrap font-semibold">
+                    {formatCurrency(d.total_price)}
+                  </td>
+
+                  <td className="text-center">
+                    {d.status}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-4">
+          {order.order_details?.map((d) => (
+            <div
+              key={d.order_details_number}
+              className="border rounded-lg p-4 shadow-sm"
+            >
+              <div className="flex justify-between mb-3">
+                <span className="font-mono text-xs">
+                  {d.order_details_number}
                 </span>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusStyle(order.status)}`}>
-                  {order.status || 'N/A'}
+
+                <span
+                  className={`px-2 py-1 text-xs rounded-full ${d.is_free
+                    ? "bg-green-100 text-green-700"
+                    : "bg-gray-100 text-gray-600"
+                    }`}
+                >
+                  {d.is_free
+                    ? "Product Scheme"
+                    : "Regular Product"}
                 </span>
               </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FiCalendar className="text-blue-600" size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Created Date</p>
-                  <p className="text-sm text-gray-900">{formatDate(order.created_at)}</p>
-                </div>
+
+              <div className="font-semibold mb-2">
+                {d.product_name}
               </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <FiPackage className="text-green-600" size={20} />
-                </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">Total Items</p>
-                  <p className="text-sm text-gray-900">
-                    {order.order_details?.reduce((total, item) => total + (item.qty_ordered || 0), 0) || 0} items
+                  <p className="text-gray-500">Qty</p>
+                  <p>{d.qty_ordered}</p>
+                </div>
+
+                <div>
+                  <p className="text-gray-500">Total</p>
+                  <p className="font-semibold">
+                    {formatCurrency(d.total_price)}
                   </p>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <FiTruck className="text-purple-600" size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Order Note</p>
-                  <p className="text-sm text-gray-900">{order.order_note || 'No notes'}</p>
-                </div>
-              </div>
             </div>
-          </div>
+          ))}
         </div>
+      </section>
 
-        {/* Dealer Information Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FiUser className="text-[#9333EA]" size={20} />
-              <h2 className="text-lg font-semibold text-gray-900">Dealer Information</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <FiUser className="text-gray-400" size={16} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Name</p>
-                    <p className="text-sm text-gray-900">{order.dealer?.employee_name || 'N/A'}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <FiMail className="text-gray-400" size={16} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Email</p>
-                    <p className="text-sm text-gray-900">{order.dealer?.employee_email || 'N/A'}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <FiPhone className="text-gray-400" size={16} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Phone</p>
-                    <p className="text-sm text-gray-900">{order.dealer?.employee_phone || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <FiBox className="text-gray-400" size={16} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Shop Name</p>
-                    <p className="text-sm text-gray-900">{order.dealer?.shop_name || 'N/A'}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <FiMapPin className="text-gray-400" size={16} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Location</p>
-                    <p className="text-sm text-gray-900">
-                      {order.dealer?.town}, {order.dealer?.district}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <FiMapPin className="text-gray-400" size={16} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Address</p>
-                    <p className="text-sm text-gray-900">{order.dealer?.address || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* ================= DELIVERY NOTES ================= */}
+      {order.delivery_notes && (
+        <section className="bg-white rounded-xl border shadow-sm p-6">
+          <h2 className="text-lg font-semibold mb-4">
+            Delivery Notes
+          </h2>
+          <p className="text-sm">{order.delivery_notes}</p>
+        </section>
+      )}
 
-        {/* Order Items Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FiBox className="text-[#9333EA]" size={20} />
-              <h2 className="text-lg font-semibold text-gray-900">Order Items</h2>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Product</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Brand</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Model</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Type</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Quantity</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Delivered</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Delivery Date</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.order_details?.map((item) => (
-                    <tr key={item.order_details_number} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <span className="text-sm font-medium text-gray-900">{item.product_name}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-sm text-gray-600">{item.product_brand}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-sm text-gray-600">{item.product_model}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-sm text-gray-600">{item.product_type}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-sm font-medium text-gray-900">{item.qty_ordered}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-sm text-gray-600">{item.qty_delivered}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-sm text-gray-600">{formatDate(item.delivery_date)}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getItemStatusStyle(item.status)}`}>
-                          {item.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {(!order.order_details || order.order_details.length === 0) && (
-                    <tr>
-                      <td colSpan="8" className="py-8 text-center">
-                        <p className="text-sm text-gray-500">No order items found</p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* ================= PAYMENT NOTES ================= */}
+      {order.payment_notes?.length > 0 && (
+        <section className="bg-white rounded-xl border shadow-sm p-6">
+          <h2 className="text-lg font-semibold mb-4">
+            Payment Notes
+          </h2>
+
+          <ul className="space-y-2 text-sm">
+            {order.payment_notes.map((note, i) => (
+              <li
+                key={i}
+                className="border rounded-lg p-3 bg-gray-50"
+              >
+                {note}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 };
 
-export default OrderDetails; 
+export default OrderDetails;

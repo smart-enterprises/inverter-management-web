@@ -247,11 +247,11 @@ const UpdateOrder = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <FiArrowLeft />
+              <FiArrowLeft className="text-gray-500" size={20} />
             </button>
-            <h1 className="text-2xl font-semibold">
+            <h1 className="text-2xl font-bold text-gray-900">
               Update Order
             </h1>
           </div>
@@ -356,12 +356,12 @@ const UpdateOrder = () => {
                   </p>
 
                   <span
-                    className={`px-3 py-1 text-xs font-medium rounded-full ${detail.is_product_scheme
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-200 text-gray-600'
+                    className={`px-3 py-1 text-xs font-medium rounded-full ${detail.is_free
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-200 text-gray-600'
                       }`}
                   >
-                    {detail.is_product_scheme
+                    {detail.is_free
                       ? 'Product Scheme'
                       : 'Regular Product'}
                   </span>
