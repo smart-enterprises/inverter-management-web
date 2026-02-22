@@ -12,7 +12,7 @@ export const ORDER_STATUS_LIST = [
     'REJECTED',
 ];
 
-export const PRIORITY_OPTIONS = ['HIGH', 'MEDIUM', 'LOW'];
+export const PRIORITY_OPTIONS = ['ALL', 'HIGH', 'MEDIUM', 'LOW'];
 
 export const PAYMENT_METHOD_OPTIONS = [
     'CASH',

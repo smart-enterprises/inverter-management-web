@@ -20,30 +20,56 @@ export const createOrder = async (orderData) => {
     return response.json();
 };
 
-// ✅ Get Orders with params
+// ✅ Fetch Orders (with optional filters & search)
 export const fetchOrders = async ({
     page = 1,
     limit = 10,
     includeRejected = false,
     status,
+    priority,
+    search,
 } = {}) => {
-    const queryParams = new URLSearchParams({
-        page,
-        limit,
-        includeRejected,
-    });
+    try {
+        const queryParams = new URLSearchParams();
 
-    if (status && status !== 'ALL') {
-        queryParams.append('status', status);
+        // Pagination
+        queryParams.append('page', page);
+        queryParams.append('limit', limit);
+
+        // Include rejected
+        if (includeRejected) {
+            queryParams.append('includeRejected', 'true');
+        }
+
+        // Status filter
+        if (status && status !== 'ALL') {
+            queryParams.append('status', status);
+        }
+
+        if (priority && priority !== 'ALL') {
+            queryParams.append('priority', priority);
+        }
+
+        // Search filter (order number / dealer etc.)
+        if (search && search.trim() !== '') {
+            queryParams.append('search', search.trim());
+        }
+
+        const response = await fetch(
+            `${API_BASE_URL}/order-details?${queryParams.toString()}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+            },
+        }
+        );
+
+        return await response.json();
+    } catch (error) {
+        console.error('❌ fetchOrders error:', error);
+        throw error;
     }
-
-    const response = await fetch(
-        `${API_BASE_URL}/order-details?${queryParams.toString()}`, {
-        headers: { ...getAuthHeaders() },
-    }
-    );
-
-    return response.json();
 };
 
 // ✅ Get Order by ID
@@ -57,66 +83,18 @@ export const fetchOrderById = async (orderId) => {
 };
 
 // ✅ Update Order Status
-// export const updateOrderStatus = async (orderNumber, payload) => {
-//     const response = await fetch(
-//         `${API_BASE_URL}/order-details/status/${orderNumber}`, {
-//         method: 'PUT',
-//         headers: {
-//             'Content-Type': 'application/json',
-//             ...getAuthHeaders(),
-//         },
-//         body: JSON.stringify(payload),
-//     }
-//     );
-//     return response.json();
-// };
-
-// ✅ Update Order Status
 export const updateOrderStatus = async (orderNumber, payload) => {
-    const url = `${API_BASE_URL}/order-details/status/${orderNumber}`;
-    const headers = {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-    };
-
-    /* ============================= */
-    /* Debug Logs */
-    /* ============================= */
-
-    console.group('📦 UPDATE ORDER API');
-    console.log('🔗 URL:', url);
-    console.log('📨 Method: PUT');
-    console.log('📋 Headers:', headers);
-    console.log('📦 Payload:', payload);
-
-    // Generate equivalent cURL
-    const curlCommand = `
-        curl --location --request PUT '${url}' \
-        --header 'Content-Type: application/json' \
-        ${headers.Authorization ? `--header 'Authorization: ${headers.Authorization}' \\` : ''}
-        --data '${JSON.stringify(payload, null, 2)}'
-        `.trim();
-
-    console.log('🧾 Equivalent cURL:\n', curlCommand);
-    console.groupEnd();
-
-    /* ============================= */
-    /* API Call */
-    /* ============================= */
-
-    const response = await fetch(url, {
+    const response = await fetch(
+        `${API_BASE_URL}/order-details/status/${orderNumber}`, {
         method: 'PUT',
-        headers,
+        headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+        },
         body: JSON.stringify(payload),
-    });
-
-    const result = await response.json();
-
-    console.group('📦 UPDATE ORDER RESPONSE');
-    console.log(result);
-    console.groupEnd();
-
-    return result;
+    }
+    );
+    return response.json();
 };
 
 // ✅ Get Orders by Date Filter

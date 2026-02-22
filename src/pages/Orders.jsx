@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   FiPlus,
   FiSearch,
@@ -6,27 +6,21 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiEdit2,
-} from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
-import CustomSelect from '../components/CustomSelect';
-import { fetchOrders } from '../api/orders';
-import { ORDER_STATUS_LIST } from '../utils/status';
+} from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import CustomSelect from "../components/CustomSelect";
+import { fetchOrders } from "../api/orders";
+import { ORDER_STATUS_LIST, PRIORITY_OPTIONS } from "../utils/status";
 
-/* ============================= */
-/* Pagination Component */
-/* ============================= */
+/* ============================= Pagination Component ============================= */
 
-const OrdersPagination = ({
-  currentPage,
-  totalPages,
-  onPageChange,
-}) => {
+const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
 
   return (
     <div className="border-t border-gray-100 bg-white px-6 py-4 flex justify-between items-center">
       <span className="text-sm text-gray-600">
-        Page <span className="font-medium">{currentPage}</span> of{' '}
+        Page <span className="font-medium">{currentPage}</span> of{" "}
         <span className="font-medium">{totalPages}</span>
       </span>
 
@@ -51,9 +45,7 @@ const OrdersPagination = ({
   );
 };
 
-/* ============================= */
-/* Orders Page */
-/* ============================= */
+/* ============================= Orders Page ============================= */
 
 const Orders = () => {
   const navigate = useNavigate();
@@ -69,13 +61,11 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('ALL');
-  const [selectedPriority, setSelectedPriority] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("ALL");
+  const [selectedPriority, setSelectedPriority] = useState("ALL");
 
-  /* ============================= */
-  /* Fetch Orders (Backend Pagination) */
-  /* ============================= */
+  /* ============================= Fetch Orders (Backend Pagination) ============================= */
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -85,10 +75,9 @@ const Orders = () => {
         const response = await fetchOrders({
           page: pagination.page,
           limit: pagination.limit,
-          status:
-            selectedStatus !== 'ALL'
-              ? selectedStatus
-              : undefined,
+          status: selectedStatus !== "ALL" ? selectedStatus : undefined,
+          priority: selectedPriority !== "ALL" ? selectedPriority : undefined,
+          search: searchQuery || undefined,
         });
 
         if (response.success) {
@@ -99,98 +88,72 @@ const Orders = () => {
             total: response.pagination?.total || 0,
           }));
         } else {
-          setError(response.message || 'Failed to load orders');
+          setError(response?.message || "Failed to load orders");
         }
       } catch {
-        setError('Failed to load orders');
+        setError("Failed to load orders");
       } finally {
         setLoading(false);
       }
     };
 
     loadOrders();
-  }, [pagination.limit, pagination.page, selectedStatus]);
+  }, [
+    pagination.limit,
+    pagination.page,
+    searchQuery,
+    selectedPriority,
+    selectedStatus,
+  ]);
 
-  /* ============================= */
-  /* Utility Functions */
-  /* ============================= */
+  /* ============================= Utility Functions ============================= */
 
   const getPriorityStyle = (priority) => {
     switch (priority?.toUpperCase()) {
-      case 'HIGH':
-        return 'bg-red-50 text-red-700';
-      case 'MEDIUM':
-        return 'bg-yellow-50 text-yellow-700';
-      case 'LOW':
-        return 'bg-green-50 text-green-700';
+      case "HIGH":
+        return "bg-red-50 text-red-700";
+      case "MEDIUM":
+        return "bg-yellow-50 text-yellow-700";
+      case "LOW":
+        return "bg-green-50 text-green-700";
       default:
-        return 'bg-gray-50 text-gray-700';
+        return "bg-gray-50 text-gray-700";
     }
   };
 
   const getStatusStyle = (status) => {
     switch (status?.toUpperCase()) {
-      case 'PENDING':
-        return 'bg-yellow-50 text-yellow-700';
-      case 'CONFIRMED':
-        return 'bg-blue-50 text-blue-700';
-      case 'PRODUCTION':
-        return 'bg-indigo-50 text-indigo-700';
-      case 'PACKED':
-        return 'bg-purple-50 text-purple-700';
-      case 'INVOICE':
-        return 'bg-cyan-50 text-cyan-700';
-      case 'SHIPPED':
-        return 'bg-orange-50 text-orange-700';
-      case 'DELIVERED':
-        return 'bg-green-50 text-green-700';
-      case 'COMPLETED':
-        return 'bg-emerald-50 text-emerald-700';
-      case 'CANCELLED':
-      case 'REJECTED':
-        return 'bg-red-50 text-red-700';
+      case "PENDING":
+        return "bg-yellow-50 text-yellow-700";
+      case "CONFIRMED":
+        return "bg-blue-50 text-blue-700";
+      case "PRODUCTION":
+        return "bg-indigo-50 text-indigo-700";
+      case "PACKED":
+        return "bg-purple-50 text-purple-700";
+      case "INVOICE":
+        return "bg-cyan-50 text-cyan-700";
+      case "SHIPPED":
+        return "bg-orange-50 text-orange-700";
+      case "DELIVERED":
+        return "bg-green-50 text-green-700";
+      case "COMPLETED":
+        return "bg-emerald-50 text-emerald-700";
+      case "CANCELLED":
+      case "REJECTED":
+        return "bg-red-50 text-red-700";
       default:
-        return 'bg-gray-50 text-gray-700';
+        return "bg-gray-50 text-gray-700";
     }
   };
 
   const formatDate = (date) =>
-    date
-      ? new Date(date).toLocaleDateString('en-IN')
-      : 'N/A';
+    date ? new Date(date).toLocaleDateString("en-IN") : "N/A";
 
   const getTotalItems = (details) =>
-    details?.reduce(
-      (sum, item) => sum + (item.qty_ordered || 0),
-      0
-    ) || 0;
+    details?.reduce((sum, item) => sum + (item.qty_ordered || 0), 0) || 0;
 
-  /* ============================= */
-  /* Local Filtering (Search + Priority) */
-  /* ============================= */
-
-  const filteredOrders = orders.filter((orderData) => {
-    const order = orderData.order;
-    if (!order) return false;
-
-    const searchMatch =
-      order.order_number
-        ?.toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      order.dealer?.shop_name
-        ?.toLowerCase()
-        .includes(searchQuery.toLowerCase());
-
-    const priorityMatch =
-      selectedPriority === 'ALL' ||
-      order.priority?.toUpperCase() === selectedPriority;
-
-    return searchMatch && priorityMatch;
-  });
-
-  /* ============================= */
-  /* UI States */
-  /* ============================= */
+  /* ============================= UI States ============================= */
 
   if (loading) {
     return (
@@ -201,26 +164,18 @@ const Orders = () => {
   }
 
   if (error) {
-    return (
-      <div className="p-6 text-center text-red-600">
-        {error}
-      </div>
-    );
+    return <div className="p-6 text-center text-red-600">{error}</div>;
   }
 
-  /* ============================= */
-  /* UI */
-  /* ============================= */
+  /* ============================= UI ============================= */
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex justify-between mb-6">
-        <h1 className="text-2xl font-bold">
-          Orders Overview
-        </h1>
+        <h1 className="text-2xl font-bold">Orders Overview</h1>
 
         <button
-          onClick={() => navigate('/orders/create')}
+          onClick={() => navigate("/orders/create")}
           className="bg-[#9333EA] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition"
         >
           <FiPlus /> Create Order
@@ -236,9 +191,7 @@ const Orders = () => {
               type="text"
               placeholder="Search orders..."
               value={searchQuery}
-              onChange={(e) =>
-                setSearchQuery(e.target.value)
-              }
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm"
             />
           </div>
@@ -259,10 +212,8 @@ const Orders = () => {
           <CustomSelect
             name="priority"
             value={selectedPriority}
-            onChange={(e) =>
-              setSelectedPriority(e.target.value)
-            }
-            options={['ALL', 'HIGH', 'MEDIUM', 'LOW']}
+            onChange={(e) => setSelectedPriority(e.target.value)}
+            options={PRIORITY_OPTIONS}
           />
         </div>
 
@@ -271,34 +222,40 @@ const Orders = () => {
           <table className="w-full">
             <thead className="border-b bg-gray-50 text-sm text-gray-600">
               <tr>
-                <th className="text-left py-4 px-4">
-                  Order Number
-                </th>
-                <th className="text-left py-4 px-4">
-                  Dealer
-                </th>
-                <th className="text-left py-4 px-4">
-                  Created
-                </th>
-                <th className="text-left py-4 px-4">
-                  Items
-                </th>
-                <th className="text-left py-4 px-4">
-                  Priority
-                </th>
-                <th className="text-left py-4 px-4">
-                  Status
-                </th>
-                <th className="text-right py-4 px-4">
-                  Action
-                </th>
+                <th className="text-left py-4 px-4">Order Number</th>
+                <th className="text-left py-4 px-4">Dealer Name</th>
+                <th className="text-left py-4 px-4">Dealer Shop</th>
+                <th className="text-left py-4 px-4">Created</th>
+                <th className="text-left py-4 px-4">Updated</th>
+                <th className="text-left py-4 px-4">Delivery Date</th>
+                <th className="text-left py-4 px-4">Items</th>
+                <th className="text-left py-4 px-4">Total Amount</th>
+                <th className="text-left py-4 px-4">Priority</th>
+                <th className="text-left py-4 px-4">Status</th>
+                <th className="text-right py-4 px-4">Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {filteredOrders.map((orderData) => {
+              {orders.map((orderData) => {
                 const order = orderData.order;
                 if (!order) return null;
+
+                const detailDeliveryDates =
+                  order.order_details
+                    ?.map((d) =>
+                      d.delivery_date ? new Date(d.delivery_date) : null,
+                    )
+                    .filter(Boolean) || [];
+
+                const maxDetailDate =
+                  detailDeliveryDates.length > 0
+                    ? new Date(Math.max(...detailDeliveryDates))
+                    : null;
+
+                const finalDeliveryDate = order.promised_delivery_date
+                  ? new Date(order.promised_delivery_date)
+                  : maxDetailDate;
 
                 return (
                   <tr
@@ -308,21 +265,29 @@ const Orders = () => {
                     <td className="py-4 px-4 font-mono">
                       {order.order_number}
                     </td>
-                    <td className="py-4 px-4">
-                      {order.dealer?.shop_name}
-                    </td>
+                    <td className="py-4 px-4">{order.dealer?.employee_name}</td>
+                    <td className="py-4 px-4">{order.dealer?.shop_name}</td>
                     <td className="py-4 px-4">
                       {formatDate(order.created_at)}
                     </td>
                     <td className="py-4 px-4">
-                      {getTotalItems(
-                        order.order_details
-                      )}
+                      {formatDate(order.updated_at)}
+                    </td>
+                    {/* Delivery Date */}
+                    <td className="py-4 px-4">
+                      {formatDate(finalDeliveryDate)}
+                    </td>
+                    <td className="py-4 px-4">
+                      {getTotalItems(order.order_details)}
+                    </td>
+                    {/* Total Amount */}
+                    <td className="py-4 px-4 font-semibold">
+                      ₹ {order.order_total_price?.toLocaleString("en-IN")}
                     </td>
                     <td className="py-4 px-4">
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${getPriorityStyle(
-                          order.priority
+                          order.priority,
                         )}`}
                       >
                         {order.priority}
@@ -331,7 +296,7 @@ const Orders = () => {
                     <td className="py-4 px-4">
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(
-                          order.status
+                          order.status,
                         )}`}
                       >
                         {order.status}
@@ -341,9 +306,7 @@ const Orders = () => {
                       <div className="flex justify-end gap-3">
                         <button
                           onClick={() =>
-                            navigate(
-                              `/orders/${order.order_number}`
-                            )
+                            navigate(`/orders/${order.order_number}`)
                           }
                           className="text-[#9333EA]"
                           title="View Order"
@@ -353,9 +316,7 @@ const Orders = () => {
 
                         <button
                           onClick={() =>
-                            navigate(
-                              `/orders/update/${order.order_number}`
-                            )
+                            navigate(`/orders/update/${order.order_number}`)
                           }
                           className="text-blue-600 hover:text-blue-700 transition"
                           title="Edit Order"
