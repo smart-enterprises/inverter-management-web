@@ -1,6 +1,4 @@
-/* ============================================================
-   ROLE CONSTANTS
-============================================================ */
+/* ===================== ROLE CONSTANTS ===================== */
 
 export const ROLES = Object.freeze({
     SUPER_ADMIN: 'ROLE_SUPER_ADMIN',
@@ -15,26 +13,18 @@ export const ROLES = Object.freeze({
     DEALER: 'ROLE_DEALER',
 });
 
-/* ============================================================
-   ROLE LABELS
-============================================================ */
+/* ===================== ROLE LABELS ===================== */
 
-export const ROLE_LABELS = Object.freeze({
-    [ROLES.SUPER_ADMIN]: 'Super Admin',
-    [ROLES.ADMIN]: 'Admin',
-    [ROLES.MANAGER]: 'Manager',
-    [ROLES.SUPERVISOR]: 'Supervisor',
-    [ROLES.SALESMAN]: 'Salesman',
-    [ROLES.PRODUCTION]: 'Production',
-    [ROLES.PACKING]: 'Packing',
-    [ROLES.ACCOUNTS]: 'Accounts',
-    [ROLES.DELIVERY]: 'Delivery',
-    [ROLES.DEALER]: 'Dealer',
-});
+export const ROLE_LABELS = Object.freeze(
+    Object.fromEntries(
+        Object.entries(ROLES).map(([key, value]) => [
+            value,
+            key.replace("_", " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+        ])
+    )
+);
 
-/* ============================================================
-   ROLE GROUPINGS
-============================================================ */
+/* ===================== ROLE GROUPINGS ===================== */
 
 // Roles that can manage users
 export const USER_MANAGEMENT_ROLES = Object.freeze([
@@ -63,9 +53,7 @@ const ASSIGNABLE_ROLE_ORDER = Object.freeze([
     ROLES.DELIVERY,
 ]);
 
-/* ============================================================
-   ROLE HELPERS
-============================================================ */
+/* ===================== ROLE HELPERS ===================== */
 
 export const getRoleLabel = (role) =>
     ROLE_LABELS[role] || role || '';

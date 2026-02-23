@@ -8,16 +8,16 @@ export const INITIAL_ORDER_ITEM = {
     discount_price: 0,
     qty_ordered: 1,
     delivery_date: '',
-    dealer_discount_id: '',
+    dealer_discount_id: null,
     is_product_scheme: false
 };
 
 export const INITIAL_FORM_STATE = {
     dealer_id: '',
-    priority: 'MEDIUM',
+    priority: 'LOW',
     order_note: '',
     salesman_id: '',
-    amount_paid: '',
+    amount_paid: 0,
     payment_method: 'CASH',
-    order_details: [{...INITIAL_ORDER_ITEM }]
+    order_details: [{ ...INITIAL_ORDER_ITEM }]
 };
