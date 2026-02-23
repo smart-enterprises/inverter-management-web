@@ -21,7 +21,7 @@ import {
   fetchDealerById,
   createDealer,
   updateDealer,
-  deleteDealerById,
+  deleteDealer,
 } from "../api/dealer";
 import { getActiveBrands } from "../api/brands";
 import { useAuth } from "../hooks/useAuth";
@@ -858,7 +858,7 @@ const Dealers = () => {
     setDeleteLoading(true);
     setDeleteError("");
     try {
-      const res = await deleteDealerById(selectedDealerId, deleteReason);
+      const res = await deleteDealer(selectedDealerId, deleteReason);
       if (res && res.success) {
         setShowDeleteModal(false);
         await Swal.fire({

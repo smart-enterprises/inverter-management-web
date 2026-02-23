@@ -1,857 +1,439 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
-  FiPlus,
+  FiSearch,
+  FiEye,
+  FiEyeOff,
   FiEdit2,
-  FiTrash2,
-  FiMoreVertical,
   FiChevronLeft,
   FiChevronRight,
-  FiKey,
+  FiLoader,
   FiX,
-  FiEye,
-  FiEyeOff
 } from "react-icons/fi";
-import CustomSelect from '../components/CustomSelect';
-import Swal from 'sweetalert2';
-import { fetchUsers, fetchUserById, createUser, updateUser, resetUserPasswordById, deleteUserById } from '../api/user';
+import Swal from "sweetalert2";
+import CustomSelect from "../components/CustomSelect";
+import { fetchUsers, fetchUserById, updateUser } from "../api/user";
 import { useAuth } from "../hooks/useAuth";
-import {
-  ROLES,
-  getAssignableRoles,
-  getRoleLabel,
-  canManageUsers,
-  canManageTargetRole,
-} from "../utils/roles";
+import { ROLES, getRoleLabel } from "../utils/roles";
 
-const ALL_TABS = [
-  'All Users',
-  'Super Admin',
-  'Admin',
-  'Manager',
-  'Supervisor',
-  'Salesman',
-  'Production',
-  'Packing',
-  'Accounts',
-  'Delivery',
-];
+/* ============================================================
+   ROLE COLORS
+============================================================ */
 
-const FilterTabs = ({ activeTab, onTabChange, tabs }) => {
-  return (
-    <div className="flex justify-start sm:justify-center overflow-x-auto">
-      <div className="inline-flex gap-1 p-1">
-        {(tabs || []).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => onTabChange(tab)}
-            className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-              activeTab === tab
-                ? 'bg-[#9333EA] text-white'
-                : 'text-gray-500 hover:bg-gray-50'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+const ROLE_COLORS = {
+  ROLE_SUPER_ADMIN: "bg-purple-100 text-purple-700",
+  ROLE_ADMIN: "bg-blue-100 text-blue-700",
+  ROLE_MANAGER: "bg-indigo-100 text-indigo-700",
+  ROLE_SUPERVISOR: "bg-yellow-100 text-yellow-700",
+  ROLE_SALESMAN: "bg-green-100 text-green-700",
+  ROLE_PRODUCTION: "bg-orange-100 text-orange-700",
+  ROLE_PACKING: "bg-pink-100 text-pink-700",
+  ROLE_ACCOUNTS: "bg-cyan-100 text-cyan-700",
+  ROLE_DELIVERY: "bg-teal-100 text-teal-700",
 };
 
-const UserTable = ({
-  users,
-  onEdit,
-  onResetPassword,
-  onDeleteUser,
-  currentPage,
-  totalPages,
-  onPageChange,
-  canManageUser = () => false,
-}) => (
-  <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="bg-[#F9FAFB]">
-            <th className="text-center p-4 lg:p-6 text-sm font-medium text-gray-600">Name</th>
-            <th className="text-center p-4 lg:p-6 text-sm font-medium text-gray-600">Email</th>
-            <th className="text-center p-4 lg:p-6 text-sm font-medium text-gray-600">Phone</th>
-            <th className="text-center p-4 lg:p-6 text-sm font-medium text-gray-600">Role</th>
-            <th className="text-center p-4 lg:p-6 text-sm font-medium text-gray-600">Status</th>
-            <th className="text-center p-4 lg:p-6 text-sm font-medium text-gray-600">Created On</th>
-            <th className="text-center p-4 lg:p-6 text-sm font-medium text-gray-600">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {users.map((user, index) => user && (
-            <tr key={user.employee_id || index} className="hover:bg-gray-50/50 transition-colors">
-              <td className="p-4 lg:p-6 text-center">
-                <span className="text-sm font-medium text-gray-900">{user.employee_name}</span>
-              </td>
-              <td className="p-4 lg:p-6 text-center">
-                <span className="text-sm text-gray-600">{user.employee_email}</span>
-              </td>
-              <td className="p-4 lg:p-6 text-center">
-                <span className="text-sm text-gray-600">{user.employee_phone}</span>
-              </td>
-              <td className="p-4 lg:p-6 text-center">
-                <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>{getRoleLabel(user.role)}</span>
-              </td>
-              <td className="p-4 lg:p-6 text-center">
-                <span className="text-sm text-gray-600">{user.status}</span>
-              </td>
-              <td className="p-4 lg:p-6 text-center">
-                <span className="text-sm text-gray-600">{new Date(user.created_at).toLocaleDateString()}</span>
-              </td>
-              <td className="p-4 lg:p-6 text-center">
-                {canManageUser(user) ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      className="p-2 hover:bg-blue-50 rounded-lg transition-colors group"
-                      onClick={() => onEdit && onEdit(user)}
-                    >
-                      <FiEdit2 className="text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 transition-colors" size={18} />
-                    </button>
-                    <button
-                      className="p-2 hover:bg-indigo-50 rounded-lg transition-colors group"
-                      onClick={() => onResetPassword && onResetPassword(user)}
-                    >
-                      <FiKey className="text-indigo-400 hover:text-indigo-600 hover:bg-[#DC2626]/5 transition-colors" size={18} />
-                    </button>
-                    <button
-                      className="p-2 hover:bg-red-50 rounded-lg transition-colors group"
-                      onClick={() => onDeleteUser && onDeleteUser(user)}
-                    >
-                      <FiTrash2 className="text-[#DC2626] hover:text-[#B91C1C] hover:bg-[#DC2626]/5 transition-colors" size={18} />
-                    </button>
-                  </div>
-                ) : (
-                  <span className="text-xs text-gray-400">No access</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+const getRoleColor = (role) =>
+  ROLE_COLORS[role] || "bg-gray-100 text-gray-700";
+
+/* ============================================================
+   PAGINATION
+============================================================ */
+
+const Pagination = ({ page, totalPages, onChange }) => (
+  <div className="border-t border-gray-100 bg-white px-6 py-4 flex items-center justify-between">
+    <span className="text-sm text-gray-600">
+      Page <span className="font-semibold">{page}</span> of{" "}
+      <span className="font-semibold">{totalPages}</span>
+    </span>
+
+    <div className="flex gap-2">
+      <button
+        onClick={() => onChange(page - 1)}
+        disabled={page === 1}
+        className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
+      >
+        <FiChevronLeft />
+      </button>
+
+      <button
+        onClick={() => onChange(page + 1)}
+        disabled={page === totalPages}
+        className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
+      >
+        <FiChevronRight />
+      </button>
     </div>
-    {/* Pagination inside the table */}
-    <UserPagination
-      currentPage={currentPage}
-      totalPages={totalPages}
-      onPageChange={onPageChange}
-    />
   </div>
 );
 
-const CreateUserModal = ({
-  isOpen,
-  onClose,
-  onUserChanged,
-  editingEmployeeId,
-  editingEmployeeData,
-  roleOptions = [],
-}) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    role: '',
-    address: ''
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [success, setSuccess] = useState('');
-
-  // Populate form when editingEmployeeData changes
-  useEffect(() => {
-    if (editingEmployeeId && editingEmployeeData) {
-      setFormData({
-        name: editingEmployeeData.employee_name || '',
-        email: editingEmployeeData.employee_email || '',
-        phone: editingEmployeeData.employee_phone || '',
-        password: '', // Don't prefill password
-        role: editingEmployeeData.role || '',
-        address: editingEmployeeData.address || ''
-      });
-    } else if (!editingEmployeeId) {
-      setFormData({ name: '', email: '', phone: '', password: '', role: '', address: '' });
-    }
-  }, [editingEmployeeId, editingEmployeeData]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    setError('');
-    setFieldErrors({});
-    setSuccess('');
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setFieldErrors({});
-    setSuccess('');
-    try {
-      let res;
-      if (editingEmployeeId) {
-        // Update user
-        const payload = {
-          employee_name: formData.name,
-          employee_email: formData.email,
-          employee_phone: String(formData.phone),
-          role: formData.role,
-          address: formData.address
-        };
-        res = await updateUser(editingEmployeeId, payload);
-      } else {
-        // Create user
-        const payload = {
-          employee_name: formData.name,
-          employee_email: formData.email,
-          employee_phone: String(formData.phone),
-          password: formData.password,
-          role: formData.role,
-          address: formData.address
-        };
-        res = await createUser(payload);
-      }
-      if (res && res.success) {
-        onClose();
-        await Swal.fire({
-          icon: 'success',
-          title: editingEmployeeId ? 'User Updated' : 'User Created',
-          text: res.message || (editingEmployeeId ? 'User updated successfully!' : 'User created successfully!'),
-          confirmButtonText: 'OK',
-        });
-        setFormData({ name: '', email: '', phone: '', password: '', role: '', address: '' });
-        if (onUserChanged) {
-          onUserChanged();
-        }
-      } else if (Array.isArray(res?.errors) && res.errors.length > 0) {
-        const errorMap = {};
-        res.errors.forEach(e => {
-          if (!errorMap[e.field]) errorMap[e.field] = [];
-          errorMap[e.field].push(e.message);
-        });
-        setFieldErrors(errorMap);
-        setError('');
-      } else {
-        setError(res?.message || 'Failed to save user');
-        setFieldErrors({});
-      }
-    } catch (err) {
-      setError(err?.message || 'Network error. Please try again.');
-      setFieldErrors({});
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword((prev) => !prev);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={onClose} />
-      <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
-        <div className="bg-white rounded-xl shadow-sm w-full max-w-lg" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between p-6 border-b border-gray-100">
-            <h2 className="text-xl font-semibold text-gray-900">{editingEmployeeId ? 'Edit User' : 'Add New User'}</h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              <FiX className="text-gray-500" size={20} />
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {error && !Object.keys(fieldErrors).length && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">{error}</div>
-            )}
-            {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm">{success}</div>
-            )}
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                  placeholder="Enter full name"
-                  autoComplete="name"
-                />
-                {fieldErrors['employee_name'] && (
-                  <div className="text-red-600 text-xs mt-1">
-                    {fieldErrors['employee_name'].map((msg, idx) => <div key={idx}>{msg}</div>)}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                  placeholder="Enter email address"
-                  autoComplete="email"
-                />
-                {fieldErrors['employee_email'] && (
-                  <div className="text-red-600 text-xs mt-1">
-                    {fieldErrors['employee_email'].map((msg, idx) => <div key={idx}>{msg}</div>)}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="text"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                  placeholder="Enter phone number"
-                  autoComplete="phone"
-                />
-                {fieldErrors['employee_phone'] && (
-                  <div className="text-red-600 text-xs mt-1">
-                    {fieldErrors['employee_phone'].map((msg, idx) => <div key={idx}>{msg}</div>)}
-                  </div>
-                )}
-              </div>
-
-              {/* Only show password field when creating a new user */}
-              {!editingEmployeeId && (
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm pr-10"
-                      placeholder="Enter password"
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={togglePasswordVisibility}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? (
-                        <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      ) : (
-                        <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      )}
-                    </button>
-                  </div>
-                  {fieldErrors['password'] && (
-                    <div className="text-red-600 text-xs mt-1">
-                      {fieldErrors['password'].map((msg, idx) => <div key={idx}>{msg}</div>)}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                  Role
-                </label>
-                <CustomSelect
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  options={roleOptions}
-                  placeholder="Select Role"
-                />
-                {fieldErrors['role'] && (
-                  <div className="text-red-600 text-xs mt-1">
-                    {fieldErrors['role'].map((msg, idx) => <div key={idx}>{msg}</div>)}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                  Address
-                </label>
-                <textarea
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                  placeholder="Enter address"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2.5 rounded-lg bg-[#9333EA] text-white hover:bg-[#8829DD] transition-colors text-sm font-medium"
-                disabled={loading}
-              >
-                {loading ? (editingEmployeeId ? 'Updating...' : 'Creating...') : (editingEmployeeId ? 'Update User' : 'Create User')}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </>
-  );
-};
-
-const getRoleColor = (role) => {
-  const colors = {
-    "ROLE_SUPER_ADMIN": "bg-[#9333EA]/10 text-[#9333EA]",
-    "ROLE_ADMIN": "bg-blue-50 text-blue-600",
-    "ROLE_MANAGER": "bg-purple-50 text-purple-600",
-    "ROLE_SUPERVISOR": "bg-indigo-50 text-indigo-600",
-    "ROLE_SALESMAN": "bg-green-50 text-green-600",
-    "ROLE_PRODUCTION": "bg-yellow-50 text-yellow-600",
-    "ROLE_PACKING": "bg-orange-50 text-orange-600",
-    "ROLE_ACCOUNTS": "bg-pink-50 text-pink-600",
-    "ROLE_DELIVERY": "bg-cyan-50 text-cyan-600",
-  };
-  return colors[role] || "bg-gray-50 text-gray-600";
-};
-
-function UserPagination({ currentPage, totalPages, onPageChange }) {
-  return (
-    <div className="border-t border-gray-100">
-      <div className="px-4 lg:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
-        <div className="flex items-center justify-center sm:justify-start">
-          <span className="text-sm text-gray-600">
-            Page <span className="font-medium text-gray-900">{currentPage}</span> of{' '}
-            <span className="font-medium text-gray-900">{totalPages}</span>
-          </span>
-        </div>
-        <div className="flex items-center justify-center gap-2">
-          <button 
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-400"
-          >
-            <FiChevronLeft size={18} />
-          </button>
-          <div className="flex gap-1">
-            {[...Array(totalPages)].map((_, idx) => {
-              const pageNumber = idx + 1;
-              const isActive = pageNumber === currentPage;
-              const isNearCurrent = Math.abs(pageNumber - currentPage) <= 1 || pageNumber === 1 || pageNumber === totalPages;
-              
-              if (!isNearCurrent && pageNumber !== 1 && pageNumber !== totalPages) {
-                if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
-                  return <span key={idx} className="inline-flex items-center justify-center w-9 h-9 text-gray-400">...</span>;
-                }
-                return null;
-              }
-
-              return (
-                <button
-                  key={idx}
-                  onClick={() => onPageChange(pageNumber)}
-                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-[#9333EA] text-white'
-                      : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {pageNumber}
-                </button>
-              );
-            })}
-          </div>
-          <button 
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiChevronRight size={18} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+/* ============================================================
+   MAIN COMPONENT
+============================================================ */
 
 const User = () => {
-  const [activeTab, setActiveTab] = useState('All Users');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [employees, setEmployees] = useState([]);
-  const [editingEmployeeId, setEditingEmployeeId] = useState(null);
-  const [editingEmployeeData, setEditingEmployeeData] = useState(null);
-  const itemsPerPage = 5;
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(null);
-  const [resetPassword, setResetPassword] = useState('');
-  const [resetLoading, setResetLoading] = useState(false);
-  const [resetError, setResetError] = useState('');
-  const [deleteReason, setDeleteReason] = useState('');
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const { user: currentUser } = useAuth();
+  const { user } = useAuth();
 
-  const canCurrentUserManageUsers = canManageUsers(currentUser?.role);
-  const assignableRoleOptions = getAssignableRoles(currentUser?.role).map(role => ({
-    label: getRoleLabel(role),
-    value: role,
-  }));
-  const canManageTarget = (targetRole) => canManageTargetRole(currentUser?.role, targetRole);
-  const visibleTabs = useMemo(() => {
-    if (currentUser?.role === ROLES.MANAGER) {
-      return ALL_TABS.filter(
-        (tab) => !['Super Admin', 'Admin', 'Manager'].includes(tab)
-      );
-    }
-    return ALL_TABS;
-  }, [currentUser?.role]);
+  const [users, setUsers] = useState([]);
+  const [selectedRole, setSelectedRole] = useState("ALL");
+  const [status, setStatus] = useState("ALL");
+  const [search, setSearch] = useState("");
+  const [includePassword, setIncludePassword] = useState(false);
 
-  useEffect(() => {
-    if (!visibleTabs.includes(activeTab)) {
-      setActiveTab('All Users');
-    }
-  }, [visibleTabs, activeTab]);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchEmployees = async () => {
+  const [loading, setLoading] = useState(false);
+  const [showPasswordMap, setShowPasswordMap] = useState({});
+  const [editingUser, setEditingUser] = useState(null);
+  const [formData, setFormData] = useState({});
+
+  const canViewPasswords = useMemo(
+    () =>
+      [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(
+        user?.role
+      ),
+    [user?.role]
+  );
+
+  /* ================= FETCH USERS ================= */
+
+  const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      setError('');
-      const res = await fetchUsers();
-      if (res && res.success && res.data && res.data.employees) {
-        setEmployees(res.data.employees);
-      }
+
+      const res = await fetchUsers({
+        page,
+        limit,
+        ...(selectedRole !== "ALL" && { role: selectedRole }),
+        ...(search.trim() && { search: search.trim() }),
+        ...(status !== "ALL" && { status: status.toLowerCase() }),
+        includePassword: canViewPasswords && includePassword,
+        includeDealers: false,
+      });
+
+      if (!res?.success) throw new Error(res.message);
+
+      setUsers(res.data?.employees || []);
+      setTotalPages(res.data?.pages || 1);
     } catch (err) {
-      console.error(err);
-      setError('Failed to load users. Please try again.');
+      Swal.fire("Error", err.message, "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    page,
+    selectedRole,
+    search,
+    status,
+    includePassword,
+    canViewPasswords,
+    limit,
+  ]);
 
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    loadUsers();
+  }, [loadUsers]);
 
-  // When a user is created or updated, re-fetch the user list from the backend
-  const handleUserChanged = () => {
-    fetchEmployees();
-    setEditingEmployeeId(null);
-    setEditingEmployeeData(null);
-  };
+  /* ================= EDIT ================= */
 
-  // Edit button handler
-  const handleEditUser = async (employee) => {
-    if (!canManageTarget(employee.role)) {
-      await Swal.fire({
-        icon: 'warning',
-        title: 'Access denied',
-        text: 'You do not have permission to edit this user.',
-      });
-      return;
-    }
-
-    setEditingEmployeeId(employee.employee_id);
-    setIsModalOpen(true);
+  const handleEdit = async (id) => {
     try {
-      const res = await fetchUserById(employee.employee_id);
-      if (res && res.success && res.data) {
-        setEditingEmployeeData(res.data);
-      }
-    } catch {
-      setEditingEmployeeData(null);
-    }
-  };
+      const res = await fetchUserById(id);
+      if (!res?.success) throw new Error(res.message);
 
-  // Reset Password Handler
-  const handleOpenResetModal = (employee) => {
-    if (!canManageTarget(employee.role)) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Access denied',
-        text: 'You do not have permission to reset this user password.',
-      });
-      return;
-    }
-    setSelectedUserId(employee.employee_id);
-    setResetPassword('');
-    setResetError('');
-    setShowResetModal(true);
-  };
-  const handleResetPassword = async () => {
-    setResetLoading(true);
-    setResetError('');
-    try {
-      const res = await resetUserPasswordById(selectedUserId, {
-        password: resetPassword,
-      });
-      if (res && res.success) {
-        setShowResetModal(false);
-        await Swal.fire({ icon: 'success', title: 'Password Reset', text: res.message || 'Password reset successfully!', confirmButtonText: 'OK' });
-      } else {
-        setResetError(res?.message || 'Failed to reset password');
-      }
+      setFormData(res.data);
+      setEditingUser(id);
     } catch (err) {
-      setResetError(err?.message || 'Network error');
-    } finally {
-      setResetLoading(false);
+      Swal.fire("Error", err.message, "error");
     }
   };
 
-  // Delete User Handler
-  const handleOpenDeleteModal = (employee) => {
-    if (!canManageTarget(employee.role)) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Access denied',
-        text: 'You do not have permission to delete this user.',
-      });
-      return;
-    }
-    setSelectedUserId(employee.employee_id);
-    setDeleteReason('');
-    setDeleteError('');
-    setShowDeleteModal(true);
-  };
-  const handleDeleteUser = async () => {
-    setDeleteLoading(true);
-    setDeleteError('');
+  const handleUpdate = async () => {
     try {
-      const res = await deleteUserById(selectedUserId, deleteReason);
-      if (res && res.success) {
-        setShowDeleteModal(false);
-        await Swal.fire({ icon: 'success', title: 'User Deleted', text: res.message || 'User deleted successfully!', confirmButtonText: 'OK' });
-        fetchEmployees();
-      } else {
-        setDeleteError(res?.message || 'Failed to delete user');
-      }
+      const res = await updateUser(editingUser, formData);
+      if (!res?.success) throw new Error(res.message);
+
+      Swal.fire("Success", "User updated successfully", "success");
+      setEditingUser(null);
+      loadUsers();
     } catch (err) {
-      setDeleteError(err?.message || 'Network error');
-    } finally {
-      setDeleteLoading(false);
+      Swal.fire("Error", err.message, "error");
     }
   };
 
-  // Filter employees based on active tab, but exclude ROLE_DEALER
-  const baseVisibleEmployees = employees
-    .filter(emp => emp && emp.role !== ROLES.DEALER)
-    .filter(emp => {
-      if (currentUser?.role === ROLES.MANAGER) {
-        return ![ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(emp.role);
-      }
-      return true;
-    });
+  const roleTabs = [
+    "ALL",
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMIN,
+    ROLES.MANAGER,
+    ROLES.SUPERVISOR,
+    ROLES.SALESMAN,
+    ROLES.PRODUCTION,
+    ROLES.PACKING,
+    ROLES.ACCOUNTS,
+    ROLES.DELIVERY,
+  ];
 
-  const filteredEmployees = activeTab === 'All Users'
-    ? baseVisibleEmployees
-    : baseVisibleEmployees.filter(emp => getRoleLabel(emp.role) === activeTab);
-
-  const currentUsers = filteredEmployees.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  /* ============================================================
+     UI
+  ============================================================ */
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-[#F9FAFB]">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Manage Users</h1>
-          <p className="text-sm text-gray-500">Add and manage system users</p>
-        </div>
-        <button 
-          onClick={async () => { 
-            if (!canCurrentUserManageUsers) {
-              await Swal.fire({
-                icon: 'warning',
-                title: 'Access denied',
-                text: 'You do not have permission to create users.',
-              });
-              return;
-            }
-            setIsModalOpen(true); 
-            setEditingEmployeeId(null); 
-            setEditingEmployeeData(null); 
-          }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-          disabled={!canCurrentUserManageUsers}
-        >
-          <FiPlus className="text-lg" />
-          Add New User
-        </button>
-      </div>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6">
 
-      <div className="mb-6 -mx-4 sm:mx-0">
-        <FilterTabs
-          tabs={visibleTabs}
-          activeTab={activeTab}
-          onTabChange={tab => { setActiveTab(tab); setCurrentPage(1); }}
-        />
-      </div>
-      
-      <div className="flex-1 min-h-0">
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
+          {/* HEADER */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Manage Users
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              View and manage all system users
+            </p>
           </div>
-        ) : error ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-red-600">{error}</p>
-            <button 
-              onClick={fetchEmployees}
-              className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium"
-            >
-              Try Again
-            </button>
-          </div>
-        ) : (
-          <UserTable 
-            users={currentUsers}
-            onEdit={handleEditUser}
-            onResetPassword={handleOpenResetModal}
-            onDeleteUser={handleOpenDeleteModal}
-            currentPage={currentPage}
-            totalPages={Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage))}
-            onPageChange={page => setCurrentPage(page)}
-            canManageUser={(user) => canManageTarget(user.role)}
-          />
-        )}
-      </div>
 
-      {/* Reset Password Modal */}
-      {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative animate-fadeIn">
-            {/* Close Button */}
-            <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
-              onClick={() => setShowResetModal(false)}
-              aria-label="Close"
-            >
-              <FiX size={22} />
-            </button>
-            {/* Icon and Title */}
-            <div className="flex flex-col items-center mb-6">
-              <div className="bg-[#F3E8FF] text-[#9333EA] rounded-full p-3 mb-2">
-                <FiKey size={28} />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900">Reset User Password</h2>
-              <p className="text-sm text-gray-500 mt-1">Set a new password for this user</p>
-            </div>
-            {/* Form */}
-            <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }} className="space-y-4">
-              <div>
-                <label htmlFor="resetPassword" className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                <input
-                  id="resetPassword"
-                  type="password"
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#9333EA] focus:ring-1 focus:ring-[#E9D5FF] text-sm"
-                  placeholder="Enter new password"
-                  value={resetPassword}
-                  onChange={e => setResetPassword(e.target.value)}
-                  autoComplete="resetPassword"
-                  required
-                />
-              </div>
-              {resetError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">{resetError}</div>
-              )}
+          {/* ROLE TABS */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            {roleTabs.map((role) => (
               <button
-                type="submit"
-                className="w-full bg-[#9333EA] hover:bg-[#8829DD] text-white py-2.5 rounded-lg font-semibold transition-colors mt-2"
-                disabled={resetLoading || !resetPassword}
+                key={role}
+                onClick={() => {
+                  setSelectedRole(role);
+                  setPage(1);
+                }}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                  selectedRole === role
+                    ? "bg-[#9333EA] text-white shadow"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
               >
-                {resetLoading ? 'Resetting...' : 'Reset Password'}
+                {role === "ALL" ? "ALL" : getRoleLabel(role)}
               </button>
-            </form>
+            ))}
           </div>
-        </div>
-      )}
 
-      {/* Delete User Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
-            <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition" onClick={() => setShowDeleteModal(false)} aria-label="Close">
-              <FiX size={22} />
-            </button>
-            <div className="flex flex-col items-center mb-6">
-              <div className="bg-[#fde5e5] text-[#fd2c2c] rounded-full p-3 mb-2">
-                <FiTrash2 size={28} />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900">Delete User</h2>
-              <p className="text-sm text-gray-500 mt-1">Are you sure you want to delete this user?</p>
+          {/* FILTER ROW */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <FiSearch className="absolute left-3 top-3 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+              />
             </div>
-            <textarea
-              className="w-full px-4 py-2 rounded-lg border border-gray-200 mb-3"
-              placeholder="Reason for deletion (optional)"
-              value={deleteReason}
-              onChange={e => setDeleteReason(e.target.value)}
-              rows={2}
-            />
-            {deleteError && <div className="text-red-600 text-sm mb-2">{deleteError}</div>}
+
+            <div className="w-48">
+              <CustomSelect
+                name="status"
+                value={status}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setPage(1);
+                }}
+                options={["ALL", "Active", "Inactive", "Deleted"]}
+              />
+            </div>
+
+            {canViewPasswords && (
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={includePassword}
+                  onChange={(e) =>
+                    setIncludePassword(e.target.checked)
+                  }
+                  className="accent-[#9333EA]"
+                />
+                Include Password
+              </label>
+            )}
+          </div>
+
+          {/* TABLE */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                    Email
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                    Phone
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                    Role
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                    Created Date
+                  </th>
+                  {includePassword && canViewPasswords && (
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                      Password
+                    </th>
+                  )}
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="py-8 text-center">
+                      <FiLoader className="animate-spin mx-auto text-[#9333EA]" />
+                    </td>
+                  </tr>
+                ) : users.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="py-8 text-center text-gray-500">
+                      No users found
+                    </td>
+                  </tr>
+                ) : (
+                  users.map((u) => (
+                    <tr
+                      key={u.employee_id}
+                      className="border-b hover:bg-gray-50 transition"
+                    >
+                      <td className="px-4 py-4 font-medium text-gray-900">
+                        {u.employee_name}
+                      </td>
+                      <td className="px-4 py-4 text-gray-600">
+                        {u.employee_email}
+                      </td>
+                      <td className="px-4 py-4 text-gray-600">
+                        {u.employee_phone}
+                      </td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={`px-3 py-1 text-xs rounded-full font-medium ${getRoleColor(
+                            u.role
+                          )}`}
+                        >
+                          {getRoleLabel(u.role)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            u.status === "active"
+                              ? "bg-green-50 text-green-700"
+                              : "bg-red-50 text-red-700"
+                          }`}
+                        >
+                          {u.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-gray-600">
+                        {new Date(u.created_at).toLocaleDateString()}
+                      </td>
+
+                      {includePassword && canViewPasswords && (
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type={
+                                showPasswordMap[u.employee_id]
+                                  ? "text"
+                                  : "password"
+                              }
+                              value={u.password || ""}
+                              readOnly
+                              className="border px-2 py-1 rounded w-24 text-xs"
+                            />
+                            <button
+                              onClick={() =>
+                                setShowPasswordMap((prev) => ({
+                                  ...prev,
+                                  [u.employee_id]:
+                                    !prev[u.employee_id],
+                                }))
+                              }
+                            >
+                              {showPasswordMap[u.employee_id] ? (
+                                <FiEyeOff />
+                              ) : (
+                                <FiEye />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      )}
+
+                      <td className="px-4 py-4 text-right">
+                        <button
+                          onClick={() =>
+                            handleEdit(u.employee_id)
+                          }
+                          className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:bg-[#9333EA]/10 rounded-lg transition"
+                        >
+                          <FiEdit2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onChange={setPage}
+          />
+        </div>
+      </div>
+
+      {/* EDIT MODAL */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
             <button
-              className="w-full bg-[#fd2c2c] hover:bg-[#ff4747] text-white py-2.5 rounded-lg font-semibold transition-all duration-200 mt-2 shadow-md hover:shadow-lg hover:scale-105"
-              onClick={handleDeleteUser}
-              disabled={deleteLoading}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              onClick={() => setEditingUser(null)}
             >
-              {deleteLoading ? 'Deleting...' : 'Delete User'}
+              <FiX />
+            </button>
+
+            <h2 className="text-lg font-bold mb-4">
+              Edit User
+            </h2>
+
+            <input
+              className="w-full border px-3 py-2 rounded-lg mb-4"
+              value={formData.employee_name || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  employee_name: e.target.value,
+                })
+              }
+            />
+
+            <button
+              onClick={handleUpdate}
+              className="w-full bg-[#9333EA] text-white py-2.5 rounded-lg hover:bg-[#8829DD] transition"
+            >
+              Update User
             </button>
           </div>
         </div>
       )}
-
-      <CreateUserModal 
-        isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditingEmployeeId(null); setEditingEmployeeData(null); }}
-        onUserChanged={handleUserChanged}
-        editingEmployeeId={editingEmployeeId}
-        editingEmployeeData={editingEmployeeData}
-        roleOptions={assignableRoleOptions}
-      />
     </div>
   );
 };
