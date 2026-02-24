@@ -2,52 +2,104 @@ import { API_BASE_URL } from '../utils/api';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
+
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
 };
 
-export const getAllBrands = async () => {
-  const response = await fetch(`${API_BASE_URL}/product-details/getAll/brands`, {
-    headers: { ...getAuthHeaders() },
-  });
-  return response.json();
+const request = async (url, options = {}) => {
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...getAuthHeaders(),
+        ...(options.headers || {}),
+      },
+    });
+
+    const contentType = response.headers.get('content-type');
+    const data =
+      contentType && contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
+
+    if (!response.ok) {
+      throw new Error(data?.message || 'Something went wrong');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('API Error:', error.message);
+    throw error;
+  }
 };
 
-export const getActiveBrands = async () => {
-  const response = await fetch(`${API_BASE_URL}/product-details/getActive/brands`, {
-    headers: { ...getAuthHeaders() },
-  });
-  return response.json();
-};
+export const getAllBrands = async (status) => {
+  const params = new URLSearchParams();
 
-export const createBrand = async (brandData) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/create/brands`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify(brandData),
-  });
-  return response.json();
-};
+  if (status) {
+    params.append('status', status);
+  }
 
-export const updateBrand = async (brandName, brandData) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/brand/${brandName}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify(brandData),
+  const queryString = params.toString();
+
+  const url = queryString
+    ? `${API_BASE_URL}/product-details/getAll/brands?${queryString}`
+    : `${API_BASE_URL}/product-details/getAll/brands`;
+
+  return request(url, {
+    method: 'GET',
   });
-  return response.json();
 };
 
 export const getBrandsByDealer = async (dealerId, status = 'active') => {
-  const response = await fetch(`${API_BASE_URL}/product-details/getAll/brands?dealerId=${dealerId}&status=${status}`, {
-    headers: { ...getAuthHeaders() },
+  const params = new URLSearchParams();
+
+  if (dealerId) {
+    params.append('dealerId', dealerId);
+  }
+
+  if (status) {
+    params.append('status', status);
+  }
+
+  const queryString = params.toString();
+  const url = queryString
+    ? `${API_BASE_URL}/product-details/getAll/brands?${queryString}`
+    : `${API_BASE_URL}/product-details/getAll/brands`;
+
+  return request(url, {
+    method: 'GET',
   });
-  return response.json();
 };
 
-// export const deleteBrand = async (brandId) => {
-//   const response = await fetch(`${API_BASE_URL}/product-details/brands/${brandId}`, {
-//     method: 'DELETE',
-//     headers: { ...getAuthHeaders() },
-//   });
-//   return response.json();
-// };
+export const getBrandById = async (brandId) => {
+  return request(
+    `${API_BASE_URL}/product-details/product-brand/${brandId}`,
+    {
+      method: 'GET',
+    }
+  );
+};
+
+export const createBrands = async (brandsArray) => {
+  return request(
+    `${API_BASE_URL}/product-details/create/brands`,
+    {
+      method: 'POST',
+      body: JSON.stringify(brandsArray),
+    }
+  );
+};
+
+export const updateBrand = async (brandName, updateData) => {
+  return request(
+    `${API_BASE_URL}/product-details/brand/${encodeURIComponent(brandName)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    }
+  );
+};

@@ -211,11 +211,11 @@ const OrderDetails = () => {
 
         <div className="grid md:grid-cols-2 gap-6">
           <Info icon={<FiUser />} label="Dealer Name">
-            {order.dealer?.employee_name}
+            {order.dealer?.employee_name?.charAt(0).toUpperCase() + order.dealer?.employee_name?.slice(1)}
           </Info>
 
           <Info icon={<FiBox />} label="Shop Name">
-            {order.dealer?.shop_name}
+            {order.dealer?.shop_name?.charAt(0).toUpperCase() + order.dealer?.shop_name?.slice(1)}
           </Info>
 
           <Info icon={<FiMail />} label="Email">

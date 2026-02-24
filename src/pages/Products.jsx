@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiPlus, FiSearch, FiBox, FiX, FiTrash2, FiChevronLeft, FiChevronRight, FiEdit3, FiPackage } from 'react-icons/fi';
 import CustomSelect from '../components/CustomSelect';
 import { fetchProducts, createProduct, updateProduct, updateProductStock, fetchProductById } from '../api/products';
-import { getAllBrands, getActiveBrands } from '../api/brands';
+import { getAllBrands } from '../api/brands';
 import Swal from 'sweetalert2';
 import { useAuth } from '../hooks/useAuth';
 import { ROLES } from '../utils/roles';
@@ -19,7 +19,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
     unpackedNotes: '',
     packedNotes: ''
   });
-  
+
   const [brands, setBrands] = useState([]);
   const [availableModels, setAvailableModels] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -50,7 +50,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
 
   const fetchBrands = async () => {
     try {
-      const response = await getAllBrands();
+      const response = await getAllBrands("active");
       if (response && response.success && response.data) {
         setBrands(response.data);
       }
@@ -97,7 +97,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
 
       // Prepare stocks array
       const stocks = [];
-      
+
       if (formData.unpackedStock > 0) {
         stocks.push({
           stock: parseInt(formData.unpackedStock),
@@ -106,7 +106,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
           stock_notes: formData.unpackedNotes || `added stock ${formData.unpackedStock} - unpacked`
         });
       }
-      
+
       if (formData.packedStock > 0) {
         stocks.push({
           stock: parseInt(formData.packedStock),
@@ -129,16 +129,16 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
       console.log('Creating product with payload:', payload);
 
       const response = await createProduct(payload);
-      
+
       if (response && response.success) {
         // Close modal first
         onClose();
-        
+
         // Refresh products list
         if (onProductCreated) {
           onProductCreated();
         }
-        
+
         // Show success message
         setTimeout(async () => {
           await Swal.fire({
@@ -205,7 +205,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
                   <FiBox className="text-[#9333EA]" />
                   Product Information
                 </h3>
-                
+
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Brand Selection */}
                   <div>
@@ -296,7 +296,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
               <div>
                 <h3 className="text-base font-medium text-gray-900">Stock Information</h3>
                 <p className="text-sm text-gray-500 mt-1">Add initial stock quantities for this product</p>
-                
+
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Unpacked Stock */}
                   <div>
@@ -398,7 +398,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
     status: 'active',
     status_reason: ''
   });
-  
+
   const [brands, setBrands] = useState([]);
   const [availableModels, setAvailableModels] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -411,20 +411,20 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
       // Only reset error and success states, not the form data
       setError('');
       setSuccess('');
-      
+
       // First fetch brands, then fetch product data
       const loadData = async () => {
         try {
           // Fetch brands first
-          const brandsResponse = await getActiveBrands();
+          const brandsResponse = await getAllBrands("active");
           if (brandsResponse && brandsResponse.success && brandsResponse.data) {
             setBrands(brandsResponse.data);
-            
+
             // Then fetch product data
             const productResponse = await fetchProductById(productId);
             if (productResponse && productResponse.success && productResponse.data) {
               const product = productResponse.data;
-              
+
               setFormData({
                 product_name: product.product_name || '',
                 model: product.model || '',
@@ -434,7 +434,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                 status: product.status || 'active',
                 status_reason: ''
               });
-              
+
               // Set available models for the product's brand
               if (product.brand) {
                 const selectedBrand = brandsResponse.data.find(brand => brand.brand_name === product.brand);
@@ -449,7 +449,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
           setError('Failed to load product data');
         }
       };
-      
+
       loadData();
     }
   }, [isOpen, productId]);
@@ -520,16 +520,16 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
       }
 
       const response = await updateProduct(productId, payload);
-      
+
       if (response && response.success) {
         // Close modal first
         onClose();
-        
+
         // Refresh products list
         if (onProductUpdated) {
           onProductUpdated();
         }
-        
+
         // Show success message
         setTimeout(async () => {
           await Swal.fire({
@@ -560,7 +560,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
     'Cable',
     'Wire'
   ];
-  
+
   // Add current product type if it's not in the base options
   const productTypeOptions = formData.product_type && !baseProductTypeOptions.includes(formData.product_type)
     ? [...baseProductTypeOptions, formData.product_type]
@@ -602,7 +602,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                   <FiBox className="text-[#9333EA]" />
                   Product Information
                 </h3>
-                
+
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Brand Selection */}
                   <div>
@@ -750,7 +750,7 @@ const StockUpdateModal = ({ isOpen, onClose, onStockUpdated, productId, productN
     unpackedNotes: '',
     packedNotes: ''
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -792,7 +792,7 @@ const StockUpdateModal = ({ isOpen, onClose, onStockUpdated, productId, productN
 
       // Prepare stocks array
       const stocks = [];
-      
+
       if (formData.unpackedStock > 0) {
         stocks.push({
           stock: parseInt(formData.unpackedStock),
@@ -801,7 +801,7 @@ const StockUpdateModal = ({ isOpen, onClose, onStockUpdated, productId, productN
           stock_notes: formData.unpackedNotes || `Added stock ${formData.unpackedStock} - unpacked`
         });
       }
-      
+
       if (formData.packedStock > 0) {
         stocks.push({
           stock: parseInt(formData.packedStock),
@@ -819,16 +819,16 @@ const StockUpdateModal = ({ isOpen, onClose, onStockUpdated, productId, productN
       };
 
       const response = await updateProductStock(payload);
-      
+
       if (response && response.success) {
         // Close modal immediately
         onClose();
-        
+
         // Refresh products list
         if (onStockUpdated) {
           onStockUpdated();
         }
-        
+
         // Show SweetAlert success message immediately
         Swal.fire({
           icon: 'success',
@@ -981,7 +981,7 @@ const ProductsPagination = ({ currentPage, totalPages, onPageChange }) => {
           </span>
         </div>
         <div className="flex items-center justify-center gap-2">
-          <button 
+          <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
             className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-400"
@@ -993,7 +993,7 @@ const ProductsPagination = ({ currentPage, totalPages, onPageChange }) => {
               const pageNumber = idx + 1;
               const isActive = pageNumber === currentPage;
               const isNearCurrent = Math.abs(pageNumber - currentPage) <= 1 || pageNumber === 1 || pageNumber === totalPages;
-              
+
               if (!isNearCurrent && pageNumber !== 1 && pageNumber !== totalPages) {
                 if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
                   return <span key={idx} className="inline-flex items-center justify-center w-9 h-9 text-gray-400">...</span>;
@@ -1005,18 +1005,17 @@ const ProductsPagination = ({ currentPage, totalPages, onPageChange }) => {
                 <button
                   key={idx}
                   onClick={() => onPageChange(pageNumber)}
-                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-[#9333EA] text-white'
-                      : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
+                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isActive
+                    ? 'bg-[#9333EA] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
                 >
                   {pageNumber}
                 </button>
               );
             })}
           </div>
-          <button 
+          <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
             className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1067,7 +1066,7 @@ const Products = () => {
       setLoading(true);
       setError('');
       const response = await fetchProducts();
-      
+
       if (response && response.success && response.data) {
         setProducts(response.data);
       } else {
@@ -1083,18 +1082,18 @@ const Products = () => {
 
   // Filter products based on search query, type and status
   const filteredProducts = products.filter(product => {
-    const matchesSearch = 
+    const matchesSearch =
       product.product_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.product_id?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesType = selectedType === 'All Types' || 
-                       product.product_type === selectedType;
-    
-    const matchesStatus = selectedStatus === 'All Status' || 
-                         product.status === selectedStatus;
-    
+
+    const matchesType = selectedType === 'All Types' ||
+      product.product_type === selectedType;
+
+    const matchesStatus = selectedStatus === 'All Status' ||
+      product.status === selectedStatus;
+
     return matchesSearch && matchesType && matchesStatus;
   });
 
@@ -1164,7 +1163,7 @@ const Products = () => {
           <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
         </div>
         {!isSalesman && (
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
           >
@@ -1230,7 +1229,7 @@ const Products = () => {
           ) : error ? (
             <div className="mt-6 text-center py-8">
               <p className="text-sm text-red-600">{error}</p>
-              <button 
+              <button
                 onClick={fetchProductsList}
                 className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium"
               >
@@ -1240,28 +1239,28 @@ const Products = () => {
           ) : (
             <div className="mt-6 overflow-x-auto">
               <table className="w-full">
-                                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">ID</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Name</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Brand</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Model</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Type</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Price</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Available Stock</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Stock Details</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
-                      {!isSalesman && (
-                        <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
-                      )}
-                    </tr>
-                  </thead>
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">ID</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Name</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Brand</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Model</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Type</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Price</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Available Stock</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Stock Details</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
+                    {!isSalesman && (
+                      <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
+                    )}
+                  </tr>
+                </thead>
                 <tbody>
                   {currentProducts.map((product) => {
                     // Calculate stock details from stocks array
                     const unpackedStock = product.stocks?.find(s => s.stock_type === 'UNPACKED')?.stock || 0;
                     const packedStock = product.stocks?.find(s => s.stock_type === 'PACKED')?.stock || 0;
-                    
+
                     return (
                       <tr key={product.product_id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
                         <td className="py-4 px-4">
@@ -1296,18 +1295,17 @@ const Products = () => {
                           </div>
                         </td>
                         <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            product.status === 'active' 
-                              ? 'bg-green-50 text-green-700'
-                              : 'bg-red-50 text-red-700'
-                          }`}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.status === 'active'
+                            ? 'bg-green-50 text-green-700'
+                            : 'bg-red-50 text-red-700'
+                            }`}>
                             {product.status === 'active' ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                         {!isSalesman && (
                           <td className="py-4 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <button 
+                              <button
                                 onClick={() => openEditModal(product.product_id, product.product_name)}
                                 className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 rounded-lg transition-colors"
                                 title="Edit Product"
@@ -1315,7 +1313,7 @@ const Products = () => {
                                 <FiEdit3 size={16} />
                               </button>
                               {product.status === 'active' && (
-                                <button 
+                                <button
                                   onClick={() => openStockModal(product.product_id, product.product_name)}
                                   className="inline-flex items-center justify-center p-2 text-[#059669] hover:text-[#047857] hover:bg-[#059669]/5 rounded-lg transition-colors"
                                   title="Update Stock"
@@ -1333,9 +1331,9 @@ const Products = () => {
                     <tr>
                       <td colSpan="10" className="py-8 text-center">
                         <p className="text-sm text-gray-500">
-                          {products.length === 0 
-                            ? 'No products available' 
-                            : filteredProducts.length === 0 
+                          {products.length === 0
+                            ? 'No products available'
+                            : filteredProducts.length === 0
                               ? 'No products found matching your criteria'
                               : `No products on page ${currentPage}`
                           }
@@ -1345,7 +1343,7 @@ const Products = () => {
                   )}
                 </tbody>
               </table>
-              
+
               {/* Pagination */}
               {!loading && !error && filteredProducts.length > 0 && (
                 <ProductsPagination
@@ -1361,20 +1359,20 @@ const Products = () => {
 
       {!isSalesman && (
         <>
-          <CreateProductModal 
+          <CreateProductModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             onProductCreated={handleProductCreated}
           />
 
-          <EditProductModal 
+          <EditProductModal
             isOpen={isEditModalOpen}
             onClose={() => setIsEditModalOpen(false)}
             onProductUpdated={handleProductUpdated}
             productId={selectedProductId}
           />
 
-          <StockUpdateModal 
+          <StockUpdateModal
             isOpen={isStockModalOpen}
             onClose={() => setIsStockModalOpen(false)}
             onStockUpdated={handleStockUpdated}

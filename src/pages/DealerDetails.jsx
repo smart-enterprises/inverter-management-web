@@ -1,805 +1,858 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiUser, FiMapPin, FiPhone, FiMail, FiBox, FiCalendar, FiPackage, FiTruck, FiPercent, FiPlus, FiTrash2 } from 'react-icons/fi';
-import Swal from 'sweetalert2';
-import { fetchDealerById, fetchDealerDiscounts, createDealerDiscounts } from '../api/dealer';
-import { getBrandsByDealer } from '../api/brands';
-import { fetchOrders } from '../api/orders';
-import { fetchProducts } from '../api/products';
-import CustomSelect from '../components/CustomSelect';
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  FiArrowLeft,
+  FiUser,
+  FiMapPin,
+  FiPhone,
+  FiMail,
+  FiBox,
+  FiCalendar,
+  FiPackage,
+  FiTruck,
+  FiPercent,
+  FiPlus,
+  FiTrash2,
+} from "react-icons/fi";
+import Swal from "sweetalert2";
+
+import {
+  fetchDealerById,
+  fetchDealerDiscounts,
+  createDealerDiscounts,
+} from "../api/dealer";
+import { getBrandsByDealer } from "../api/brands";
+import { fetchOrders } from "../api/orders";
+import { fetchProducts } from "../api/products";
+import CustomSelect from "../components/CustomSelect";
+
+/* -------------------------------------------------------------------------- */
+/*                                UI COMPONENTS                               */
+/* -------------------------------------------------------------------------- */
+
+const FormField = ({ label, children }) => (
+  <div className="space-y-1">
+    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+      {label}
+    </label>
+    {children}
+  </div>
+);
+
+const InfoItem = ({ icon, label, value }) => (
+  <div className="flex items-start gap-4">
+    <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#9333EA]/10 text-[#9333EA]">
+      {icon}
+    </div>
+    <div>
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+        {label}
+      </p>
+      <p className="text-sm font-semibold text-gray-900 mt-1">
+        {value || "N/A"}
+      </p>
+    </div>
+  </div>
+);
+
+const StatCard = ({ title, value, color }) => (
+  <div className={`p-6 rounded-2xl border shadow-sm bg-${color}-50/40`}>
+    <p className={`text-sm font-medium text-${color}-600`}>{title}</p>
+    <p className={`text-3xl font-bold text-${color}-700 mt-2`}>{value}</p>
+  </div>
+);
+
+/* -------------------------------------------------------------------------- */
+/*                               HELPER METHODS                               */
+/* -------------------------------------------------------------------------- */
+
+const createEmptyRow = () => ({
+  id: crypto.randomUUID(),
+  brand_name: "",
+  model_name: "",
+  discount_value: "",
+  is_percentage: true,
+  description: "",
+});
+
+const formatDate = (dateString) =>
+  dateString
+    ? new Date(dateString).toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
+    : "N/A";
+
+const capitalize = (text) =>
+  text ? text.charAt(0).toUpperCase() + text.slice(1) : "N/A";
+
+const getTotalItems = (details = []) =>
+  details.reduce((acc, item) => acc + (item.qty_ordered || 0), 0);
+
+/* -------------------------------------------------------------------------- */
+/*                               MAIN COMPONENT                               */
+/* -------------------------------------------------------------------------- */
 
 const DealerDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  /* ------------------------------- STATE -------------------------------- */
+
   const [dealer, setDealer] = useState(null);
   const [dealerOrders, setDealerOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const [discounts, setDiscounts] = useState([]);
-  const [discountsLoading, setDiscountsLoading] = useState(false);
-  const [discountsError, setDiscountsError] = useState('');
-  const [discountsPage, setDiscountsPage] = useState(1);
-  const [discountsLimit] = useState(30);
-  const [discountsTotal, setDiscountsTotal] = useState(0);
+  const [discountState, setDiscountState] = useState({
+    loading: false,
+    error: "",
+    page: 1,
+    limit: 5,
+    total: 0,
+  });
+
   const [brandToModels, setBrandToModels] = useState({});
   const [allBrands, setAllBrands] = useState([]);
+
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
-  const [bulkRows, setBulkRows] = useState([
-    { brand_name: '', model_name: '', discount_value: '', is_percentage: true, description: '' }
-  ]);
+  const [bulkRows, setBulkRows] = useState([createEmptyRow()]);
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
-  const [bulkError, setBulkError] = useState('');
+  const [bulkError, setBulkError] = useState("");
 
-  const resetBulkModal = () => {
-    setBulkRows([{ brand_name: '', model_name: '', discount_value: '', is_percentage: true, description: '' }]);
-    setBulkError('');
-    setBulkSubmitting(false);
-  };
+  const [orderStats, setOrderStats] = useState({
+    total: 0,
+    pending: 0,
+    inProduction: 0,
+    packed: 0,
+    delivered: 0,
+    cancelled: 0,
+  });
 
-  const handleOpenBulkModal = () => {
-    resetBulkModal();
-    setBulkModalOpen(true);
-  };
+  /* ----------------------------- DATA LOADERS ---------------------------- */
 
-  const handleCloseBulkModal = () => {
-    setBulkModalOpen(false);
-    resetBulkModal();
-  };
-
-
-
-  const loadDiscounts = useCallback(async (page = 1) => {
-    if (!id) return;
+  const loadDealerData = useCallback(async () => {
     try {
-      setDiscountsLoading(true);
-      setDiscountsError('');
-      const res = await fetchDealerDiscounts({ page, limit: discountsLimit, dealer_id: id });
-      if (res?.success) {
-        setDiscounts(res.data || []);
-        setDiscountsTotal(res.pagination?.total || (res.data?.length || 0));
-        setDiscountsPage(res.pagination?.page || page);
+      setLoading(true);
+      setError(null);
+
+      const [dealerRes, ordersRes] = await Promise.all([
+        fetchDealerById(id),
+        fetchOrders(),
+      ]);
+
+      if (!dealerRes?.success)
+        throw new Error(
+          dealerRes?.message || "Failed to load dealer details"
+        );
+
+      setDealer(dealerRes.data);
+
+      if (ordersRes?.success) {
+        const filtered = ordersRes.data.filter(
+          ({ order }) => order?.dealer_id === id
+        );
+        setDealerOrders(filtered);
       } else {
-        setDiscounts([]);
-        setDiscountsTotal(0);
-        setDiscountsError(res?.message || 'Failed to load discounts');
+        setDealerOrders([]);
       }
     } catch (err) {
-      setDiscounts([]);
-      setDiscountsTotal(0);
-      setDiscountsError(err?.message || 'Network error while loading discounts');
+      setError(err.message || "Unexpected error occurred");
     } finally {
-      setDiscountsLoading(false);
+      setLoading(false);
     }
-  }, [id, discountsLimit]);
+  }, [id]);
 
-  useEffect(() => {
-    const loadDealerData = async () => {
+  const loadDiscounts = useCallback(
+    async (page = 1) => {
       try {
-        setLoading(true);
-        setError(null);
+        setDiscountState((s) => ({ ...s, loading: true, error: "" }));
 
-        // Fetch dealer details and orders concurrently
-        const [dealerResponse, ordersResponse] = await Promise.all([
-          fetchDealerById(id),
-          fetchOrders()
-        ]);
+        const res = await fetchDealerDiscounts({
+          page,
+          limit: discountState.limit,
+          dealer_id: id,
+        });
 
-        if (dealerResponse.success) {
-          setDealer(dealerResponse.data);
-        } else {
-          setError(dealerResponse.message || 'Failed to load dealer details');
-          return;
-        }
+        if (!res?.success)
+          throw new Error(res?.message || "Failed to fetch discounts");
 
-        if (ordersResponse.success) {
-          // Filter orders for this specific dealer
-          const filteredOrders = ordersResponse.data.filter(orderData => {
-            const order = orderData.order;
-            return order && order.dealer_id === id;
-          });
-          setDealerOrders(filteredOrders);
-        } else {
-          console.warn('Failed to load orders:', ordersResponse.message);
-          setDealerOrders([]);
-        }
+        setDiscounts(res.data || []);
+        setDiscountState((s) => ({
+          ...s,
+          page: res.pagination?.page || page,
+          total: res.pagination?.total || 0,
+        }));
       } catch (err) {
-        console.error('Error loading dealer data:', err);
-        setError('Failed to load dealer data');
+        setDiscounts([]);
+        setDiscountState((s) => ({
+          ...s,
+          total: 0,
+          error: err.message,
+        }));
       } finally {
-        setLoading(false);
+        setDiscountState((s) => ({ ...s, loading: false }));
       }
-    };
+    },
+    [id, discountState.limit]
+  );
 
-    if (id) {
-      loadDealerData();
-      loadDiscounts(1);
-    }
-  }, [id, loadDiscounts]);
+  const loadOrderSummary = useCallback(async () => {
+    if (!id) return;
 
-  useEffect(() => {
-    const loadBrands = async () => {
-      if (!id) return;
-      
-      try {
-        const res = await getBrandsByDealer(id, 'active');
-        if (res?.success && Array.isArray(res.data)) {
-          setAllBrands(res.data);
-        } else {
-          setAllBrands([]);
+    const statuses = [
+      null,
+      "PENDING",
+      "PRODUCTION",
+      "PACKED",
+      "DELIVERED",
+      "CANCELLED",
+    ];
+
+    try {
+      const responses = await Promise.allSettled(
+        statuses.map((status) =>
+          fetchOrders({
+            page: 1,
+            limit: 1,
+            dealer: id,
+            status,
+          })
+        )
+      );
+
+      const stats = {
+        total: 0,
+        pending: 0,
+        inProduction: 0,
+        packed: 0,
+        delivered: 0,
+        cancelled: 0,
+      };
+
+      responses.forEach((res, index) => {
+        if (res.status === "fulfilled" && res.value?.success) {
+          const total = res.value.pagination?.total || 0;
+          switch (statuses[index]) {
+            case null:
+              stats.total = total;
+              break;
+            case "PENDING":
+              stats.pending = total;
+              break;
+            case "PRODUCTION":
+              stats.inProduction = total;
+              break;
+            case "PACKED":
+              stats.packed = total;
+              break;
+            case "DELIVERED":
+              stats.delivered = total;
+              break;
+            case "CANCELLED":
+              stats.cancelled = total;
+              break;
+            default:
+              break;
+          }
         }
-      } catch (err) {
-        console.error('Failed to load brands for dealer', err);
-        setAllBrands([]);
+      });
+
+      setOrderStats(stats);
+    } catch (err) {
+      console.error("Order summary load failed:", err);
+    }
+  }, [id]);
+
+  const loadBrands = useCallback(async () => {
+    try {
+      const brandsRes = await getBrandsByDealer(id, "active");
+
+      if (!brandsRes?.success) {
+        throw new Error(brandsRes?.message || "Failed to load brands");
       }
-    };
-    loadBrands();
+
+      const brands = brandsRes.data || [];
+
+      setAllBrands(brands);
+
+      // Create brand -> models mapping directly from API
+      const map = {};
+
+      brands.forEach((brand) => {
+        if (!brand.brand_name) return;
+
+        map[brand.brand_name] = brand.brand_models || [];
+      });
+
+      setBrandToModels(map);
+
+    } catch (err) {
+      console.error("Brand load failed:", err);
+    }
   }, [id]);
 
   useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const res = await fetchProducts();
-        const map = {};
-        if (res?.success && Array.isArray(res.data)) {
-          res.data.forEach((p) => {
-            const brandNameRaw = p.brand_name || p.brand || (typeof p.brand === 'object' ? p.brand?.name : undefined);
-            const modelName = p.model_name || p.model || p.modelNo || p.model;
-            const brandName = typeof brandNameRaw === 'string' ? brandNameRaw.trim() : brandNameRaw;
-            if (!brandName || !modelName) return;
-            const key = String(brandName).toLowerCase();
-            if (!map[key]) map[key] = new Set();
-            map[key].add(String(modelName));
-          });
-        }
-        // convert sets to arrays
-        const normalized = Object.keys(map).reduce((acc, k) => {
-          acc[k] = Array.from(map[k]).sort();
-          return acc;
-        }, {});
-        setBrandToModels(normalized);
-      } catch (err) {
-        console.error('Failed to load products for models', err);
-      }
-    };
-    loadProducts();
-  }, []);
+    if (!id) return;
+    loadDealerData();
+    loadDiscounts(1);
+    loadOrderSummary();
+    loadBrands();
+  }, [id]);
 
+  /* ----------------------------- DISCOUNT SAVE ---------------------------- */
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
+  const handleSubmitDiscounts = async () => {
+    try {
+      setBulkSubmitting(true);
+      setBulkError("");
 
-  const getPriorityStyle = (priority) => {
-    switch (priority?.toLowerCase()) {
-      case 'high':
-        return 'bg-red-50 text-red-700';
-      case 'medium':
-        return 'bg-yellow-50 text-yellow-700';
-      case 'low':
-        return 'bg-green-50 text-green-700';
-      default:
-        return 'bg-gray-50 text-gray-700';
+      const payload = bulkRows
+        .filter(
+          (r) => r.brand_name && r.model_name && r.discount_value
+        )
+        .map((r) => ({
+          dealer_id: id,
+          brand_name: r.brand_name,
+          model_name: r.model_name,
+          discount_value: Number(r.discount_value),
+          is_percentage: Boolean(r.is_percentage),
+          description: r.description?.trim() || "",
+        }));
+
+      if (!payload.length)
+        throw new Error(
+          "Please configure at least one valid discount."
+        );
+
+      const res = await createDealerDiscounts(payload);
+
+      if (!res?.success)
+        throw new Error(res?.message);
+
+      await loadDiscounts(discountState.page);
+
+      setBulkModalOpen(false);
+      setBulkRows([createEmptyRow()]);
+
+      Swal.fire({
+        icon: "success",
+        title: "Success",
+        text:
+          res.message ||
+          "Discounts added successfully",
+      });
+    } catch (err) {
+      setBulkError(err.message);
+    } finally {
+      setBulkSubmitting(false);
     }
   };
 
-  const getStatusStyle = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return 'bg-yellow-50 text-yellow-700';
-      case 'in production':
-        return 'bg-blue-50 text-blue-700';
-      case 'packed':
-        return 'bg-purple-50 text-purple-700';
-      case 'delivered':
-        return 'bg-green-50 text-green-700';
-      case 'cancelled':
-        return 'bg-red-50 text-red-700';
-      default:
-        return 'bg-gray-50 text-gray-700';
-    }
-  };
+  /* ------------------------------- RENDER -------------------------------- */
 
-  const getTotalItems = (orderDetails) => {
-    if (!orderDetails || !Array.isArray(orderDetails)) return 0;
-    return orderDetails.reduce((total, item) => total + (item.qty_ordered || 0), 0);
-  };
-
-  // Calculate order statistics
-  const orderStats = {
-    total: dealerOrders.length,
-    pending: dealerOrders.filter(orderData => orderData.order?.status === 'PENDING').length,
-    inProduction: dealerOrders.filter(orderData => orderData.order?.status === 'IN PRODUCTION').length,
-    packed: dealerOrders.filter(orderData => orderData.order?.status === 'PACKED').length,
-    delivered: dealerOrders.filter(orderData => orderData.order?.status === 'DELIVERED').length,
-    cancelled: dealerOrders.filter(orderData => orderData.order?.status === 'CANCELLED').length
-  };
-
-  if (loading) {
+  if (loading)
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#9333EA] mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading dealer details...</p>
-          </div>
-        </div>
+      <div className="p-8 text-center">
+        <div className="animate-spin h-12 w-12 border-b-2 border-[#9333EA] mx-auto" />
+        <p className="mt-4 text-gray-600">
+          Loading dealer details...
+        </p>
       </div>
     );
-  }
 
-  if (error) {
+  if (error)
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={() => navigate('/dealers')} 
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Back to Dealers
-          </button>
-        </div>
+      <div className="p-8 text-center">
+        <p className="text-red-600 mb-4">{error}</p>
+        <button
+          onClick={() => navigate("/dealers")}
+          className="px-4 py-2 bg-red-600 text-white rounded"
+        >
+          Back to Dealers
+        </button>
       </div>
     );
-  }
 
-  if (!dealer) {
+  if (!dealer)
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-          <p className="text-yellow-600 mb-4">Dealer not found</p>
-          <button 
-            onClick={() => navigate('/dealers')} 
-            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
-          >
-            Back to Dealers
-          </button>
-        </div>
+      <div className="p-8 text-center">
+        <p className="text-yellow-600 mb-4">
+          Dealer not found
+        </p>
+        <button
+          onClick={() => navigate("/dealers")}
+          className="px-4 py-2 bg-yellow-600 text-white rounded"
+        >
+          Back to Dealers
+        </button>
       </div>
     );
-  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 justify-between">
+
+      {/* ============================== HEADER ============================== */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
-          onClick={() => navigate('/dealers')}
-          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <FiArrowLeft className="w-5 h-5" />
+            onClick={() => navigate("/dealers")}
+            className="p-2 rounded-xl border border-gray-200 hover:bg-gray-100 transition"
+          >
+            <FiArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
+
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Dealer Details</h1>
-            <p className="text-sm text-gray-500 mt-1">{dealer.employee_name}</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Dealer Profile
+            </h1>
+            <p className="text-sm text-gray-500">
+              Detailed overview and performance insights
+            </p>
           </div>
+        </div>
+
+        <div className="px-4 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          {capitalize(dealer.status)}
         </div>
       </div>
 
       {/* Dealer Information Card */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="p-4 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <FiUser className="text-[#9333EA]" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900">Dealer Information</h2>
-          </div>
-          <p className="text-sm text-gray-500 mb-6">Personal and contact details</p>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-6">
+          Dealer Information
+        </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="flex items-center gap-3">
-              <FiUser className="text-gray-400" size={16} />
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Name</label>
-                <p className="text-sm font-medium text-gray-900">{dealer.employee_name || 'N/A'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <FiBox className="text-gray-400" size={16} />
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Shop Name</label>
-                <p className="text-sm font-medium text-gray-900">{dealer.shop_name || 'N/A'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <FiPhone className="text-gray-400" size={16} />
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Phone Number</label>
-                <p className="text-sm font-medium text-gray-900">{dealer.employee_phone || 'N/A'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <FiMail className="text-gray-400" size={16} />
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Email</label>
-                <p className="text-sm font-medium text-gray-900">{dealer.employee_email || 'N/A'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <FiMapPin className="text-gray-400" size={16} />
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Location</label>
-                <p className="text-sm font-medium text-gray-900">
-                  {dealer.town}, {dealer.district}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <FiMapPin className="text-gray-400" size={16} />
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Address</label>
-                <p className="text-sm font-medium text-gray-900">{dealer.address || 'N/A'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <FiUser className="text-gray-400" size={16} />
-              <div>
-                <label className="block text-sm text-gray-500 mb-1">Status</label>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  dealer.status === 'active' 
-                    ? 'bg-green-50 text-green-700'
-                    : 'bg-red-50 text-red-700'
-                }`}>
-                  {dealer.status === 'active' ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-            </div>
-
-            {allBrands && allBrands.length > 0 && (
-              <div className="flex items-center gap-3">
-                <FiBox className="text-gray-400" size={16} />
-                <div>
-                  <label className="block text-sm text-gray-500 mb-1">Brands</label>
-                  <div className="flex flex-wrap gap-1">
-                    {allBrands.map((brand, index) => {
-                      const display = brand.brand_name || brand.name || brand.brand_id;
-                      return (
-                      <span 
-                        key={brand.brand_id || index}
-                        className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
-                      >
-                        {display}
-                      </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+          <InfoItem icon={<FiUser />} label="Full Name" value={capitalize(dealer.employee_name)} />
+          <InfoItem icon={<FiBox />} label="Shop Name" value={capitalize(dealer.shop_name)} />
+          <InfoItem icon={<FiPhone />} label="Phone Number" value={dealer.employee_phone} />
+          <InfoItem icon={<FiMail />} label="Email Address" value={dealer.employee_email} />
+          <InfoItem icon={<FiMapPin />} label="Town" value={capitalize(dealer.town)} />
+          <InfoItem icon={<FiMapPin />} label="District" value={capitalize(dealer.district)} />
+          <InfoItem icon={<FiMapPin />} label="Address" value={dealer.address} />
+          <InfoItem icon={<FiCalendar />} label="Created On" value={formatDate(dealer.created_at)} />
         </div>
       </div>
 
-      {/* Dealer Discounts Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-        <div className="p-5 sm:p-6 space-y-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#9333EA]/10 text-[#9333EA]">
-                  <FiPercent size={16} />
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900">Dealer Discounts</h2>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">Create and manage discounts for this dealer</p>
+      {/* Dealer Discounts Section */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="flex justify-between items-center px-8 py-6 border-b">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-[#9333EA]">
+              <FiPercent size={18} />
             </div>
             <div>
-              <button
-                type="button"
-                onClick={handleOpenBulkModal}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#9333EA] text-white hover:bg-[#8829DD] shadow-sm text-sm"
-              >
-                <FiPlus className="w-4 h-4" />
-                Add Discounts
-              </button>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Dealer Discounts
+              </h2>
+              <p className="text-sm text-gray-500">
+                Manage pricing rules & discount configurations
+              </p>
             </div>
           </div>
 
+          <button
+            onClick={() => setBulkModalOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white shadow hover:opacity-90 transition"
+          >
+            <FiPlus size={16} />
+            Add Discounts
+          </button>
+        </div>
 
-          {/* Discounts List */}
-          <div className="pt-2">
-            {discountsLoading ? (
-              <div className="py-6 text-center text-sm text-gray-500">Loading discounts...</div>
-            ) : discountsError ? (
-              <div className="py-6 text-center text-sm text-red-600">{discountsError}</div>
-            ) : discounts.length === 0 ? (
-              <div className="py-10 text-center text-sm text-gray-500">No discounts found</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Brand</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Model</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Value</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Created</th>
+        <div className="p-8">
+          {discountState.loading && (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin h-8 w-8 border-2 border-[#9333EA] border-t-transparent rounded-full" />
+            </div>
+          )}
+
+          {!discountState.loading && discounts.length === 0 && (
+            <div className="text-center py-16 text-gray-500">
+              No discounts configured.
+            </div>
+          )}
+
+          {!discountState.loading && discounts.length > 0 && (
+            <>
+              <div className="overflow-x-auto rounded-xl border">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+                    <tr>
+                      <th className="px-6 py-3 text-left">Brand</th>
+                      <th className="px-6 py-3 text-left">Model</th>
+                      <th className="px-6 py-3 text-left">Value</th>
+                      <th className="px-6 py-3 text-left">Status</th>
+                      <th className="px-6 py-3 text-left">Created</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y">
                     {discounts.map((d) => (
-                      <tr key={d.dealer_discount_id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                        <td className="py-3 px-4"><span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">{d.brand_name}</span></td>
-                        <td className="py-3 px-4"><span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">{d.model_name}</span></td>
-                        <td className="py-3 px-4">
-                          <span className="text-sm text-gray-700">
-                            {d.discount_value}{d.is_percentage ? '%' : ''}
+                      <tr key={d.dealer_discount_id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">{d.brand_name}</td>
+                        <td className="px-6 py-4">{d.model_name}</td>
+                        <td className="px-6 py-4 font-semibold">
+                          {d.discount_value}
+                          {d.is_percentage ? "%" : " ₹"}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-3 py-1 text-xs rounded-full bg-emerald-50 text-emerald-700">
+                            {d.status}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            (d.status || '').toLowerCase() === 'active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {d.status || 'N/A'}
-                          </span>
+                        <td className="px-6 py-4">
+                          {formatDate(d.created_at)}
                         </td>
-                        <td className="py-3 px-4"><span className="text-sm text-gray-600">{d.created_at ? new Date(d.created_at).toISOString().slice(0,10) : ''}</span></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
 
-          {/* Simple Pagination */}
-          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-            <span className="text-xs text-gray-500">Page {discountsPage} • Total {discountsTotal}</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => loadDiscounts(Math.max(1, discountsPage - 1))}
-                disabled={discountsPage <= 1 || discountsLoading}
-                className="px-3 py-1.5 rounded border text-sm text-gray-600 border-gray-200 disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <button
-                onClick={() => loadDiscounts(discountsPage + 1)}
-                disabled={discountsLoading || (discountsPage * discountsLimit >= discountsTotal)}
-                className="px-3 py-1.5 rounded border text-sm text-gray-600 border-gray-200 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+              {/* Professional Pagination */}
+              <div className="flex justify-between items-center mt-8">
+                <p className="text-sm text-gray-500">
+                  Showing page {discountState.page} of{" "}
+                  {Math.ceil(discountState.total / discountState.limit) || 1}
+                </p>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => loadDiscounts(discountState.page - 1)}
+                    disabled={discountState.page <= 1}
+                    className="px-4 py-2 border rounded-lg text-sm disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => loadDiscounts(discountState.page + 1)}
+                    disabled={
+                      discountState.page * discountState.limit >= discountState.total
+                    }
+                    className="px-4 py-2 border rounded-lg text-sm disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Add Discounts Modal */}
+      {/* ===================== ADD DISCOUNTS MODAL ===================== */}
       {bulkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleCloseBulkModal}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl mx-4 max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900">Add Discounts</h3>
-                <p className="text-sm text-gray-500 mt-1">Create multiple discounts for this dealer</p>
-              </div>
-              <button 
-                onClick={handleCloseBulkModal}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-5xl mx-4 bg-white rounded-2xl shadow-2xl max-h-[92vh] flex flex-col">
+
+            {/* ---------------- Header ---------------- */}
+            <div className="px-8 py-6 border-b border-gray-100">
+              <h3 className="text-2xl font-semibold text-gray-900">
+                Add Dealer Discounts
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Configure multiple pricing rules for this dealer
+              </p>
             </div>
 
-            {/* Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            {/* ---------------- Body ---------------- */}
+            <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8">
+
               {bulkError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
                   {bulkError}
                 </div>
               )}
 
-              {/* Discounts Table */}
-              <div className="space-y-4">
-                {bulkRows.map((row, idx) => {
-                  const modelOpts = row.brand_name
-                    ? (allBrands.find(b => (b.brand_name || b.name) === row.brand_name)?.brand_models || brandToModels[String(row.brand_name).toLowerCase()] || [])
-                    : [];
-                  
-                  return (
-                    <div key={idx} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium text-gray-700">Discount #{idx + 1}</span>
-                        {bulkRows.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => setBulkRows(prev => prev.filter((_, i) => i !== idx))}
-                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md"
-                            aria-label="Remove discount"
-                            title="Remove"
-                          >
-                            <FiTrash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {/* Brand */}
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Brand</label>
-                          <CustomSelect
-                            name="brand_name"
-                            value={row.brand_name}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, brand_name: v, model_name: '' } : r));
-                            }}
-                            options={allBrands.map(brand => brand.brand_name || brand.name).filter(Boolean).sort()}
-                            placeholder="Select brand"
-                            searchable
-                          />
-                        </div>
+              {bulkRows.map((row, idx) => (
+                <div
+                  key={row.id}
+                  className="p-6 rounded-2xl border border-gray-200 bg-gray-50/60 space-y-6"
+                >
+                  {/* Row Header */}
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-gray-700">
+                      Discount {idx + 1}
+                    </h4>
 
-                        {/* Model */}
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
-                          <CustomSelect
-                            name="model_name"
-                            value={row.model_name}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, model_name: v } : r));
-                            }}
-                            disabled={!row.brand_name}
-                            options={modelOpts}
-                            placeholder="Select model"
-                            searchable
-                          />
-                        </div>
+                    {bulkRows.length > 1 && (
+                      <button
+                        onClick={() =>
+                          setBulkRows((prev) =>
+                            prev.filter((_, i) => i !== idx)
+                          )
+                        }
+                        className="text-red-500 hover:text-red-700 transition"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    )}
+                  </div>
 
-                        {/* Discount Value */}
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Value</label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              value={row.discount_value}
-                              onChange={(e) => setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, discount_value: e.target.value } : r))}
-                              className="w-full px-3 py-2 pr-8 rounded-lg border border-gray-200 focus:border-[#9333EA] focus:ring-2 focus:ring-[#9333EA]/20 text-sm"
-                              placeholder={row.is_percentage ? '15' : '500'}
-                              min="0"
-                              step="0.01"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">
-                              {row.is_percentage ? '%' : '₹'}
-                            </span>
-                          </div>
-                        </div>
+                  {/* ---------------- Main Fields ---------------- */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
-                        {/* Type Toggle */}
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
-                          <button
-                            type="button"
-                            onClick={() => setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, is_percentage: !r.is_percentage } : r))}
-                            className={`relative inline-flex h-9 w-16 items-center rounded-full px-1 border transition-colors ${row.is_percentage ? 'bg-purple-600 border-purple-600' : 'bg-gray-200 border-gray-300'}`}
-                            title="Toggle percentage or fixed amount"
-                          >
-                            <span className={`inline-block h-7 w-7 transform rounded-full bg-white shadow transition-transform ${row.is_percentage ? 'translate-x-7' : 'translate-x-0'}`}></span>
-                            <span className={`absolute left-2 text-[10px] font-medium ${row.is_percentage ? 'text-white/70' : 'text-gray-700'}`}>₹</span>
-                            <span className={`absolute right-2 text-[10px] font-medium ${row.is_percentage ? 'text-white' : 'text-gray-600/70'}`}>%</span>
-                          </button>
-                        </div>
-                      </div>
+                    {/* Brand */}
+                    <CustomSelect
+                      value={row.brand_name}
+                      onChange={(e) => {
+                        const selectedBrand = e.target.value;
 
-                      {/* Description */}
-                      <div className="mt-3">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Description (Optional)</label>
-                        <input
-                          type="text"
-                          value={row.description}
-                          onChange={(e) => setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, description: e.target.value } : r))}
-                          className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-[#9333EA] focus:ring-2 focus:ring-[#9333EA]/20 text-sm"
-                          placeholder="Enter description..."
-                          maxLength={200}
-                        />
+                        setBulkRows((prev) =>
+                          prev.map((r, i) =>
+                            i === idx
+                              ? {
+                                ...r,
+                                brand_name: selectedBrand,
+                                model_name: "", // reset model when brand changes
+                              }
+                              : r
+                          )
+                        );
+                      }}
+                      options={allBrands.map((b) => b.brand_name)}
+                      placeholder="Select Brand"
+                    />
+
+                    {/* Model */}
+                    <CustomSelect
+                      value={row.model_name}
+                      onChange={(e) =>
+                        setBulkRows((prev) =>
+                          prev.map((r, i) =>
+                            i === idx
+                              ? { ...r, model_name: e.target.value }
+                              : r
+                          )
+                        )
+                      }
+                      options={
+                        row.brand_name
+                          ? brandToModels[row.brand_name] || []
+                          : []
+                      }
+                      placeholder="Select Model"
+                      disabled={!row.brand_name}
+                    />
+
+                    {/* Discount Input */}
+                    <div className="space-y-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max={row.is_percentage ? 100 : undefined}
+                        value={row.discount_value}
+                        onChange={(e) => {
+                          let value = e.target.value;
+
+                          if (row.is_percentage && Number(value) > 100) {
+                            value = 100;
+                          }
+
+                          setBulkRows((prev) =>
+                            prev.map((r, i) =>
+                              i === idx
+                                ? { ...r, discount_value: value }
+                                : r
+                            )
+                          );
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20 transition"
+                        placeholder="Enter Discount"
+                      />
+
+                      {row.is_percentage && Number(row.discount_value) > 100 && (
+                        <p className="text-xs text-red-500">
+                          Percentage cannot exceed 100%
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Segmented Toggle */}
+                    <div className="flex items-center justify-center">
+                      <div className="flex bg-gray-200 rounded-full p-1 shadow-inner">
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setBulkRows((prev) =>
+                              prev.map((r, i) =>
+                                i === idx
+                                  ? { ...r, is_percentage: false }
+                                  : r
+                              )
+                            )
+                          }
+                          className={`px-4 py-1.5 text-sm font-medium rounded-full transition
+                      ${!row.is_percentage
+                              ? "bg-white shadow text-[#9333EA]"
+                              : "text-gray-600"
+                            }`}
+                        >
+                          ₹
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setBulkRows((prev) =>
+                              prev.map((r, i) =>
+                                i === idx
+                                  ? { ...r, is_percentage: true }
+                                  : r
+                              )
+                            )
+                          }
+                          className={`px-4 py-1.5 text-sm font-medium rounded-full transition
+                      ${row.is_percentage
+                              ? "bg-white shadow text-[#9333EA]"
+                              : "text-gray-600"
+                            }`}
+                        >
+                          %
+                        </button>
+
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
 
-              {/* Add Row Button */}
-              <div className="mt-4">
+                  {/* ---------------- Description ---------------- */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      Description (Optional)
+                    </label>
+
+                    <textarea
+                      rows={3}
+                      maxLength={200}
+                      value={row.description || ""}
+                      onChange={(e) =>
+                        setBulkRows((prev) =>
+                          prev.map((r, i) =>
+                            i === idx
+                              ? { ...r, description: e.target.value }
+                              : r
+                          )
+                        )
+                      }
+                      placeholder="Enter discount description (e.g., Festive Offer for Diwali 2026...)"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20 resize-none transition"
+                    />
+
+                    <div className="text-xs text-gray-400 text-right">
+                      {(row.description?.length || 0)}/200
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ---------------- Footer ---------------- */}
+            <div className="px-8 py-6 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-2xl">
+
+              <button
+                onClick={() =>
+                  setBulkRows((prev) => [...prev, createEmptyRow()])
+                }
+                className="px-5 py-2.5 border border-[#9333EA] text-[#9333EA] rounded-xl hover:bg-[#9333EA]/5 transition"
+              >
+                + Add Another
+              </button>
+
+              <div className="flex gap-4">
                 <button
-                  type="button"
-                  onClick={() => setBulkRows(prev => ([...prev, { brand_name: '', model_name: '', discount_value: '', is_percentage: true, description: '' }]))}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-[#9333EA] hover:text-[#8829DD] border border-[#9333EA] hover:border-[#8829DD] rounded-lg transition-colors"
+                  onClick={() => setBulkModalOpen(false)}
+                  className="px-5 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-100 transition"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Another Discount
+                  Cancel
+                </button>
+
+                <button
+                  disabled={bulkSubmitting}
+                  onClick={handleSubmitDiscounts}
+                  className="px-6 py-2.5 bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white rounded-xl shadow hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {bulkSubmitting ? "Saving..." : "Save Discounts"}
                 </button>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50">
-              <button
-                type="button"
-                onClick={() => setBulkModalOpen(false)}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={bulkSubmitting}
-                onClick={async () => {
-                  try {
-                    setBulkError('');
-                    setBulkSubmitting(true);
-                    const payload = bulkRows
-                      .filter(r => r.brand_name && r.model_name && r.discount_value)
-                      .map(r => ({
-                        brand_name: r.brand_name,
-                        model_name: r.model_name,
-                        dealer_id: id,
-                        discount_value: Number(r.discount_value),
-                        is_percentage: Boolean(r.is_percentage),
-                        description: r.description?.trim() || ''
-                      }));
-                    if (payload.length === 0) {
-                      setBulkError('Please add at least one complete discount.');
-                      setBulkSubmitting(false);
-                      return;
-                    }
-                    const res = await createDealerDiscounts(payload);
-                    if (res?.success) {
-                      setBulkModalOpen(false);
-                      setBulkRows([{ brand_name: '', model_name: '', discount_value: '', is_percentage: true, description: '' }]);
-                      await Swal.fire({ icon: 'success', title: 'Discounts Added', text: res.message || 'Dealer discounts created successfully', confirmButtonText: 'OK' });
-                      await loadDiscounts(discountsPage);
-                    } else {
-                      setBulkError(res?.message || 'Failed to create discounts');
-                    }
-                  } catch (err) {
-                    setBulkError(err?.message || 'Network error. Please try again.');
-                  } finally {
-                    setBulkSubmitting(false);
-                  }
-                }}
-                className="px-6 py-2 bg-[#9333EA] text-white hover:bg-[#8829DD] rounded-lg text-sm font-medium disabled:opacity-60 transition-colors"
-              >
-                {bulkSubmitting ? 'Saving...' : 'Save Discounts'}
-              </button>
-            </div>
           </div>
         </div>
       )}
 
       {/* Orders Summary Card */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="p-4 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <FiPackage className="text-[#9333EA]" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900">Orders Summary</h2>
-          </div>
-          <p className="text-sm text-gray-500 mb-6">Overview of dealer's orders</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-blue-50/50 rounded-lg p-4">
-              <p className="text-sm text-blue-600 font-medium mb-1">Total Orders</p>
-              <p className="text-2xl font-semibold text-blue-600">{orderStats.total}</p>
-            </div>
-
-            <div className="bg-yellow-50/50 rounded-lg p-4">
-              <p className="text-sm text-yellow-600 font-medium mb-1">Pending Orders</p>
-              <p className="text-2xl font-semibold text-yellow-600">{orderStats.pending}</p>
-            </div>
-
-            <div className="bg-purple-50/50 rounded-lg p-4">
-              <p className="text-sm text-purple-600 font-medium mb-1">In Production</p>
-              <p className="text-2xl font-semibold text-purple-600">{orderStats.inProduction}</p>
-            </div>
-
-            <div className="bg-green-50/50 rounded-lg p-4">
-              <p className="text-sm text-green-600 font-medium mb-1">Delivered</p>
-              <p className="text-2xl font-semibold text-green-600">{orderStats.delivered}</p>
-            </div>
-          </div>
+      <div className="bg-white rounded-2xl shadow-sm border p-8">
+        <h2 className="text-lg font-semibold mb-6">
+          Orders Summary
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard title="Total Orders" value={orderStats.total} color="blue" />
+          <StatCard title="Pending" value={orderStats.pending} color="yellow" />
+          <StatCard title="In Production" value={orderStats.inProduction} color="purple" />
+          <StatCard title="Delivered" value={orderStats.delivered} color="emerald" />
         </div>
       </div>
 
       {/* Order History Card */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="p-4 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <FiTruck className="text-[#9333EA]" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900">Order History</h2>
+      <div className="bg-white rounded-2xl shadow-sm border p-8">
+        <h2 className="text-lg font-semibold mb-6">
+          Order History
+        </h2>
+
+        {dealerOrders.length === 0 ? (
+          <div className="text-center text-gray-500 py-12">
+            No orders found for this dealer.
           </div>
-          <p className="text-sm text-gray-500 mb-6">All orders placed by this dealer</p>
-
-          {dealerOrders.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-gray-500">No orders found for this dealer</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Order ID</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Items</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Priority</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Delivery Date</th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+                <tr>
+                  <th className="px-6 py-3 text-left">Order ID</th>
+                  <th className="px-6 py-3 text-left">Date</th>
+                  <th className="px-6 py-3 text-left">Items</th>
+                  <th className="px-6 py-3 text-left">Status</th>
+                  <th className="px-6 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {dealerOrders.map(({ order }) => (
+                  <tr key={order.order_number} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-mono">
+                      {order.order_number}
+                    </td>
+                    <td className="px-6 py-4">
+                      {formatDate(order.created_at)}
+                    </td>
+                    <td className="px-6 py-4">
+                      {getTotalItems(order.order_details)} Items
+                    </td>
+                    <td className="px-6 py-4">
+                      {order.status}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() =>
+                          navigate(`/orders/${order.order_number}`)
+                        }
+                        className="text-[#9333EA] font-medium hover:underline"
+                      >
+                        View
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {dealerOrders.map((orderData) => {
-                    const order = orderData.order;
-                    if (!order) return null;
-
-                    return (
-                      <tr key={order.order_number} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                        <td className="py-4 px-4">
-                          <span className="text-sm font-medium text-gray-900 font-mono">{order.order_number}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">{formatDate(order.created_at)}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">
-                            {getTotalItems(order.order_details)} Items
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityStyle(order.priority)}`}>
-                            {order.priority || 'N/A'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(order.status)}`}>
-                            {order.status || 'N/A'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">
-                            {order.order_details?.[0]?.delivery_date 
-                              ? formatDate(order.order_details[0].delivery_date)
-                              : 'N/A'
-                            }
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <button
-                            onClick={() => navigate(`/orders/${order.order_number}`)}
-                            className="text-sm font-medium text-[#9333EA] hover:text-[#7928CC] hover:bg-[#9333EA]/5 px-2 py-1 rounded transition-colors"
-                          >
-                            View Details
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default DealerDetails; 
+export default DealerDetails;
