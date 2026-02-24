@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FiPlus, FiSearch, FiBox, FiX, FiChevronLeft, FiChevronRight, FiTrash2, FiEdit2 } from 'react-icons/fi';
 import CustomSelect from '../components/CustomSelect';
-import { getAllBrands, createBrand, updateBrand } from '../api/brands';
+import { getAllBrands, updateBrand, createBrands } from '../api/brands';
 import Swal from 'sweetalert2';
 import { useAuth } from '../hooks/useAuth';
 import { ROLES } from '../utils/roles';
@@ -61,9 +61,9 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
       const validBrands = brands.map(brand => ({
         ...brand,
         brand_models: brand.brand_models.filter(model => model.trim() !== '')
-      })).filter(brand => 
-        brand.brand_name.trim() !== '' && 
-        brand.brand_models.length > 0 && 
+      })).filter(brand =>
+        brand.brand_name.trim() !== '' &&
+        brand.brand_models.length > 0 &&
         brand.description.trim() !== ''
       );
 
@@ -72,12 +72,12 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
         return;
       }
 
-      const response = await createBrand(validBrands);
-      
+      const response = await createBrands(validBrands);
+
       if (response.success) {
         setBrands([{ brand_name: '', brand_models: [''], description: '' }]);
         onClose();
-        
+
         // Show success alert after closing modal
         setTimeout(async () => {
           await Swal.fire({
@@ -275,18 +275,18 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
       console.log('Initializing form with brand data:', brandData);
       console.log('Brand status from API:', brandData.status);
       console.log('Brand models from API:', brandData.brand_models);
-      
-      const models = brandData.brand_models && brandData.brand_models.length > 0 
-        ? [...brandData.brand_models] 
+
+      const models = brandData.brand_models && brandData.brand_models.length > 0
+        ? [...brandData.brand_models]
         : [''];
-      
+
       setFormData({
         brand_name: brandData.brand_name || '',
         status: brandData.status || 'active',
         description: brandData.description || '',
         brand_models: models
       });
-      
+
       // Store original models for comparison
       setOriginalModels([...brandData.brand_models || []]);
       setModelsToDelete([]);
@@ -303,12 +303,12 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
   const removeModel = (index) => {
     if (formData.brand_models.length > 1) {
       const modelToRemove = formData.brand_models[index];
-      
+
       // If this model existed in the original data, mark it for deletion
       if (modelToRemove && originalModels.includes(modelToRemove)) {
         setModelsToDelete(prev => [...prev, modelToRemove]);
       }
-      
+
       setFormData(prev => ({
         ...prev,
         brand_models: prev.brand_models.filter((_, i) => i !== index)
@@ -339,7 +339,7 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
 
     try {
       const currentFormModels = formData.brand_models.filter(model => model && model.trim() !== '');
-      
+
       // Validate at least one model
       if (currentFormModels.length === 0) {
         setError('Please add at least one model.');
@@ -350,11 +350,11 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
       const brandNameChanged = formData.brand_name !== brandData.brand_name;
       const statusChanged = formData.status !== brandData.status;
       const descriptionChanged = formData.description !== (brandData.description || '');
-      
+
       // Detect model changes (updates and additions)
       const modelUpdates = {};
       const newModels = [];
-      
+
       originalModels.forEach((originalModel, index) => {
         if (index < currentFormModels.length) {
           const currentModel = currentFormModels[index];
@@ -364,7 +364,7 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
           }
         }
       });
-      
+
       // Check for new models (models added beyond original count)
       if (currentFormModels.length > originalModels.length) {
         newModels.push(...currentFormModels.slice(originalModels.length));
@@ -372,32 +372,32 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
 
       // Build update payload
       const updateData = {};
-      
+
       if (brandNameChanged) {
         updateData.brand_name = formData.brand_name;
       }
-      
+
       if (statusChanged) {
         updateData.status = formData.status;
       }
-      
+
       if (descriptionChanged) {
         updateData.description = formData.description;
       }
-      
+
       // Handle model changes
       const hasModelUpdates = Object.keys(modelUpdates).length > 0;
       const hasModelDeletions = modelsToDelete.length > 0;
       const hasNewModels = newModels.length > 0;
-      
+
       if (hasModelUpdates) {
         updateData.brand_models_update = modelUpdates;
       }
-      
+
       if (hasModelDeletions) {
         updateData.delete_models = modelsToDelete;
       }
-      
+
       // If only new models were added (no updates/deletions), send as brand_models
       if (hasNewModels && !hasModelUpdates && !hasModelDeletions) {
         updateData.brand_models = currentFormModels;
@@ -427,16 +427,16 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
 
       const response = await updateBrand(brandData.brand_name, updateData);
       console.log('Update response:', response);
-      
+
       if (response.success) {
         // Close modal first
         onClose();
-        
+
         // Refresh the brands list immediately to show updated data
         if (onBrandUpdated) {
           onBrandUpdated();
         }
-        
+
         // Show success alert after closing modal and refreshing data
         setTimeout(async () => {
           await Swal.fire({
@@ -536,14 +536,12 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
                         const newStatus = formData.status === 'active' ? 'inactive' : 'active';
                         setFormData(prev => ({ ...prev, status: newStatus }));
                       }}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#9333EA] focus:ring-offset-2 ${
-                        formData.status === 'active' ? 'bg-[#9333EA]' : 'bg-gray-200'
-                      }`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#9333EA] focus:ring-offset-2 ${formData.status === 'active' ? 'bg-[#9333EA]' : 'bg-gray-200'
+                        }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          formData.status === 'active' ? 'translate-x-6' : 'translate-x-1'
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.status === 'active' ? 'translate-x-6' : 'translate-x-1'
+                          }`}
                       />
                     </button>
                     <span className={`text-sm font-medium ${formData.status === 'active' ? 'text-gray-900' : 'text-gray-500'}`}>
@@ -589,7 +587,7 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* Show models marked for deletion */}
                   {modelsToDelete.length > 0 && (
                     <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -656,7 +654,7 @@ const BrandsPagination = ({ currentPage, totalPages, onPageChange }) => {
           </span>
         </div>
         <div className="flex items-center justify-center gap-2">
-          <button 
+          <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
             className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-400"
@@ -668,7 +666,7 @@ const BrandsPagination = ({ currentPage, totalPages, onPageChange }) => {
               const pageNumber = idx + 1;
               const isActive = pageNumber === currentPage;
               const isNearCurrent = Math.abs(pageNumber - currentPage) <= 1 || pageNumber === 1 || pageNumber === totalPages;
-              
+
               if (!isNearCurrent && pageNumber !== 1 && pageNumber !== totalPages) {
                 if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
                   return <span key={idx} className="inline-flex items-center justify-center w-9 h-9 text-gray-400">...</span>;
@@ -680,18 +678,17 @@ const BrandsPagination = ({ currentPage, totalPages, onPageChange }) => {
                 <button
                   key={idx}
                   onClick={() => onPageChange(pageNumber)}
-                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-[#9333EA] text-white'
-                      : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
+                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isActive
+                    ? 'bg-[#9333EA] text-white'
+                    : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
                 >
                   {pageNumber}
                 </button>
               );
             })}
           </div>
-          <button 
+          <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
             className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -738,16 +735,16 @@ const Brands = () => {
 
     fetchBrands();
   }, []);
-  
+
   const filteredBrands = brands.filter(brand => {
-    const matchesSearch = 
+    const matchesSearch =
       brand.brand_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       brand.brand_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       brand.brand_models.some(model => model.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesStatus = selectedStatus === 'All Status' || 
+
+    const matchesStatus = selectedStatus === 'All Status' ||
       brand.status.toLowerCase() === selectedStatus.toLowerCase();
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -814,7 +811,7 @@ const Brands = () => {
           <h1 className="text-2xl font-bold text-gray-900">Brands Management</h1>
         </div>
         {!isSalesman && (
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
           >
@@ -868,7 +865,7 @@ const Brands = () => {
           ) : error ? (
             <div className="mt-6 text-center py-8">
               <p className="text-sm text-red-600">{error}</p>
-              <button 
+              <button
                 onClick={() => window.location.reload()}
                 className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium"
               >
@@ -903,7 +900,7 @@ const Brands = () => {
                         <td className="py-4 px-4">
                           <div className="flex flex-wrap gap-1">
                             {brand.brand_models.map((model, index) => (
-                              <span 
+                              <span
                                 key={index}
                                 className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
                               >
@@ -918,17 +915,16 @@ const Brands = () => {
                           </span>
                         </td>
                         <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            brand.status === 'active' 
-                              ? 'bg-green-50 text-green-700'
-                              : 'bg-red-50 text-red-700'
-                          }`}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${brand.status === 'active'
+                            ? 'bg-green-50 text-green-700'
+                            : 'bg-red-50 text-red-700'
+                            }`}>
                             {brand.status.charAt(0).toUpperCase() + brand.status.slice(1)}
                           </span>
                         </td>
                         {!isSalesman && (
                           <td className="py-4 px-4 text-right">
-                            <button 
+                            <button
                               onClick={() => handleEditBrand(brand)}
                               className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium transition-colors"
                             >
@@ -942,11 +938,11 @@ const Brands = () => {
                       <tr>
                         <td colSpan="6" className="py-8 text-center">
                           <p className="text-sm text-gray-500">
-                            {filteredBrands.length === 0 && brands.length > 0 
-                              ? "No brands found matching your criteria" 
-                              : brands.length === 0 
-                              ? "No brands available" 
-                              : "No brands found on this page"}
+                            {filteredBrands.length === 0 && brands.length > 0
+                              ? "No brands found matching your criteria"
+                              : brands.length === 0
+                                ? "No brands available"
+                                : "No brands found on this page"}
                           </p>
                         </td>
                       </tr>
@@ -966,13 +962,13 @@ const Brands = () => {
 
       {!isSalesman && (
         <>
-          <CreateBrandModal 
+          <CreateBrandModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             onBrandCreated={handleBrandCreated}
           />
 
-          <EditBrandModal 
+          <EditBrandModal
             isOpen={isEditModalOpen}
             onClose={() => {
               setIsEditModalOpen(false);

@@ -266,40 +266,31 @@ const DealerDetails = () => {
     }
   }, [id]);
 
-  const loadBrandsAndProducts = useCallback(async () => {
+  const loadBrands = useCallback(async () => {
     try {
-      const [brandsRes, productsRes] = await Promise.all([
-        getBrandsByDealer(id, "active"),
-        fetchProducts(),
-      ]);
+      const brandsRes = await getBrandsByDealer(id, "active");
 
-      if (brandsRes?.success) setAllBrands(brandsRes.data || []);
-
-      if (productsRes?.success) {
-        const map = {};
-        productsRes.data.forEach((p) => {
-          const brand =
-            p.brand_name || p.brand?.name || p.brand;
-          const model =
-            p.model_name || p.model || p.modelNo;
-          if (!brand || !model) return;
-
-          const key = String(brand).toLowerCase();
-          if (!map[key]) map[key] = new Set();
-          map[key].add(String(model));
-        });
-
-        const normalized = Object.fromEntries(
-          Object.entries(map).map(([k, v]) => [
-            k,
-            Array.from(v).sort(),
-          ])
-        );
-
-        setBrandToModels(normalized);
+      if (!brandsRes?.success) {
+        throw new Error(brandsRes?.message || "Failed to load brands");
       }
+
+      const brands = brandsRes.data || [];
+
+      setAllBrands(brands);
+
+      // Create brand -> models mapping directly from API
+      const map = {};
+
+      brands.forEach((brand) => {
+        if (!brand.brand_name) return;
+
+        map[brand.brand_name] = brand.brand_models || [];
+      });
+
+      setBrandToModels(map);
+
     } catch (err) {
-      console.error("Brand/Product load failed", err);
+      console.error("Brand load failed:", err);
     }
   }, [id]);
 
@@ -308,7 +299,7 @@ const DealerDetails = () => {
     loadDealerData();
     loadDiscounts(1);
     loadOrderSummary();
-    loadBrandsAndProducts();
+    loadBrands();
   }, [id]);
 
   /* ----------------------------- DISCOUNT SAVE ---------------------------- */
@@ -607,15 +598,21 @@ const DealerDetails = () => {
                     {/* Brand */}
                     <CustomSelect
                       value={row.brand_name}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const selectedBrand = e.target.value;
+
                         setBulkRows((prev) =>
                           prev.map((r, i) =>
                             i === idx
-                              ? { ...r, brand_name: e.target.value, model_name: "" }
+                              ? {
+                                ...r,
+                                brand_name: selectedBrand,
+                                model_name: "", // reset model when brand changes
+                              }
                               : r
                           )
-                        )
-                      }
+                        );
+                      }}
                       options={allBrands.map((b) => b.brand_name)}
                       placeholder="Select Brand"
                     />
@@ -633,7 +630,9 @@ const DealerDetails = () => {
                         )
                       }
                       options={
-                        brandToModels[row.brand_name?.toLowerCase()] || []
+                        row.brand_name
+                          ? brandToModels[row.brand_name] || []
+                          : []
                       }
                       placeholder="Select Model"
                       disabled={!row.brand_name}
