@@ -18,6 +18,7 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
 import { ROUTE_PERMISSIONS } from "./routePermissions";
 import UpdateOrder from "../pages/UpdateOrder";
+import UserDetails from "../pages/UserDetails";
 
 export default function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -59,6 +60,14 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/users"]}>
               <Users />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users/:id"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/users"]}>
+              <UserDetails />
             </ProtectedRoute>
           }
         />

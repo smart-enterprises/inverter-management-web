@@ -326,7 +326,7 @@ const CreateOrder = () => {
                 onChange={handleChange}
                 options={dealers.map((d) => ({
                   value: d.employee_id,
-                  label: `${d.employee_name} - ${d.shop_name}`,
+                  label: `${d.employee_name?.charAt(0).toUpperCase() + d.employee_name?.slice(1)} - ${d.shop_name?.charAt(0).toUpperCase() + d.shop_name?.slice(1)}`,
                 }))}
                 placeholder="Select Dealer"
               />

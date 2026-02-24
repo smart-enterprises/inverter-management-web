@@ -8,10 +8,12 @@ import {
   FiChevronRight,
   FiLoader,
   FiX,
+  FiTrash2
 } from "react-icons/fi";
 import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
-import { fetchUsers, fetchUserById, updateUser } from "../api/user";
+import { fetchUsers, fetchUserById, updateUser, deleteUser } from "../api/user";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES, getRoleLabel } from "../utils/roles";
 
@@ -84,6 +86,7 @@ const User = () => {
 
   const [loading, setLoading] = useState(false);
   const [showPasswordMap, setShowPasswordMap] = useState({});
+  const [originalData, setOriginalData] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({});
 
@@ -94,6 +97,8 @@ const User = () => {
       ),
     [user?.role]
   );
+
+  const navigate = useNavigate();
 
   /* ================= FETCH USERS ================= */
 
@@ -142,6 +147,7 @@ const User = () => {
       if (!res?.success) throw new Error(res.message);
 
       setFormData(res.data);
+      setOriginalData(res.data);
       setEditingUser(id);
     } catch (err) {
       Swal.fire("Error", err.message, "error");
@@ -150,11 +156,95 @@ const User = () => {
 
   const handleUpdate = async () => {
     try {
-      const res = await updateUser(editingUser, formData);
+      const payload = {};
+
+      // Compare each field individually
+      if (formData.employee_name !== originalData.employee_name) {
+        payload.employee_name = formData.employee_name;
+      }
+
+      if (formData.employee_email !== originalData.employee_email) {
+        payload.employee_email = formData.employee_email;
+      }
+
+      if (Number(formData.employee_phone) !== Number(originalData.employee_phone)) {
+        payload.employee_phone = Number(formData.employee_phone);
+      }
+
+      if (formData.role !== originalData.role) {
+        payload.role = formData.role;
+      }
+
+      if (formData.status !== originalData.status) {
+        payload.status = formData.status;
+      }
+
+      if (formData.shop_name !== originalData.shop_name) {
+        payload.shop_name = formData.shop_name;
+      }
+
+      if (formData.district !== originalData.district) {
+        payload.district = formData.district;
+      }
+
+      if (formData.town !== originalData.town) {
+        payload.town = formData.town;
+      }
+
+      if (formData.address !== originalData.address) {
+        payload.address = formData.address;
+      }
+
+      // ✅ If nothing changed
+      if (Object.keys(payload).length === 0) {
+        Swal.fire("No Changes", "No data was modified", "info");
+        return;
+      }
+      const res = await updateUser(editingUser, payload);
+
       if (!res?.success) throw new Error(res.message);
 
       Swal.fire("Success", "User updated successfully", "success");
       setEditingUser(null);
+      loadUsers();
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const { value: reason, isConfirmed } = await Swal.fire({
+      title: "Delete User",
+      input: "textarea",
+      inputLabel: "Reason for deletion",
+      inputPlaceholder: "Enter deletion reason...",
+      inputAttributes: {
+        "aria-label": "Type your reason here"
+      },
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6b7280",
+      inputValidator: (value) => {
+        if (!value) {
+          return "Reason is required!";
+        }
+      }
+    });
+
+    if (!isConfirmed) return;
+
+    try {
+      const payload = {
+        employeeId: id,
+        reason: reason.trim(),
+      };
+
+      const res = await deleteUser(payload.employeeId, payload.reason);
+
+      if (!res?.success) throw new Error(res.message);
+
+      Swal.fire("Deleted!", "User deleted successfully", "success");
       loadUsers();
     } catch (err) {
       Swal.fire("Error", err.message, "error");
@@ -202,11 +292,10 @@ const User = () => {
                   setSelectedRole(role);
                   setPage(1);
                 }}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                  selectedRole === role
-                    ? "bg-[#9333EA] text-white shadow"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedRole === role
+                  ? "bg-[#9333EA] text-white shadow"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
               >
                 {role === "ALL" ? "ALL" : getRoleLabel(role)}
               </button>
@@ -310,7 +399,7 @@ const User = () => {
                       className="border-b hover:bg-gray-50 transition"
                     >
                       <td className="px-4 py-4 font-medium text-gray-900">
-                        {u.employee_name}
+                        {u.employee_name?.charAt(0).toUpperCase() + u.employee_name?.slice(1)}
                       </td>
                       <td className="px-4 py-4 text-gray-600">
                         {u.employee_email}
@@ -329,11 +418,10 @@ const User = () => {
                       </td>
                       <td className="px-4 py-4">
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            u.status === "active"
-                              ? "bg-green-50 text-green-700"
-                              : "bg-red-50 text-red-700"
-                          }`}
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${u.status === "active"
+                            ? "bg-green-50 text-green-700"
+                            : "bg-red-50 text-red-700"
+                            }`}
                         >
                           {u.status}
                         </span>
@@ -374,14 +462,29 @@ const User = () => {
                         </td>
                       )}
 
-                      <td className="px-4 py-4 text-right">
+                      <td className="px-4 py-4 text-right flex justify-end gap-2">
+                        {/* VIEW */}
                         <button
-                          onClick={() =>
-                            handleEdit(u.employee_id)
-                          }
-                          className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:bg-[#9333EA]/10 rounded-lg transition"
+                          onClick={() => navigate(`/users/${u.employee_id}`)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        >
+                          <FiEye size={16} />
+                        </button>
+
+                        {/* EDIT */}
+                        <button
+                          onClick={() => handleEdit(u.employee_id)}
+                          className="p-2 text-[#9333EA] hover:bg-[#9333EA]/10 rounded-lg transition"
                         >
                           <FiEdit2 size={16} />
+                        </button>
+
+                        {/* DELETE */}
+                        <button
+                          onClick={() => handleDelete(u.employee_id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                        >
+                          <FiTrash2 size={16} />
                         </button>
                       </td>
                     </tr>
@@ -402,7 +505,8 @@ const User = () => {
       {/* EDIT MODAL */}
       {editingUser && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative overflow-y-auto max-h-[90vh]">
+
             <button
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
               onClick={() => setEditingUser(null)}
@@ -410,18 +514,92 @@ const User = () => {
               <FiX />
             </button>
 
-            <h2 className="text-lg font-bold mb-4">
-              Edit User
-            </h2>
+            <h2 className="text-lg font-bold mb-6">Edit User</h2>
 
+            {/* Name */}
             <input
-              className="w-full border px-3 py-2 rounded-lg mb-4"
+              className="w-full border px-3 py-2 rounded-lg mb-3"
+              placeholder="Name"
               value={formData.employee_name || ""}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  employee_name: e.target.value,
-                })
+                setFormData({ ...formData, employee_name: e.target.value })
+              }
+            />
+
+            {/* Email */}
+            <input
+              className="w-full border px-3 py-2 rounded-lg mb-3"
+              placeholder="Email"
+              value={formData.employee_email || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, employee_email: e.target.value })
+              }
+            />
+
+            {/* Phone */}
+            <input
+              className="w-full border px-3 py-2 rounded-lg mb-3"
+              placeholder="Phone"
+              value={formData.employee_phone || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, employee_phone: e.target.value })
+              }
+            />
+
+            {/* Role */}
+            <select
+              className="w-full border px-3 py-2 rounded-lg mb-3"
+              value={formData.role || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, role: e.target.value })
+              }
+            >
+              {Object.values(ROLES).map((role) => (
+                <option key={role} value={role}>
+                  {getRoleLabel(role)}
+                </option>
+              ))}
+            </select>
+
+            {/* Status */}
+            <select
+              className="w-full border px-3 py-2 rounded-lg mb-3"
+              value={formData.status || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, status: e.target.value })
+              }
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+
+            {/* District */}
+            <input
+              className="w-full border px-3 py-2 rounded-lg mb-3"
+              placeholder="District"
+              value={formData.district || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, district: e.target.value })
+              }
+            />
+
+            {/* Town */}
+            <input
+              className="w-full border px-3 py-2 rounded-lg mb-3"
+              placeholder="Town"
+              value={formData.town || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, town: e.target.value })
+              }
+            />
+
+            {/* Address */}
+            <textarea
+              className="w-full border px-3 py-2 rounded-lg mb-4"
+              placeholder="Address"
+              value={formData.address || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
               }
             />
 

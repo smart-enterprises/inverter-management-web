@@ -265,8 +265,8 @@ const Orders = () => {
                     <td className="py-4 px-4 font-mono">
                       {order.order_number}
                     </td>
-                    <td className="py-4 px-4">{order.dealer?.employee_name}</td>
-                    <td className="py-4 px-4">{order.dealer?.shop_name}</td>
+                    <td className="py-4 px-4">{order.dealer?.employee_name?.charAt(0).toUpperCase() + order.dealer?.employee_name?.slice(1)}</td>
+                    <td className="py-4 px-4">{order.dealer?.shop_name?.charAt(0).toUpperCase() + order.dealer?.shop_name?.slice(1)}</td>
                     <td className="py-4 px-4">
                       {formatDate(order.created_at)}
                     </td>

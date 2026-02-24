@@ -28,6 +28,7 @@ export const fetchOrders = async ({
     status,
     priority,
     search,
+    dealer
 } = {}) => {
     try {
         const queryParams = new URLSearchParams();
@@ -53,6 +54,11 @@ export const fetchOrders = async ({
         // Search filter (order number / dealer etc.)
         if (search && search.trim() !== '') {
             queryParams.append('search', search.trim());
+        }
+
+        // Dealer filter
+        if (dealer) {
+            queryParams.append('dealer', dealer);
         }
 
         const response = await fetch(

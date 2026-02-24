@@ -81,12 +81,16 @@ export const fetchDealerDiscounts = ({
   limit = 30,
   dealer_id,
   product_id,
+  brand_name,
+  model_name,
 }) => {
   const params = new URLSearchParams({ page, limit });
 
   const payload = {};
   if (dealer_id) payload.dealer_id = dealer_id;
   if (product_id) payload.product_id = product_id;
+  if (brand_name) payload.brand_name = brand_name;
+  if (model_name) payload.model_name = model_name;
 
   return request(
     `/employees/dealer/get-discounts?${params.toString()}`, {

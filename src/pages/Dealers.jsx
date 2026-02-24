@@ -1011,7 +1011,7 @@ const Dealers = () => {
                     >
                       <td className="py-4 px-4">
                         <span className="text-sm font-medium text-gray-900">
-                          {dealer.employee_name}
+                          {dealer.employee_name?.charAt(0).toUpperCase() + dealer.employee_name?.slice(1)}
                         </span>
                       </td>
                       <td className="py-4 px-4">
