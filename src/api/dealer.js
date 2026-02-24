@@ -54,16 +54,18 @@ const request = async (endpoint, options = {}) => {
 export const fetchDealers = ({
   page = 1,
   limit = 10,
+  role = "ROLE_DEALER",
   search = "",
   status = "",
   includePassword = false,
+  includeDealers = false,
 } = {}) => {
   const query = new URLSearchParams();
 
   query.set("page", String(page));
   query.set("limit", String(limit));
-  query.set("role", "ROLE_DEALER");
 
+  if (role) query.append("role", role);
   if (search.trim()) {
     query.set("search", search.trim());
   }
@@ -73,7 +75,7 @@ export const fetchDealers = ({
   }
 
   query.set("includePassword", String(Boolean(includePassword)));
-  query.set("includeDealers", "true");
+  query.set("includeDealers", String(Boolean(includeDealers)));
 
   return request(`/employees?${query.toString()}`, {
     method: "GET",

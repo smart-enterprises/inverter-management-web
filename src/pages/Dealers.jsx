@@ -12,6 +12,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
+
 import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
 
@@ -26,13 +27,22 @@ import {
 import { getAllBrands } from "../api/brands";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
+import { fetchUsers } from "../api/user";
 
 // MultiSelectDropdown component remains unchanged
-const MultiSelectDropdown = ({ options = [], selectedValues = [], onChange, placeholder, disabled, loading, searchable = false }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [searchTerm, setSearchTerm] = React.useState("");
+const MultiSelectDropdown = ({
+  options = [],
+  selectedValues = [],
+  onChange,
+  placeholder,
+  disabled,
+  loading,
+  searchable = false,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredOptions = React.useMemo(() => {
+  const filteredOptions = useMemo(() => {
     if (!searchable || !searchTerm) return options;
     return options.filter((option) =>
       option.label.toLowerCase().includes(searchTerm.toLowerCase())
@@ -51,7 +61,7 @@ const MultiSelectDropdown = ({ options = [], selectedValues = [], onChange, plac
     onChange(selectedValues.filter((val) => val !== valueToRemove));
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest(".multiselect-container")) {
         setIsOpen(false);
@@ -107,7 +117,8 @@ const MultiSelectDropdown = ({ options = [], selectedValues = [], onChange, plac
         )}
         <div className="ml-auto flex-shrink-0">
           <FiChevronDown
-            className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+            className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""
+              }`}
           />
         </div>
       </div>
@@ -131,9 +142,7 @@ const MultiSelectDropdown = ({ options = [], selectedValues = [], onChange, plac
               filteredOptions.map((option, index) => (
                 <div
                   key={index}
-                  className={`px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 flex items-center justify-between ${selectedValues.includes(option.value)
-                    ? "bg-[#9333EA]/5"
-                    : ""
+                  className={`px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 flex items-center justify-between ${selectedValues.includes(option.value) ? "bg-[#9333EA]/5" : ""
                     }`}
                   onClick={() => handleToggleOption(option.value)}
                 >
@@ -155,7 +164,13 @@ const MultiSelectDropdown = ({ options = [], selectedValues = [], onChange, plac
   );
 };
 
-const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, editingDealerData }) => {
+const CreateDealerModal = ({
+  isOpen,
+  onClose,
+  onDealerChanged,
+  editingDealerId,
+  editingDealerData,
+}) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -177,7 +192,7 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
 
   // Fetch brands data
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isOpen || brands.length > 0) return;
     const fetchBrands = async () => {
       try {
@@ -198,7 +213,7 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
   }, [isOpen, brands.length]);
 
   // Populate form when editingDealerData changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (editingDealerId && editingDealerData) {
       setFormData({
         name: editingDealerData.employee_name || "",
@@ -397,7 +412,6 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
                   placeholder="Enter phone number"
-                  autoComplete="phone"
                 />
                 {fieldErrors["employee_phone"] && (
                   <div className="text-red-600 text-xs mt-1">{fieldErrors["employee_phone"].map((msg, idx) => <div key={idx}>{msg}</div>)}</div>
@@ -550,7 +564,13 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
   );
 };
 
-const DealerActions = ({ dealerId, onEdit, onDelete, dealerStatus, isSalesman }) => {
+const DealerActions = ({
+  dealerId,
+  onEdit,
+  onDelete,
+  dealerStatus,
+  isSalesman,
+}) => {
   // Show action buttons only if status is not "Deleted"
   if (dealerStatus?.toLowerCase() === "deleted") return null;
 
@@ -585,6 +605,7 @@ const DealerActions = ({ dealerId, onEdit, onDelete, dealerStatus, isSalesman })
   );
 };
 
+// Pagination component remains unchanged
 function DealersPagination({ currentPage, totalPages, onPageChange }) {
   return (
     <div className="border-t border-gray-100">
@@ -596,6 +617,7 @@ function DealersPagination({ currentPage, totalPages, onPageChange }) {
             <span className="font-medium text-gray-900">{totalPages}</span>
           </span>
         </div>
+
         <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => onPageChange(currentPage - 1)}
@@ -604,7 +626,9 @@ function DealersPagination({ currentPage, totalPages, onPageChange }) {
           >
             <FiChevronLeft size={18} />
           </button>
+
           <div className="flex gap-1">
+            {/* Render pages with ellipsis logic */}
             {[...Array(totalPages)].map((_, idx) => {
               const pageNumber = idx + 1;
               const isActive = pageNumber === currentPage;
@@ -663,41 +687,57 @@ const Dealers = () => {
   const { user } = useAuth();
   const isSalesman = user?.role === ROLES.SALESMAN;
 
+  // State variables
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [includePassword, setIncludePassword] = useState(false);
+
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [totalPages, setTotalPages] = useState(1);
   const [dealers, setDealers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
   const [editingDealerId, setEditingDealerId] = useState(null);
+
   const [editingDealerData, setEditingDealerData] = useState(null);
   const [userMap, setUserMap] = useState({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedDealerId, setSelectedDealerId] = useState(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
+
   const [deleteError, setDeleteError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showPasswordMap, setShowPasswordMap] = useState({});
+
   const [error, setError] = useState("");
 
+  const canViewPasswords = useMemo(
+    () =>
+      [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(user?.role),
+    [user?.role]
+  );
+
+  // Fetch dealers with pagination
   const fetchDealersList = async () => {
     try {
       setLoading(true);
       setError("");
+
       const res = await fetchDealers({
         page: currentPage,
-        limit: itemsPerPage,
+        limit: 10,
+        role: "ROLE_DEALER",
         search: searchQuery,
+        includePassword: canViewPasswords && includePassword, // Use only if you want to fetch passwords
+        includeDealers: true,
         status: selectedStatus !== "ALL" ? selectedStatus.toLowerCase() : undefined,
       });
+
       if (res?.success && res?.data?.employees) {
         setDealers(res.data.employees);
-        const total =
-          res?.data?.pagination?.total ||
-          res?.pagination?.total ||
-          0;
-        setTotalPages(Math.max(1, Math.ceil(total / itemsPerPage)));
+        const totalItems = res?.data?.pagination || 0;
+        const totalPageCount = res?.data?.pages || 1;
+        setTotalPages(totalPageCount);
       } else {
         setDealers([]);
         setError(res?.message || "Unexpected response from server");
@@ -710,27 +750,41 @@ const Dealers = () => {
     }
   };
 
-  // Fetch users for created_by map
-  const fetchUsers = async () => {
+  // Function to fetch users for created_by mapping
+  const fetchUsersForCreatedByMap = async () => {
     try {
-      const res = await apiRequest("/employees/?page=1&limit=100");
-      if (res && res.success && res.data && res.data.employees) {
-        const map = {};
-        res.data.employees.forEach((user) => {
-          map[user.employee_id] = user.employee_name;
+      const response = await fetchUsers({
+        page: 1,
+        limit: 500,
+        status: "active",
+        includePassword: false,
+        includeDealers: false,
+      });
+
+      if (response && response.success && response.data && response.data.employees) {
+        const userMap = {};
+        response.data.employees.forEach((user) => {
+          userMap[user.employee_id] = user.employee_name;
         });
-        setUserMap(map);
+        setUserMap(userMap);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
     }
   };
 
   useEffect(() => {
     fetchDealersList();
-    fetchUsers();
-  }, [currentPage, selectedStatus, searchQuery]);
+    fetchUsersForCreatedByMap();
+  }, [currentPage, searchQuery, selectedStatus, canViewPasswords, includePassword]);
 
+  // Handle page change
+  const handlePageChange = (page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+
+  // Handle dealer creation/editing
   const handleDealerChanged = () => {
     fetchDealersList();
     setEditingDealerId(null);
@@ -743,7 +797,7 @@ const Dealers = () => {
     setIsModalOpen(true);
     try {
       const res = await fetchDealerById(dealerId);
-      if (res && res.success && res.data) {
+      if (res?.success && res?.data) {
         setEditingDealerData(res.data);
       }
     } catch {
@@ -751,6 +805,7 @@ const Dealers = () => {
     }
   };
 
+  // Handle delete modal
   const handleOpenDeleteModal = (dealerId) => {
     if (isSalesman) return;
     setSelectedDealerId(dealerId);
@@ -764,7 +819,7 @@ const Dealers = () => {
     setDeleteError("");
     try {
       const res = await deleteDealer(selectedDealerId, deleteReason);
-      if (res && res.success) {
+      if (res?.success) {
         setShowDeleteModal(false);
         await Swal.fire({
           icon: "success",
@@ -783,53 +838,44 @@ const Dealers = () => {
     }
   };
 
-  const handlePageChange = (page) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
-  };
-
-  const paginatedDealers = dealers;
-
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Manage Dealers</h1>
-        {!isSalesman && (
-          <button
-            onClick={() => {
-              setIsModalOpen(true);
-              setEditingDealerId(null);
-              setEditingDealerData(null);
-            }}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
-          >
-            <FiPlus className="text-lg" />
-            Add New Dealer
-          </button>
-        )}
-      </div>
-
-      {/* Dealers List */}
+    <div className="p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Filters */}
-        <div className="p-4 sm:p-6">
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold text-gray-800">Dealers List</h2>
-            <p className="text-sm text-gray-500 mt-1">View and manage all dealers in the system</p>
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Manage Dealers</h1>
+            {!isSalesman && (
+              <button
+                onClick={() => {
+                  setIsModalOpen(true);
+                  setEditingDealerId(null);
+                  setEditingDealerData(null);
+                }}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
+              >
+                <FiPlus className="text-lg" />
+                Add New Dealer
+              </button>
+            )}
           </div>
-          <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            {/* Search */}
+
+          {/* Dealers List */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Search by name or phone..."
+                placeholder="Search by name or shop name..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
               />
             </div>
+
             {/* Status Filter */}
             <div className="w-40">
               <CustomSelect
@@ -842,152 +888,206 @@ const Dealers = () => {
                 options={["ALL", "Active", "Inactive", "Deleted"]}
               />
             </div>
-          </div>
-        </div>
-        {/* Loading & Error */}
-        {loading ? (
-          <div className="mt-6 flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
-          </div>
-        ) : error ? (
-          <div className="mt-6 text-center py-8">
-            <p className="text-sm text-red-600">{error}</p>
-            <button onClick={fetchDealersList} className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium">
-              Try Again
-            </button>
-          </div>
-        ) : (
-          <div className="mt-6 overflow-x-auto" style={{ maxHeight: "60vh" }}>
-            {/* Table */}
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Dealer Name</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Shop Name</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone Number</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">District</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Created By</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Created Date</th>
-                  {!isSalesman && (
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedDealers.length > 0 ? (
-                  paginatedDealers.map((dealer) => (
-                    <tr
-                      key={dealer.employee_id}
-                      className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="py-4 px-4">
-                        <span className="text-sm font-medium text-gray-900">{dealer.employee_name?.charAt(0).toUpperCase() + dealer.employee_name?.slice(1)}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-gray-600">{dealer.shop_name}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-gray-600">{dealer.employee_phone}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-gray-600">{dealer.district}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(dealer.status || "").toLowerCase() === "active"
-                            ? "bg-green-50 text-green-700"
-                            : "bg-red-50 text-red-700"
-                            }`}
-                        >
-                          {dealer.status || "N/A"}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-gray-600">{userMap[dealer.created_by] || dealer.created_by}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-gray-600">{dealer.created_at ? new Date(dealer.created_at).toISOString().slice(0, 10) : ""}</span>
-                      </td>
 
-                      {/* Actions */}
-                      {!isSalesman && (
-                        <td className="py-4 px-4 text-right relative">
-                          <DealerActions
-                            dealerId={dealer.employee_id}
-                            onEdit={() => handleEditDealer(dealer.employee_id)}
-                            onDelete={() => handleOpenDeleteModal(dealer.employee_id)}
-                            dealerStatus={dealer.status}
-                            isSalesman={isSalesman}
-                          />
-                        </td>
-                      )}
-                    </tr>
-                  ))
-                ) : (
-                  <tr key="no-dealers">
-                    <td colSpan="8" className="py-8 text-center">
-                      <p className="text-sm text-gray-500">No dealers found matching your criteria</p>
-                    </td>
+            {canViewPasswords && (
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={includePassword}
+                  onChange={(e) =>
+                    setIncludePassword(e.target.checked)
+                  }
+                  className="accent-[#9333EA]"
+                />
+                Include Password
+              </label>
+            )}
+          </div>
+
+          {/* Loading & Error */}
+          {loading ? (
+            <div className="mt-6 flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
+            </div>
+          ) : error ? (
+            <div className="mt-6 text-center py-8">
+              <p className="text-sm text-red-600">{error}</p>
+              <button onClick={fetchDealersList} className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium">
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              {/* Table */}
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Dealer Name</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Shop Name</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Phone Number</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">District</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Status</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Created By</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Created Date</th>
+                    {includePassword && canViewPasswords && (
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                        Password
+                      </th>
+                    )}
+                    {!isSalesman && (
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                    )}
                   </tr>
-                )}
-              </tbody>
-            </table>
-            {/* Pagination */}
-            <DealersPagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+                </thead>
+                <tbody>
+                  {dealers.length > 0 ? (
+                    dealers.map((dealer) => (
+                      <tr
+                        key={dealer.employee_id}
+                        className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-4 px-4">
+                          <span className="text-sm font-medium text-gray-900">{dealer.employee_name?.charAt(0).toUpperCase() + dealer.employee_name?.slice(1)}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-gray-600">{dealer.shop_name}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-gray-600">{dealer.employee_phone}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-gray-600">{dealer.district}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(dealer.status || "").toLowerCase() === "active"
+                              ? "bg-green-50 text-green-700"
+                              : "bg-red-50 text-red-700"
+                              }`}
+                          >
+                            {dealer.status || "N/A"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-gray-600">{userMap[dealer.created_by] || dealer.created_by}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-gray-600">{dealer.created_at ? new Date(dealer.created_at).toISOString().slice(0, 10) : ""}</span>
+                        </td>
+                        {includePassword && canViewPasswords && (
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type={
+                                  showPasswordMap[dealer.employee_id]
+                                    ? "text"
+                                    : "password"
+                                }
+                                value={dealer.password || ""}
+                                readOnly
+                                className="border px-2 py-1 rounded w-24 text-xs"
+                              />
+                              <button
+                                onClick={() =>
+                                  setShowPasswordMap((prev) => ({
+                                    ...prev,
+                                    [dealer.employee_id]:
+                                      !prev[dealer.employee_id],
+                                  }))
+                                }
+                              >
+                                {showPasswordMap[dealer.employee_id] ? (
+                                  <FiEyeOff />
+                                ) : (
+                                  <FiEye />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                        {/* Actions */}
+                        {!isSalesman && (
+                          <td className="py-4 px-4 text-right relative">
+                            <DealerActions
+                              dealerId={dealer.employee_id}
+                              onEdit={() => handleEditDealer(dealer.employee_id)}
+                              onDelete={() => handleOpenDeleteModal(dealer.employee_id)}
+                              dealerStatus={dealer.status}
+                              isSalesman={isSalesman}
+                            />
+                          </td>
+                        )}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr key="no-dealers">
+                      <td colSpan="8" className="py-8 text-center">
+                        <p className="text-sm text-gray-500">No dealers found matching your criteria</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              {/* Pagination */}
+              <DealersPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Add/Edit Dealer Modal */}
+        <CreateDealerModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingDealerId(null);
+            setEditingDealerData(null);
+          }}
+          onDealerChanged={handleDealerChanged}
+          editingDealerId={editingDealerId}
+          editingDealerData={editingDealerData}
+        />
+
+        {/* Delete Dealer Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
+              <button
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
+                onClick={() => setShowDeleteModal(false)}
+                aria-label="Close"
+              >
+                <FiX size={22} />
+              </button>
+              <div className="flex flex-col items-center mb-6">
+                <div className="bg-[#fde5e5] text-[#fd2c2c] rounded-full p-3 mb-2">
+                  <FiTrash2 size={28} />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Delete Dealer</h2>
+                <p className="text-sm text-gray-500 mt-1">Are you sure you want to delete this dealer?</p>
+              </div>
+              <textarea
+                className="w-full px-4 py-2 rounded-lg border border-gray-200 mb-3"
+                placeholder="Reason for deletion (optional)"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                rows={2}
+              />
+              {deleteError && <div className="text-red-600 text-sm mb-2">{deleteError}</div>}
+              <button
+                className="w-full bg-[#fd2c2c] hover:bg-[#ff4747] text-white py-2.5 rounded-lg font-semibold transition-all duration-200 mt-2 shadow-md hover:shadow-lg hover:scale-105"
+                onClick={handleDeleteDealer}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? "Deleting..." : "Delete Dealer"}
+              </button>
+            </div>
           </div>
         )}
       </div>
-
-      {/* Add/Edit Dealer Modal */}
-      <CreateDealerModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingDealerId(null);
-          setEditingDealerData(null);
-        }}
-        onDealerChanged={handleDealerChanged}
-        editingDealerId={editingDealerId}
-        editingDealerData={editingDealerData}
-      />
-
-      {/* Delete Dealer Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
-            <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
-              onClick={() => setShowDeleteModal(false)}
-              aria-label="Close"
-            >
-              <FiX size={22} />
-            </button>
-            <div className="flex flex-col items-center mb-6">
-              <div className="bg-[#fde5e5] text-[#fd2c2c] rounded-full p-3 mb-2">
-                <FiTrash2 size={28} />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900">Delete Dealer</h2>
-              <p className="text-sm text-gray-500 mt-1">Are you sure you want to delete this dealer?</p>
-            </div>
-            <textarea
-              className="w-full px-4 py-2 rounded-lg border border-gray-200 mb-3"
-              placeholder="Reason for deletion (optional)"
-              value={deleteReason}
-              onChange={(e) => setDeleteReason(e.target.value)}
-              rows={2}
-            />
-            {deleteError && <div className="text-red-600 text-sm mb-2">{deleteError}</div>}
-            <button
-              className="w-full bg-[#fd2c2c] hover:bg-[#ff4747] text-white py-2.5 rounded-lg font-semibold transition-all duration-200 mt-2 shadow-md hover:shadow-lg hover:scale-105"
-              onClick={handleDeleteDealer}
-              disabled={deleteLoading}
-            >
-              {deleteLoading ? "Deleting..." : "Delete Dealer"}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
