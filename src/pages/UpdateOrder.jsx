@@ -13,12 +13,70 @@ import {
   PRIORITY_OPTIONS,
 } from '../utils/status';
 
+const FormField = ({ label, children }) => (
+  <div>
+    <label className="block text-xs font-medium uppercase tracking-wide text-gray-500 mb-2">
+      {label}
+    </label>
+    {children}
+  </div>
+);
+
+const FormFieldSecondary = ({ label, children }) => (
+  <div className="space-y-2">
+    <label className="block text-xs font-medium uppercase tracking-wide text-gray-500">
+      {label}
+    </label>
+    {children}
+  </div>
+);
+
+const CheckboxField = ({ label, checked, onChange }) => (
+  <label className="flex items-center gap-3 text-sm cursor-pointer">
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={onChange}
+      className="accent-purple-600"
+    />
+    <span>{label}</span>
+  </label>
+);
+
+// utils/orderHelpers.js
+
+export const normalizeOrder = (order) => ({
+  ...order,
+  payment_method: order.payment_type || '',
+  amount_paid: 0,
+  order_details: order.order_details.map((detail) => ({
+    ...detail,
+    delivered_qty: '',
+    cancel_qty: '',
+    has_unPacked_completed: false,
+    has_production_completed: false,
+  })),
+});
+
+export const formatDateForInput = (isoDate) => {
+  if (!isoDate) return '';
+  const date = new Date(isoDate);
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60000);
+  return local.toISOString().slice(0, 16);
+};
+
+export const formatDateForAPI = (value) =>
+  value ? new Date(value).toISOString() : undefined;
+
+
 const UpdateOrder = () => {
   const navigate = useNavigate();
   const { id } = useParams();
 
   const [originalOrder, setOriginalOrder] = useState(null);
   const [order, setOrder] = useState(null);
+  const [amountPaid, setAmountPaid] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -37,23 +95,14 @@ const UpdateOrder = () => {
 
         const fetched = res.data.order;
 
-        const normalized = {
-          ...fetched,
-          payment_method: fetched.payment_type || '',
-          amount_paid: 0,
-          order_details: fetched.order_details.map((d) => ({
-            ...d,
-            delivered_qty: '',
-            cancel_qty: '',
-            has_unPacked_completed: false,
-            has_production_completed: false,
-          })),
-        };
+        setAmountPaid(fetched?.amount_paid ?? 0);
+        const normalized = normalizeOrder(fetched);
 
         setOrder(normalized);
         setOriginalOrder(normalized);
-      } catch {
-        setError('Failed to load order');
+      } catch (error) {
+        console.error("Order Load Error:", error.message);
+        setError("Failed to load order");
       } finally {
         setLoading(false);
       }
@@ -100,19 +149,17 @@ const UpdateOrder = () => {
 
     const payload = { order_number: order.order_number };
 
-    if (order.status !== originalOrder.status)
-      payload.status = order.status;
+    const simpleFields = ['status', 'priority', 'payment_method'];
 
-    if (order.priority !== originalOrder.priority)
-      payload.priority = order.priority;
+    simpleFields.forEach((field) => {
+      if (order[field] !== originalOrder[field]) {
+        payload[field] = order[field];
+      }
+    });
 
-    const paidAmount = Number(order.amount_paid);
-    if (paidAmount > 0) {
-      payload.amount_paid = paidAmount;
+    if (Number(order.amount_paid) > 0) {
+      payload.amount_paid = Number(order.amount_paid);
     }
-
-    if (order.payment_method !== originalOrder.payment_method)
-      payload.payment_method = order.payment_method;
 
     const updatedDetails = order.order_details
       .map((detail, index) => {
@@ -124,48 +171,62 @@ const UpdateOrder = () => {
 
         let hasChanges = false;
 
-        /* ================= STATUS ================= */
-        if (detail.status !== originalDetail.status) {
-          item.status = detail.status;
-          hasChanges = true;
-        }
+        const assignIfChanged = (key, current, previous) => {
+          if (current !== previous) {
+            item[key] = current;
+            hasChanges = true;
+          }
+        };
 
-        /* ================= DELIVERED QTY ================= */
+        assignIfChanged('status', detail.status, originalDetail.status);
+
+        /* ================= DELIVERED QTY & DATE ================= */
+
         const deliveredQty = Number(detail.delivered_qty);
         const originalDeliveredQty = Number(originalDetail.qty_delivered || 0);
 
-        if (deliveredQty > 0 && deliveredQty !== originalDeliveredQty) {
+        const hasQtyChanged =
+          deliveredQty > 0 && deliveredQty !== originalDeliveredQty;
+
+        const hasDateChanged =
+          detail.delivery_date &&
+          detail.delivery_date !== originalDetail.delivery_date;
+
+        /* If quantity changed */
+        if (hasQtyChanged) {
           item.delivered_qty = deliveredQty;
-          item.delivered_date = detail.delivery_date;
+          hasChanges = true;
+        }
+
+        /* If either quantity OR date changed, send delivered_date */
+        if (hasQtyChanged || hasDateChanged) {
+          item.delivered_date = new Date(detail.delivery_date).toISOString();
           hasChanges = true;
         }
 
         /* ================= CANCEL QTY ================= */
         const cancelQty = Number(detail.cancel_qty);
-        const originalCancelQty = Number(originalDetail.total_cancelled_qty || 0);
-
-        if (cancelQty > 0 && cancelQty !== originalCancelQty) {
+        if (
+          cancelQty > 0 &&
+          cancelQty !== Number(originalDetail.total_cancelled_qty || 0)
+        ) {
           item.cancel_qty = cancelQty;
           hasChanges = true;
         }
 
         /* ================= UNPACKED COMPLETION ================= */
-        if (
-          detail.has_unPacked_completed !==
+        assignIfChanged(
+          'has_unPacked_completed',
+          detail.has_unPacked_completed,
           originalDetail.has_unPacked_completed
-        ) {
-          item.has_unPacked_completed = detail.has_unPacked_completed;
-          hasChanges = true;
-        }
+        );
 
         /* ================= PRODUCTION COMPLETION ================= */
-        if (
-          detail.has_production_completed !==
+        assignIfChanged(
+          'has_production_completed',
+          detail.has_production_completed,
           originalDetail.has_production_completed
-        ) {
-          item.has_production_completed = detail.has_production_completed;
-          hasChanges = true;
-        }
+        );
 
         return hasChanges ? item : null;
       })
@@ -267,191 +328,309 @@ const UpdateOrder = () => {
         </div>
 
         {/* ================= ORDER SUMMARY ================= */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-          <div className="grid md:grid-cols-5 gap-6 items-start">
+        <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 space-y-10">
 
-            {/* Order Info */}
+          {/* ===== Section Header ===== */}
+          <header className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500">
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
                 Order Number
               </p>
-              <p className="text-lg font-semibold text-gray-900 mt-1 font-mono">
+              <p className="mt-2 text-lg font-semibold text-gray-900 font-mono tracking-wide">
                 {order.order_number}
               </p>
             </div>
+          </header>
 
-            <CustomSelect
-              value={order.status}
-              onChange={(e) =>
-                updateOrderField('status', e.target.value)
-              }
-              options={ORDER_STATUS_LIST.filter((s) => s !== 'ALL')}
-            />
+          {/* ===== Editable Fields Grid ===== */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
 
-            <CustomSelect
-              value={order.priority}
-              onChange={(e) =>
-                updateOrderField('priority', e.target.value)
-              }
-              options={PRIORITY_OPTIONS}
-            />
+            {/* Order Status */}
+            <FormFieldSecondary label="Order Status">
+              <CustomSelect
+                value={order.status}
+                onChange={(e) =>
+                  updateOrderField('status', e.target.value)
+                }
+                options={ORDER_STATUS_LIST.filter((s) => s !== 'ALL')}
+              />
+            </FormFieldSecondary>
 
-            <CustomSelect
-              value={order.payment_method}
-              onChange={(e) =>
-                updateOrderField('payment_method', e.target.value)
-              }
-              options={PAYMENT_METHOD_OPTIONS}
-            />
+            {/* Priority */}
+            <FormFieldSecondary label="Priority">
+              <CustomSelect
+                value={order.priority}
+                onChange={(e) =>
+                  updateOrderField('priority', e.target.value)
+                }
+                options={PRIORITY_OPTIONS}
+              />
+            </FormFieldSecondary>
 
-            <input
-              type="number"
-              value={order.amount_paid === 0 ? '' : order.amount_paid}
-              onChange={(e) =>
-                updateOrderField(
-                  'amount_paid',
-                  e.target.value === '' ? 0 : Number(e.target.value)
-                )
-              }
-              className="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
-              placeholder="Amount Paid"
-            />
+            {/* Payment Method */}
+            <FormFieldSecondary label="Payment Method">
+              <CustomSelect
+                value={order.payment_method}
+                onChange={(e) =>
+                  updateOrderField('payment_method', e.target.value)
+                }
+                options={PAYMENT_METHOD_OPTIONS}
+              />
+            </FormFieldSecondary>
+
+            {/* Amount Paid */}
+            <FormFieldSecondary label="Amount Paid">
+              <input
+                type="number"
+                min={0}
+                max={Number(order?.order_total_price || 0) - amountPaid}
+                value={order.amount_paid === 0 ? '' : order.amount_paid}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? 0 : Number(e.target.value);
+
+                  if (value <= Number(order?.order_total_price || 0) - amountPaid) {
+                    updateOrderField('amount_paid', value);
+                  }
+                }}
+                className="form-input"
+                placeholder="Enter paid amount"
+              />
+            </FormFieldSecondary>
+
           </div>
-
-          {/* Financial Card */}
-          <div className="mt-6 max-w-xs">
-            <div className="bg-gradient-to-br from-purple-50 to-white border border-purple-100 rounded-2xl p-5 shadow-sm">
-              <p className="text-xs uppercase tracking-wide text-gray-500">
-                Total Order Value
-              </p>
-
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-3xl font-bold text-gray-900">
-                  ₹ {order.order_total_price?.toLocaleString('en-IN')}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
 
         {/* ================= ORDER DETAILS ================= */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Order Details
-          </h2>
+        <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-8">
+          <header>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Order Details
+            </h2>
+          </header>
 
           {order.order_details.map((detail, index) => {
-            const showUnpacked = detail.stock_flags?.hasUnpacked === true;
-            const showProduction = detail.stock_flags?.hasProduction === true;
+            const {
+              order_details_number,
+              is_free,
+              total_price,
+              status,
+              delivery_date,
+              qty_ordered,
+              qty_delivered,
+              total_cancelled_qty,
+              has_unPacked_completed,
+              has_production_completed,
+              stock_flags = {},
+            } = detail;
+
+            const { hasUnpacked, hasProduction } = stock_flags;
+
+            /* ================= Quantity Calculations ================= */
+
+            const totalQty = Number(qty_ordered ?? 0);
+            const alreadyDelivered = Number(qty_delivered ?? 0);
+            const alreadyCancelled = Number(total_cancelled_qty ?? 0);
+
+            // Editable state values (if you're tracking temporary updates)
+            const deliveredQty = Number(detail.delivered_qty ?? alreadyDelivered);
+            const cancelQty = Number(detail.cancel_qty ?? alreadyCancelled);
+
+            const maxDeliverableQty = totalQty - alreadyCancelled;
+            const maxCancelableQty = totalQty - alreadyDelivered;
 
             return (
-              <div
-                key={detail.order_details_number}
-                className="bg-gray-50 border border-gray-200 rounded-xl p-5"
+              <article
+                key={order_details_number}
+                className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-6 transition-all"
               >
-                {/* Top Row */}
-                <div className="flex justify-between items-center mb-4">
-                  <p className="font-mono text-sm text-gray-700">
-                    {detail.order_details_number}
-                  </p>
+                {/* ===== Header Row ===== */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">
+                      Order Detail No
+                    </p>
+                    <p className="font-mono text-sm font-medium text-gray-800 mt-1">
+                      {order_details_number}
+                    </p>
+                  </div>
 
                   <span
-                    className={`px-3 py-1 text-xs font-medium rounded-full ${detail.is_free
+                    className={`px-3 py-1 text-xs font-medium rounded-full ${is_free
                       ? 'bg-green-100 text-green-700'
                       : 'bg-gray-200 text-gray-600'
                       }`}
                   >
-                    {detail.is_free
-                      ? 'Product Scheme'
-                      : 'Regular Product'}
+                    {is_free ? 'Product Scheme' : 'Regular Product'}
                   </span>
                 </div>
 
-                {/* Middle Row */}
-                <div className="grid md:grid-cols-5 gap-4 items-center">
+                {/* ===== Form Grid ===== */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
 
-                  <CustomSelect
-                    value={detail.status}
-                    onChange={(e) =>
-                      updateDetailField(index, 'status', e.target.value)
-                    }
-                    options={ORDER_STATUS_LIST.filter(
-                      (s) => s !== 'ALL'
-                    )}
-                  />
+                  {/* --- Status Section --- */}
+                  <div className="space-y-5">
+                    <FormField label="Order Status">
+                      <CustomSelect
+                        value={status}
+                        onChange={(e) =>
+                          updateDetailField(index, 'status', e.target.value)
+                        }
+                        options={ORDER_STATUS_LIST.filter((s) => s !== 'ALL')}
+                      />
+                    </FormField>
 
-                  <input
-                    type="number"
-                    value={detail.delivered_qty}
-                    onChange={(e) =>
-                      updateDetailField(index, 'delivered_qty', e.target.value)
-                    }
-                    className="border border-gray-300 rounded-xl px-3 py-2"
-                    placeholder="Delivered Quantity"
-                  />
-
-                  <input
-                    type="number"
-                    value={detail.cancel_qty}
-                    onChange={(e) =>
-                      updateDetailField(index, 'cancel_qty', e.target.value)
-                    }
-                    className="border border-gray-300 rounded-xl px-3 py-2"
-                    placeholder="Cancelled Quantity"
-                  />
-
-                  {/* Completion Flags */}
-                  <div className="flex gap-4 text-sm">
-                    {showUnpacked && (
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={detail.has_unPacked_completed}
-                          onChange={(e) =>
-                            updateDetailField(
-                              index,
-                              'has_unPacked_completed',
-                              e.target.checked
-                            )
-                          }
-                        />
-                        Unpacked Completed
-                      </label>
-                    )}
-
-                    {showProduction && (
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={detail.has_production_completed}
-                          onChange={(e) =>
-                            updateDetailField(
-                              index,
-                              'has_production_completed',
-                              e.target.checked
-                            )
-                          }
-                        />
-                        Production Completed
-                      </label>
-                    )}
+                    <FormField label="Delivered Date & Time">
+                      <input
+                        type="datetime-local"
+                        value={formatDateForInput(detail.delivery_date)}
+                        onChange={(e) =>
+                          updateDetailField(index, 'delivery_date', e.target.value)
+                        }
+                        className="form-input"
+                      />
+                    </FormField>
                   </div>
 
-                  {/* Item Financial */}
-                  <div className="text-right bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
-                    <p className="text-xs uppercase text-gray-500">
-                      Item Total
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      ₹ {detail.total_price?.toLocaleString('en-IN')}
-                    </p>
+                  {/* --- Quantity Section --- */}
+                  <div className="space-y-5">
+                    <FormField label="Delivered Quantity">
+                      <input
+                        type="number"
+                        min={0}
+                        max={maxDeliverableQty}
+                        onChange={(e) => {
+                          const value = Number(e.target.value || 0);
+                          if (value <= maxDeliverableQty) {
+                            updateDetailField(index, 'delivered_qty', value);
+                          }
+                        }}
+                        className="form-input"
+                        placeholder={`Enter delivered quantity (Max: ${maxDeliverableQty})`}
+                      />
+                    </FormField>
+
+                    <FormField label="Cancelled Quantity">
+                      <input
+                        type="number"
+                        min={0}
+                        max={maxCancelableQty}
+                        onChange={(e) => {
+                          const value = Number(e.target.value || 0);
+                          if (value <= maxCancelableQty) {
+                            updateDetailField(index, 'cancel_qty', value);
+                          }
+                        }}
+                        className="form-input"
+                        placeholder={`Enter cancelled quantity (Max: ${maxCancelableQty})`} />
+                    </FormField>
                   </div>
 
+                  {/* --- Completion & Financial Section --- */}
+                  <div className="space-y-6">
+
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 mb-3">
+                        Completion Status
+                      </p>
+
+                      <div className="flex flex-col gap-3">
+                        {hasUnpacked && (
+                          <CheckboxField
+                            label="Unpacked Completed"
+                            checked={has_unPacked_completed}
+                            onChange={(e) =>
+                              updateDetailField(
+                                index,
+                                'has_unPacked_completed',
+                                e.target.checked
+                              )
+                            }
+                          />
+                        )}
+
+                        {hasProduction && (
+                          <CheckboxField
+                            label="Production Completed"
+                            checked={has_production_completed}
+                            onChange={(e) =>
+                              updateDetailField(
+                                index,
+                                'has_production_completed',
+                                e.target.checked
+                              )
+                            }
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Financial Card */}
+                    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                      <p className="text-xs uppercase tracking-wide text-gray-500">
+                        Item Total
+                      </p>
+                      <p className="text-2xl font-semibold text-gray-900 mt-2">
+                        ₹ {total_price?.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+
+                  </div>
                 </div>
-              </div>
+              </article>
             );
           })}
-        </div>
+        </section>
+
+        {/* ================= FINAL ORDER FINANCIAL SUMMARY ================= */}
+        <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 mt-10">
+
+          <div className="flex justify-end">
+            <div className="w-full sm:w-[420px] bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
+
+              {/* Header */}
+              <div className="border-b border-gray-100 pb-4 mb-6">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-600">
+                  Order Financial Summary
+                </h3>
+              </div>
+
+              {/* Financial Rows */}
+              <div className="space-y-4">
+
+                {/* Total Order Value */}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Total Order Value</span>
+                  <span className="font-medium text-gray-900">
+                    ₹ {order.order_total_price?.toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+                {/* Amount Paid */}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Amount Paid</span>
+                  <span className="font-medium text-green-600">
+                    ₹ {amountPaid?.toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-4"></div>
+
+                {/* Balance */}
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-semibold text-gray-800">
+                    Balance Amount
+                  </span>
+                  <span className="text-xl font-bold text-purple-700">
+                    ₹ {order.amount_due?.toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </section>
       </div>
     </div>
   );
