@@ -142,19 +142,30 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const data = await apiLogin(email, password);
+
       if (data.success) {
         const userData = data.data.employee;
         const token = data.data.token;
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(userData));
+
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(userData));
+
         setUser(userData);
+
         return { success: true, message: data.message };
-      } else {
-        return { success: false, message: data.message || 'Login failed' };
       }
+
+      return {
+        success: false,
+        message: data.message || "Login failed",
+      };
     } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, message: 'Network error. Please try again.' };
+      console.error("Login error:", error);
+
+      return {
+        success: false,
+        message: "Network error. Please try again.",
+      };
     }
   };
 

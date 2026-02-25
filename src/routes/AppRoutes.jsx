@@ -17,6 +17,8 @@ import Delivery from "../pages/Delivery";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
 import { ROUTE_PERMISSIONS } from "./routePermissions";
+import UpdateOrder from "../pages/UpdateOrder";
+import UserDetails from "../pages/UserDetails";
 
 export default function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -61,6 +63,14 @@ export default function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/users/:id"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/users"]}>
+              <UserDetails />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/dealers" element={
           <ProtectedRoute
             allowedRoles={ROUTE_PERMISSIONS["/dealers"]}
@@ -90,6 +100,14 @@ export default function AppRoutes() {
             <OrderDetails />
           </ProtectedRoute>
         } />
+        <Route
+          path="/orders/update/:id"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/orders"]}>
+              <UpdateOrder />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/delivery"
           element={
