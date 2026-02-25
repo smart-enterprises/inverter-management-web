@@ -21,3 +21,11 @@ export const INITIAL_FORM_STATE = {
     payment_method: 'CASH',
     order_details: [{ ...INITIAL_ORDER_ITEM }]
 };
+
+export const capitalizeFirstLetter = (value) => {
+    if (typeof value !== "string" || value.length === 0) {
+        return "";
+    }
+
+    return value.charAt(0).toUpperCase() + value.slice(1);
+};
