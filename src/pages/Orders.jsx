@@ -226,7 +226,6 @@ const Orders = () => {
                 <th className="text-left py-4 px-4">Dealer Name</th>
                 <th className="text-left py-4 px-4">Dealer Shop</th>
                 <th className="text-left py-4 px-4">Created</th>
-                <th className="text-left py-4 px-4">Updated</th>
                 <th className="text-left py-4 px-4">Delivery Date</th>
                 <th className="text-left py-4 px-4">Items</th>
                 <th className="text-left py-4 px-4">Total Amount</th>
@@ -269,9 +268,6 @@ const Orders = () => {
                     <td className="py-4 px-4">{order.dealer?.shop_name?.charAt(0).toUpperCase() + order.dealer?.shop_name?.slice(1)}</td>
                     <td className="py-4 px-4">
                       {formatDate(order.created_at)}
-                    </td>
-                    <td className="py-4 px-4">
-                      {formatDate(order.updated_at)}
                     </td>
                     {/* Delivery Date */}
                     <td className="py-4 px-4">
