@@ -103,29 +103,35 @@ export const updateOrderStatus = async (orderNumber, payload) => {
     return response.json();
 };
 
-// ✅ Get Orders by Date Filter
-export const fetchOrdersByDateFilter = async ({
+// ✅ Fetch Orders By Date Filter (Monthly)
+export const fetchOrdersByDate = async ({
     year,
     month,
     start_date,
     end_date,
-}) => {
-    const queryParams = new URLSearchParams();
+} = {}) => {
+    try {
+        const queryParams = new URLSearchParams();
 
-    if (year) queryParams.append('year', year);
-    if (month) queryParams.append('month', month);
-    if (start_date) queryParams.append('start_date', start_date);
-    if (end_date) queryParams.append('end_date', end_date);
+        if (year) queryParams.append("year", year);
+        if (month) queryParams.append("month", month);
+        if (start_date) queryParams.append("start_date", start_date);
+        if (end_date) queryParams.append("end_date", end_date);
 
-    const response = await fetch(
-        `${API_BASE_URL}/order-details/date-filter?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-        },
+        const response = await fetch(
+            `${API_BASE_URL}/order-details/date-filter?${queryParams.toString()}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...getAuthHeaders(),
+                },
+            }
+        );
+
+        return await response.json();
+    } catch (error) {
+        console.error("❌ fetchOrdersByDate error:", error);
+        throw error;
     }
-    );
-
-    return response.json();
 };
