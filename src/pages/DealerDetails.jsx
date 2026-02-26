@@ -27,6 +27,7 @@ import { fetchOrders } from "../api/orders";
 import { fetchProducts } from "../api/products";
 import CustomSelect from "../components/CustomSelect";
 import { getPriorityStyle, getStatusStyle, ORDER_STATUS_LIST, PRIORITY_OPTIONS } from "../utils/status";
+import { capitalizeFirstLetter } from "../utils/constants";
 
 /* -------------------------------------------------------------------------- */
 /*                                UI COMPONENTS                               */
@@ -118,9 +119,6 @@ const formatDate = (dateString) =>
       year: "numeric",
     })
     : "N/A";
-
-const capitalize = (text) =>
-  text ? text.charAt(0).toUpperCase() + text.slice(1) : "N/A";
 
 const getTotalItems = (details = []) =>
   details.reduce((acc, item) => acc + (item.qty_ordered || 0), 0);
@@ -483,7 +481,7 @@ const DealerDetails = () => {
         </div>
 
         <div className="px-4 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-          {capitalize(dealer.status)}
+          {capitalizeFirstLetter(dealer.status)}
         </div>
       </div>
 
@@ -509,13 +507,13 @@ const DealerDetails = () => {
             <InfoItem
               icon={<FiUser />}
               label="Full Name"
-              value={capitalize(dealer.employee_name)}
+              value={capitalizeFirstLetter(dealer.employee_name)}
             />
 
             <InfoItem
               icon={<FiBox />}
               label="Shop Name"
-              value={capitalize(dealer.shop_name)}
+              value={capitalizeFirstLetter(dealer.shop_name)}
             />
 
             <InfoItem
@@ -533,13 +531,13 @@ const DealerDetails = () => {
             <InfoItem
               icon={<FiMapPin />}
               label="Town"
-              value={capitalize(dealer.town)}
+              value={capitalizeFirstLetter(dealer.town)}
             />
 
             <InfoItem
               icon={<FiMapPin />}
               label="District"
-              value={capitalize(dealer.district)}
+              value={capitalizeFirstLetter(dealer.district)}
             />
 
             <InfoItem
