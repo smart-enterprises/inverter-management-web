@@ -12,12 +12,6 @@ const getAuthHeaders = () => {
 /* ========================= CORE REQUEST ========================= */
 const request = async (endpoint, options = {}) => {
   try {
-    console.log("🔹 API Request:", {
-      endpoint,
-      method: options.method,
-      body: options.body ? JSON.parse(options.body) : null,
-    });
-
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers: {
@@ -39,7 +33,6 @@ const request = async (endpoint, options = {}) => {
 
     return data;
   } catch (error) {
-    console.error("❗ API Error:", error.message);
     return {
       success: false,
       message:
