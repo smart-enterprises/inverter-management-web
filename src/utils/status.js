@@ -21,3 +21,23 @@ export const PAYMENT_METHOD_OPTIONS = [
     'CHEQUE',
     'BANK_TRANSFER'
 ];
+
+// 🔹 UPDATED: Centralized status style system (enterprise-safe)
+export const getStatusStyle = (status) => {
+    const normalized = status?.toUpperCase();
+
+    const statusMap = {
+        PENDING: "bg-yellow-50 text-yellow-700",
+        CONFIRMED: "bg-blue-50 text-blue-700",
+        PRODUCTION: "bg-indigo-50 text-indigo-700",
+        PACKED: "bg-purple-50 text-purple-700",
+        INVOICE: "bg-cyan-50 text-cyan-700",
+        SHIPPED: "bg-orange-50 text-orange-700",
+        DELIVERED: "bg-green-50 text-green-700",
+        COMPLETED: "bg-emerald-50 text-emerald-700",
+        CANCELLED: "bg-red-50 text-red-700",
+        REJECTED: "bg-red-50 text-red-700",
+    };
+
+    return statusMap[normalized] || "bg-gray-50 text-gray-700";
+};
