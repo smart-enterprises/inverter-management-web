@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   FiArrowLeft,
@@ -13,6 +13,7 @@ import {
   FiPercent,
   FiPlus,
   FiTrash2,
+  FiSearch,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 
@@ -25,7 +26,7 @@ import { getBrandsByDealer } from "../api/brands";
 import { fetchOrders } from "../api/orders";
 import { fetchProducts } from "../api/products";
 import CustomSelect from "../components/CustomSelect";
-import { getStatusStyle } from "../utils/status";
+import { getPriorityStyle, getStatusStyle, ORDER_STATUS_LIST, PRIORITY_OPTIONS } from "../utils/status";
 
 /* -------------------------------------------------------------------------- */
 /*                                UI COMPONENTS                               */
@@ -82,6 +83,20 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// 🔹 NEW: Professional Priority Badge
+const PriorityBadge = ({ priority }) => {
+  const style = getPriorityStyle(priority);
+
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${style}`}
+    >
+      {priority || "N/A"}
+    </span>
+  );
+};
+
+
 /* -------------------------------------------------------------------------- */
 /*                               HELPER METHODS                               */
 /* -------------------------------------------------------------------------- */
@@ -134,7 +149,6 @@ const DealerDetails = () => {
     total: 0,
   });
 
-  const [brandToModels, setBrandToModels] = useState({});
   const [allBrands, setAllBrands] = useState([]);
 
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
@@ -151,39 +165,97 @@ const DealerDetails = () => {
     cancelled: 0,
   });
 
+  // 🔹 NEW: Order filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("ALL");
+  const [selectedPriority, setSelectedPriority] = useState("ALL");
+
+  // 🔹 NEW: Pagination
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 5,
+    total: 0,
+  });
+
+  const buildBrandModelMap = (brands = []) =>
+    brands.reduce((map, brand) => {
+      if (!brand?.brand_name) return map;
+
+      const models = Array.isArray(brand.brand_models)
+        ? brand.brand_models
+        : [];
+
+      map[brand.brand_name] = models;
+
+      if (brand.brand_id) {
+        map[brand.brand_id] = models;
+      }
+
+      return map;
+    }, {});
+
+  const brandToModels = useMemo(() => {
+    return buildBrandModelMap(allBrands);
+  }, [allBrands]);
+
   /* ----------------------------- DATA LOADERS ---------------------------- */
 
   const loadDealerData = useCallback(async () => {
+    if (!id) return;
+
     try {
       setLoading(true);
       setError(null);
 
-      const [dealerRes, ordersRes] = await Promise.all([
-        fetchDealerById(id),
-        fetchOrders(),
-      ]);
+      const dealerRes = await fetchDealerById(id);
 
-      if (!dealerRes?.success)
+      if (!dealerRes?.success) {
         throw new Error(
           dealerRes?.message || "Failed to load dealer details"
         );
+      }
 
       setDealer(dealerRes.data);
 
+      // 🔹 Orders fetch (with filters + pagination)
+      const ordersRes = await fetchOrders({
+        page: pagination.page,
+        limit: pagination.limit,
+        dealer: id,
+        status:
+          selectedStatus && selectedStatus !== "ALL"
+            ? selectedStatus.toUpperCase()
+            : undefined,
+        priority:
+          selectedPriority && selectedPriority !== "ALL"
+            ? selectedPriority.toUpperCase()
+            : undefined,
+        search: searchQuery || undefined,
+      });
+
       if (ordersRes?.success) {
-        const filtered = ordersRes.data.filter(
-          ({ order }) => order?.dealer_id === id
-        );
-        setDealerOrders(filtered);
+        setDealerOrders(ordersRes.data || []);
+        setPagination((prev) => ({
+          ...prev,
+          total: ordersRes.pagination?.total || 0,
+        }));
       } else {
         setDealerOrders([]);
       }
+
     } catch (err) {
       setError(err.message || "Unexpected error occurred");
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [
+    id,
+    pagination.page,
+    pagination.limit,
+    selectedStatus,
+    selectedPriority,
+    searchQuery,
+  ]);
 
   const loadDiscounts = useCallback(
     async (page = 1) => {
@@ -285,18 +357,6 @@ const DealerDetails = () => {
       const brands = brandsRes.data || [];
 
       setAllBrands(brands);
-
-      // Create brand -> models mapping directly from API
-      const map = {};
-
-      brands.forEach((brand) => {
-        if (!brand.brand_name) return;
-
-        map[brand.brand_name] = brand.brand_models || [];
-      });
-
-      setBrandToModels(map);
-
     } catch (err) {
       console.error("Brand load failed:", err);
     }
@@ -308,7 +368,7 @@ const DealerDetails = () => {
     loadDiscounts(1);
     loadOrderSummary();
     loadBrands();
-  }, [id]);
+  }, [id, pagination.page, pagination.limit, selectedStatus, selectedPriority, searchQuery]);
 
   /* ----------------------------- DISCOUNT SAVE ---------------------------- */
 
@@ -497,50 +557,86 @@ const DealerDetails = () => {
         </div>
       </div>
 
-      {/* ===================== DEALER BRANDS ===================== */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+      {/* 🔹 Dealer Brands Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
-        {/* Header */}
-        <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-purple-100 flex items-center justify-center text-[#9333EA] shadow-sm">
-            🏷️
+        {/* ===================== Header ===================== */}
+        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-[#9333EA]">
+              🏷️
+            </div>
+
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Dealer Brands & Models
+              </h2>
+              <p className="text-sm text-gray-500">
+                Assigned brands and available models
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 tracking-tight">
-              Dealer Brands
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Brands assigned to this dealer
-            </p>
-          </div>
+
+          {dealer?.brand?.length > 0 && (
+            <span className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
+              {dealer.brand.length} Brands
+            </span>
+          )}
         </div>
 
-        {/* Body */}
+        {/* ===================== Body ===================== */}
         <div className="px-8 py-8">
 
-          {/* Empty State */}
           {!dealer?.brand || dealer.brand.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
-                🏷️
-              </div>
+            <div className="text-center py-16">
               <p className="text-sm font-medium text-gray-700">
                 No brands assigned
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Assign brands to enable product access.
+                Assign brands and models to enable product access.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {dealer.brand.map((brand, index) => (
-                <div
-                  key={index}
-                  className="px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-purple-50 hover:border-purple-200 transition-all duration-200 text-center text-sm font-medium text-gray-800 hover:text-[#9333EA]"
-                >
-                  {brand}
-                </div>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+
+              {dealer.brand.map((brand, index) => {
+                const models = brandToModels[brand] || [];
+
+                return (
+                  <div
+                    key={index}
+                    className="relative pl-4"
+                  >
+                    {/* Left Accent Line */}
+                    <div className="absolute left-0 top-1 h-5 w-1 bg-[#9333EA] rounded-full" />
+
+                    {/* Brand Name */}
+                    <h3 className="text-base font-semibold text-gray-900 mb-3">
+                      {brand}
+                    </h3>
+
+                    {/* Models */}
+                    {models.length > 0 ? (
+                      <ul className="space-y-1">
+                        {models.map((model, i) => (
+                          <li
+                            key={i}
+                            className="text-sm text-gray-600 italic"
+                          >
+                            {model}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">
+                        No models assigned
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+
             </div>
           )}
         </div>
@@ -678,245 +774,247 @@ const DealerDetails = () => {
       </div>
 
       {/* ===================== ADD DISCOUNTS MODAL ===================== */}
-      {bulkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md animate-fadeIn">
+      {
+        bulkModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md animate-fadeIn">
 
-          <div className="relative w-full max-w-5xl mx-4 bg-white rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+            <div className="relative w-full max-w-5xl mx-4 bg-white rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
 
-            {/* ---------------- Header ---------------- */}
-            <div className="px-10 py-7 border-b border-gray-100 bg-white">
-              <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">
-                Add Dealer Discounts
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Configure multiple pricing rules for this dealer
-              </p>
-            </div>
+              {/* ---------------- Header ---------------- */}
+              <div className="px-10 py-7 border-b border-gray-100 bg-white">
+                <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">
+                  Add Dealer Discounts
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Configure multiple pricing rules for this dealer
+                </p>
+              </div>
 
-            {/* ---------------- Body ---------------- */}
-            <div className="flex-1 overflow-y-auto px-10 py-8 space-y-10 bg-gray-50/40">
-              {bulkError && (
-                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
-                  {bulkError}
-                </div>
-              )}
-
-              {bulkRows.map((row, idx) => (
-                <div
-                  key={row.id}
-                  className="p-8 rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200 space-y-6"
-                >
-                  {/* Row Header */}
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-semibold text-gray-700">
-                      Discount {idx + 1}
-                    </h4>
-
-                    {bulkRows.length > 1 && (
-                      <button
-                        onClick={() =>
-                          setBulkRows((prev) =>
-                            prev.filter((_, i) => i !== idx)
-                          )
-                        }
-                        className="text-red-500 hover:text-red-700 transition"
-                      >
-                        <FiTrash2 size={16} />
-                      </button>
-                    )}
+              {/* ---------------- Body ---------------- */}
+              <div className="flex-1 overflow-y-auto px-10 py-8 space-y-10 bg-gray-50/40">
+                {bulkError && (
+                  <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
+                    {bulkError}
                   </div>
+                )}
 
-                  {/* ---------------- Main Fields ---------------- */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {bulkRows.map((row, idx) => (
+                  <div
+                    key={row.id}
+                    className="p-8 rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200 space-y-6"
+                  >
+                    {/* Row Header */}
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-gray-700">
+                        Discount {idx + 1}
+                      </h4>
 
-                    {/* Brand */}
-                    <CustomSelect
-                      value={row.brand_name}
-                      onChange={(e) => {
-                        const selectedBrand = e.target.value;
-
-                        setBulkRows((prev) =>
-                          prev.map((r, i) =>
-                            i === idx
-                              ? {
-                                ...r,
-                                brand_name: selectedBrand,
-                                model_name: "", // reset model when brand changes
-                              }
-                              : r
-                          )
-                        );
-                      }}
-                      options={allBrands.map((b) => b.brand_name)}
-                      placeholder="Select Brand"
-                    />
-
-                    {/* Model */}
-                    <CustomSelect
-                      value={row.model_name}
-                      onChange={(e) =>
-                        setBulkRows((prev) =>
-                          prev.map((r, i) =>
-                            i === idx
-                              ? { ...r, model_name: e.target.value }
-                              : r
-                          )
-                        )
-                      }
-                      options={
-                        row.brand_name
-                          ? brandToModels[row.brand_name] || []
-                          : []
-                      }
-                      placeholder="Select Model"
-                      disabled={!row.brand_name}
-                    />
-
-                    {/* Discount Input */}
-                    <div className="space-y-1">
-                      <input
-                        type="number"
-                        min="0"
-                        max={row.is_percentage ? 100 : undefined}
-                        value={row.discount_value}
-                        onChange={(e) => {
-                          let value = e.target.value;
-
-                          if (row.is_percentage && Number(value) > 100) {
-                            value = 100;
+                      {bulkRows.length > 1 && (
+                        <button
+                          onClick={() =>
+                            setBulkRows((prev) =>
+                              prev.filter((_, i) => i !== idx)
+                            )
                           }
+                          className="text-red-500 hover:text-red-700 transition"
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* ---------------- Main Fields ---------------- */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                      {/* Brand */}
+                      <CustomSelect
+                        value={row.brand_name}
+                        onChange={(e) => {
+                          const selectedBrand = e.target.value;
 
                           setBulkRows((prev) =>
                             prev.map((r, i) =>
                               i === idx
-                                ? { ...r, discount_value: value }
+                                ? {
+                                  ...r,
+                                  brand_name: selectedBrand,
+                                  model_name: "", // reset model when brand changes
+                                }
                                 : r
                             )
                           );
                         }}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20 transition"
-                        placeholder="Enter Discount"
+                        options={allBrands.map((b) => b.brand_name)}
+                        placeholder="Select Brand"
                       />
 
-                      {row.is_percentage && Number(row.discount_value) > 100 && (
-                        <p className="text-xs text-red-500">
-                          Percentage cannot exceed 100%
-                        </p>
-                      )}
+                      {/* Model */}
+                      <CustomSelect
+                        value={row.model_name}
+                        onChange={(e) =>
+                          setBulkRows((prev) =>
+                            prev.map((r, i) =>
+                              i === idx
+                                ? { ...r, model_name: e.target.value }
+                                : r
+                            )
+                          )
+                        }
+                        options={
+                          row.brand_name
+                            ? brandToModels[row.brand_name] || []
+                            : []
+                        }
+                        placeholder="Select Model"
+                        disabled={!row.brand_name}
+                      />
+
+                      {/* Discount Input */}
+                      <div className="space-y-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max={row.is_percentage ? 100 : undefined}
+                          value={row.discount_value}
+                          onChange={(e) => {
+                            let value = e.target.value;
+
+                            if (row.is_percentage && Number(value) > 100) {
+                              value = 100;
+                            }
+
+                            setBulkRows((prev) =>
+                              prev.map((r, i) =>
+                                i === idx
+                                  ? { ...r, discount_value: value }
+                                  : r
+                              )
+                            );
+                          }}
+                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20 transition"
+                          placeholder="Enter Discount"
+                        />
+
+                        {row.is_percentage && Number(row.discount_value) > 100 && (
+                          <p className="text-xs text-red-500">
+                            Percentage cannot exceed 100%
+                          </p>
+                        )}
+                      </div>
+
+
+                      <div className="flex items-center justify-center">
+                        <div className="flex bg-gray-200 rounded-full p-1 shadow-inner">
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setBulkRows((prev) =>
+                                prev.map((r, i) =>
+                                  i === idx
+                                    ? { ...r, is_percentage: false }
+                                    : r
+                                )
+                              )
+                            }
+                            className={`px-4 py-1.5 text-sm font-medium rounded-full transition
+                      ${!row.is_percentage
+                                ? "bg-white shadow text-[#9333EA]"
+                                : "text-gray-600"
+                              }`}
+                          >
+                            ₹
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setBulkRows((prev) =>
+                                prev.map((r, i) =>
+                                  i === idx
+                                    ? { ...r, is_percentage: true }
+                                    : r
+                                )
+                              )
+                            }
+                            className={`px-4 py-1.5 text-sm font-medium rounded-full transition
+                      ${row.is_percentage
+                                ? "bg-white shadow text-[#9333EA]"
+                                : "text-gray-600"
+                              }`}
+                          >
+                            %
+                          </button>
+
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Segmented Toggle */}
-                    <div className="flex items-center justify-center">
-                      <div className="flex bg-gray-200 rounded-full p-1 shadow-inner">
+                    {/* ---------------- Description ---------------- */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                        Description (Optional)
+                      </label>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setBulkRows((prev) =>
-                              prev.map((r, i) =>
-                                i === idx
-                                  ? { ...r, is_percentage: false }
-                                  : r
-                              )
+                      <textarea
+                        rows={3}
+                        maxLength={200}
+                        value={row.description || ""}
+                        onChange={(e) =>
+                          setBulkRows((prev) =>
+                            prev.map((r, i) =>
+                              i === idx
+                                ? { ...r, description: e.target.value }
+                                : r
                             )
-                          }
-                          className={`px-4 py-1.5 text-sm font-medium rounded-full transition
-                      ${!row.is_percentage
-                              ? "bg-white shadow text-[#9333EA]"
-                              : "text-gray-600"
-                            }`}
-                        >
-                          ₹
-                        </button>
+                          )
+                        }
+                        placeholder="Enter discount description (e.g., Festive Offer for Diwali 2026...)"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20 resize-none transition"
+                      />
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setBulkRows((prev) =>
-                              prev.map((r, i) =>
-                                i === idx
-                                  ? { ...r, is_percentage: true }
-                                  : r
-                              )
-                            )
-                          }
-                          className={`px-4 py-1.5 text-sm font-medium rounded-full transition
-                      ${row.is_percentage
-                              ? "bg-white shadow text-[#9333EA]"
-                              : "text-gray-600"
-                            }`}
-                        >
-                          %
-                        </button>
-
+                      <div className="text-xs text-gray-400 text-right">
+                        {(row.description?.length || 0)}/200
                       </div>
                     </div>
                   </div>
-
-                  {/* ---------------- Description ---------------- */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                      Description (Optional)
-                    </label>
-
-                    <textarea
-                      rows={3}
-                      maxLength={200}
-                      value={row.description || ""}
-                      onChange={(e) =>
-                        setBulkRows((prev) =>
-                          prev.map((r, i) =>
-                            i === idx
-                              ? { ...r, description: e.target.value }
-                              : r
-                          )
-                        )
-                      }
-                      placeholder="Enter discount description (e.g., Festive Offer for Diwali 2026...)"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20 resize-none transition"
-                    />
-
-                    <div className="text-xs text-gray-400 text-right">
-                      {(row.description?.length || 0)}/200
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* ---------------- Footer ---------------- */}
-            <div className="px-8 py-6 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-2xl">
-
-              <button
-                onClick={() =>
-                  setBulkRows((prev) => [...prev, createEmptyRow()])
-                }
-                className="px-5 py-2.5 border border-[#9333EA] text-[#9333EA] rounded-xl hover:bg-[#9333EA]/5 transition"
-              >
-                + Add Another
-              </button>
-
-              <div className="flex gap-4">
-                <button
-                  onClick={() => setBulkModalOpen(false)}
-                  className="px-5 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-100 transition"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  disabled={bulkSubmitting}
-                  onClick={handleSubmitDiscounts}
-                  className="px-6 py-2.5 bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white rounded-xl shadow hover:opacity-90 transition disabled:opacity-50"
-                >
-                  {bulkSubmitting ? "Saving..." : "Save Discounts"}
-                </button>
+                ))}
               </div>
-            </div>
 
+              {/* ---------------- Footer ---------------- */}
+              <div className="px-8 py-6 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-2xl">
+
+                <button
+                  onClick={() =>
+                    setBulkRows((prev) => [...prev, createEmptyRow()])
+                  }
+                  className="px-5 py-2.5 border border-[#9333EA] text-[#9333EA] rounded-xl hover:bg-[#9333EA]/5 transition"
+                >
+                  + Add Another
+                </button>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setBulkModalOpen(false)}
+                    className="px-5 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-100 transition"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    disabled={bulkSubmitting}
+                    onClick={handleSubmitDiscounts}
+                    className="px-6 py-2.5 bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white rounded-xl shadow hover:opacity-90 transition disabled:opacity-50"
+                  >
+                    {bulkSubmitting ? "Saving..." : "Save Discounts"}
+                  </button>
+                </div>
+              </div>
+
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* 🔹Orders Summary Card */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
@@ -948,7 +1046,7 @@ const DealerDetails = () => {
       {/* Order History Card */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
 
-        {/* Header */}
+        {/* ===================== Header ===================== */}
         <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <h2 className="text-xl font-semibold text-gray-900 tracking-tight">
             Order History
@@ -958,11 +1056,56 @@ const DealerDetails = () => {
           </p>
         </div>
 
-        {/* Body */}
-        <div className="p-8">
+        {/* ===================== Filters ===================== */}
+        <div className="px-8 py-6 flex flex-col lg:flex-row gap-4 border-b border-gray-100 bg-white">
 
-          {/* Empty State */}
+          {/* Search */}
+          <div className="relative flex-1">
+            <FiSearch className="absolute left-3 top-3 text-gray-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search orders..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#9333EA]/20 focus:outline-none transition"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="min-w-[160px]">
+            <CustomSelect
+              name="status"
+              value={selectedStatus}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value);
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+              options={ORDER_STATUS_LIST}
+            />
+          </div>
+
+          {/* Priority Filter */}
+          <div className="min-w-[160px]">
+            <CustomSelect
+              name="priority"
+              value={selectedPriority}
+              onChange={(e) => {
+                setSelectedPriority(e.target.value);
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+              options={PRIORITY_OPTIONS}
+            />
+          </div>
+        </div>
+
+        {/* ===================== Table Section ===================== */}
+        <div className="px-8 py-8">
+
           {dealerOrders.length === 0 ? (
+            /* Empty State */
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
                 📦
@@ -975,61 +1118,105 @@ const DealerDetails = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-                  <tr>
-                    <th className="px-6 py-4 text-left">Order ID</th>
-                    <th className="px-6 py-4 text-left">Date</th>
-                    <th className="px-6 py-4 text-left">Items</th>
-                    <th className="px-6 py-4 text-left">Status</th>
-                    <th className="px-6 py-4 text-right">Action</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-gray-100">
-                  {dealerOrders.map(({ order }) => (
-                    <tr
-                      key={order.order_number}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4 font-mono text-sm text-gray-800">
-                        {order.order_number}
-                      </td>
-
-                      <td className="px-6 py-4 text-gray-600">
-                        {formatDate(order.created_at)}
-                      </td>
-
-                      <td className="px-6 py-4 text-gray-700 font-medium">
-                        {getTotalItems(order.order_details)} Items
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <StatusBadge status={order.status} />
-                      </td>
-
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() =>
-                            navigate(`/orders/${order.order_number}`)
-                          }
-                          className="inline-flex items-center gap-1 text-[#9333EA] font-medium hover:text-[#7e22ce] transition"
-                        >
-                          View
-                          →
-                        </button>
-                      </td>
+            <>
+              <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+                    <tr>
+                      <th className="px-6 py-4 text-left">Order ID</th>
+                      <th className="px-6 py-4 text-left">Date</th>
+                      <th className="px-6 py-4 text-left">Items</th>
+                      <th className="px-6 py-4 text-left">Priority</th>
+                      <th className="px-6 py-4 text-left">Status</th>
+                      <th className="px-6 py-4 text-right">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+
+                  <tbody className="divide-y divide-gray-100">
+                    {dealerOrders.map(({ order }) => (
+                      <tr
+                        key={order.order_number}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 font-mono text-gray-800">
+                          {order.order_number}
+                        </td>
+
+                        <td className="px-6 py-4 text-gray-600">
+                          {formatDate(order.created_at)}
+                        </td>
+
+                        <td className="px-6 py-4 font-medium text-gray-700">
+                          {getTotalItems(order.order_details)} Items
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <PriorityBadge priority={order.priority} />
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <StatusBadge status={order.status} />
+                        </td>
+
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() =>
+                              navigate(`/orders/${order.order_number}`)
+                            }
+                            className="inline-flex items-center gap-1 text-[#9333EA] font-medium hover:text-[#7e22ce] transition"
+                          >
+                            View →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ===================== Pagination ===================== */}
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
+                <p className="text-sm text-gray-500">
+                  Showing page {pagination.page} of{" "}
+                  {Math.ceil(pagination.total / pagination.limit) || 1}
+                </p>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: Math.max(prev.page - 1, 1),
+                      }))
+                    }
+                    disabled={pagination.page === 1}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium disabled:opacity-40 hover:bg-gray-50 transition"
+                  >
+                    Previous
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: prev.page + 1,
+                      }))
+                    }
+                    disabled={
+                      pagination.page * pagination.limit >= pagination.total
+                    }
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium disabled:opacity-40 hover:bg-gray-50 transition"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>
 
-    </div>
+    </div >
   );
 };
 
