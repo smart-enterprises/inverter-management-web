@@ -1,64 +1,104 @@
-import { API_BASE_URL } from '../utils/api';
+import { API_BASE_URL } from "../utils/api";
+
+// AUTH HEADER
 
 const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-export const fetchProducts = async() => {
-    const response = await fetch(`${API_BASE_URL}/product-details/get/all`, {
-        headers: {...getAuthHeaders() },
+// GENERIC REQUEST HANDLER
+
+const apiRequest = async (endpoint, options = {}) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders(),
+                ...options.headers,
+            },
+            ...options,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data?.message || "API request failed");
+        }
+
+        return data;
+    } catch (error) {
+        console.error(`❌ API Error (${endpoint}):`, error);
+        throw error;
+    }
+};
+
+//  QUERY BUILDER
+
+const buildQuery = (params = {}) => {
+    const query = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+            query.append(key, value);
+        }
     });
-    return response.json();
+
+    return query.toString();
 };
 
-export const fetchProductById = async(productId) => {
-    const response = await fetch(`${API_BASE_URL}/product-details/${productId}`, {
-        headers: {...getAuthHeaders() },
-    });
-    return response.json();
-};
+//  PRODUCT CRUD OPERATIONS
 
-export const createProduct = async(productData) => {
-    const response = await fetch(`${API_BASE_URL}/product-details/create-product`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+// 🔹 Get All Products
+export const fetchProducts = () =>
+    apiRequest("/product-details/get/all");
+
+// 🔹 Get Product By ID
+export const fetchProductById = (productId) =>
+    apiRequest(`/product-details/${productId}`);
+
+// 🔹 Create Product
+export const createProduct = (productData) =>
+    apiRequest("/product-details/create-product", {
+        method: "POST",
         body: JSON.stringify(productData),
     });
-    return response.json();
-};
 
-export const updateProduct = async(productId, productData) => {
-    const response = await fetch(`${API_BASE_URL}/product-details/${productId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+// 🔹 Update Product
+export const updateProduct = (productId, productData) =>
+    apiRequest(`/product-details/${productId}`, {
+        method: "PUT",
         body: JSON.stringify(productData),
     });
-    return response.json();
-};
 
-export const deleteProduct = async(productId) => {
-    const response = await fetch(`${API_BASE_URL}/product-details/delete/${productId}`, {
-        method: 'DELETE',
-        headers: {...getAuthHeaders() },
+// 🔹 Delete Product
+export const deleteProduct = (productId) =>
+    apiRequest(`/product-details/delete/${productId}`, {
+        method: "DELETE",
     });
-    return response.json();
-};
 
-export const updateProductStock = async(stockData) => {
-    const response = await fetch(`${API_BASE_URL}/product-details/createOrUpdate/product-stocks`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+// 🔹 Create / Update Stock
+export const updateProductStock = (stockData) =>
+    apiRequest("/product-details/createOrUpdate/product-stocks", {
+        method: "PUT",
         body: JSON.stringify(stockData),
     });
-    return response.json();
-};
 
-export const fetchProductsByBrands = async(brands) => {
-    const response = await fetch(`${API_BASE_URL}/product-details/getAllProductsByBrand`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+// 🔹 Fetch Products By Brands
+export const fetchProductsByBrands = (brands) =>
+    apiRequest("/product-details/getAllProductsByBrand", {
+        method: "POST",
         body: JSON.stringify({ brands }),
     });
-    return response.json();
+
+// 🔹 LOW STOCK PRODUCTS
+
+export const fetchLowStockProducts = ({
+    page = 1,
+    limit = 10,
+    threshold = 5,
+} = {}) => {
+    const query = buildQuery({ page, limit, threshold });
+
+    return apiRequest(`/product-details/low-stock?${query}`);
 };
