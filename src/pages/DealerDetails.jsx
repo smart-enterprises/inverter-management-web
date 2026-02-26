@@ -25,6 +25,7 @@ import { getBrandsByDealer } from "../api/brands";
 import { fetchOrders } from "../api/orders";
 import { fetchProducts } from "../api/products";
 import CustomSelect from "../components/CustomSelect";
+import { getStatusStyle } from "../utils/status";
 
 /* -------------------------------------------------------------------------- */
 /*                                UI COMPONENTS                               */
@@ -39,21 +40,28 @@ const FormField = ({ label, children }) => (
   </div>
 );
 
-const InfoItem = ({ icon, label, value }) => (
-  <div className="flex items-start gap-4">
-    <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#9333EA]/10 text-[#9333EA]">
-      {icon}
+const InfoItem = ({ icon, label, value }) => {
+  return (
+    <div className="flex items-start gap-4 group">
+
+      {/* Icon */}
+      <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-purple-50 text-purple-600 group-hover:bg-purple-100 transition-colors">
+        {icon}
+      </div>
+
+      {/* Text Content */}
+      <div className="flex flex-col">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+          {label}
+        </span>
+
+        <span className="text-sm font-semibold text-gray-900 mt-1 break-words">
+          {value || "—"}
+        </span>
+      </div>
     </div>
-    <div>
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-        {label}
-      </p>
-      <p className="text-sm font-semibold text-gray-900 mt-1">
-        {value || "N/A"}
-      </p>
-    </div>
-  </div>
-);
+  );
+};
 
 const StatCard = ({ title, value, color }) => (
   <div className={`p-6 rounded-2xl border shadow-sm bg-${color}-50/40`}>
@@ -61,6 +69,18 @@ const StatCard = ({ title, value, color }) => (
     <p className={`text-3xl font-bold text-${color}-700 mt-2`}>{value}</p>
   </div>
 );
+
+const StatusBadge = ({ status }) => {
+  const style = getStatusStyle(status);
+
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${style}`}
+    >
+      {status}
+    </span>
+  );
+};
 
 /* -------------------------------------------------------------------------- */
 /*                               HELPER METHODS                               */
@@ -126,7 +146,7 @@ const DealerDetails = () => {
     total: 0,
     pending: 0,
     inProduction: 0,
-    packed: 0,
+    inPacking: 0,
     delivered: 0,
     cancelled: 0,
   });
@@ -202,67 +222,55 @@ const DealerDetails = () => {
   const loadOrderSummary = useCallback(async () => {
     if (!id) return;
 
-    const statuses = [
-      null,
-      "PENDING",
-      "PRODUCTION",
-      "PACKED",
-      "DELIVERED",
-      "CANCELLED",
-    ];
+    if (loadOrderSummary.loading) return;
+    loadOrderSummary.loading = true;
 
     try {
-      const responses = await Promise.allSettled(
-        statuses.map((status) =>
-          fetchOrders({
-            page: 1,
-            limit: 1,
-            dealer: id,
-            status,
-          })
-        )
-      );
+      const statuses = [
+        { key: "total", value: null },
+        { key: "pending", value: "PENDING" },
+        { key: "inProduction", value: "PRODUCTION" },
+        { key: "inPacking", value: "PACKED" },
+        { key: "delivered", value: "DELIVERED" },
+        { key: "cancelled", value: "CANCELLED" },
+      ];
 
       const stats = {
         total: 0,
         pending: 0,
         inProduction: 0,
-        packed: 0,
+        inPacking: 0,
         delivered: 0,
         cancelled: 0,
       };
 
-      responses.forEach((res, index) => {
-        if (res.status === "fulfilled" && res.value?.success) {
-          const total = res.value.pagination?.total || 0;
-          switch (statuses[index]) {
-            case null:
-              stats.total = total;
-              break;
-            case "PENDING":
-              stats.pending = total;
-              break;
-            case "PRODUCTION":
-              stats.inProduction = total;
-              break;
-            case "PACKED":
-              stats.packed = total;
-              break;
-            case "DELIVERED":
-              stats.delivered = total;
-              break;
-            case "CANCELLED":
-              stats.cancelled = total;
-              break;
-            default:
-              break;
+      // 🔹 IMPROVED: Sequential calls (prevents rate limit burst)
+      for (const statusObj of statuses) {
+        try {
+          const res = await fetchOrders({
+            page: 1,
+            limit: 1,
+            dealer: id,
+            status: statusObj.value,
+          });
+
+          if (res?.success) {
+            stats[statusObj.key] = res.pagination?.total || 0;
           }
+
+          // 🔹 NEW: Small delay to avoid server burst
+          await new Promise((resolve) => setTimeout(resolve, 120));
+
+        } catch (err) {
+          console.error(`Failed for status ${statusObj.value}`, err);
         }
-      });
+      }
 
       setOrderStats(stats);
     } catch (err) {
       console.error("Order summary load failed:", err);
+    } finally {
+      loadOrderSummary.loading = false;
     }
   }, [id]);
 
@@ -419,36 +427,139 @@ const DealerDetails = () => {
         </div>
       </div>
 
-      {/* Dealer Information Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">
-          Dealer Information
-        </h2>
+      {/* 🔹 Dealer Information Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-          <InfoItem icon={<FiUser />} label="Full Name" value={capitalize(dealer.employee_name)} />
-          <InfoItem icon={<FiBox />} label="Shop Name" value={capitalize(dealer.shop_name)} />
-          <InfoItem icon={<FiPhone />} label="Phone Number" value={dealer.employee_phone} />
-          <InfoItem icon={<FiMail />} label="Email Address" value={dealer.employee_email} />
-          <InfoItem icon={<FiMapPin />} label="Town" value={capitalize(dealer.town)} />
-          <InfoItem icon={<FiMapPin />} label="District" value={capitalize(dealer.district)} />
-          <InfoItem icon={<FiMapPin />} label="Address" value={dealer.address} />
-          <InfoItem icon={<FiCalendar />} label="Created On" value={formatDate(dealer.created_at)} />
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 tracking-tight">
+              Dealer Information
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Complete profile and registration details
+            </p>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 py-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+
+            <InfoItem
+              icon={<FiUser />}
+              label="Full Name"
+              value={capitalize(dealer.employee_name)}
+            />
+
+            <InfoItem
+              icon={<FiBox />}
+              label="Shop Name"
+              value={capitalize(dealer.shop_name)}
+            />
+
+            <InfoItem
+              icon={<FiPhone />}
+              label="Phone Number"
+              value={dealer.employee_phone}
+            />
+
+            <InfoItem
+              icon={<FiMail />}
+              label="Email Address"
+              value={dealer.employee_email}
+            />
+
+            <InfoItem
+              icon={<FiMapPin />}
+              label="Town"
+              value={capitalize(dealer.town)}
+            />
+
+            <InfoItem
+              icon={<FiMapPin />}
+              label="District"
+              value={capitalize(dealer.district)}
+            />
+
+            <InfoItem
+              icon={<FiMapPin />}
+              label="Address"
+              value={dealer.address}
+            />
+
+            <InfoItem
+              icon={<FiCalendar />}
+              label="Created On"
+              value={formatDate(dealer.created_at)}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Dealer Discounts Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="flex justify-between items-center px-8 py-6 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-[#9333EA]">
+      {/* ===================== DEALER BRANDS ===================== */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+
+        {/* Header */}
+        <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-purple-100 flex items-center justify-center text-[#9333EA] shadow-sm">
+            🏷️
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 tracking-tight">
+              Dealer Brands
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Brands assigned to this dealer
+            </p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-8 py-8">
+
+          {/* Empty State */}
+          {!dealer?.brand || dealer.brand.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
+                🏷️
+              </div>
+              <p className="text-sm font-medium text-gray-700">
+                No brands assigned
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Assign brands to enable product access.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {dealer.brand.map((brand, index) => (
+                <div
+                  key={index}
+                  className="px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-purple-50 hover:border-purple-200 transition-all duration-200 text-center text-sm font-medium text-gray-800 hover:text-[#9333EA]"
+                >
+                  {brand}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 🔹 Dealer Discounts Section */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+
+        {/* Header */}
+        <div className="flex justify-between items-center px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-purple-50/40 to-white">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-purple-100 flex items-center justify-center text-[#9333EA] shadow-sm">
               <FiPercent size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900 tracking-tight">
                 Dealer Discounts
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 mt-1">
                 Manage pricing rules & discount configurations
               </p>
             </div>
@@ -456,54 +567,76 @@ const DealerDetails = () => {
 
           <button
             onClick={() => setBulkModalOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white shadow hover:opacity-90 transition"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
           >
             <FiPlus size={16} />
             Add Discounts
           </button>
         </div>
 
+        {/* Body */}
         <div className="p-8">
+
+          {/* Loading */}
           {discountState.loading && (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin h-8 w-8 border-2 border-[#9333EA] border-t-transparent rounded-full" />
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin h-10 w-10 border-2 border-[#9333EA] border-t-transparent rounded-full mb-4" />
+              <p className="text-sm text-gray-500">Loading discount data...</p>
             </div>
           )}
 
+          {/* Empty State */}
           {!discountState.loading && discounts.length === 0 && (
-            <div className="text-center py-16 text-gray-500">
-              No discounts configured.
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
+                <FiPercent size={22} />
+              </div>
+              <p className="text-sm font-medium text-gray-700">
+                No discounts configured
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Start by adding pricing rules for this dealer.
+              </p>
             </div>
           )}
 
+          {/* Table */}
           {!discountState.loading && discounts.length > 0 && (
             <>
-              <div className="overflow-x-auto rounded-xl border">
+              <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+                  <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                     <tr>
-                      <th className="px-6 py-3 text-left">Brand</th>
-                      <th className="px-6 py-3 text-left">Model</th>
-                      <th className="px-6 py-3 text-left">Value</th>
-                      <th className="px-6 py-3 text-left">Status</th>
-                      <th className="px-6 py-3 text-left">Created</th>
+                      <th className="px-6 py-4 text-left">Brand</th>
+                      <th className="px-6 py-4 text-left">Model</th>
+                      <th className="px-6 py-4 text-left">Value</th>
+                      <th className="px-6 py-4 text-left">Status</th>
+                      <th className="px-6 py-4 text-left">Created</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-gray-100">
                     {discounts.map((d) => (
-                      <tr key={d.dealer_discount_id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">{d.brand_name}</td>
-                        <td className="px-6 py-4">{d.model_name}</td>
-                        <td className="px-6 py-4 font-semibold">
+                      <tr key={d.dealer_discount_id} className="hover:bg-gray-50 transition">
+                        <td className="px-6 py-4 font-medium text-gray-800">
+                          {d.brand_name}
+                        </td>
+
+                        <td className="px-6 py-4 text-gray-600">
+                          {d.model_name}
+                        </td>
+
+                        <td className="px-6 py-4 font-semibold text-[#9333EA]">
                           {d.discount_value}
                           {d.is_percentage ? "%" : " ₹"}
                         </td>
+
                         <td className="px-6 py-4">
-                          <span className="px-3 py-1 text-xs rounded-full bg-emerald-50 text-emerald-700">
+                          <span className="px-3 py-1 text-xs rounded-full bg-emerald-50 text-emerald-700 font-medium">
                             {d.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
+
+                        <td className="px-6 py-4 text-gray-500">
                           {formatDate(d.created_at)}
                         </td>
                       </tr>
@@ -512,27 +645,28 @@ const DealerDetails = () => {
                 </table>
               </div>
 
-              {/* Professional Pagination */}
-              <div className="flex justify-between items-center mt-8">
+              {/* Pagination */}
+              <div className="flex justify-between items-center mt-10">
                 <p className="text-sm text-gray-500">
                   Showing page {discountState.page} of{" "}
                   {Math.ceil(discountState.total / discountState.limit) || 1}
                 </p>
 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     onClick={() => loadDiscounts(discountState.page - 1)}
                     disabled={discountState.page <= 1}
-                    className="px-4 py-2 border rounded-lg text-sm disabled:opacity-40"
+                    className="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition disabled:opacity-40"
                   >
                     Previous
                   </button>
+
                   <button
                     onClick={() => loadDiscounts(discountState.page + 1)}
                     disabled={
                       discountState.page * discountState.limit >= discountState.total
                     }
-                    className="px-4 py-2 border rounded-lg text-sm disabled:opacity-40"
+                    className="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition disabled:opacity-40"
                   >
                     Next
                   </button>
@@ -545,12 +679,13 @@ const DealerDetails = () => {
 
       {/* ===================== ADD DISCOUNTS MODAL ===================== */}
       {bulkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="relative w-full max-w-5xl mx-4 bg-white rounded-2xl shadow-2xl max-h-[92vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md animate-fadeIn">
+
+          <div className="relative w-full max-w-5xl mx-4 bg-white rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
 
             {/* ---------------- Header ---------------- */}
-            <div className="px-8 py-6 border-b border-gray-100">
-              <h3 className="text-2xl font-semibold text-gray-900">
+            <div className="px-10 py-7 border-b border-gray-100 bg-white">
+              <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">
                 Add Dealer Discounts
               </h3>
               <p className="text-sm text-gray-500 mt-1">
@@ -559,8 +694,7 @@ const DealerDetails = () => {
             </div>
 
             {/* ---------------- Body ---------------- */}
-            <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8">
-
+            <div className="flex-1 overflow-y-auto px-10 py-8 space-y-10 bg-gray-50/40">
               {bulkError && (
                 <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
                   {bulkError}
@@ -570,7 +704,7 @@ const DealerDetails = () => {
               {bulkRows.map((row, idx) => (
                 <div
                   key={row.id}
-                  className="p-6 rounded-2xl border border-gray-200 bg-gray-50/60 space-y-6"
+                  className="p-8 rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200 space-y-6"
                 >
                   {/* Row Header */}
                   <div className="flex items-center justify-between">
@@ -784,73 +918,117 @@ const DealerDetails = () => {
         </div>
       )}
 
-      {/* Orders Summary Card */}
-      <div className="bg-white rounded-2xl shadow-sm border p-8">
-        <h2 className="text-lg font-semibold mb-6">
-          Orders Summary
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Total Orders" value={orderStats.total} color="blue" />
-          <StatCard title="Pending" value={orderStats.pending} color="yellow" />
-          <StatCard title="In Production" value={orderStats.inProduction} color="purple" />
-          <StatCard title="Delivered" value={orderStats.delivered} color="emerald" />
+      {/* 🔹Orders Summary Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+
+        {/* Header */}
+        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 tracking-tight">
+              Orders Summary
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Overview of dealer order activity
+            </p>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="px-8 py-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            <StatCard title="Total Orders" value={orderStats.total} color="blue" />
+            <StatCard title="Pending" value={orderStats.pending} color="yellow" />
+            <StatCard title="In Production" value={orderStats.inProduction} color="purple" />
+            <StatCard title="In Packing" value={orderStats.inPacking} color="orange" />
+            <StatCard title="Delivered" value={orderStats.delivered} color="emerald" />
+          </div>
         </div>
       </div>
 
       {/* Order History Card */}
-      <div className="bg-white rounded-2xl shadow-sm border p-8">
-        <h2 className="text-lg font-semibold mb-6">
-          Order History
-        </h2>
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
 
-        {dealerOrders.length === 0 ? (
-          <div className="text-center text-gray-500 py-12">
-            No orders found for this dealer.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-600">
-                <tr>
-                  <th className="px-6 py-3 text-left">Order ID</th>
-                  <th className="px-6 py-3 text-left">Date</th>
-                  <th className="px-6 py-3 text-left">Items</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                  <th className="px-6 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {dealerOrders.map(({ order }) => (
-                  <tr key={order.order_number} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-mono">
-                      {order.order_number}
-                    </td>
-                    <td className="px-6 py-4">
-                      {formatDate(order.created_at)}
-                    </td>
-                    <td className="px-6 py-4">
-                      {getTotalItems(order.order_details)} Items
-                    </td>
-                    <td className="px-6 py-4">
-                      {order.status}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() =>
-                          navigate(`/orders/${order.order_number}`)
-                        }
-                        className="text-[#9333EA] font-medium hover:underline"
-                      >
-                        View
-                      </button>
-                    </td>
+        {/* Header */}
+        <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <h2 className="text-xl font-semibold text-gray-900 tracking-tight">
+            Order History
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Complete list of dealer orders and their current status
+          </p>
+        </div>
+
+        {/* Body */}
+        <div className="p-8">
+
+          {/* Empty State */}
+          {dealerOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
+                📦
+              </div>
+              <p className="text-sm font-medium text-gray-700">
+                No orders found
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Orders placed by this dealer will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+                  <tr>
+                    <th className="px-6 py-4 text-left">Order ID</th>
+                    <th className="px-6 py-4 text-left">Date</th>
+                    <th className="px-6 py-4 text-left">Items</th>
+                    <th className="px-6 py-4 text-left">Status</th>
+                    <th className="px-6 py-4 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+
+                <tbody className="divide-y divide-gray-100">
+                  {dealerOrders.map(({ order }) => (
+                    <tr
+                      key={order.order_number}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-mono text-sm text-gray-800">
+                        {order.order_number}
+                      </td>
+
+                      <td className="px-6 py-4 text-gray-600">
+                        {formatDate(order.created_at)}
+                      </td>
+
+                      <td className="px-6 py-4 text-gray-700 font-medium">
+                        {getTotalItems(order.order_details)} Items
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <StatusBadge status={order.status} />
+                      </td>
+
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() =>
+                            navigate(`/orders/${order.order_number}`)
+                          }
+                          className="inline-flex items-center gap-1 text-[#9333EA] font-medium hover:text-[#7e22ce] transition"
+                        >
+                          View
+                          →
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
+
     </div>
   );
 };

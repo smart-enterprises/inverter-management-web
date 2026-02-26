@@ -252,93 +252,132 @@ const CreateDealerModal = ({
     setFieldErrors({});
   };
 
+  // 🔹 IMPROVED: Clean & dynamic payload handling
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     setFieldErrors({});
 
-    // Validation
+    // 🔹 BASIC VALIDATION
     if (!formData.name.trim()) {
-      setFieldErrors({ ...fieldErrors, employee_name: ["Dealer name is required"] });
+      setFieldErrors({ employee_name: ["Dealer name is required"] });
       setLoading(false);
       return;
     }
+
     if (!formData.email.trim()) {
-      setFieldErrors({ ...fieldErrors, employee_email: ["Email is required"] });
+      setFieldErrors({ employee_email: ["Email is required"] });
       setLoading(false);
       return;
     }
+
     if (!formData.phone || String(formData.phone).trim() === "") {
-      setFieldErrors({ ...fieldErrors, employee_phone: ["Phone number is required"] });
+      setFieldErrors({ employee_phone: ["Phone number is required"] });
       setLoading(false);
       return;
     }
-    if (!formData.brands || formData.brands.length === 0) {
-      setFieldErrors({ ...fieldErrors, brand: ["Please select at least one brand"] });
+
+    if (!formData.brands.length) {
+      setFieldErrors({ brand: ["Please select at least one brand"] });
       setLoading(false);
       return;
     }
 
     try {
       let res;
-      if (editingDealerId) {
-        // Update dealer
+
+      // 🔹 CREATE DEALER
+      if (!editingDealerId) {
         const payload = {
-          employee_name: formData.name,
-          employee_email: formData.email,
-          employee_phone: String(formData.phone),
-          shop_name: formData.shop_name,
-          district: formData.district,
-          town: formData.town,
-          brand: formData.brands,
-          address: formData.address,
-          role: "ROLE_DEALER",
-        };
-        res = await updateDealer(editingDealerId, payload);
-      } else {
-        // Create dealer
-        const payload = {
-          employee_name: formData.name,
-          employee_email: formData.email,
-          employee_phone: String(formData.phone),
+          employee_name: formData.name.trim(),
+          employee_email: formData.email.trim(),
+          employee_phone: formData.phone.trim(),
           password: formData.password,
           role: "ROLE_DEALER",
-          shop_name: formData.shop_name,
-          district: formData.district,
-          town: formData.town,
+          shop_name: formData.shop_name.trim(),
+          district: formData.district.trim(),
+          town: formData.town.trim(),
           brand: formData.brands,
-          address: formData.address,
+          address: formData.address.trim(),
         };
+
         res = await createDealer(payload);
       }
-      if (res && res.success) {
-        setFormData({ name: "", email: "", phone: "", password: "", shop_name: "", district: "", town: "", brands: [], address: "" });
-        if (onDealerChanged) onDealerChanged();
-        onClose();
-        setTimeout(() => {
+
+      // 🔹 UPDATE DEALER (IMPORTANT)
+      else {
+        const payload = {};
+
+        // 🔹 NEW: Field comparison logic
+        if (formData.name !== editingDealerData.employee_name)
+          payload.employee_name = formData.name;
+
+        if (formData.email !== editingDealerData.employee_email)
+          payload.employee_email = formData.email;
+
+        if (formData.phone !== editingDealerData.employee_phone)
+          payload.employee_phone = formData.phone;
+
+        if (formData.shop_name !== editingDealerData.shop_name)
+          payload.shop_name = formData.shop_name;
+
+        if (formData.district !== editingDealerData.district)
+          payload.district = formData.district;
+
+        if (formData.town !== editingDealerData.town)
+          payload.town = formData.town;
+
+        if (formData.address !== editingDealerData.address)
+          payload.address = formData.address;
+
+        // 🔹 NEW: Brand comparison
+        const originalBrands = editingDealerData.brand || [];
+        const newBrands = formData.brands;
+
+        const addedBrands = newBrands.filter(
+          (b) => !originalBrands.includes(b)
+        );
+
+        const removedBrands = originalBrands.filter(
+          (b) => !newBrands.includes(b)
+        );
+
+        if (addedBrands.length) payload.brand = addedBrands;
+        if (removedBrands.length) payload.remove_brands = removedBrands;
+
+        // 🔹 NEW: Prevent empty update call
+        if (!Object.keys(payload).length) {
+          setLoading(false);
           Swal.fire({
-            icon: "success",
-            title: editingDealerId ? "Dealer Updated" : "Dealer Created",
-            text: res.message || (editingDealerId ? "Dealer updated successfully!" : "Dealer created successfully!"),
-            confirmButtonText: "OK",
+            icon: "info",
+            title: "No changes detected",
+            text: "Please modify at least one field before updating.",
           });
-        }, 300);
-      } else if (Array.isArray(res?.errors) && res.errors.length > 0) {
-        const errorMap = {};
-        res.errors.forEach((e) => {
-          if (!errorMap[e.field]) errorMap[e.field] = [];
-          errorMap[e.field].push(e.message);
+          return;
+        }
+
+        payload.role = "ROLE_DEALER";
+
+        res = await updateDealer(editingDealerId, payload);
+      }
+
+      // 🔹 SUCCESS HANDLING
+      if (res?.success) {
+        onDealerChanged();
+        onClose();
+
+        Swal.fire({
+          icon: "success",
+          title: editingDealerId ? "Dealer Updated" : "Dealer Created",
+          text: res.message || "Operation successful",
         });
-        setFieldErrors(errorMap);
-        setError("");
       } else {
         setError(res?.message || "Failed to save dealer");
-        setFieldErrors({});
       }
     } catch (err) {
-      setError(err?.message || "Network error. Please try again.");
-      setFieldErrors({});
+      setError(err?.message || "Network error");
     } finally {
       setLoading(false);
     }
@@ -906,8 +945,9 @@ const Dealers = () => {
 
           {/* Loading & Error */}
           {loading ? (
-            <div className="mt-6 flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#9333EA] mb-4"></div>
+              <p className="text-sm text-gray-500">Loading dealers...</p>
             </div>
           ) : error ? (
             <div className="mt-6 text-center py-8">
@@ -917,7 +957,7 @@ const Dealers = () => {
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
               {/* Table */}
               <table className="w-full">
                 <thead>
@@ -1020,9 +1060,19 @@ const Dealers = () => {
                       </tr>
                     ))
                   ) : (
-                    <tr key="no-dealers">
-                      <td colSpan="8" className="py-8 text-center">
-                        <p className="text-sm text-gray-500">No dealers found matching your criteria</p>
+                    <tr>
+                      <td colSpan="8" className="py-16 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                            <FiSearch size={22} />
+                          </div>
+                          <p className="text-sm font-medium text-gray-700">
+                            No dealers found matching your criteria
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Try adjusting filters or search terms.
+                          </p>
+                        </div>
                       </td>
                     </tr>
                   )}
