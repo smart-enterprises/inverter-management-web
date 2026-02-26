@@ -311,7 +311,7 @@ const OrderDetails = () => {
 
         <button
           type="button"
-          onClick={() => navigate("/orders")}
+          onClick={() => navigate(-1)}
           className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
           aria-label="Back to Orders"
         >

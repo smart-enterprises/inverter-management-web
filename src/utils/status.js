@@ -41,3 +41,16 @@ export const getStatusStyle = (status) => {
 
     return statusMap[normalized] || "bg-gray-50 text-gray-700";
 };
+
+// 🔹 UPDATED: Priority Style System
+export const getPriorityStyle = (priority) => {
+    const normalized = priority?.toUpperCase();
+
+    const priorityMap = {
+        HIGH: "bg-red-50 text-red-700",
+        MEDIUM: "bg-yellow-50 text-yellow-700",
+        LOW: "bg-green-50 text-green-700",
+    };
+
+    return priorityMap[normalized] || "bg-gray-50 text-gray-700";
+};

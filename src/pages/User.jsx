@@ -8,12 +8,13 @@ import {
   FiChevronRight,
   FiLoader,
   FiX,
-  FiTrash2
+  FiTrash2,
+  FiPlus
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
-import { fetchUsers, fetchUserById, updateUser, deleteUser } from "../api/user";
+import { createUser, fetchUsers, fetchUserById, updateUser, deleteUser } from "../api/user";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES, getRoleLabel } from "../utils/roles";
 
@@ -138,11 +139,15 @@ const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
 const User = () => {
   const { user } = useAuth();
 
+  const isSalesman = user?.role === ROLES.SALESMAN;
+
   const [users, setUsers] = useState([]);
   const [selectedRole, setSelectedRole] = useState("ALL");
   const [status, setStatus] = useState("ALL");
   const [search, setSearch] = useState("");
   const [includePassword, setIncludePassword] = useState(false);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -201,80 +206,187 @@ const User = () => {
 
   useEffect(() => {
     loadUsers();
-  }, [loadUsers]);
+    document.body.style.overflow = isModalOpen ? "hidden" : "auto";
+  }, [loadUsers, isModalOpen]);
+
+  /* ================= CREATE ================= */
+
+  const handleCreate = async () => {
+    try {
+      setLoading(true);
+
+      if (!formData) return;
+
+      const payload = {};
+
+      /* 🔹 Required Fields Validation */
+      const requiredFields = [
+        "employee_name",
+        "employee_email",
+        "password",
+        "confirm_password",
+        "employee_phone",
+        "role",
+      ];
+
+      requiredFields.forEach((field) => {
+        if (!formData[field]?.toString().trim()) {
+          throw new Error(
+            `${field.replace(/_/g, " ")} is required`
+          );
+        }
+      });
+
+      /* 🔹 Password Match Validation */
+      if (formData.password !== formData.confirm_password) {
+        throw new Error("Password and Confirm Password must match");
+      }
+
+      /* 🔹 Build Payload Dynamically */
+      const allowedFields = [
+        "employee_name",
+        "employee_email",
+        "password",
+        "employee_phone",
+        "role",
+        "photo",
+        "district",
+        "town",
+        "address",
+      ];
+
+      allowedFields.forEach((field) => {
+        const value = formData[field]?.toString().trim();
+
+        if (value) {
+          payload[field] =
+            field === "employee_phone"
+              ? value
+              : value;
+        }
+      });
+
+      console.log("📦 Create Payload:", payload);
+
+      const res = await createUser(payload);
+
+      if (!res?.success) {
+        throw new Error(res?.message || "Failed to create user");
+      }
+
+      await Swal.fire({
+        icon: "success",
+        title: "User Created",
+        text: res.message || "User created successfully!",
+        confirmButtonColor: "#9333EA",
+      });
+
+      /* 🔹 Reset Form */
+      setFormData({
+        employee_name: "",
+        employee_email: "",
+        password: "",
+        confirm_password: "",
+        employee_phone: "",
+        role: "",
+        photo: "",
+        district: "",
+        town: "",
+        address: "",
+      });
+
+      fetchUsersList?.();
+
+    } catch (err) {
+      console.error("❌ Create Error:", err);
+      Swal.fire("Error", err.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /* ================= EDIT ================= */
 
   const handleEdit = async (id) => {
     try {
+      setLoading(true);
+
       const res = await fetchUserById(id);
-      if (!res?.success) throw new Error(res.message);
+
+      if (!res?.success)
+        throw new Error(res?.message || "Failed to fetch user");
 
       setFormData(res.data);
       setOriginalData(res.data);
       setEditingUser(id);
+
     } catch (err) {
       Swal.fire("Error", err.message, "error");
+    } finally {
+      setLoading(false);
     }
   };
 
+  /* ================= UPDATE ================= */
+
   const handleUpdate = async () => {
     try {
+      if (!editingUser) return;
+
+      setLoading(true);
+
       const payload = {};
 
-      // Compare each field individually
-      if (formData.employee_name !== originalData.employee_name) {
-        payload.employee_name = formData.employee_name;
-      }
+      const fieldsToCompare = [
+        "employee_name",
+        "employee_email",
+        "employee_phone",
+        "role",
+        "status",
+        "shop_name",
+        "district",
+        "town",
+        "address",
+      ];
 
-      if (formData.employee_email !== originalData.employee_email) {
-        payload.employee_email = formData.employee_email;
-      }
+      fieldsToCompare.forEach((field) => {
+        const newValue = formData[field]?.toString().trim() || "";
+        const oldValue = originalData[field]?.toString().trim() || "";
 
-      if (Number(formData.employee_phone) !== Number(originalData.employee_phone)) {
-        payload.employee_phone = Number(formData.employee_phone);
-      }
+        if (newValue !== oldValue) {
+          payload[field] =
+            field === "employee_phone"
+              ? Number(newValue)
+              : newValue;
+        }
+      });
 
-      if (formData.role !== originalData.role) {
-        payload.role = formData.role;
-      }
-
-      if (formData.status !== originalData.status) {
-        payload.status = formData.status;
-      }
-
-      if (formData.shop_name !== originalData.shop_name) {
-        payload.shop_name = formData.shop_name;
-      }
-
-      if (formData.district !== originalData.district) {
-        payload.district = formData.district;
-      }
-
-      if (formData.town !== originalData.town) {
-        payload.town = formData.town;
-      }
-
-      if (formData.address !== originalData.address) {
-        payload.address = formData.address;
-      }
-
-      // ✅ If nothing changed
+      // 🔹 If nothing changed
       if (Object.keys(payload).length === 0) {
         Swal.fire("No Changes", "No data was modified", "info");
         return;
       }
+
+      console.log("📦 Update Payload:", payload);
+
       const res = await updateUser(editingUser, payload);
 
-      if (!res?.success) throw new Error(res.message);
+      if (!res?.success)
+        throw new Error(res?.message || "Update failed");
 
       Swal.fire("Success", "User updated successfully", "success");
+
       setEditingUser(null);
       loadUsers();
+
     } catch (err) {
       Swal.fire("Error", err.message, "error");
+    } finally {
+      setLoading(false);
     }
   };
+
+  /* ================= DELETE ================= */
 
   const handleDelete = async (id) => {
     const { value: reason, isConfirmed } = await Swal.fire({
@@ -282,23 +394,22 @@ const User = () => {
       input: "textarea",
       inputLabel: "Reason for deletion",
       inputPlaceholder: "Enter deletion reason...",
-      inputAttributes: {
-        "aria-label": "Type your reason here"
-      },
       showCancelButton: true,
       confirmButtonText: "Delete",
       confirmButtonColor: "#d33",
       cancelButtonColor: "#6b7280",
       inputValidator: (value) => {
-        if (!value) {
+        if (!value?.trim()) {
           return "Reason is required!";
         }
-      }
+      },
     });
 
     if (!isConfirmed) return;
 
     try {
+      setLoading(true);
+
       const payload = {
         employeeId: id,
         reason: reason.trim(),
@@ -306,12 +417,17 @@ const User = () => {
 
       const res = await deleteUser(payload.employeeId, payload.reason);
 
-      if (!res?.success) throw new Error(res.message);
+      if (!res?.success)
+        throw new Error(res?.message || "Delete failed");
 
       Swal.fire("Deleted!", "User deleted successfully", "success");
+
       loadUsers();
+
     } catch (err) {
       Swal.fire("Error", err.message, "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -371,47 +487,225 @@ const User = () => {
       <div className="p-6 bg-gray-50 min-h-screen">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">
+            {/* ===================== Header ===================== */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
+
+              {/* Title Section */}
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
                   Manage Users
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
                   View and manage all system users
                 </p>
               </div>
-              {/* {!isSalesman && (
+
+              {/* Action Button */}
+              {!isSalesman && (
                 <button
-                  onClick={() => {
-                    setIsModalOpen(true);
-                    setEditingUserId(null);
-                    setEditingUserData(null);
-                  }}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
+                  onClick={() => setIsModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 
+                        bg-gradient-to-r from-[#9333EA] to-[#7e22ce] 
+                        text-white rounded-xl shadow-sm 
+                        hover:shadow-md hover:scale-[1.02] 
+                        transition-all duration-200 
+                        text-sm font-medium"
                 >
-                  <FiPlus className="text-lg" />
+                  <FiPlus size={16} />
                   Add New User
                 </button>
-              )} */}
+              )}
+
+              {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+
+                  <div className="relative w-full max-w-xl h-[90vh] bg-white rounded-3xl shadow-2xl flex flex-col">
+                    {/* ================= HEADER (Fixed) ================= */}
+                    <div className="px-6 sm:px-8 pt-6 pb-4 border-b border-gray-100">
+                      <button
+                        onClick={() => setIsModalOpen(false)}
+                        className="absolute top-5 right-5 text-gray-400 hover:text-gray-700 transition"
+                      >
+                        ✕
+                      </button>
+
+                      <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">
+                        Add New User
+                      </h2>
+
+                      <p className="text-sm text-gray-500 mt-1">
+                        Fill in the details below to create a new user
+                      </p>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 scrollbar-hide">
+                      {/* Form */}
+                      <div className="space-y-4">
+
+                        <input
+                          type="text"
+                          placeholder="Full Name"
+                          value={formData.employee_name}
+                          onChange={(e) =>
+                            setFormData({ ...formData, employee_name: e.target.value })
+                          }
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA] focus:outline-none transition"
+                        />
+
+                        <input
+                          type="email"
+                          placeholder="Email Address"
+                          value={formData.employee_email}
+                          onChange={(e) =>
+                            setFormData({ ...formData, employee_email: e.target.value })
+                          }
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA] focus:outline-none transition"
+                        />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <input
+                            type="password"
+                            placeholder="Password"
+                            value={formData.password}
+                            onChange={(e) =>
+                              setFormData({ ...formData, password: e.target.value })
+                            }
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA] focus:outline-none transition"
+                          />
+
+                          <input
+                            type="password"
+                            placeholder="Confirm Password"
+                            value={formData.confirm_password}
+                            onChange={(e) =>
+                              setFormData({ ...formData, confirm_password: e.target.value })
+                            }
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA] focus:outline-none transition"
+                          />
+                        </div>
+
+                        <input
+                          type="text"
+                          placeholder="Phone Number"
+                          value={formData.employee_phone}
+                          onChange={(e) =>
+                            setFormData({ ...formData, employee_phone: e.target.value })
+                          }
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA] focus:outline-none transition"
+                        />
+
+                        <div className="relative">
+                          <select
+                            value={formData.role}
+                            onChange={(e) =>
+                              setFormData({ ...formData, role: e.target.value })
+                            }
+                            className="w-full appearance-none px-4 py-3 rounded-xl 
+                                border border-gray-200 bg-gray-50 text-gray-700
+                                focus:bg-white focus:ring-2 focus:ring-[#9333EA]/20 
+                                focus:border-[#9333EA] focus:outline-none
+                                transition-all duration-200 cursor-pointer"
+                          >
+                            <option value="" disabled>
+                              Select Role
+                            </option>
+
+                            {roleTabs
+                              .filter((role) => role !== "ALL")
+                              .map((role) => (
+                                <option key={role} value={role}>
+                                  {getRoleLabel(role)}
+                                </option>
+                              ))}
+                          </select>
+
+                          {/* Custom Dropdown Arrow */}
+                          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                            ▼
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            placeholder="District"
+                            value={formData.district}
+                            onChange={(e) =>
+                              setFormData({ ...formData, district: e.target.value })
+                            }
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA] focus:outline-none transition"
+                          />
+
+                          <input
+                            type="text"
+                            placeholder="Town"
+                            value={formData.town}
+                            onChange={(e) =>
+                              setFormData({ ...formData, town: e.target.value })
+                            }
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA] focus:outline-none transition"
+                          />
+                        </div>
+
+                        <textarea
+                          rows="3"
+                          placeholder="Address"
+                          value={formData.address}
+                          onChange={(e) =>
+                            setFormData({ ...formData, address: e.target.value })
+                          }
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#9333EA]/20 focus:border-[#9333EA] focus:outline-none resize-none transition"
+                        />
+                      </div>
+                    </div>
+
+                    {/* ================= FOOTER (Fixed Button) ================= */}
+                    <div className="px-6 sm:px-8 py-4 border-t border-gray-100 bg-white rounded-b-3xl">
+                      <button
+                        onClick={handleCreate}
+                        disabled={loading}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-[#9333EA] to-[#7e22ce] 
+                          text-white font-semibold shadow-md hover:shadow-lg 
+                          hover:scale-[1.01] transition-all duration-200 disabled:opacity-50"
+                      >
+                        {loading ? "Creating..." : "Create User"}
+                      </button>
+                    </div>
+
+                  </div>
+
+                </div>
+              )}
             </div>
 
-            {/* ROLE TABS */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              {roleTabs.map((role) => (
-                <button
-                  key={role}
-                  onClick={() => {
-                    setSelectedRole(role);
-                    setPage(1);
-                  }}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedRole === role
-                    ? "bg-[#9333EA] text-white shadow"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                >
-                  {role === "ALL" ? "ALL" : getRoleLabel(role)}
-                </button>
-              ))}
+            {/* ===================== ROLE TABS ===================== */}
+            <div className="flex justify-center mb-8">
+              <div className="inline-flex flex-wrap justify-center gap-3 bg-white p-2 rounded-2xl border border-gray-200 shadow-sm">
+
+                {roleTabs.map((role) => {
+                  const isActive = selectedRole === role;
+
+                  return (
+                    <button
+                      key={role}
+                      onClick={() => {
+                        setSelectedRole(role);
+                        setPage(1);
+                      }}
+                      className={`
+            px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200
+            ${isActive
+                          ? "bg-[#9333EA] text-white shadow-md scale-105"
+                          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                        }
+          `}
+                    >
+                      {getRoleLabel(role)}
+                    </button>
+                  );
+                })}
+
+              </div>
             </div>
 
             {/* FILTER ROW */}
@@ -584,31 +878,6 @@ const User = () => {
                             />
                           </div>
                         </td>
-
-                        {/* VIEW */}
-                        {/* <button
-                            onClick={() => navigate(`/users/${u.employee_id}`)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          >
-                            <FiEye size={16} />
-                          </button> */}
-
-                        {/* EDIT */}
-                        {/* <button
-                            onClick={() => handleEdit(u.employee_id)}
-                            className="p-2 text-[#9333EA] hover:bg-[#9333EA]/10 rounded-lg transition"
-                          >
-                            <FiEdit2 size={16} />
-                          </button> */}
-
-                        {/* DELETE */}
-                        {/* <button
-                            onClick={() => handleDelete(u.employee_id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                          >
-                            <FiTrash2 size={16} />
-                          </button> */}
-
                       </tr>
                     ))
                   )}

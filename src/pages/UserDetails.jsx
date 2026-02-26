@@ -12,6 +12,7 @@ import {
 import Swal from "sweetalert2";
 import { fetchUserById } from "../api/user";
 import { getRoleLabel } from "../utils/roles";
+import { capitalizeFirstLetter } from "../utils/constants";
 
 const UserDetails = () => {
   const { id } = useParams();
@@ -47,41 +48,118 @@ const UserDetails = () => {
   if (!userData) return null;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen space-y-6">
+    <div className="min-h-screen bg-gray-50 px-6 py-8">
 
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => navigate("/users")}
-          className="p-2 hover:bg-gray-200 rounded-lg"
+      {/* ===================== Header ===================== */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
+
+        {/* Left Section */}
+        <div className="flex items-start gap-4">
+
+          {/* Back Button */}
+          <button
+            onClick={() => navigate(-1)}
+            className="p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:shadow-sm transition-all duration-200"
+            aria-label="Go Back"
+          >
+            <FiArrowLeft className="text-gray-600" size={18} />
+          </button>
+
+          {/* Title Section */}
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
+              User Profile
+            </h1>
+
+            <p className="text-sm text-gray-500 mt-1">
+              Detailed overview of user account
+            </p>
+          </div>
+        </div>
+
+        {/* Status Badge */}
+        <div
+          className={`px-5 py-2 rounded-full text-xs font-semibold border shadow-sm
+          ${userData?.status?.toLowerCase() === "active"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : "bg-red-50 text-red-700 border-red-200"
+            }
+        `}
         >
-          <FiArrowLeft />
-        </button>
-        <div>
-          <h1 className="text-xl font-semibold">User Details</h1>
-          <p className="text-sm text-gray-500">
-            {userData.employee_name?.charAt(0).toUpperCase() + userData.employee_name?.slice(1)}
-          </p>
+          {capitalizeFirstLetter(userData?.status)}
         </div>
       </div>
 
-      {/* Card */}
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <div className="grid md:grid-cols-2 gap-6">
+      {/* ===================== Profile Card ===================== */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
 
-          <Info icon={<FiUser />} label="Name" value={userData.employee_name?.charAt(0).toUpperCase() + userData.employee_name?.slice(1)} />
-          <Info icon={<FiMail />} label="Email" value={userData.employee_email} />
-          <Info icon={<FiPhone />} label="Phone" value={userData.employee_phone} />
-          <Info icon={<FiShield />} label="Role" value={getRoleLabel(userData.role)} />
-          <Info icon={<FiMapPin />} label="District" value={userData.district || "N/A"} />
-          <Info icon={<FiMapPin />} label="Town" value={userData.town || "N/A"} />
-          <Info icon={<FiMapPin />} label="Address" value={userData.address || "N/A"} />
-          <Info
-            icon={<FiCalendar />}
-            label="Created At"
-            value={new Date(userData.created_at).toLocaleString()}
-          />
+        {/* Card Header */}
+        <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <h2 className="text-lg font-semibold text-gray-900 tracking-tight">
+            Personal Information
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Core account and contact details
+          </p>
+        </div>
 
+        {/* Card Body */}
+        <div className="px-8 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+
+            <Info
+              icon={<FiUser />}
+              label="Full Name"
+              value={capitalizeFirstLetter(userData?.employee_name)}
+            />
+
+            <Info
+              icon={<FiMail />}
+              label="Email Address"
+              value={userData?.employee_email || "N/A"}
+            />
+
+            <Info
+              icon={<FiPhone />}
+              label="Phone Number"
+              value={userData?.employee_phone || "N/A"}
+            />
+
+            <Info
+              icon={<FiShield />}
+              label="Role"
+              value={getRoleLabel(userData?.role)}
+            />
+
+            <Info
+              icon={<FiMapPin />}
+              label="District"
+              value={userData?.district || "N/A"}
+            />
+
+            <Info
+              icon={<FiMapPin />}
+              label="Town"
+              value={userData?.town || "N/A"}
+            />
+
+            <Info
+              icon={<FiMapPin />}
+              label="Address"
+              value={userData?.address || "N/A"}
+            />
+
+            <Info
+              icon={<FiCalendar />}
+              label="Created On"
+              value={
+                userData?.created_at
+                  ? new Date(userData.created_at).toLocaleString()
+                  : "N/A"
+              }
+            />
+
+          </div>
         </div>
       </div>
     </div>
