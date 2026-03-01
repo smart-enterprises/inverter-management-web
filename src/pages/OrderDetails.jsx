@@ -74,14 +74,32 @@ const FinancialSummary = ({ order }) => {
     <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 tracking-tight">
-          Financial Summary
-        </h2>
+      <div className="flex items-start justify-between mb-8">
 
-        <span className="text-xs text-gray-400 uppercase tracking-wide">
-          Billing Overview
+        {/* Left Side */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 tracking-tight">
+            Financial Summary
+          </h2>
+          <p className="mt-1 text-xs text-gray-400 uppercase tracking-wide">
+            Billing Overview
+          </p>
+        </div>
+
+        {/* Right Side */}
+        <span
+          className={`inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-full shadow-sm ring-1 transition-colors
+            ${order.payment_status === "PAID"
+              ? "bg-green-100 text-green-700 ring-green-200"
+              : order.payment_status === "PARTIAL"
+                ? "bg-yellow-100 text-yellow-700 ring-yellow-200"
+                : "bg-red-100 text-red-700 ring-red-200"
+            }
+          `}
+        >
+          {order.payment_status}
         </span>
+
       </div>
 
       {/* Summary Card */}
