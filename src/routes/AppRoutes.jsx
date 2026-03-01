@@ -1,5 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+
+// pages 
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import NotFound from "../pages/NotFound";
@@ -14,11 +16,11 @@ import CreateOrder from "../pages/CreateOrder";
 import OrderDetails from "../pages/OrderDetails";
 import Billing from "../pages/Billing";
 import Delivery from "../pages/Delivery";
-import ProtectedRoute from "../components/ProtectedRoute";
-import { useAuth } from "../hooks/useAuth";
-import { ROUTE_PERMISSIONS } from "./routePermissions";
 import UpdateOrder from "../pages/UpdateOrder";
 import UserDetails from "../pages/UserDetails";
+
+import ProtectedRoute from "../components/ProtectedRoute";
+import { useAuth } from "../hooks/useAuth";
 
 export default function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -39,98 +41,35 @@ export default function AppRoutes() {
 
       {/* Protected Routes */}
       <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Navigate to="/dashboard" replace />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
         element={
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>
         }
       >
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route
-          path="/users"
-          element={
-            <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/users"]}>
-              <Users />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/users/:id"
-          element={
-            <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/users"]}>
-              <UserDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/dealers" element={
-          <ProtectedRoute
-            allowedRoles={ROUTE_PERMISSIONS["/dealers"]}
-          >
-            <Dealers />
-          </ProtectedRoute>
-        } />
+
+        <Route path="/users" element={<Users />} />
+        <Route path="/users/:id" element={<UserDetails />} />
+
+        <Route path="/dealers" element={<Dealers />} />
         <Route path="/dealers/:id" element={<DealerDetails />} />
-        <Route path="/products" element={
-          <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/products"]}>
-            <Products />
-          </ProtectedRoute>
-        } />
-        <Route path="/brands" element={
-          <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/brands"]}>
-            <Brands />
-          </ProtectedRoute>
-        } />
-        <Route path="/orders" element={
-          <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/orders"]}>
-            <Orders />
-          </ProtectedRoute>
-        } />
+
+        <Route path="/products" element={<Products />} />
+        <Route path="/brands" element={<Brands />} />
+
+        <Route path="/orders" element={<Orders />} />
         <Route path="/orders/create" element={<CreateOrder />} />
-        <Route path="/orders/:id" element={
-          <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/orders/:id"]}>
-            <OrderDetails />
-          </ProtectedRoute>
-        } />
-        <Route
-          path="/orders/update/:id"
-          element={
-            <ProtectedRoute allowedRoles={ROUTE_PERMISSIONS["/orders"]}>
-              <UpdateOrder />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/delivery"
-          element={
-            <ProtectedRoute
-              allowedRoles={ROUTE_PERMISSIONS["/delivery"]}
-            >
-              <Delivery />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/billing"
-          element={
-            <ProtectedRoute
-              allowedRoles={ROUTE_PERMISSIONS["/billing"]}
-            >
-              <Billing />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/orders/:id" element={<OrderDetails />} />
+        <Route path="/orders/update/:id" element={<UpdateOrder />} />
+
+        <Route path="/delivery" element={<Delivery />} />
+        <Route path="/billing" element={<Billing />} />
       </Route>
 
-      {/* Catch all route */}
+      {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

@@ -12,6 +12,7 @@ import {
   PAYMENT_METHOD_OPTIONS,
   PRIORITY_OPTIONS,
 } from '../utils/status';
+import { useUpdateOrderPermissions } from '../hooks/useUpdateOrderPermissions';
 
 const FormField = ({ label, children }) => (
   <div>
@@ -73,6 +74,9 @@ export const formatDateForAPI = (value) =>
 const UpdateOrder = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+
+  // 🔐 Permission Hook
+  const permissions = useUpdateOrderPermissions();
 
   const [originalOrder, setOriginalOrder] = useState(null);
   const [order, setOrder] = useState(null);
@@ -349,10 +353,21 @@ const UpdateOrder = () => {
             <FormFieldSecondary label="Order Status">
               <CustomSelect
                 value={order.status}
-                onChange={(e) =>
-                  updateOrderField('status', e.target.value)
+                disabled={
+                  !permissions.canEditAll &&
+                  !permissions.editableFields?.includes("status")
                 }
-                options={ORDER_STATUS_LIST.filter((s) => s !== 'ALL')}
+                onChange={(e) => {
+                  if (permissions.restrictStatusToDelivered) {
+                    if (e.target.value !== "DELIVERED") return;
+                  }
+                  updateOrderField("status", e.target.value);
+                }}
+                options={
+                  permissions.restrictStatusToDelivered
+                    ? ["DELIVERED"]
+                    : ORDER_STATUS_LIST.filter((s) => s !== "ALL")
+                }
               />
             </FormFieldSecondary>
 
@@ -360,8 +375,12 @@ const UpdateOrder = () => {
             <FormFieldSecondary label="Priority">
               <CustomSelect
                 value={order.priority}
+                disabled={
+                  !permissions.canEditAll &&
+                  !permissions.editableFields?.includes("priority")
+                }
                 onChange={(e) =>
-                  updateOrderField('priority', e.target.value)
+                  updateOrderField("priority", e.target.value)
                 }
                 options={PRIORITY_OPTIONS}
               />
@@ -371,8 +390,12 @@ const UpdateOrder = () => {
             <FormFieldSecondary label="Payment Method">
               <CustomSelect
                 value={order.payment_method}
+                disabled={
+                  !permissions.canEditAll &&
+                  !permissions.editableFields?.includes("payment_method")
+                }
                 onChange={(e) =>
-                  updateOrderField('payment_method', e.target.value)
+                  updateOrderField("payment_method", e.target.value)
                 }
                 options={PAYMENT_METHOD_OPTIONS}
               />
@@ -382,6 +405,10 @@ const UpdateOrder = () => {
             <FormFieldSecondary label="Amount Paid">
               <input
                 type="number"
+                disabled={
+                  !permissions.canEditAll &&
+                  !permissions.editableFields?.includes("amount_paid")
+                }
                 min={0}
                 max={Number(order?.order_total_price || 0) - amountPaid}
                 value={order.amount_paid === 0 ? '' : order.amount_paid}
@@ -496,6 +523,10 @@ const UpdateOrder = () => {
                     <FormField label="Delivered Quantity">
                       <input
                         type="number"
+                        disabled={
+                          !permissions.canEditAll &&
+                          !permissions.editableDetailFields?.includes("delivered_qty")
+                        }
                         min={0}
                         max={maxDeliverableQty}
                         onChange={(e) => {
@@ -512,6 +543,10 @@ const UpdateOrder = () => {
                     <FormField label="Cancelled Quantity">
                       <input
                         type="number"
+                        disabled={
+                          !permissions.canEditAll &&
+                          !permissions.editableDetailFields?.includes("cancel_qty")
+                        }
                         min={0}
                         max={maxCancelableQty}
                         onChange={(e) => {
@@ -545,6 +580,12 @@ const UpdateOrder = () => {
                                 e.target.checked
                               )
                             }
+                            disabled={
+                              !permissions.canEditAll &&
+                              !permissions.editableDetailFields?.includes(
+                                "has_unPacked_completed"
+                              )
+                            }
                           />
                         )}
 
@@ -557,6 +598,12 @@ const UpdateOrder = () => {
                                 index,
                                 'has_production_completed',
                                 e.target.checked
+                              )
+                            }
+                            disabled={
+                              !permissions.canEditAll &&
+                              !permissions.editableDetailFields?.includes(
+                                "has_production_completed"
                               )
                             }
                           />
@@ -588,10 +635,24 @@ const UpdateOrder = () => {
             <div className="w-full sm:w-[420px] bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
 
               {/* Header */}
-              <div className="border-b border-gray-100 pb-4 mb-6">
+              <div className="border-b border-gray-100 pb-4 mb-6 flex items-center justify-between">
+
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-600">
                   Order Financial Summary
                 </h3>
+
+                {/* Payment Status */}
+                <span
+                  className={`px-3 py-1 text-xs font-semibold rounded-full ${order.payment_status === "PAID"
+                    ? "bg-green-100 text-green-700"
+                    : order.payment_status === "PARTIAL"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-red-100 text-red-700"
+                    }`}
+                >
+                  {order.payment_status}
+                </span>
+
               </div>
 
               {/* Financial Rows */}
