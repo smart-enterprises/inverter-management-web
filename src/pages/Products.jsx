@@ -8,94 +8,109 @@ import { useAuth } from '../hooks/useAuth';
 import { ROLES } from '../utils/roles';
 
 const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     brand: '',
     product_name: '',
     model: '',
-    product_type: 'Smart Phone',
+    product_type: '',
     product_price: '',
     unpackedStock: 0,
     packedStock: 0,
     unpackedNotes: '',
     packedNotes: ''
-  });
+  };
 
+  const [formData, setFormData] = useState(initialFormState);
   const [brands, setBrands] = useState([]);
   const [availableModels, setAvailableModels] = useState([]);
+
+  // ✅ MUST be with other hooks
+  const [productTypeOptions, setProductTypeOptions] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   // Fetch brands when modal opens
   useEffect(() => {
-    if (isOpen) {
-      fetchBrands();
-      // Reset form when modal opens
-      setFormData({
-        brand: '',
-        product_name: '',
-        model: '',
-        product_type: 'Smart Phone',
-        product_price: '',
-        unpackedStock: 0,
-        packedStock: 0,
-        unpackedNotes: '',
-        packedNotes: ''
-      });
-      setAvailableModels([]);
-      setError('');
-      setSuccess('');
-    }
+    if (!isOpen) return;
+
+    fetchBrands();
+    resetForm();
   }, [isOpen]);
+
+  const resetForm = () => {
+    setFormData(initialFormState);
+    setAvailableModels([]);
+    setError('');
+    setSuccess('');
+  };
 
   const fetchBrands = async () => {
     try {
       const response = await getAllBrands("active");
-      if (response && response.success && response.data) {
+
+      if (response?.success && response?.data) {
         setBrands(response.data);
       }
     } catch (err) {
-      console.error('Error fetching brands:', err);
+      console.error("Failed to fetch brands:", err);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const updateFormField = (name, value) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
 
-    // When brand changes, update available models
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    updateFormField(name, value);
+
     if (name === 'brand') {
-      const selectedBrand = brands.find(brand => brand.brand_name === value);
-      if (selectedBrand && selectedBrand.brand_models) {
+      const selectedBrand = brands.find(b => b.brand_name === value);
+
+      if (selectedBrand?.brand_models) {
         setAvailableModels(selectedBrand.brand_models);
       } else {
         setAvailableModels([]);
       }
-      // Reset model when brand changes
-      setFormData(prev => ({
-        ...prev,
-        model: ''
-      }));
+
+      updateFormField('model', '');
     }
+  };
+
+  const handleProductTypeChange = (e) => {
+    updateFormField('product_type', e.target.value);
+  };
+
+  const handleProductTypeBlur = () => {
+    const value = formData.product_type?.trim();
+
+    if (!value) return;
+
+    setProductTypeOptions(prev => {
+      if (prev.includes(value)) return prev;
+      return [...prev, value];
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setLoading(true);
     setError('');
     setSuccess('');
 
     try {
-      // Validate required fields
       if (!formData.brand || !formData.product_name || !formData.model || !formData.product_price) {
         setError('Please fill in all required fields.');
         return;
       }
 
-      // Prepare stocks array
       const stocks = [];
 
       if (formData.unpackedStock > 0) {
@@ -130,29 +145,24 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
 
       const response = await createProduct(payload);
 
-      if (response && response.success) {
-        // Close modal first
+      if (response?.success) {
         onClose();
+        onProductCreated?.();
 
-        // Refresh products list
-        if (onProductCreated) {
-          onProductCreated();
-        }
-
-        // Show success message
         setTimeout(async () => {
           await Swal.fire({
-            icon: 'success',
-            title: 'Success!',
-            text: response.message || 'Product created successfully!',
-            confirmButtonText: 'OK',
+            icon: "success",
+            title: "Success",
+            text: response.message || "Product created successfully",
+            confirmButtonText: "OK"
           });
         }, 100);
       } else {
-        setError(response.message || 'Failed to create product');
+        setError(response?.message || "Failed to create product");
       }
+
     } catch (err) {
-      setError(err.message || 'Network error. Please try again.');
+      setError(err.message || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -160,25 +170,25 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
 
   if (!isOpen) return null;
 
-  const productTypeOptions = [
-    'Smart Phone',
-    'Tablet',
-    'Laptop',
-    'Accessory',
-    'Cable',
-    'Wire'
-  ];
-
   return (
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={onClose} />
+
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
         <div className="bg-white rounded-xl shadow-sm w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+
+          {/* HEADER */}
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Create New Product</h2>
-              <p className="text-sm text-gray-500 mt-1">Add a new product to inventory</p>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Create New Product
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Add a new product to inventory
+              </p>
             </div>
+
+            {/* CLOSE BUTTON */}
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
@@ -187,18 +197,23 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
             </button>
           </div>
 
+          {/* FORM */}
           <form onSubmit={handleSubmit} className="p-6 max-h-[70vh] overflow-y-auto">
+
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
                 {error}
               </div>
             )}
+
+            {/* SUCCESS MESSAGE */}
             {success && (
               <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm mb-4">
                 {success}
               </div>
             )}
 
+            {/* PRODUCT INFORMATION */}
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-medium text-gray-900 flex items-center gap-2">
@@ -206,8 +221,8 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
                   Product Information
                 </h3>
 
+                {/* BRAND SELECTION */}
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Brand Selection */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Brand <span className="text-red-500">*</span>
@@ -262,14 +277,23 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Product Type <span className="text-red-500">*</span>
                     </label>
-                    <CustomSelect
+
+                    <input
+                      list="product-type-options"
                       name="product_type"
                       value={formData.product_type}
-                      onChange={handleChange}
-                      options={productTypeOptions}
-                      placeholder="Select product type"
+                      onChange={handleProductTypeChange}
+                      onBlur={handleProductTypeBlur}
+                      placeholder="Select or type product type"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
                       required
                     />
+
+                    <datalist id="product-type-options">
+                      {productTypeOptions.map((type, index) => (
+                        <option key={index} value={type} />
+                      ))}
+                    </datalist>
                   </div>
 
                   {/* Price */}
@@ -389,101 +413,117 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
 };
 
 const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     product_name: '',
     model: '',
-    product_type: 'Smart Phone',
+    product_type: '',
     brand: '',
     product_price: '',
     status: 'active',
     status_reason: ''
-  });
+  };
 
+  const baseProductTypes = [];
+
+  const [formData, setFormData] = useState(initialFormState);
   const [brands, setBrands] = useState([]);
   const [availableModels, setAvailableModels] = useState([]);
+  const [productTypeOptions, setProductTypeOptions] = useState(baseProductTypes);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   // Fetch product data and brands when modal opens
   useEffect(() => {
-    if (isOpen && productId) {
-      // Only reset error and success states, not the form data
-      setError('');
-      setSuccess('');
+    if (!isOpen || !productId) return;
 
-      // First fetch brands, then fetch product data
-      const loadData = async () => {
-        try {
-          // Fetch brands first
-          const brandsResponse = await getAllBrands("active");
-          if (brandsResponse && brandsResponse.success && brandsResponse.data) {
-            setBrands(brandsResponse.data);
-
-            // Then fetch product data
-            const productResponse = await fetchProductById(productId);
-            if (productResponse && productResponse.success && productResponse.data) {
-              const product = productResponse.data;
-
-              setFormData({
-                product_name: product.product_name || '',
-                model: product.model || '',
-                product_type: product.product_type || 'Smart Phone',
-                brand: product.brand || '',
-                product_price: product.product_price || product.price || '',
-                status: product.status || 'active',
-                status_reason: ''
-              });
-
-              // Set available models for the product's brand
-              if (product.brand) {
-                const selectedBrand = brandsResponse.data.find(brand => brand.brand_name === product.brand);
-                if (selectedBrand && selectedBrand.brand_models) {
-                  setAvailableModels(selectedBrand.brand_models);
-                }
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error loading data:', err);
-          setError('Failed to load product data');
-        }
-      };
-
-      loadData();
-    }
+    loadProductData();
   }, [isOpen, productId]);
 
-  // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
-      // Reset form data when modal closes
-      setFormData({
-        product_name: '',
-        model: '',
-        product_type: 'Smart Phone',
-        brand: '',
-        product_price: '',
-        status: 'active',
-        status_reason: ''
-      });
-      setAvailableModels([]);
-      setError('');
-      setSuccess('');
+      resetForm();
     }
   }, [isOpen]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const resetForm = () => {
+    setFormData(initialFormState);
+    setAvailableModels([]);
+    setError('');
+    setSuccess('');
+  };
+
+  const updateFormField = (name, value) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
 
-    // When brand changes, update available models
-    if (name === 'brand') {
-      const selectedBrand = brands.find(brand => brand.brand_name === value);
-      if (selectedBrand && selectedBrand.brand_models) {
+  const loadProductData = async () => {
+    try {
+
+      setError('');
+      setSuccess('');
+
+      const brandsResponse = await getAllBrands("active");
+
+      if (brandsResponse?.success && brandsResponse?.data) {
+        setBrands(brandsResponse.data);
+      }
+
+      const productResponse = await fetchProductById(productId);
+
+      if (productResponse?.success && productResponse?.data) {
+
+        const product = productResponse.data;
+
+        const productType = product.product_type || '';
+
+        setFormData({
+          product_name: product.product_name || '',
+          model: product.model || '',
+          product_type: productType,
+          brand: product.brand || '',
+          product_price: product.product_price || product.price || '',
+          status: product.status || 'active',
+          status_reason: ''
+        });
+
+        // Add product type dynamically if not in default list
+        setProductTypeOptions(prev => {
+          if (!productType || prev.includes(productType)) return prev;
+          return [...prev, productType];
+        });
+
+        // Load brand models
+        if (product.brand) {
+          const selectedBrand = brandsResponse.data.find(
+            b => b.brand_name === product.brand
+          );
+
+          if (selectedBrand?.brand_models) {
+            setAvailableModels(selectedBrand.brand_models);
+          }
+        }
+      }
+
+    } catch (err) {
+      console.error("Error loading product:", err);
+      setError("Failed to load product data");
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    updateFormField(name, value);
+
+    if (name === "brand") {
+      const selectedBrand = brands.find(b => b.brand_name === value);
+
+      if (selectedBrand?.brand_models) {
         setAvailableModels(selectedBrand.brand_models);
       } else {
         setAvailableModels([]);
@@ -491,20 +531,42 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
     }
   };
 
+  const handleProductTypeChange = (e) => {
+    const value = e.target.value;
+
+    updateFormField("product_type", value);
+  };
+
+  const handleProductTypeBlur = () => {
+    const value = formData.product_type?.trim();
+
+    if (!value) return;
+
+    setProductTypeOptions(prev => {
+      if (prev.includes(value)) return prev;
+      return [...prev, value];
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setLoading(true);
     setError('');
-    setSuccess('');
 
     try {
-      // Validate required fields
-      if (!formData.product_name || !formData.model || !formData.product_type || !formData.brand || !formData.product_price) {
-        setError('Please fill in all required fields.');
+
+      if (
+        !formData.product_name ||
+        !formData.model ||
+        !formData.product_type ||
+        !formData.brand ||
+        !formData.product_price
+      ) {
+        setError("Please fill in all required fields.");
         return;
       }
 
-      // Prepare API payload
       const payload = {
         product_name: formData.product_name,
         model: formData.model,
@@ -514,36 +576,32 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
         status: formData.status
       };
 
-      // Add status_reason if status is inactive
-      if (formData.status === 'inactive' && formData.status_reason) {
+      if (formData.status === "inactive" && formData.status_reason) {
         payload.status_reason = formData.status_reason;
       }
 
       const response = await updateProduct(productId, payload);
 
-      if (response && response.success) {
-        // Close modal first
+      if (response?.success) {
+
         onClose();
+        onProductUpdated?.();
 
-        // Refresh products list
-        if (onProductUpdated) {
-          onProductUpdated();
-        }
-
-        // Show success message
         setTimeout(async () => {
           await Swal.fire({
-            icon: 'success',
-            title: 'Success!',
-            text: response.message || 'Product updated successfully!',
-            confirmButtonText: 'OK',
+            icon: "success",
+            title: "Success",
+            text: response.message || "Product updated successfully",
+            confirmButtonText: "OK"
           });
         }, 100);
+
       } else {
-        setError(response.message || 'Failed to update product');
+        setError(response?.message || "Failed to update product");
       }
+
     } catch (err) {
-      setError(err.message || 'Network error. Please try again.');
+      setError(err.message || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -551,31 +609,25 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
 
   if (!isOpen) return null;
 
-  // Create dynamic product type options that include the current product's type
-  const baseProductTypeOptions = [
-    'Smart Phone',
-    'Tablet',
-    'Laptop',
-    'Accessory',
-    'Cable',
-    'Wire'
-  ];
-
-  // Add current product type if it's not in the base options
-  const productTypeOptions = formData.product_type && !baseProductTypeOptions.includes(formData.product_type)
-    ? [...baseProductTypeOptions, formData.product_type]
-    : baseProductTypeOptions;
-
   return (
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={onClose} />
+
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
         <div className="bg-white rounded-xl shadow-sm w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+
+          {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Edit Product</h2>
-              <p className="text-sm text-gray-500 mt-1">Update product information</p>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Edit Product
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Update product information
+              </p>
             </div>
+
+            {/* Close Button */}
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
@@ -584,18 +636,24 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
             </button>
           </div>
 
+          {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 max-h-[70vh] overflow-y-auto">
+
+            {/* Error Message */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
                 {error}
               </div>
             )}
+
+            {/* Success Message */}
             {success && (
               <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm mb-4">
                 {success}
               </div>
             )}
 
+            {/* Product Information Section */}
             <div className="space-y-6">
               <div>
                 <h3 className="text-base font-medium text-gray-900 flex items-center gap-2">
@@ -656,14 +714,22 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Product Type <span className="text-red-500">*</span>
                     </label>
-                    <CustomSelect
+
+                    <input
+                      list="edit-product-type-options"
                       name="product_type"
                       value={formData.product_type}
-                      onChange={handleChange}
-                      options={productTypeOptions}
-                      placeholder="Select product type"
+                      onChange={handleProductTypeChange}
+                      placeholder="Select or type product type"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
                       required
                     />
+
+                    <datalist id="edit-product-type-options">
+                      {productTypeOptions.map((type, index) => (
+                        <option key={index} value={type} />
+                      ))}
+                    </datalist>
                   </div>
 
                   {/* Price */}
@@ -1257,86 +1323,162 @@ const Products = () => {
                 </thead>
                 <tbody>
                   {currentProducts.map((product) => {
-                    // Calculate stock details from stocks array
-                    const unpackedStock = product.stocks?.find(s => s.stock_type === 'UNPACKED')?.stock || 0;
-                    const packedStock = product.stocks?.find(s => s.stock_type === 'PACKED')?.stock || 0;
+                    const {
+                      product_id,
+                      product_name,
+                      brand,
+                      model,
+                      product_type,
+                      price,
+                      available_stock,
+                      status,
+                      stocks = []
+                    } = product;
+
+                    /* -------------------- Stock Calculations -------------------- */
+
+                    const unpackedStock = stocks.find((s) => s.stock_type === "UNPACKED")?.stock ??
+                      stocks[0]?.unpacked_stock ??
+                      0;
+
+                    const packedStock = stocks.find((s) => s.stock_type === "PACKED")?.stock ??
+                      stocks[0]?.packed_stock ??
+                      0;
+
+                    const formattedPrice = price ? `₹${price.toLocaleString("en-IN")}` : "N/A";
+
+                    const isActive = status === "active";
 
                     return (
-                      <tr key={product.product_id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                        <td className="py-4 px-4">
-                          <span className="text-sm font-medium text-gray-900">{product.product_id}</span>
+                      <tr
+                        key={product.product_id}
+                        className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                      >
+
+                        {/* Product ID */}
+                        <td className="py-4 px-4 text-sm text-gray-500">
+                          {product_id}
                         </td>
+
+                        {/* Product Name */}
                         <td className="py-4 px-4">
-                          <span className="text-sm font-medium text-gray-900">{product.product_name}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">{product.brand}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">{product.model}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">{product.product_type}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm font-medium text-gray-900">
-                            ₹{product.price ? product.price.toLocaleString('en-IN') : 'N/A'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm font-medium text-gray-900">
-                            {product.available_stock || 0}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="text-xs text-gray-500">
-                            <div>Unpacked: {unpackedStock}</div>
-                            <div>Packed: {packedStock}</div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
+                              <FiBox className="text-gray-500 text-sm" />
+                            </div>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {product_name}
+                            </span>
                           </div>
                         </td>
+
+                        {/* Brand */}
                         <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.status === 'active'
-                            ? 'bg-green-50 text-green-700'
-                            : 'bg-red-50 text-red-700'
-                            }`}>
-                            {product.status === 'active' ? 'Active' : 'Inactive'}
+                          <span className="text-sm text-gray-700 font-medium">{brand}</span>
+                        </td>
+
+                        {/* Model */}
+                        <td className="py-4 px-4 text-sm text-gray-600">
+                          {model}
+                        </td>
+
+                        {/* Product Type */}
+                        <td className="py-4 px-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 text-xs font-semibold">
+                            {product_type}
                           </span>
                         </td>
+
+                        {/* Price */}
+                        <td className="py-4 px-4">
+                          <span className="text-sm font-semibold text-gray-900">
+                            {formattedPrice}
+                          </span>
+                        </td>
+
+                        {/* Available Stock */}
+                        <td className="py-4 px-4">
+                          <span className="text-sm font-semibold text-indigo-600">
+                            {available_stock ?? 0}
+                          </span>
+                        </td>
+
+                        {/* Stock Details */}
+                        <td className="py-4 px-4">
+                          <div className="flex gap-2">
+
+                            <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-semibold">
+                              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                              U:{unpackedStock}
+                            </div>
+
+                            <div className="flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 rounded-md text-xs font-semibold">
+                              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                              P:{packedStock}
+                            </div>
+
+                          </div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-4 px-4">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${isActive
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                              }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-green-500" : "bg-red-500"
+                                }`}
+                            />
+                            {isActive ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
                         {!isSalesman && (
                           <td className="py-4 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
+
+                              {/* Edit */}
                               <button
-                                onClick={() => openEditModal(product.product_id, product.product_name)}
+                                onClick={() => openEditModal(product_id, product_name)}
                                 className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 rounded-lg transition-colors"
                                 title="Edit Product"
                               >
                                 <FiEdit3 size={16} />
                               </button>
-                              {product.status === 'active' && (
+
+                              {/* Update Stock */}
+                              {isActive && (
                                 <button
-                                  onClick={() => openStockModal(product.product_id, product.product_name)}
+                                  onClick={() => openStockModal(product_id, product_name)}
                                   className="inline-flex items-center justify-center p-2 text-[#059669] hover:text-[#047857] hover:bg-[#059669]/5 rounded-lg transition-colors"
                                   title="Update Stock"
                                 >
                                   <FiPackage size={16} />
                                 </button>
                               )}
+
                             </div>
                           </td>
                         )}
+
                       </tr>
                     );
                   })}
+
+                  {/* Empty State */}
                   {!loading && currentProducts.length === 0 && (
                     <tr>
                       <td colSpan="10" className="py-8 text-center">
                         <p className="text-sm text-gray-500">
                           {products.length === 0
-                            ? 'No products available'
+                            ? "No products available"
                             : filteredProducts.length === 0
-                              ? 'No products found matching your criteria'
-                              : `No products on page ${currentPage}`
-                          }
+                              ? "No products found matching your criteria"
+                              : `No products on page ${currentPage}`}
                         </p>
                       </td>
                     </tr>
