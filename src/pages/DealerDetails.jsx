@@ -14,6 +14,7 @@ import {
   FiPlus,
   FiTrash2,
   FiSearch,
+  FiEdit3,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 
@@ -21,10 +22,11 @@ import {
   fetchDealerById,
   fetchDealerDiscounts,
   createDealerDiscounts,
+  updateDealerDiscount,
 } from "../api/dealer";
 import { getBrandsByDealer } from "../api/brands";
 import { fetchOrders } from "../api/orders";
-import { fetchProducts } from "../api/products";
+import { fetchProducts, fetchProductsByBrands } from "../api/products";
 import CustomSelect from "../components/CustomSelect";
 import { getPriorityStyle, getStatusStyle, ORDER_STATUS_LIST, PRIORITY_OPTIONS } from "../utils/status";
 import { capitalizeFirstLetter } from "../utils/constants";
@@ -106,6 +108,7 @@ const createEmptyRow = () => ({
   id: crypto.randomUUID(),
   brand_name: "",
   model_name: "",
+  product_ids: [],
   discount_value: "",
   is_percentage: true,
   description: "",
@@ -148,6 +151,7 @@ const DealerDetails = () => {
   });
 
   const [allBrands, setAllBrands] = useState([]);
+  const [productsByBrand, setProductsByBrand] = useState({});
 
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [bulkRows, setBulkRows] = useState([createEmptyRow()]);
@@ -167,6 +171,10 @@ const DealerDetails = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [selectedPriority, setSelectedPriority] = useState("ALL");
+
+  const [editDiscountModalOpen, setEditDiscountModalOpen] = useState(false);
+  const [selectedDiscount, setSelectedDiscount] = useState(null);
+  const [originalDiscount, setOriginalDiscount] = useState(null);
 
   // 🔹 NEW: Pagination
   const [pagination, setPagination] = useState({
@@ -383,6 +391,7 @@ const DealerDetails = () => {
           dealer_id: id,
           brand_name: r.brand_name,
           model_name: r.model_name,
+          product_ids: r.product_ids,
           discount_value: Number(r.discount_value),
           is_percentage: Boolean(r.is_percentage),
           description: r.description?.trim() || "",
@@ -415,6 +424,103 @@ const DealerDetails = () => {
     } finally {
       setBulkSubmitting(false);
     }
+  };
+
+  const handleUpdateDiscount = async () => {
+    try {
+      const payload = buildUpdatePayload(selectedDiscount, originalDiscount);
+
+      // If nothing changed
+      if (Object.keys(payload).length === 1) {
+        Swal.fire({
+          icon: "info",
+          title: "No Changes",
+          text: "No changes detected.",
+        });
+        return;
+      }
+
+      const res = await updateDealerDiscount(payload);
+
+      if (!res?.success) {
+        throw new Error(res?.message || "Failed to update discount");
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Updated",
+        text: res.message || "Discount updated successfully",
+      });
+
+      setEditDiscountModalOpen(false);
+
+      // refresh table
+      await loadDiscounts(discountState.page);
+
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Update Failed",
+        text: err.message,
+      });
+    }
+  };
+
+  const openEditDiscountModal = async (discount) => {
+
+    const cleanDiscount = {
+      ...discount,
+      description: discount.description || "",
+      product_ids: discount.product_ids || [],
+    };
+
+    setSelectedDiscount(cleanDiscount);
+    setOriginalDiscount(cleanDiscount);
+
+    // fetch products for brand
+    if (!productsByBrand[discount.brand_name]) {
+      try {
+        const res = await fetchProductsByBrands([discount.brand_name]);
+
+        if (res?.success) {
+          setProductsByBrand((prev) => ({
+            ...prev,
+            [discount.brand_name]: res.data,
+          }));
+        }
+      } catch (err) {
+        console.error("Product fetch failed:", err);
+      }
+    }
+
+    setEditDiscountModalOpen(true);
+  };
+
+  const buildUpdatePayload = (current, original) => {
+    const payload = {
+      dealer_discount_id: current.dealer_discount_id,
+    };
+
+    if (Number(current.discount_value) !== Number(original.discount_value)) {
+      payload.discount_value = Number(current.discount_value);
+    }
+
+    if (Boolean(current.is_percentage) !== Boolean(original.is_percentage)) {
+      payload.is_percentage = Boolean(current.is_percentage);
+    }
+
+    if ((current.description || "") !== (original.description || "")) {
+      payload.description = current.description || "";
+    }
+
+    if (
+      JSON.stringify(current.product_ids || []) !==
+      JSON.stringify(original.product_ids || [])
+    ) {
+      payload.product_ids = current.product_ids || [];
+    }
+
+    return payload;
   };
 
   /* ------------------------------- RENDER -------------------------------- */
@@ -703,36 +809,62 @@ const DealerDetails = () => {
                     <tr>
                       <th className="px-6 py-4 text-left">Brand</th>
                       <th className="px-6 py-4 text-left">Model</th>
-                      <th className="px-6 py-4 text-left">Value</th>
+                      <th className="px-6 py-4 text-left">Discount</th>
                       <th className="px-6 py-4 text-left">Status</th>
                       <th className="px-6 py-4 text-left">Created</th>
+                      <th className="px-6 py-4 text-left">Actions</th>
                     </tr>
                   </thead>
+
                   <tbody className="divide-y divide-gray-100">
+
                     {discounts.map((d) => (
-                      <tr key={d.dealer_discount_id} className="hover:bg-gray-50 transition">
+                      <tr
+                        key={d.dealer_discount_id}
+                        className="hover:bg-gray-50 transition"
+                      >
+                        {/* Brand */}
                         <td className="px-6 py-4 font-medium text-gray-800">
                           {d.brand_name}
                         </td>
 
+                        {/* Model */}
                         <td className="px-6 py-4 text-gray-600">
                           {d.model_name}
                         </td>
 
+                        {/* Discount */}
                         <td className="px-6 py-4 font-semibold text-[#9333EA]">
                           {d.discount_value}
                           {d.is_percentage ? "%" : " ₹"}
                         </td>
 
+                        {/* Status */}
                         <td className="px-6 py-4">
-                          <span className="px-3 py-1 text-xs rounded-full bg-emerald-50 text-emerald-700 font-medium">
+                          <span className={`px-3 py-1 text-xs rounded-full font-medium
+              ${d.status === "active"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-gray-100 text-gray-600"
+                            }`}>
                             {d.status}
                           </span>
                         </td>
 
+                        {/* Created */}
                         <td className="px-6 py-4 text-gray-500">
                           {formatDate(d.created_at)}
                         </td>
+
+                        {/* Actions */}
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => openEditDiscountModal(d)}
+                            className="inline-flex items-center justify-center p-2 rounded-lg text-gray-500 hover:text-[#9333EA] hover:bg-purple-50 transition"
+                          >
+                            <FiEdit3 size={18} />
+                          </button>
+                        </td>
+
                       </tr>
                     ))}
                   </tbody>
@@ -772,85 +904,103 @@ const DealerDetails = () => {
       </div>
 
       {/* ===================== ADD DISCOUNTS MODAL ===================== */}
-      {
-        bulkModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md animate-fadeIn">
+      {bulkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
 
-            <div className="relative w-full max-w-5xl mx-4 bg-white rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+          <div className="relative w-full max-w-6xl mx-4 bg-white rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
 
-              {/* ---------------- Header ---------------- */}
-              <div className="px-10 py-7 border-b border-gray-100 bg-white">
-                <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">
-                  Add Dealer Discounts
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Configure multiple pricing rules for this dealer
-                </p>
-              </div>
+            {/* Header */}
+            <div className="px-10 py-7 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-white">
+              <h3 className="text-2xl font-semibold text-gray-900">
+                Add Dealer Discounts
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Configure pricing rules for this dealer across brands, models and products.
+              </p>
+            </div>
 
-              {/* ---------------- Body ---------------- */}
-              <div className="flex-1 overflow-y-auto px-10 py-8 space-y-10 bg-gray-50/40">
-                {bulkError && (
-                  <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
-                    {bulkError}
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-10 py-8 space-y-8 bg-gray-50">
+
+              {bulkError && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
+                  {bulkError}
+                </div>
+              )}
+
+              {bulkRows.map((row, idx) => (
+                <div
+                  key={row.id}
+                  className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition p-8 space-y-6"
+                >
+
+                  {/* Row Header */}
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-gray-800">
+                      Discount Rule {idx + 1}
+                    </h4>
+
+                    {bulkRows.length > 1 && (
+                      <button
+                        onClick={() =>
+                          setBulkRows(prev => prev.filter((_, i) => i !== idx))
+                        }
+                        className="text-red-500 hover:text-red-700 transition"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    )}
                   </div>
-                )}
 
-                {bulkRows.map((row, idx) => (
-                  <div
-                    key={row.id}
-                    className="p-8 rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200 space-y-6"
-                  >
-                    {/* Row Header */}
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold text-gray-700">
-                        Discount {idx + 1}
-                      </h4>
+                  {/* Main Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-                      {bulkRows.length > 1 && (
-                        <button
-                          onClick={() =>
-                            setBulkRows((prev) =>
-                              prev.filter((_, i) => i !== idx)
-                            )
-                          }
-                          className="text-red-500 hover:text-red-700 transition"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* ---------------- Main Fields ---------------- */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-                      {/* Brand */}
+                    {/* Brand */}
+                    <FormField label="Brand">
                       <CustomSelect
                         value={row.brand_name}
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const selectedBrand = e.target.value;
 
-                          setBulkRows((prev) =>
+                          setBulkRows(prev =>
                             prev.map((r, i) =>
                               i === idx
                                 ? {
                                   ...r,
                                   brand_name: selectedBrand,
-                                  model_name: "", // reset model when brand changes
+                                  model_name: "",
+                                  product_ids: [],
                                 }
                                 : r
                             )
                           );
+
+                          if (!productsByBrand[selectedBrand]) {
+                            try {
+                              const res = await fetchProductsByBrands([selectedBrand]);
+
+                              if (res?.success && res?.data) {
+                                setProductsByBrand(prev => ({
+                                  ...prev,
+                                  [selectedBrand]: res.data,
+                                }));
+                              }
+                            } catch (err) {
+                              console.error("Product fetch failed:", err);
+                            }
+                          }
                         }}
-                        options={allBrands.map((b) => b.brand_name)}
+                        options={allBrands.map(b => b.brand_name)}
                         placeholder="Select Brand"
                       />
+                    </FormField>
 
-                      {/* Model */}
+                    {/* Model */}
+                    <FormField label="Model">
                       <CustomSelect
                         value={row.model_name}
                         onChange={(e) =>
-                          setBulkRows((prev) =>
+                          setBulkRows(prev =>
                             prev.map((r, i) =>
                               i === idx
                                 ? { ...r, model_name: e.target.value }
@@ -866,9 +1016,13 @@ const DealerDetails = () => {
                         placeholder="Select Model"
                         disabled={!row.brand_name}
                       />
+                    </FormField>
 
-                      {/* Discount Input */}
-                      <div className="space-y-1">
+                    {/* ---------------- Discount (Type + Value Same Row) ---------------- */}
+                    <FormField label="Discount">
+                      <div className="flex items-center gap-3">
+
+                        {/* Discount Value */}
                         <input
                           type="number"
                           min="0"
@@ -881,7 +1035,7 @@ const DealerDetails = () => {
                               value = 100;
                             }
 
-                            setBulkRows((prev) =>
+                            setBulkRows(prev =>
                               prev.map((r, i) =>
                                 i === idx
                                   ? { ...r, discount_value: value }
@@ -889,25 +1043,17 @@ const DealerDetails = () => {
                               )
                             );
                           }}
-                          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20 transition"
                           placeholder="Enter Discount"
+                          className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#9333EA]/20 focus:outline-none"
                         />
 
-                        {row.is_percentage && Number(row.discount_value) > 100 && (
-                          <p className="text-xs text-red-500">
-                            Percentage cannot exceed 100%
-                          </p>
-                        )}
-                      </div>
-
-
-                      <div className="flex items-center justify-center">
-                        <div className="flex bg-gray-200 rounded-full p-1 shadow-inner">
+                        {/* Toggle */}
+                        <div className="flex bg-gray-100 rounded-full p-1 shrink-0">
 
                           <button
                             type="button"
                             onClick={() =>
-                              setBulkRows((prev) =>
+                              setBulkRows(prev =>
                                 prev.map((r, i) =>
                                   i === idx
                                     ? { ...r, is_percentage: false }
@@ -915,10 +1061,9 @@ const DealerDetails = () => {
                                 )
                               )
                             }
-                            className={`px-4 py-1.5 text-sm font-medium rounded-full transition
-                      ${!row.is_percentage
-                                ? "bg-white shadow text-[#9333EA]"
-                                : "text-gray-600"
+                            className={`px-4 py-1.5 text-sm font-medium rounded-full transition ${!row.is_percentage
+                              ? "bg-white shadow text-[#9333EA]"
+                              : "text-gray-600"
                               }`}
                           >
                             ₹
@@ -927,7 +1072,7 @@ const DealerDetails = () => {
                           <button
                             type="button"
                             onClick={() =>
-                              setBulkRows((prev) =>
+                              setBulkRows(prev =>
                                 prev.map((r, i) =>
                                   i === idx
                                     ? { ...r, is_percentage: true }
@@ -935,84 +1080,300 @@ const DealerDetails = () => {
                                 )
                               )
                             }
-                            className={`px-4 py-1.5 text-sm font-medium rounded-full transition
-                      ${row.is_percentage
-                                ? "bg-white shadow text-[#9333EA]"
-                                : "text-gray-600"
+                            className={`px-4 py-1.5 text-sm font-medium rounded-full transition ${row.is_percentage
+                              ? "bg-white shadow text-[#9333EA]"
+                              : "text-gray-600"
                               }`}
                           >
                             %
                           </button>
 
                         </div>
+
                       </div>
-                    </div>
+                    </FormField>
 
-                    {/* ---------------- Description ---------------- */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                        Description (Optional)
-                      </label>
+                    {/* ---------------- Product Selector (Multiple like CustomSelect) ---------------- */}
+                    <FormField label="Products">
+                      <select
+                        multiple
+                        value={row.product_ids || []}
+                        onChange={(e) => {
+                          const selectedProducts = Array.from(
+                            e.target.selectedOptions
+                          ).map((o) => o.value);
 
-                      <textarea
-                        rows={3}
-                        maxLength={200}
-                        value={row.description || ""}
-                        onChange={(e) =>
-                          setBulkRows((prev) =>
+                          setBulkRows(prev =>
                             prev.map((r, i) =>
                               i === idx
-                                ? { ...r, description: e.target.value }
+                                ? { ...r, product_ids: selectedProducts }
                                 : r
                             )
+                          );
+                        }}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#9333EA]/20 focus:outline-none min-h-[120px]"
+                      >
+                        {(productsByBrand[row.brand_name] || [])
+                          .filter((p) =>
+                            row.model_name
+                              ? p.model === row.model_name ||
+                              p.model_name === row.model_name
+                              : true
                           )
-                        }
-                        placeholder="Enter discount description (e.g., Festive Offer for Diwali 2026...)"
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20 resize-none transition"
-                      />
+                          .map((product) => (
+                            <option
+                              key={product.product_id}
+                              value={product.product_id}
+                            >
+                              {product.product_name} ({product.model || product.model_name})
+                            </option>
+                          ))}
+                      </select>
 
-                      <div className="text-xs text-gray-400 text-right">
-                        {(row.description?.length || 0)}/200
-                      </div>
-                    </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Hold <b>Ctrl</b> / <b>Cmd</b> to select multiple products
+                      </p>
+
+                    </FormField>
                   </div>
-                ))}
-              </div>
 
-              {/* ---------------- Footer ---------------- */}
-              <div className="px-8 py-6 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-2xl">
+                  {/* Description */}
+                  <FormField label="Description (Optional)">
+                    <textarea
+                      rows={3}
+                      maxLength={200}
+                      value={row.description || ""}
+                      onChange={(e) =>
+                        setBulkRows(prev =>
+                          prev.map((r, i) =>
+                            i === idx
+                              ? { ...r, description: e.target.value }
+                              : r
+                          )
+                        )
+                      }
+                      placeholder="Example: Diwali promotional discount"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#9333EA]/20 focus:outline-none resize-none"
+                    />
 
+                    <div className="text-xs text-gray-400 text-right">
+                      {(row.description?.length || 0)}/200
+                    </div>
+                  </FormField>
+
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="px-10 py-6 border-t border-gray-100 flex justify-between items-center bg-white">
+
+              <button
+                onClick={() =>
+                  setBulkRows(prev => [...prev, createEmptyRow()])
+                }
+                className="px-5 py-2.5 border border-[#9333EA] text-[#9333EA] rounded-xl hover:bg-[#9333EA]/5 transition"
+              >
+                + Add Rule
+              </button>
+
+              <div className="flex gap-4">
                 <button
-                  onClick={() =>
-                    setBulkRows((prev) => [...prev, createEmptyRow()])
-                  }
-                  className="px-5 py-2.5 border border-[#9333EA] text-[#9333EA] rounded-xl hover:bg-[#9333EA]/5 transition"
+                  onClick={() => setBulkModalOpen(false)}
+                  className="px-5 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-100 transition"
                 >
-                  + Add Another
+                  Cancel
                 </button>
 
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => setBulkModalOpen(false)}
-                    className="px-5 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-100 transition"
-                  >
-                    Cancel
-                  </button>
+                <button
+                  disabled={bulkSubmitting}
+                  onClick={handleSubmitDiscounts}
+                  className="px-6 py-2.5 bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white rounded-xl shadow hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {bulkSubmitting ? "Saving..." : "Save Discounts"}
+                </button>
+              </div>
+            </div>
 
-                  <button
-                    disabled={bulkSubmitting}
-                    onClick={handleSubmitDiscounts}
-                    className="px-6 py-2.5 bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white rounded-xl shadow hover:opacity-90 transition disabled:opacity-50"
-                  >
-                    {bulkSubmitting ? "Saving..." : "Save Discounts"}
-                  </button>
-                </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== EDIT DISCOUNTS MODAL ===================== */}
+      {editDiscountModalOpen && selectedDiscount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+
+          <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-white">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Edit Discount Rule
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Update pricing configuration for this dealer
+              </p>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-6 space-y-5">
+
+              {/* Brand + Model */}
+              <div className="grid grid-cols-2 gap-4">
+
+                <FormField label="Brand">
+                  <input
+                    value={selectedDiscount.brand_name}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600"
+                  />
+                </FormField>
+
+                <FormField label="Model">
+                  <input
+                    value={selectedDiscount.model_name}
+                    disabled
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600"
+                  />
+                </FormField>
+
               </div>
 
+              {/* Discount */}
+              <FormField label="Discount">
+                <div className="flex items-center gap-3">
+
+                  <input
+                    type="number"
+                    value={selectedDiscount.discount_value}
+                    onChange={(e) =>
+                      setSelectedDiscount(prev => ({
+                        ...prev,
+                        discount_value: e.target.value
+                      }))
+                    }
+                    className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-[#9333EA]/20"
+                  />
+
+                  <div className="flex bg-gray-100 rounded-full p-1">
+
+                    <button
+                      onClick={() =>
+                        setSelectedDiscount(prev => ({
+                          ...prev,
+                          is_percentage: false
+                        }))
+                      }
+                      className={`px-4 py-1.5 text-sm rounded-full ${!selectedDiscount.is_percentage
+                        ? "bg-white shadow text-[#9333EA]"
+                        : "text-gray-600"
+                        }`}
+                    >
+                      ₹
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        setSelectedDiscount(prev => ({
+                          ...prev,
+                          is_percentage: true
+                        }))
+                      }
+                      className={`px-4 py-1.5 text-sm rounded-full ${selectedDiscount.is_percentage
+                        ? "bg-white shadow text-[#9333EA]"
+                        : "text-gray-600"
+                        }`}
+                    >
+                      %
+                    </button>
+
+                  </div>
+
+                </div>
+              </FormField>
+
+              {/* Products */}
+              <FormField label="Products">
+
+                <select
+                  multiple
+                  value={selectedDiscount.product_ids || []}
+                  onChange={(e) => {
+
+                    const selected = Array.from(
+                      e.target.selectedOptions
+                    ).map(o => o.value);
+
+                    setSelectedDiscount(prev => ({
+                      ...prev,
+                      product_ids: selected
+                    }));
+
+                  }}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 min-h-[100px]"
+                >
+
+                  {(productsByBrand[selectedDiscount.brand_name] || [])
+                    .filter(p =>
+                      selectedDiscount.model_name
+                        ? p.model === selectedDiscount.model_name
+                        : true
+                    )
+                    .map(product => (
+                      <option
+                        key={product.product_id}
+                        value={product.product_id}
+                      >
+                        {product.product_name} ({product.model})
+                      </option>
+                    ))}
+
+                </select>
+
+              </FormField>
+
+              {/* Description */}
+              <FormField label="Description">
+
+                <textarea
+                  rows={3}
+                  value={selectedDiscount.description || ""}
+                  onChange={(e) =>
+                    setSelectedDiscount(prev => ({
+                      ...prev,
+                      description: e.target.value
+                    }))
+                  }
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200"
+                />
+
+              </FormField>
+
             </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+
+              <button
+                onClick={() => setEditDiscountModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleUpdateDiscount}
+                className="px-5 py-2 bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white rounded-lg shadow hover:opacity-90"
+              >
+                Update Discount
+              </button>
+
+            </div>
+
           </div>
-        )
-      }
+
+        </div>
+      )}
 
       {/* 🔹Orders Summary Card */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
