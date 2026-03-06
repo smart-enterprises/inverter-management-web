@@ -974,9 +974,8 @@ const Dealers = () => {
                         Password
                       </th>
                     )}
-                    {!isSalesman && (
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Actions</th>
-                    )}
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Actions</th>
+
                   </tr>
                 </thead>
                 <tbody>
@@ -1014,6 +1013,7 @@ const Dealers = () => {
                         <td className="py-4 px-4">
                           <span className="text-sm text-gray-600">{dealer.created_at ? new Date(dealer.created_at).toISOString().slice(0, 10) : ""}</span>
                         </td>
+
                         {includePassword && canViewPasswords && (
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-2">
@@ -1045,18 +1045,17 @@ const Dealers = () => {
                             </div>
                           </td>
                         )}
+
                         {/* Actions */}
-                        {!isSalesman && (
-                          <td className="py-4 px-4 text-right relative">
-                            <DealerActions
-                              dealerId={dealer.employee_id}
-                              onEdit={() => handleEditDealer(dealer.employee_id)}
-                              onDelete={() => handleOpenDeleteModal(dealer.employee_id)}
-                              dealerStatus={dealer.status}
-                              isSalesman={isSalesman}
-                            />
-                          </td>
-                        )}
+                        <td className="py-4 px-4 text-right relative">
+                          <DealerActions
+                            dealerId={dealer.employee_id}
+                            onEdit={() => handleEditDealer(dealer.employee_id)}
+                            onDelete={() => handleOpenDeleteModal(dealer.employee_id)}
+                            dealerStatus={dealer.status}
+                            isSalesman={isSalesman}
+                          />
+                        </td>
                       </tr>
                     ))
                   ) : (
