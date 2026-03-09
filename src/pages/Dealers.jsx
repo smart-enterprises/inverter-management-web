@@ -28,6 +28,7 @@ import { getAllBrands } from "../api/brands";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
 import { fetchUsers } from "../api/user";
+import { capitalizeFirstLetter } from "../utils/constants";
 
 // MultiSelectDropdown component remains unchanged
 const MultiSelectDropdown = ({
@@ -986,10 +987,10 @@ const Dealers = () => {
                         className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
                       >
                         <td className="py-4 px-4">
-                          <span className="text-sm font-medium text-gray-900">{dealer.employee_name?.charAt(0).toUpperCase() + dealer.employee_name?.slice(1)}</span>
+                          <span className="text-sm font-medium text-gray-900">{capitalizeFirstLetter(dealer.employee_name)}</span>
                         </td>
                         <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">{dealer.shop_name}</span>
+                          <span className="text-sm text-gray-600">{capitalizeFirstLetter(dealer.shop_name)}</span>
                         </td>
                         <td className="py-4 px-4">
                           <span className="text-sm text-gray-600">{dealer.employee_phone}</span>
