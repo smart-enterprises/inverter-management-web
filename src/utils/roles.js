@@ -1,16 +1,16 @@
 /* ===================== ROLE CONSTANTS ===================== */
 
 export const ROLES = Object.freeze({
-    SUPER_ADMIN: 'ROLE_SUPER_ADMIN',
-    ADMIN: 'ROLE_ADMIN',
-    MANAGER: 'ROLE_MANAGER',
-    SUPERVISOR: 'ROLE_SUPERVISOR',
-    SALESMAN: 'ROLE_SALESMAN',
-    PRODUCTION: 'ROLE_PRODUCTION',
-    PACKING: 'ROLE_PACKING',
-    ACCOUNTS: 'ROLE_ACCOUNTS',
-    DELIVERY: 'ROLE_DELIVERY',
-    DEALER: 'ROLE_DEALER',
+    ALL: "ALL",
+    SUPER_ADMIN: "ROLE_SUPER_ADMIN",
+    ADMIN: "ROLE_ADMIN",
+    MANAGER: "ROLE_MANAGER",
+    SALESMAN: "ROLE_SALESMAN",
+    PRODUCTION: "ROLE_PRODUCTION",
+    PACKING: "ROLE_PACKING",
+    ACCOUNTS: "ROLE_ACCOUNTS",
+    DELIVERY: "ROLE_DELIVERY",
+    DEALER: "ROLE_DEALER",
 });
 
 /* ===================== ROLE LABELS ===================== */
@@ -19,7 +19,7 @@ export const ROLE_LABELS = Object.freeze(
     Object.fromEntries(
         Object.entries(ROLES).map(([key, value]) => [
             value,
-            key.replace("_", " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+            key.replace(/_/g, " ")
         ])
     )
 );
@@ -55,8 +55,7 @@ const ASSIGNABLE_ROLE_ORDER = Object.freeze([
 
 /* ===================== ROLE HELPERS ===================== */
 
-export const getRoleLabel = (role) =>
-    ROLE_LABELS[role] || role || '';
+export const getRoleLabel = (role) => ROLE_LABELS[role];
 
 export const canManageUsers = (currentRole) =>
     USER_MANAGEMENT_ROLES.includes(currentRole);

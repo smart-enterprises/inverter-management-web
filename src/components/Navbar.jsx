@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  FiBell, 
+import {
+  FiBell,
   FiSearch,
   FiSettings,
   FiGrid,
@@ -11,23 +11,8 @@ import {
 } from "react-icons/fi";
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-
-const ROLE_DISPLAY_NAMES = {
-  ROLE_SUPER_ADMIN: 'Super Admin',
-  ROLE_ADMIN: 'Admin',
-  ROLE_MANAGER: 'Manager',
-  ROLE_SUPERVISOR: 'Supervisor',
-  ROLE_SALESMAN: 'Salesman',
-  ROLE_PRODUCTION: 'Production',
-  ROLE_PACKING: 'Packing',
-  ROLE_ACCOUNTS: 'Accounts',
-  ROLE_DELIVERY: 'Delivery',
-};
-
-const getDisplayRole = (role) => {
-  if (!role) return "";
-  return ROLE_DISPLAY_NAMES[role] || role.replace("ROLE_", "").replace("_", " ");
-};
+import { capitalizeFirstLetter } from '../utils/constants';
+import { getRoleLabel } from '../utils/roles';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -68,42 +53,92 @@ const Navbar = () => {
           </button>
 
           {/* Profile */}
+          {/* ===================== PROFILE MENU ===================== */}
           <div className="relative">
+
+            {/* Profile Button */}
             <button
               onClick={toggleProfileMenu}
-              className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 transition-all duration-200"
             >
-              <div className="h-7 w-7 rounded-full overflow-hidden">
+
+              {/* Avatar */}
+              <div className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-gray-100 shadow-sm">
                 <img
-                  src={`https://ui-avatars.com/api/?name=${user?.employee_name || 'User'}&background=9333EA&color=fff`}
+                  src={`https://ui-avatars.com/api/?name=${user?.employee_name || "User"}&background=9333EA&color=fff`}
                   alt="Profile"
                   className="h-full w-full object-cover"
                 />
               </div>
-              <div className="text-sm text-gray-600">
-                Welcome, <span className="font-semibold text-gray-900">{user?.employee_name || 'User'}</span>
+
+              {/* Welcome Text */}
+              <div className="hidden sm:flex flex-col text-left">
+                <span className="text-xs text-gray-500">Welcome</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {capitalizeFirstLetter(user?.employee_name) || "User"}
+                </span>
               </div>
-              <FiChevronDown className={`text-gray-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
+
+              {/* Dropdown Icon */}
+              <FiChevronDown
+                className={`text-gray-400 transition-transform duration-200 ${showProfileMenu ? "rotate-180" : ""
+                  }`}
+                size={18}
+              />
+
             </button>
 
-            {/* Profile Dropdown Menu */}
+            {/* ===================== DROPDOWN ===================== */}
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <div className="text-sm font-medium text-gray-900">{user?.employee_name}</div>
-                  <div className="text-xs text-gray-500">{user?.employee_email}</div>
-                  <div className="text-xs text-purple-600 font-medium mt-1">
-                    {getDisplayRole(user?.role)}
+              <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
+
+                {/* Profile Info */}
+                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
+
+                  <div className="flex items-center gap-3">
+
+                    <div className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-white shadow-sm">
+                      <img
+                        src={`https://ui-avatars.com/api/?name=${user?.employee_name || "User"}&background=9333EA&color=fff`}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        {capitalizeFirstLetter(user?.employee_name)}
+                      </div>
+
+                      <div className="text-xs text-gray-500">
+                        {user?.employee_email}
+                      </div>
+                    </div>
+
                   </div>
+
+                  {/* Role Badge */}
+                  <div className="mt-3">
+                    <span className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
+                      {getRoleLabel(user?.role)}
+                    </span>
+                  </div>
+
                 </div>
-                
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  <FiLogOut className="text-gray-400" />
-                  Sign out
-                </button>
+
+                {/* Actions */}
+                <div className="py-2">
+
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-5 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  >
+                    <FiLogOut size={16} />
+                    Sign out
+                  </button>
+
+                </div>
+
               </div>
             )}
           </div>
@@ -112,8 +147,8 @@ const Navbar = () => {
 
       {/* Overlay to close dropdown when clicking outside */}
       {showProfileMenu && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => setShowProfileMenu(false)}
         />
       )}
