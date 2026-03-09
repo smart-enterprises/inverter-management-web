@@ -299,7 +299,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
                   {/* Price */}
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Price (₹) <span className="text-red-500">*</span>
+                      Price (₹ ) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -735,7 +735,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                   {/* Price */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Price (₹) <span className="text-red-500">*</span>
+                      Price (₹ ) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -1037,59 +1037,77 @@ const StockUpdateModal = ({ isOpen, onClose, onStockUpdated, productId, productN
 };
 
 const ProductsPagination = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) pages.push(i);
+
+  const visiblePages = pages.filter(
+    (page) =>
+      page === 1 ||
+      page === totalPages ||
+      Math.abs(page - currentPage) <= 1
+  );
+
   return (
-    <div className="border-t border-gray-100">
-      <div className="px-4 lg:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
-        <div className="flex items-center justify-center sm:justify-start">
-          <span className="text-sm text-gray-600">
-            Page <span className="font-medium text-gray-900">{currentPage}</span> of{' '}
-            <span className="font-medium text-gray-900">{totalPages}</span>
-          </span>
-        </div>
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-400"
-          >
-            <FiChevronLeft size={18} />
-          </button>
-          <div className="flex gap-1">
-            {[...Array(totalPages)].map((_, idx) => {
-              const pageNumber = idx + 1;
-              const isActive = pageNumber === currentPage;
-              const isNearCurrent = Math.abs(pageNumber - currentPage) <= 1 || pageNumber === 1 || pageNumber === totalPages;
+    <div className="flex justify-end mt-6">
 
-              if (!isNearCurrent && pageNumber !== 1 && pageNumber !== totalPages) {
-                if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
-                  return <span key={idx} className="inline-flex items-center justify-center w-9 h-9 text-gray-400">...</span>;
-                }
-                return null;
-              }
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-white/90 backdrop-blur border border-gray-200 rounded-xl shadow-sm">
 
-              return (
+        {/* Previous */}
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FiChevronLeft size={18} />
+        </button>
+
+        {/* Page Numbers */}
+        <div className="flex items-center gap-1">
+
+          {visiblePages.map((page, index) => {
+
+            const showDots =
+              index > 0 &&
+              page - visiblePages[index - 1] > 1;
+
+            return (
+              <div key={page} className="flex items-center">
+
+                {showDots && (
+                  <span className="px-2 text-gray-400 select-none">
+                    ...
+                  </span>
+                )}
+
                 <button
-                  key={idx}
-                  onClick={() => onPageChange(pageNumber)}
-                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isActive
-                    ? 'bg-[#9333EA] text-white'
-                    : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  onClick={() => onPageChange(page)}
+                  className={`min-w-[36px] h-9 px-3 flex items-center justify-center rounded-lg text-sm font-semibold transition-all duration-200 ${page === currentPage
+                    ? "bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white shadow-md scale-[1.05]"
+                    : "text-gray-600 hover:bg-gray-100 hover:scale-[1.03]"
                     }`}
                 >
-                  {pageNumber}
+                  {page}
                 </button>
-              );
-            })}
-          </div>
-          <button
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiChevronRight size={18} />
-          </button>
+
+              </div>
+            );
+          })}
+
         </div>
+
+        {/* Next */}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FiChevronRight size={18} />
+        </button>
+
       </div>
+
     </div>
   );
 };
@@ -1107,7 +1125,7 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
   const [success, setSuccess] = useState('');
   const { user } = useAuth();
   const isSalesman = user?.role === ROLES.SALESMAN;
@@ -1307,7 +1325,7 @@ const Products = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">ID</th>
+                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Product ID</th>
                     <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Name</th>
                     <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Brand</th>
                     <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Model</th>
@@ -1345,7 +1363,7 @@ const Products = () => {
                       stocks[0]?.packed_stock ??
                       0;
 
-                    const formattedPrice = price ? `₹${price.toLocaleString("en-IN")}` : "N/A";
+                    const formattedPrice = price ? `₹  ${price.toLocaleString("en-IN")}` : "N/A";
 
                     const isActive = status === "active";
 

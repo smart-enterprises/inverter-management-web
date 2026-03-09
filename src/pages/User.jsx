@@ -38,10 +38,7 @@ const ROLE_COLORS = {
 const getRoleColor = (role) =>
   ROLE_COLORS[role] || "bg-gray-100 text-gray-700";
 
-/* ============================================================
-   PAGINATION
-============================================================ */
-
+/* PAGINATION */
 const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
   if (totalPages <= 1) return null;
 
@@ -49,86 +46,89 @@ const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
     const pages = [];
 
     if (totalPages <= 5) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-
-      if (page > 3) pages.push("...");
-
-      const start = Math.max(2, page - 1);
-      const end = Math.min(totalPages - 1, page + 1);
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-
-      if (page < totalPages - 2) pages.push("...");
-
-      pages.push(totalPages);
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+      return pages;
     }
+
+    pages.push(1);
+
+    if (page > 3) pages.push("...");
+
+    const start = Math.max(2, page - 1);
+    const end = Math.min(totalPages - 1, page + 1);
+
+    for (let i = start; i <= end; i++) pages.push(i);
+
+    if (page < totalPages - 2) pages.push("...");
+
+    pages.push(totalPages);
 
     return pages;
   };
 
   const pages = generatePages();
 
+  const handlePageChange = (targetPage) => {
+    if (targetPage < 1 || targetPage > totalPages) return;
+    onChange(targetPage);
+  };
+
   return (
-    <div className="border-t border-gray-200 bg-white px-6 py-4 flex items-center justify-between">
+    <div className="flex justify-end mt-4">
 
-      {/* Left Text */}
-      <p className="text-sm text-gray-600">
-        Page <span className="font-semibold text-gray-900">{page}</span> of{" "}
-        <span className="font-semibold text-gray-900">{totalPages}</span>
-      </p>
+      <nav
+        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm"
+        aria-label="Pagination Navigation"
+      >
 
-      {/* Right Controls */}
-      <div className="flex items-center gap-2">
-
-        {/* Previous */}
+        {/* Previous Button */}
         <button
           type="button"
-          onClick={() => onChange(page - 1)}
+          onClick={() => handlePageChange(page - 1)}
           disabled={page === 1}
-          className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <FiChevronLeft size={18} />
         </button>
 
         {/* Page Numbers */}
-        {pages.map((p, index) =>
-          p === "..." ? (
-            <span key={index} className="px-2 text-gray-400">
-              ...
-            </span>
-          ) : (
-            <button
-              key={p}
-              type="button"
-              onClick={() => onChange(p)}
-              className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition
-                ${page === p
-                  ? "bg-[#9333EA] text-white shadow-sm"
-                  : "border border-gray-200 text-gray-700 hover:bg-gray-50"
-                }`}
-            >
-              {p}
-            </button>
-          )
-        )}
+        <div className="flex items-center gap-1">
+          {pages.map((p, index) =>
+            p === "..." ? (
+              <span
+                key={`ellipsis-${index}`}
+                className="px-2 text-gray-400 select-none"
+              >
+                ...
+              </span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                onClick={() => handlePageChange(p)}
+                className={`min-w-[36px] h-9 px-3 flex items-center justify-center rounded-lg text-sm font-semibold transition-all duration-200 ${page === p
+                  ? "bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white shadow-md scale-[1.05]"
+                  : "text-gray-600 hover:bg-gray-100 hover:scale-[1.03]"
+                  }`}
+              >
+                {p}
+              </button>
+            )
+          )}
+        </div>
 
-        {/* Next */}
+        {/* Next Button */}
         <button
           type="button"
-          onClick={() => onChange(page + 1)}
+          onClick={() => handlePageChange(page + 1)}
           disabled={page === totalPages}
-          className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <FiChevronRight size={18} />
         </button>
 
-      </div>
+      </nav>
+
     </div>
   );
 };
@@ -754,138 +754,191 @@ const User = () => {
               )}
             </div>
 
-            {/* TABLE */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Name
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Email
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Phone
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Role
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Created Date
-                    </th>
-                    {includePassword && canViewPasswords && (
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                        Password
-                      </th>
-                    )}
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
+            {/* ================= USERS TABLE ================= */}
+            <div className="mt-6 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
 
-                <tbody>
-                  {loading ? (
+              <div className="overflow-x-auto">
+
+                <table className="w-full text-sm">
+
+                  {/* Header */}
+                  <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider sticky top-0 z-10">
                     <tr>
-                      <td colSpan="8" className="py-8 text-center">
-                        <FiLoader className="animate-spin mx-auto text-[#9333EA]" />
-                      </td>
+
+                      <th className="px-6 py-4 text-left font-medium">User</th>
+
+                      <th className="px-6 py-4 text-left font-medium">Email</th>
+
+                      <th className="px-6 py-4 text-left font-medium">Phone</th>
+
+                      <th className="px-6 py-4 text-left font-medium">Role</th>
+
+                      <th className="px-6 py-4 text-left font-medium">Status</th>
+
+                      <th className="px-6 py-4 text-left font-medium">Created</th>
+
+                      {includePassword && canViewPasswords && (
+                        <th className="px-6 py-4 text-left font-medium">Password</th>
+                      )}
+
+                      <th className="px-6 py-4 text-right font-medium">Actions</th>
+
                     </tr>
-                  ) : users.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="py-8 text-center text-gray-500">
-                        No users found
-                      </td>
-                    </tr>
-                  ) : (
-                    users.map((u) => (
+                  </thead>
+
+                  {/* Body */}
+                  <tbody className="divide-y divide-gray-100">
+
+                    {/* Loading State */}
+                    {loading && (
+                      <tr>
+                        <td colSpan="8" className="py-12 text-center">
+                          <FiLoader className="animate-spin mx-auto text-[#9333EA]" size={24} />
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Empty State */}
+                    {!loading && users.length === 0 && (
+                      <tr>
+                        <td colSpan="8" className="py-12 text-center text-gray-500">
+                          No users found
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Data Rows */}
+                    {!loading && users.map((u) => (
+
                       <tr
                         key={u.employee_id}
-                        className="border-b hover:bg-gray-50 transition"
+                        className="hover:bg-gray-50 transition-colors duration-150"
                       >
-                        <td className="px-4 py-4 font-medium text-gray-900">
-                          {capitalizeFirstLetter(u.employee_name)}
+
+                        {/* USER */}
+                        <td className="px-6 py-4">
+
+                          <div className="flex items-center gap-3">
+
+                            <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#9333EA]/10 text-[#9333EA] font-semibold text-sm">
+                              {capitalizeFirstLetter(u.employee_name).charAt(0).toUpperCase()}
+                            </div>
+
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-gray-900">
+                                {capitalizeFirstLetter(u.employee_name)}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {u.employee_id}
+                              </span>
+                            </div>
+
+                          </div>
+
                         </td>
-                        <td className="px-4 py-4 text-gray-600">
+
+                        {/* EMAIL */}
+                        <td className="px-6 py-4 text-gray-600">
                           {u.employee_email}
                         </td>
-                        <td className="px-4 py-4 text-gray-600">
+
+                        {/* PHONE */}
+                        <td className="px-6 py-4 text-gray-600">
                           {u.employee_phone}
                         </td>
-                        <td className="px-4 py-4">
+
+                        {/* ROLE */}
+                        <td className="px-6 py-4">
+
                           <span
-                            className={`px-3 py-1 text-xs rounded-full font-medium ${getRoleColor(
-                              u.role
-                            )}`}
+                            className={`px-3 py-1 text-xs rounded-full font-medium ${getRoleColor(u.role)}`}
                           >
                             {getRoleLabel(u.role)}
                           </span>
+
                         </td>
-                        <td className="px-4 py-4">
+
+                        {/* STATUS */}
+                        <td className="px-6 py-4">
+
                           <span
-                            className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${u.status === "active"
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium ${u.status === "active"
                               ? "bg-green-50 text-green-700"
                               : "bg-red-50 text-red-700"
                               }`}
                           >
                             {u.status}
                           </span>
+
                         </td>
-                        <td className="px-4 py-4 text-gray-600">
+
+                        {/* CREATED DATE */}
+                        <td className="px-6 py-4 text-gray-500">
                           {new Date(u.created_at).toLocaleDateString()}
                         </td>
 
+                        {/* PASSWORD */}
                         {includePassword && canViewPasswords && (
-                          <td className="px-4 py-4">
+
+                          <td className="px-6 py-4">
+
                             <div className="flex items-center gap-2">
+
                               <input
-                                type={
-                                  showPasswordMap[u.employee_id]
-                                    ? "text"
-                                    : "password"
-                                }
+                                type={showPasswordMap[u.employee_id] ? "text" : "password"}
                                 value={u.password || ""}
                                 readOnly
-                                className="border px-2 py-1 rounded w-24 text-xs"
+                                className="w-28 px-2 py-1 text-xs border border-gray-200 rounded-md bg-gray-50"
                               />
+
                               <button
                                 onClick={() =>
                                   setShowPasswordMap((prev) => ({
                                     ...prev,
-                                    [u.employee_id]:
-                                      !prev[u.employee_id],
+                                    [u.employee_id]: !prev[u.employee_id],
                                   }))
                                 }
+                                className="text-gray-500 hover:text-gray-700"
                               >
                                 {showPasswordMap[u.employee_id] ? (
-                                  <FiEyeOff />
+                                  <FiEyeOff size={16} />
                                 ) : (
-                                  <FiEye />
+                                  <FiEye size={16} />
                                 )}
                               </button>
+
                             </div>
+
                           </td>
+
                         )}
 
-                        <td className="px-4 py-4 text-right">
+                        {/* ACTIONS */}
+                        <td className="px-6 py-4 text-right">
+
                           <div className="flex justify-end gap-2">
+
                             <UserActions
                               user={u}
                               onView={() => navigate(`/users/${u.employee_id}`)}
                               onEdit={() => handleEdit(u.employee_id)}
                               onDelete={() => handleDelete(u.employee_id)}
                             />
+
                           </div>
+
                         </td>
+
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+
+                    ))}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
             </div>
 
             <Pagination

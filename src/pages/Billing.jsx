@@ -21,7 +21,7 @@ const Billing = () => {
       billId: "BILL-001",
       orderId: "ORD-001",
       dealer: "ABC Electronics",
-      amount: "₹1,500",
+      amount: "₹ 1,500",
       createdDate: "1/2/2025",
       status: "Pending",
     },
@@ -32,7 +32,7 @@ const Billing = () => {
       billId: "BILL-002",
       orderId: "ORD-002",
       dealer: "XYZ Electronics",
-      amount: "₹2,800",
+      amount: "₹ 2,800",
       sentDate: "1/3/2025",
       status: "Sent",
     },
@@ -44,9 +44,8 @@ const Billing = () => {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex items-start gap-4">
             <div
-              className={`p-2.5 rounded-full ${
-                isSent ? "bg-green-50" : "bg-orange-50"
-              }`}
+              className={`p-2.5 rounded-full ${isSent ? "bg-green-50" : "bg-orange-50"
+                }`}
             >
               {isSent ? (
                 <FiCheckCircle className="text-green-500" size={24} />
@@ -140,11 +139,10 @@ const Billing = () => {
                 </td>
                 <td className="py-4 px-6 whitespace-nowrap">
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                      isSent
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${isSent
                         ? "bg-green-100 text-green-600"
                         : "bg-orange-100 text-orange-600"
-                    }`}
+                      }`}
                   >
                     {isSent ? (
                       <FiCheckCircle size={14} />
@@ -194,11 +192,10 @@ const Billing = () => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === tab
+                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab
                     ? "bg-white text-gray-700 shadow-sm"
                     : "text-gray-500 hover:bg-white/60"
-                }`}
+                  }`}
               >
                 {tab === "Pending Bills" ? (
                   <FiClock className="text-orange-500" />

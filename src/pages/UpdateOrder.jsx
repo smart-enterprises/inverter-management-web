@@ -617,7 +617,7 @@ const UpdateOrder = () => {
                         Item Total
                       </p>
                       <p className="text-2xl font-semibold text-gray-900 mt-2">
-                        ₹ {total_price?.toLocaleString('en-IN')}
+                        ₹  {total_price?.toLocaleString('en-IN')}
                       </p>
                     </div>
 
@@ -662,7 +662,7 @@ const UpdateOrder = () => {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Total Order Value</span>
                   <span className="font-medium text-gray-900">
-                    ₹ {order.order_total_price?.toLocaleString('en-IN')}
+                    ₹  {order.order_total_price?.toLocaleString('en-IN')}
                   </span>
                 </div>
 
@@ -670,7 +670,7 @@ const UpdateOrder = () => {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Amount Paid</span>
                   <span className="font-medium text-green-600">
-                    ₹ {amountPaid?.toLocaleString('en-IN')}
+                    ₹  {amountPaid?.toLocaleString('en-IN')}
                   </span>
                 </div>
 
@@ -683,7 +683,7 @@ const UpdateOrder = () => {
                     Balance Amount
                   </span>
                   <span className="text-xl font-bold text-purple-700">
-                    ₹ {order.amount_due?.toLocaleString('en-IN')}
+                    ₹  {order.amount_due?.toLocaleString('en-IN')}
                   </span>
                 </div>
 

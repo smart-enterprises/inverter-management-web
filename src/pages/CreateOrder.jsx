@@ -454,7 +454,7 @@ const CreateOrder = () => {
                       value: d.dealer_discount_id,
                       label: d.is_percentage
                         ? `${d.discount_value}%`
-                        : `₹ ${d.discount_value}`,
+                        : `₹  ${d.discount_value}`,
                     })) || []
                   }
                   placeholder="Select Discount"
