@@ -644,59 +644,77 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
 };
 
 const BrandsPagination = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) pages.push(i);
+
+  const visiblePages = pages.filter(
+    (page) =>
+      page === 1 ||
+      page === totalPages ||
+      Math.abs(page - currentPage) <= 1
+  );
+
   return (
-    <div className="border-t border-gray-100">
-      <div className="px-4 lg:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
-        <div className="flex items-center justify-center sm:justify-start">
-          <span className="text-sm text-gray-600">
-            Page <span className="font-medium text-gray-900">{currentPage}</span> of{' '}
-            <span className="font-medium text-gray-900">{totalPages}</span>
-          </span>
-        </div>
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-400"
-          >
-            <FiChevronLeft size={18} />
-          </button>
-          <div className="flex gap-1">
-            {[...Array(totalPages)].map((_, idx) => {
-              const pageNumber = idx + 1;
-              const isActive = pageNumber === currentPage;
-              const isNearCurrent = Math.abs(pageNumber - currentPage) <= 1 || pageNumber === 1 || pageNumber === totalPages;
+    <div className="flex justify-end mt-4">
 
-              if (!isNearCurrent && pageNumber !== 1 && pageNumber !== totalPages) {
-                if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
-                  return <span key={idx} className="inline-flex items-center justify-center w-9 h-9 text-gray-400">...</span>;
-                }
-                return null;
-              }
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-white/90 backdrop-blur border border-gray-200 rounded-xl shadow-sm">
 
-              return (
+        {/* Previous */}
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FiChevronLeft size={18} />
+        </button>
+
+        {/* Page Numbers */}
+        <div className="flex items-center gap-1">
+
+          {visiblePages.map((page, index) => {
+
+            const showDots =
+              index > 0 &&
+              page - visiblePages[index - 1] > 1;
+
+            return (
+              <div key={page} className="flex items-center">
+
+                {showDots && (
+                  <span className="px-2 text-gray-400 select-none">
+                    ...
+                  </span>
+                )}
+
                 <button
-                  key={idx}
-                  onClick={() => onPageChange(pageNumber)}
-                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isActive
-                    ? 'bg-[#9333EA] text-white'
-                    : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  onClick={() => onPageChange(page)}
+                  className={`min-w-[36px] h-9 px-3 flex items-center justify-center rounded-lg text-sm font-semibold transition-all duration-200 ${page === currentPage
+                    ? "bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white shadow-md scale-[1.05]"
+                    : "text-gray-600 hover:bg-gray-100 hover:scale-[1.03]"
                     }`}
                 >
-                  {pageNumber}
+                  {page}
                 </button>
-              );
-            })}
-          </div>
-          <button
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiChevronRight size={18} />
-          </button>
+
+              </div>
+            );
+          })}
+
         </div>
+
+        {/* Next */}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FiChevronRight size={18} />
+        </button>
+
       </div>
+
     </div>
   );
 };
@@ -711,7 +729,7 @@ const Brands = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
   const { user } = useAuth();
   const isSalesman = user?.role === ROLES.SALESMAN;
 
@@ -874,87 +892,133 @@ const Brands = () => {
             </div>
           ) : (
             <div className="mt-6">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Brand ID</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Brand Name</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Models</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Created Date</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
-                      {!isSalesman && (
-                        <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentBrands.map((brand) => (
-                      <tr key={brand.brand_id} className="border-b border-gray-100 last:border-0">
-                        <td className="py-4 px-4">
-                          <span className="text-sm font-medium text-gray-900">{brand.brand_id}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm font-semibold text-gray-900">{brand.brand_name}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex flex-wrap gap-1">
-                            {brand.brand_models.map((model, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
-                              >
-                                {model}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">
-                            {new Date(brand.created_at).toLocaleDateString()}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${brand.status === 'active'
-                            ? 'bg-green-50 text-green-700'
-                            : 'bg-red-50 text-red-700'
-                            }`}>
-                            {brand.status.charAt(0).toUpperCase() + brand.status.slice(1)}
-                          </span>
-                        </td>
+
+              {/* TABLE CARD */}
+              <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+
+                <div className="overflow-x-auto">
+
+                  <table className="w-full text-sm">
+
+                    {/* Header */}
+                    <thead className="bg-gray-50/70 backdrop-blur text-gray-500 text-xs uppercase tracking-wider">
+                      <tr>
+                        <th className="px-7 py-4 text-left font-medium">Brand</th>
+                        <th className="px-7 py-4 text-left font-medium">Models</th>
+                        <th className="px-7 py-4 text-left font-medium">Created</th>
+                        <th className="px-7 py-4 text-left font-medium">Status</th>
                         {!isSalesman && (
-                          <td className="py-4 px-4 text-right">
-                            <button
-                              onClick={() => handleEditBrand(brand)}
-                              className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium transition-colors"
-                            >
-                              <FiEdit2 size={14} />
-                            </button>
-                          </td>
+                          <th className="px-7 py-4 text-right font-medium">Actions</th>
                         )}
                       </tr>
-                    ))}
-                    {currentBrands.length === 0 && !loading && (
-                      <tr>
-                        <td colSpan="6" className="py-8 text-center">
-                          <p className="text-sm text-gray-500">
-                            {filteredBrands.length === 0 && brands.length > 0
-                              ? "No brands found matching your criteria"
-                              : brands.length === 0
-                                ? "No brands available"
-                                : "No brands found on this page"}
-                          </p>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+
+                    {/* Body */}
+                    <tbody className="divide-y divide-gray-100">
+
+                      {currentBrands.map((brand) => (
+
+                        <tr
+                          key={brand.brand_id}
+                          className="hover:bg-gray-50/70 transition-colors duration-200"
+                        >
+
+                          {/* Brand */}
+                          <td className="px-7 py-5">
+
+                            <div className="flex items-center gap-3">
+
+                              <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#9333EA]/10 text-[#9333EA] font-semibold">
+                                {brand.brand_name?.charAt(0)}
+                              </div>
+
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-gray-900">
+                                  {brand.brand_name}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  {brand.brand_id}
+                                </span>
+                              </div>
+
+                            </div>
+
+                          </td>
+
+                          {/* Models */}
+                          <td className="px-7 py-5">
+
+                            <div className="flex flex-wrap gap-2 max-w-[320px] max-h-[70px] overflow-y-auto pr-1">
+
+                              {brand.brand_models.map((model, index) => (
+
+                                <span
+                                  key={index}
+                                  className="px-3 py-1 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+                                >
+                                  {model}
+                                </span>
+
+                              ))}
+
+                            </div>
+
+                          </td>
+
+                          {/* Created */}
+                          <td className="px-7 py-5 text-gray-500">
+                            {new Date(brand.created_at).toLocaleDateString()}
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-7 py-5">
+
+                            <span
+                              className={`px-3 py-1.5 text-xs font-semibold rounded-full ${brand.status === "active"
+                                ? "bg-green-50 text-green-600"
+                                : "bg-gray-100 text-gray-500"
+                                }`}
+                            >
+                              {brand.status.charAt(0).toUpperCase() + brand.status.slice(1)}
+                            </span>
+
+                          </td>
+
+                          {/* Actions */}
+                          {!isSalesman && (
+
+                            <td className="px-7 py-5 text-right">
+
+                              <button
+                                onClick={() => handleEditBrand(brand)}
+                                className="p-2 rounded-lg text-gray-500 hover:text-[#9333EA] hover:bg-purple-50 transition"
+                              >
+                                <FiEdit2 size={16} />
+                              </button>
+
+                            </td>
+
+                          )}
+
+                        </tr>
+
+                      ))}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
               </div>
+
+              {/* PAGINATION OUTSIDE CARD */}
               <BrandsPagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
               />
+
             </div>
           )}
         </div>

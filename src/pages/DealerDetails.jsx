@@ -15,6 +15,8 @@ import {
   FiTrash2,
   FiSearch,
   FiEdit3,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 
@@ -240,6 +242,84 @@ function ProductMultiSelect({ products, selected, onChange }) {
 
     </div>
   )
+}
+
+const DiscountsPagination = ({ page, total, limit, onPageChange }) => {
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  if (totalPages <= 1) return null;
+
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) pages.push(i);
+
+  const visiblePages = pages.filter(
+    (p) =>
+      p === 1 ||
+      p === totalPages ||
+      Math.abs(p - page) <= 1
+  );
+
+  return (
+    <div className="flex justify-end mt-4">
+
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm">
+
+        {/* Previous */}
+        <button
+          onClick={() => onPageChange(page - 1)}
+          disabled={page === 1}
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FiChevronLeft size={18} />
+        </button>
+
+        {/* Page Numbers */}
+        <div className="flex items-center gap-1">
+
+          {visiblePages.map((p, index) => {
+
+            const showDots =
+              index > 0 &&
+              p - visiblePages[index - 1] > 1;
+
+            return (
+              <div key={p} className="flex items-center">
+
+                {showDots && (
+                  <span className="px-2 text-gray-400 select-none">
+                    ...
+                  </span>
+                )}
+
+                <button
+                  onClick={() => onPageChange(p)}
+                  className={`min-w-[36px] h-9 px-3 flex items-center justify-center rounded-lg text-sm font-semibold transition-all duration-200 ${p === page
+                    ? "bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white shadow-md scale-[1.05]"
+                    : "text-gray-600 hover:bg-gray-100 hover:scale-[1.03]"
+                    }`}
+                >
+                  {p}
+                </button>
+
+              </div>
+            );
+          })}
+
+        </div>
+
+        {/* Next */}
+        <button
+          onClick={() => onPageChange(page + 1)}
+          disabled={page === totalPages}
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FiChevronRight size={18} />
+        </button>
+
+      </div>
+
+    </div>
+  );
 }
 
 /* MAIN COMPONENT */
@@ -484,6 +564,7 @@ const DealerDetails = () => {
 
   useEffect(() => {
     if (!id) return;
+
     loadDealerData();
     loadDiscounts(1);
     loadOrderSummary();
@@ -956,29 +1037,64 @@ const DealerDetails = () => {
 
                             <div className="flex flex-wrap gap-2 max-w-[280px] max-h-[60px] overflow-y-auto pr-1">
 
-                              {d.products.map((p) => (
-                                <span
-                                  key={p.product_id}
-                                  className="px-2.5 py-1 text-xs rounded-md bg-purple-50 text-purple-700 border border-purple-100 whitespace-nowrap"
-                                >
-                                  {p.product_name}
-                                </span>
-                              ))}
+                              {d.products.map((p) => {
+
+                                const originalPrice = p.price || 0;
+
+                                const discountAmount = d.is_percentage
+                                  ? (originalPrice * d.discount_value) / 100
+                                  : d.discount_value;
+
+                                const finalPrice = Math.max(originalPrice - discountAmount, 0);
+
+                                return (
+                                  <div
+                                    key={p.product_id}
+                                    className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition"
+                                  >
+
+                                    {/* Product Name */}
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-medium text-gray-800">
+                                        {p.product_name}
+                                      </span>
+
+                                      {/* Price Info */}
+                                      <div className="flex items-center gap-2 text-xs">
+
+                                        <span className="text-gray-400 line-through">
+                                          ₹{originalPrice}
+                                        </span>
+
+                                        <span className="font-semibold text-[#9333EA]">
+                                          ₹{finalPrice}
+                                        </span>
+
+                                      </div>
+                                    </div>
+
+                                  </div>
+                                );
+                              })}
 
                             </div>
 
                           ) : (
+
                             <span className="text-xs text-gray-400 italic">
                               All products
                             </span>
-                          )}
 
+                          )}
                         </td>
 
                         {/* Discount */}
-                        <td className="px-6 py-4 font-semibold text-[#9333EA]">
-                          {d.discount_value}
-                          {d.is_percentage ? "%" : " ₹"}
+                        <td className="px-6 py-4">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">
+                            {d.is_percentage
+                              ? `- ${d.discount_value} %`
+                              : `- ₹ ${d.discount_value}`}
+                          </span>
                         </td>
 
                         {/* Status */}
@@ -1016,32 +1132,14 @@ const DealerDetails = () => {
               </div>
 
               {/* Pagination */}
-              <div className="flex justify-between items-center mt-10">
-                <p className="text-sm text-gray-500">
-                  Showing page {discountState.page} of{" "}
-                  {Math.ceil(discountState.total / discountState.limit) || 1}
-                </p>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => loadDiscounts(discountState.page - 1)}
-                    disabled={discountState.page <= 1}
-                    className="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition disabled:opacity-40"
-                  >
-                    Previous
-                  </button>
-
-                  <button
-                    onClick={() => loadDiscounts(discountState.page + 1)}
-                    disabled={
-                      discountState.page * discountState.limit >= discountState.total
-                    }
-                    className="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition disabled:opacity-40"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
+              {!discountState.loading && !discountState.error && discountState.total > 0 && (
+                <DiscountsPagination
+                  page={discountState.page}
+                  total={discountState.total}
+                  limit={discountState.limit}
+                  onPageChange={(p) => loadDiscounts(p)}
+                />
+              )}
             </>
           )}
         </div>
@@ -1646,43 +1744,93 @@ const DealerDetails = () => {
                 </table>
               </div>
 
-              {/* ===================== Pagination ===================== */}
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
-                <p className="text-sm text-gray-500">
-                  Showing page {pagination.page} of{" "}
-                  {Math.ceil(pagination.total / pagination.limit) || 1}
-                </p>
+              {/* Pagination */}
+              {pagination.total > 0 && (
+                <div className="flex justify-end mt-4">
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() =>
-                      setPagination((prev) => ({
-                        ...prev,
-                        page: Math.max(prev.page - 1, 1),
-                      }))
-                    }
-                    disabled={pagination.page === 1}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium disabled:opacity-40 hover:bg-gray-50 transition"
-                  >
-                    Previous
-                  </button>
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-white/90 backdrop-blur border border-gray-200 rounded-xl shadow-sm">
 
-                  <button
-                    onClick={() =>
-                      setPagination((prev) => ({
-                        ...prev,
-                        page: prev.page + 1,
-                      }))
-                    }
-                    disabled={
-                      pagination.page * pagination.limit >= pagination.total
-                    }
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium disabled:opacity-40 hover:bg-gray-50 transition"
-                  >
-                    Next
-                  </button>
+                    {/* Previous */}
+                    <button
+                      onClick={() =>
+                        setPagination((prev) => ({
+                          ...prev,
+                          page: Math.max(prev.page - 1, 1),
+                        }))
+                      }
+                      disabled={pagination.page === 1}
+                      className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <FiChevronLeft size={18} />
+                    </button>
+
+                    {/* Page Numbers */}
+                    <div className="flex items-center gap-1">
+
+                      {Array.from(
+                        { length: Math.max(1, Math.ceil(pagination.total / pagination.limit)) },
+                        (_, i) => i + 1
+                      )
+                        .filter(
+                          (page) =>
+                            page === 1 ||
+                            page === Math.ceil(pagination.total / pagination.limit) ||
+                            Math.abs(page - pagination.page) <= 1
+                        )
+                        .map((page, index, arr) => {
+
+                          const showDots =
+                            index > 0 &&
+                            page - arr[index - 1] > 1;
+
+                          return (
+                            <div key={page} className="flex items-center">
+
+                              {showDots && (
+                                <span className="px-2 text-gray-400 select-none">
+                                  ...
+                                </span>
+                              )}
+
+                              <button
+                                onClick={() =>
+                                  setPagination((prev) => ({
+                                    ...prev,
+                                    page,
+                                  }))
+                                }
+                                className={`min-w-[36px] h-9 px-3 flex items-center justify-center rounded-lg text-sm font-semibold transition-all duration-200 ${page === pagination.page
+                                  ? "bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white shadow-md scale-[1.05]"
+                                  : "text-gray-600 hover:bg-gray-100 hover:scale-[1.03]"
+                                  }`}
+                              >
+                                {page}
+                              </button>
+
+                            </div>
+                          );
+                        })}
+
+                    </div>
+
+                    {/* Next */}
+                    <button
+                      onClick={() =>
+                        setPagination((prev) => ({
+                          ...prev,
+                          page: prev.page + 1,
+                        }))
+                      }
+                      disabled={pagination.page * pagination.limit >= pagination.total}
+                      className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <FiChevronRight size={18} />
+                    </button>
+
+                  </div>
+
                 </div>
-              </div>
+              )}
             </>
           )}
         </div>

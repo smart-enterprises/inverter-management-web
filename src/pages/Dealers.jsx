@@ -647,78 +647,85 @@ const DealerActions = ({
 
 // Pagination component remains unchanged
 function DealersPagination({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+
+  const pages = [...Array(totalPages)].map((_, i) => i + 1);
+
+  const visiblePages = pages.filter((page) => {
+    return (
+      page === 1 ||
+      page === totalPages ||
+      Math.abs(page - currentPage) <= 1
+    );
+  });
+
+  const handleChange = (page) => {
+    if (page < 1 || page > totalPages) return;
+    onPageChange(page);
+  };
+
   return (
-    <div className="border-t border-gray-100">
-      <div className="px-4 lg:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
-        <div className="flex items-center justify-center sm:justify-start">
-          <span className="text-sm text-gray-600">
-            Page{" "}
-            <span className="font-medium text-gray-900">{currentPage}</span> of{" "}
-            <span className="font-medium text-gray-900">{totalPages}</span>
-          </span>
-        </div>
+    <div className="flex justify-end p-4">
 
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiChevronLeft size={18} />
-          </button>
+      <nav
+        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm"
+        aria-label="Dealers pagination"
+      >
 
-          <div className="flex gap-1">
-            {/* Render pages with ellipsis logic */}
-            {[...Array(totalPages)].map((_, idx) => {
-              const pageNumber = idx + 1;
-              const isActive = pageNumber === currentPage;
-              const isNearCurrent =
-                Math.abs(pageNumber - currentPage) <= 1 ||
-                pageNumber === 1 ||
-                pageNumber === totalPages;
-              if (
-                !isNearCurrent &&
-                pageNumber !== 1 &&
-                pageNumber !== totalPages
-              ) {
-                if (
-                  pageNumber === currentPage - 2 ||
-                  pageNumber === currentPage + 2
-                ) {
-                  return (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center justify-center w-9 h-9 text-gray-400"
-                    >
-                      ...
-                    </span>
-                  );
-                }
-                return null;
-              }
-              return (
+        {/* Previous */}
+        <button
+          onClick={() => handleChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FiChevronLeft size={18} />
+        </button>
+
+        {/* Pages */}
+        <div className="flex items-center gap-1">
+
+          {visiblePages.map((page, index) => {
+
+            const showDots =
+              index > 0 &&
+              page - visiblePages[index - 1] > 1;
+
+            return (
+              <div key={page} className="flex items-center">
+
+                {showDots && (
+                  <span className="px-2 text-gray-400 select-none">
+                    ...
+                  </span>
+                )}
+
                 <button
-                  key={idx}
-                  onClick={() => onPageChange(pageNumber)}
-                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isActive
-                    ? "bg-[#9333EA] text-white"
-                    : "border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                  onClick={() => handleChange(page)}
+                  className={`min-w-[36px] h-9 px-3 flex items-center justify-center rounded-lg text-sm font-semibold transition-all duration-200 ${page === currentPage
+                    ? "bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white shadow-md scale-[1.05]"
+                    : "text-gray-600 hover:bg-gray-100 hover:scale-[1.03]"
                     }`}
                 >
-                  {pageNumber}
+                  {page}
                 </button>
-              );
-            })}
-          </div>
-          <button
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiChevronRight size={18} />
-          </button>
+
+              </div>
+            );
+          })}
+
         </div>
-      </div>
+
+        {/* Next */}
+        <button
+          onClick={() => handleChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FiChevronRight size={18} />
+        </button>
+
+      </nav>
+
     </div>
   );
 }
@@ -944,147 +951,244 @@ const Dealers = () => {
             )}
           </div>
 
-          {/* Loading & Error */}
+          {/* ================= DEALERS TABLE ================= */}
+
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16">
+
+            <div className="flex flex-col items-center justify-center py-20">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#9333EA] mb-4"></div>
               <p className="text-sm text-gray-500">Loading dealers...</p>
             </div>
+
           ) : error ? (
-            <div className="mt-6 text-center py-8">
+
+            <div className="py-16 text-center">
               <p className="text-sm text-red-600">{error}</p>
-              <button onClick={fetchDealersList} className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium">
+
+              <button
+                onClick={fetchDealersList}
+                className="mt-3 px-4 py-2 text-sm font-medium text-white bg-[#9333EA] rounded-lg hover:bg-[#7e22ce] transition"
+              >
                 Try Again
               </button>
             </div>
+
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-              {/* Table */}
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Dealer Name</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Shop Name</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Phone Number</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">District</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Status</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Created By</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Created Date</th>
-                    {includePassword && canViewPasswords && (
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                        Password
-                      </th>
-                    )}
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Actions</th>
 
-                  </tr>
-                </thead>
-                <tbody>
-                  {dealers.length > 0 ? (
-                    dealers.map((dealer) => (
-                      <tr
-                        key={dealer.employee_id}
-                        className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="py-4 px-4">
-                          <span className="text-sm font-medium text-gray-900">{capitalizeFirstLetter(dealer.employee_name)}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">{capitalizeFirstLetter(dealer.shop_name)}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">{dealer.employee_phone}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">{dealer.district}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(dealer.status || "").toLowerCase() === "active"
-                              ? "bg-green-50 text-green-700"
-                              : "bg-red-50 text-red-700"
-                              }`}
-                          >
-                            {dealer.status || "N/A"}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">{userMap[dealer.created_by] || dealer.created_by}</span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-sm text-gray-600">{dealer.created_at ? new Date(dealer.created_at).toISOString().slice(0, 10) : ""}</span>
-                        </td>
+            <div className="mt-6 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
 
-                        {includePassword && canViewPasswords && (
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type={
-                                  showPasswordMap[dealer.employee_id]
-                                    ? "text"
-                                    : "password"
-                                }
-                                value={dealer.password || ""}
-                                readOnly
-                                className="border px-2 py-1 rounded w-24 text-xs"
-                              />
-                              <button
-                                onClick={() =>
-                                  setShowPasswordMap((prev) => ({
-                                    ...prev,
-                                    [dealer.employee_id]:
-                                      !prev[dealer.employee_id],
-                                  }))
-                                }
-                              >
-                                {showPasswordMap[dealer.employee_id] ? (
-                                  <FiEyeOff />
-                                ) : (
-                                  <FiEye />
-                                )}
-                              </button>
-                            </div>
-                          </td>
-                        )}
+              <div className="overflow-x-auto">
 
-                        {/* Actions */}
-                        <td className="py-4 px-4 text-right relative">
-                          <DealerActions
-                            dealerId={dealer.employee_id}
-                            onEdit={() => handleEditDealer(dealer.employee_id)}
-                            onDelete={() => handleOpenDeleteModal(dealer.employee_id)}
-                            dealerStatus={dealer.status}
-                            isSalesman={isSalesman}
-                          />
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
+                <table className="w-full text-sm">
+
+                  {/* Header */}
+                  <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider sticky top-0 z-10">
+
                     <tr>
-                      <td colSpan="8" className="py-16 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
-                            <FiSearch size={22} />
-                          </div>
-                          <p className="text-sm font-medium text-gray-700">
-                            No dealers found matching your criteria
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Try adjusting filters or search terms.
-                          </p>
-                        </div>
-                      </td>
+
+                      <th className="px-6 py-4 text-left font-medium">Dealer</th>
+
+                      <th className="px-6 py-4 text-left font-medium">Shop</th>
+
+                      <th className="px-6 py-4 text-left font-medium">Phone</th>
+
+                      <th className="px-6 py-4 text-left font-medium">District</th>
+
+                      <th className="px-6 py-4 text-left font-medium">Status</th>
+
+                      <th className="px-6 py-4 text-left font-medium">Created By</th>
+
+                      <th className="px-6 py-4 text-left font-medium">Created Date</th>
+
+                      {includePassword && canViewPasswords && (
+                        <th className="px-6 py-4 text-left font-medium">Password</th>
+                      )}
+
+                      <th className="px-6 py-4 text-right font-medium">Actions</th>
+
                     </tr>
-                  )}
-                </tbody>
-              </table>
+
+                  </thead>
+
+                  {/* Body */}
+                  <tbody className="divide-y divide-gray-100">
+
+                    {dealers.length > 0 ? (
+
+                      dealers.map((dealer) => (
+
+                        <tr
+                          key={dealer.employee_id}
+                          className="hover:bg-gray-50 transition-colors duration-150"
+                        >
+
+                          {/* Dealer */}
+                          <td className="px-6 py-4">
+
+                            <div className="flex items-center gap-3">
+
+                              <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#9333EA]/10 text-[#9333EA] font-semibold text-sm">
+                                {dealer.employee_name?.charAt(0).toUpperCase()}
+                              </div>
+
+                              <div className="flex flex-col">
+
+                                <span className="font-semibold text-gray-900">
+                                  {capitalizeFirstLetter(dealer.employee_name)}
+                                </span>
+
+                                <span className="text-xs text-gray-400">
+                                  {dealer.employee_id}
+                                </span>
+
+                              </div>
+
+                            </div>
+
+                          </td>
+
+                          {/* Shop */}
+                          <td className="px-6 py-4 text-gray-600">
+                            {capitalizeFirstLetter(dealer.shop_name)}
+                          </td>
+
+                          {/* Phone */}
+                          <td className="px-6 py-4 text-gray-600">
+                            {dealer.employee_phone}
+                          </td>
+
+                          {/* District */}
+                          <td className="px-6 py-4 text-gray-600">
+                            {dealer.district}
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-6 py-4">
+
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${(dealer.status || "").toLowerCase() === "active"
+                                ? "bg-green-50 text-green-700"
+                                : "bg-red-50 text-red-700"
+                                }`}
+                            >
+                              {dealer.status || "N/A"}
+                            </span>
+
+                          </td>
+
+                          {/* Created By */}
+                          <td className="px-6 py-4 text-gray-600">
+                            {userMap[dealer.created_by] || dealer.created_by}
+                          </td>
+
+                          {/* Created Date */}
+                          <td className="px-6 py-4 text-gray-500">
+                            {dealer.created_at
+                              ? new Date(dealer.created_at).toLocaleDateString()
+                              : ""}
+                          </td>
+
+                          {/* Password */}
+                          {includePassword && canViewPasswords && (
+
+                            <td className="px-6 py-4">
+
+                              <div className="flex items-center gap-2">
+
+                                <input
+                                  type={
+                                    showPasswordMap[dealer.employee_id]
+                                      ? "text"
+                                      : "password"
+                                  }
+                                  value={dealer.password || ""}
+                                  readOnly
+                                  className="w-28 px-2 py-1 text-xs border border-gray-200 rounded-md bg-gray-50"
+                                />
+
+                                <button
+                                  onClick={() =>
+                                    setShowPasswordMap((prev) => ({
+                                      ...prev,
+                                      [dealer.employee_id]:
+                                        !prev[dealer.employee_id],
+                                    }))
+                                  }
+                                  className="text-gray-500 hover:text-gray-700"
+                                >
+                                  {showPasswordMap[dealer.employee_id] ? (
+                                    <FiEyeOff size={16} />
+                                  ) : (
+                                    <FiEye size={16} />
+                                  )}
+                                </button>
+
+                              </div>
+
+                            </td>
+
+                          )}
+
+                          {/* Actions */}
+                          <td className="px-6 py-4 text-right">
+
+                            <DealerActions
+                              dealerId={dealer.employee_id}
+                              onEdit={() => handleEditDealer(dealer.employee_id)}
+                              onDelete={() => handleOpenDeleteModal(dealer.employee_id)}
+                              dealerStatus={dealer.status}
+                              isSalesman={isSalesman}
+                            />
+
+                          </td>
+
+                        </tr>
+
+                      ))
+
+                    ) : (
+
+                      <tr>
+
+                        <td colSpan="9" className="py-20 text-center">
+
+                          <div className="flex flex-col items-center gap-3">
+
+                            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                              <FiSearch size={22} />
+                            </div>
+
+                            <p className="text-sm font-medium text-gray-700">
+                              No dealers found
+                            </p>
+
+                            <p className="text-xs text-gray-500">
+                              Try adjusting filters or search terms
+                            </p>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
               {/* Pagination */}
               <DealersPagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
               />
+
             </div>
+
           )}
         </div>
 

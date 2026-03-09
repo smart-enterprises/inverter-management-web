@@ -300,7 +300,7 @@ const Dashboard = () => {
     //     <MetricCard
     //       icon={<FiTrendingUp />}
     //       title="Monthly Sales Goal"
-    //       value="₹75,000 / ₹100,000"
+    //       value="₹ 75,000 / ₹ 100,000"
     //       subValue="75% achieved"
     //     />
     //     <MetricCard icon={<FiShoppingBag />} title="Orders This Month" value={loading ? "..." : monthlyOrders} />
@@ -410,7 +410,7 @@ const Dashboard = () => {
           <MetricCard
             icon={<FiTrendingUp />}
             title="Monthly Sales Goal"
-            value="₹75,000 / ₹100,000"
+            value="₹ 75,000 / ₹ 100,000"
             subValue="75% achieved"
             color="from-green-500 to-emerald-600"
           />

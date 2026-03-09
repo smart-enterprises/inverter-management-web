@@ -28,7 +28,7 @@ const formatDate = (date) =>
     : "N/A";
 
 const formatCurrency = (amount) =>
-  `₹ ${Number(amount || 0).toLocaleString("en-IN")}`;
+  `₹  ${Number(amount || 0).toLocaleString("en-IN")}`;
 
 const formatNotes = (notes) =>
   notes
