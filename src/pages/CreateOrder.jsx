@@ -11,7 +11,7 @@ import { useAuth } from "../hooks/useAuth";
 import Swal from "sweetalert2";
 import { PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
 import { canSelectSalesman, ROLES } from "../utils/roles";
-import { INITIAL_FORM_STATE, INITIAL_ORDER_ITEM } from "../utils/constants";
+import { capitalizeFirstLetter, INITIAL_FORM_STATE, INITIAL_ORDER_ITEM } from "../utils/constants";
 
 const CreateOrder = () => {
   const navigate = useNavigate();
@@ -326,7 +326,7 @@ const CreateOrder = () => {
                 onChange={handleChange}
                 options={dealers.map((d) => ({
                   value: d.employee_id,
-                  label: `${d.employee_name?.charAt(0).toUpperCase() + d.employee_name?.slice(1)} - ${d.shop_name?.charAt(0).toUpperCase() + d.shop_name?.slice(1)}`,
+                  label: `${capitalizeFirstLetter(d.employee_name)} - ${capitalizeFirstLetter(d.shop_name)}`,
                 }))}
                 placeholder="Select Dealer"
               />
@@ -345,7 +345,7 @@ const CreateOrder = () => {
                   onChange={handleChange}
                   options={salespersons.map((s) => ({
                     value: s.employee_id,
-                    label: s.employee_name,
+                    label: capitalizeFirstLetter(s.employee_name),
                   }))}
                   placeholder="Select Salesman"
                 />
@@ -472,11 +472,10 @@ const CreateOrder = () => {
                       e.target.value
                     )
                   }
-                  className={`border rounded-lg px-3 py-2 text-right ${
-                    item.dealer_discount_id
-                      ? "bg-gray-100 cursor-not-allowed"
-                      : ""
-                  }`}
+                  className={`border rounded-lg px-3 py-2 text-right ${item.dealer_discount_id
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : ""
+                    }`}
                 />
 
                 <input

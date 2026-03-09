@@ -126,9 +126,123 @@ const formatDate = (dateString) =>
 const getTotalItems = (details = []) =>
   details.reduce((acc, item) => acc + (item.qty_ordered || 0), 0);
 
-/* -------------------------------------------------------------------------- */
-/*                               MAIN COMPONENT                               */
-/* -------------------------------------------------------------------------- */
+function ProductMultiSelect({ products, selected, onChange }) {
+
+  const [search, setSearch] = React.useState("")
+  const [open, setOpen] = React.useState(false)
+
+  const filtered = products.filter(p =>
+    p.product_name.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const toggleProduct = (id) => {
+
+    if (selected.includes(id)) {
+      onChange(selected.filter(x => x !== id))
+    } else {
+      onChange([...selected, id])
+    }
+
+  }
+
+  return (
+    <div className="relative">
+
+      {/* Selected Chips */}
+      <div
+        onClick={() => setOpen(!open)}
+        className="min-h-[44px] flex flex-wrap gap-2 px-3 py-2 border border-gray-200 rounded-lg cursor-pointer"
+      >
+
+        {selected.length === 0 && (
+          <span className="text-gray-400 text-sm">
+            Select products...
+          </span>
+        )}
+
+        {selected.map(id => {
+
+          const product = products.find(p => p.product_id === id)
+          if (!product) return null
+
+          return (
+            <span
+              key={id}
+              className="flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-md text-sm"
+            >
+              {product.product_name}
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleProduct(id)
+                }}
+                className="text-purple-500 hover:text-purple-700"
+              >
+                ×
+              </button>
+
+            </span>
+          )
+
+        })}
+
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+
+        <div className="absolute z-40 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+
+          {/* Search */}
+          <div className="p-2 border-b">
+
+            <input
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-2 focus:ring-purple-500/20"
+            />
+
+          </div>
+
+          {/* List */}
+          <div className="max-h-56 overflow-y-auto">
+
+            {filtered.map(product => {
+
+              const active = selected.includes(product.product_id)
+
+              return (
+                <div
+                  key={product.product_id}
+                  onClick={() => toggleProduct(product.product_id)}
+                  className={`px-3 py-2 text-sm cursor-pointer flex justify-between hover:bg-purple-50 ${active ? "bg-purple-50 text-purple-700" : ""
+                    }`}
+                >
+
+                  <span>
+                    {product.product_name} ({product.model})
+                  </span>
+
+                  {active && "✓"}
+
+                </div>
+              )
+
+            })}
+
+          </div>
+
+        </div>
+
+      )}
+
+    </div>
+  )
+}
+
+/* MAIN COMPONENT */
 
 const DealerDetails = () => {
   const { id } = useParams();
@@ -803,12 +917,14 @@ const DealerDetails = () => {
           {/* Table */}
           {!discountState.loading && discounts.length > 0 && (
             <>
-              <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+              <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm bg-white">
                 <table className="min-w-full text-sm">
+
                   <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                     <tr>
                       <th className="px-6 py-4 text-left">Brand</th>
                       <th className="px-6 py-4 text-left">Model</th>
+                      <th className="px-6 py-4 text-left">Products</th>
                       <th className="px-6 py-4 text-left">Discount</th>
                       <th className="px-6 py-4 text-left">Status</th>
                       <th className="px-6 py-4 text-left">Created</th>
@@ -833,6 +949,32 @@ const DealerDetails = () => {
                           {d.model_name}
                         </td>
 
+                        {/* Products */}
+                        <td className="px-6 py-4">
+
+                          {d.products && d.products.length > 0 ? (
+
+                            <div className="flex flex-wrap gap-2 max-w-[280px] max-h-[60px] overflow-y-auto pr-1">
+
+                              {d.products.map((p) => (
+                                <span
+                                  key={p.product_id}
+                                  className="px-2.5 py-1 text-xs rounded-md bg-purple-50 text-purple-700 border border-purple-100 whitespace-nowrap"
+                                >
+                                  {p.product_name}
+                                </span>
+                              ))}
+
+                            </div>
+
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">
+                              All products
+                            </span>
+                          )}
+
+                        </td>
+
                         {/* Discount */}
                         <td className="px-6 py-4 font-semibold text-[#9333EA]">
                           {d.discount_value}
@@ -841,11 +983,13 @@ const DealerDetails = () => {
 
                         {/* Status */}
                         <td className="px-6 py-4">
-                          <span className={`px-3 py-1 text-xs rounded-full font-medium
-              ${d.status === "active"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-gray-100 text-gray-600"
-                            }`}>
+                          <span
+                            className={`px-3 py-1 text-xs rounded-full font-medium
+                              ${d.status === "active"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-gray-100 text-gray-600"
+                              }`}
+                          >
                             {d.status}
                           </span>
                         </td>
@@ -919,7 +1063,7 @@ const DealerDetails = () => {
               </p>
             </div>
 
-            {/* Body */}
+            {/* Scrollable Body */}
             <div className="flex-1 overflow-y-auto px-10 py-8 space-y-8 bg-gray-50">
 
               {bulkError && (
@@ -1018,11 +1162,10 @@ const DealerDetails = () => {
                       />
                     </FormField>
 
-                    {/* ---------------- Discount (Type + Value Same Row) ---------------- */}
+                    {/* Discount */}
                     <FormField label="Discount">
                       <div className="flex items-center gap-3">
 
-                        {/* Discount Value */}
                         <input
                           type="number"
                           min="0"
@@ -1047,7 +1190,6 @@ const DealerDetails = () => {
                           className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#9333EA]/20 focus:outline-none"
                         />
 
-                        {/* Toggle */}
                         <div className="flex bg-gray-100 rounded-full p-1 shrink-0">
 
                           <button
@@ -1089,60 +1231,40 @@ const DealerDetails = () => {
                           </button>
 
                         </div>
-
                       </div>
                     </FormField>
 
-                    {/* ---------------- Product Selector (Multiple like CustomSelect) ---------------- */}
+                    {/* Products */}
                     <FormField label="Products">
-                      <select
-                        multiple
-                        value={row.product_ids || []}
-                        onChange={(e) => {
-                          const selectedProducts = Array.from(
-                            e.target.selectedOptions
-                          ).map((o) => o.value);
-
-                          setBulkRows(prev =>
-                            prev.map((r, i) =>
-                              i === idx
-                                ? { ...r, product_ids: selectedProducts }
-                                : r
-                            )
-                          );
-                        }}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#9333EA]/20 focus:outline-none min-h-[120px]"
-                      >
-                        {(productsByBrand[row.brand_name] || [])
-                          .filter((p) =>
+                      <ProductMultiSelect
+                        products={(productsByBrand[row.brand_name] || [])
+                          .filter(p =>
                             row.model_name
                               ? p.model === row.model_name ||
                               p.model_name === row.model_name
                               : true
+                          )}
+                        selected={row.product_ids || []}
+                        onChange={(ids) =>
+                          setBulkRows(prev =>
+                            prev.map((r, i) =>
+                              i === idx
+                                ? { ...r, product_ids: ids }
+                                : r
+                            )
                           )
-                          .map((product) => (
-                            <option
-                              key={product.product_id}
-                              value={product.product_id}
-                            >
-                              {product.product_name} ({product.model || product.model_name})
-                            </option>
-                          ))}
-                      </select>
-
-                      <p className="text-xs text-gray-400 mt-1">
-                        Hold <b>Ctrl</b> / <b>Cmd</b> to select multiple products
-                      </p>
-
+                        }
+                      />
                     </FormField>
+
                   </div>
 
-                  {/* Description */}
+                  {/* Description (Hide if null / "null") */}
                   <FormField label="Description (Optional)">
                     <textarea
                       rows={3}
                       maxLength={200}
-                      value={row.description || ""}
+                      value={row.description}
                       onChange={(e) =>
                         setBulkRows(prev =>
                           prev.map((r, i) =>
@@ -1152,7 +1274,7 @@ const DealerDetails = () => {
                           )
                         )
                       }
-                      placeholder="Example: Diwali promotional discount"
+                      placeholder="Enter description..."
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#9333EA]/20 focus:outline-none resize-none"
                     />
 
@@ -1163,6 +1285,7 @@ const DealerDetails = () => {
 
                 </div>
               ))}
+
             </div>
 
             {/* Footer */}
@@ -1193,6 +1316,7 @@ const DealerDetails = () => {
                   {bulkSubmitting ? "Saving..." : "Save Discounts"}
                 </button>
               </div>
+
             </div>
 
           </div>
@@ -1203,7 +1327,7 @@ const DealerDetails = () => {
       {editDiscountModalOpen && selectedDiscount && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
 
-          <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
             {/* Header */}
             <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-white">
@@ -1215,8 +1339,8 @@ const DealerDetails = () => {
               </p>
             </div>
 
-            {/* Body */}
-            <div className="px-6 py-6 space-y-5">
+            {/* Scrollable Body */}
+            <div className="px-6 py-6 space-y-6 overflow-y-auto">
 
               {/* Brand + Model */}
               <div className="grid grid-cols-2 gap-4">
@@ -1241,6 +1365,7 @@ const DealerDetails = () => {
 
               {/* Discount */}
               <FormField label="Discount">
+
                 <div className="flex items-center gap-3">
 
                   <input
@@ -1252,7 +1377,7 @@ const DealerDetails = () => {
                         discount_value: e.target.value
                       }))
                     }
-                    className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-[#9333EA]/20"
+                    className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                   />
 
                   <div className="flex bg-gray-100 rounded-full p-1">
@@ -1264,8 +1389,8 @@ const DealerDetails = () => {
                           is_percentage: false
                         }))
                       }
-                      className={`px-4 py-1.5 text-sm rounded-full ${!selectedDiscount.is_percentage
-                        ? "bg-white shadow text-[#9333EA]"
+                      className={`px-4 py-1.5 text-sm rounded-full transition ${!selectedDiscount.is_percentage
+                        ? "bg-white shadow text-purple-600"
                         : "text-gray-600"
                         }`}
                     >
@@ -1279,8 +1404,8 @@ const DealerDetails = () => {
                           is_percentage: true
                         }))
                       }
-                      className={`px-4 py-1.5 text-sm rounded-full ${selectedDiscount.is_percentage
-                        ? "bg-white shadow text-[#9333EA]"
+                      className={`px-4 py-1.5 text-sm rounded-full transition ${selectedDiscount.is_percentage
+                        ? "bg-white shadow text-purple-600"
                         : "text-gray-600"
                         }`}
                     >
@@ -1290,45 +1415,27 @@ const DealerDetails = () => {
                   </div>
 
                 </div>
+
               </FormField>
 
-              {/* Products */}
+              {/* PRODUCTS MULTI SELECT */}
               <FormField label="Products">
 
-                <select
-                  multiple
-                  value={selectedDiscount.product_ids || []}
-                  onChange={(e) => {
-
-                    const selected = Array.from(
-                      e.target.selectedOptions
-                    ).map(o => o.value);
-
-                    setSelectedDiscount(prev => ({
-                      ...prev,
-                      product_ids: selected
-                    }));
-
-                  }}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 min-h-[100px]"
-                >
-
-                  {(productsByBrand[selectedDiscount.brand_name] || [])
+                <ProductMultiSelect
+                  products={(productsByBrand[selectedDiscount.brand_name] || [])
                     .filter(p =>
                       selectedDiscount.model_name
                         ? p.model === selectedDiscount.model_name
                         : true
-                    )
-                    .map(product => (
-                      <option
-                        key={product.product_id}
-                        value={product.product_id}
-                      >
-                        {product.product_name} ({product.model})
-                      </option>
-                    ))}
-
-                </select>
+                    )}
+                  selected={selectedDiscount.product_ids || []}
+                  onChange={(ids) =>
+                    setSelectedDiscount(prev => ({
+                      ...prev,
+                      product_ids: ids
+                    }))
+                  }
+                />
 
               </FormField>
 
@@ -1337,14 +1444,20 @@ const DealerDetails = () => {
 
                 <textarea
                   rows={3}
-                  value={selectedDiscount.description || ""}
+                  value={
+                    selectedDiscount.description &&
+                      selectedDiscount.description.toLowerCase() !== "null"
+                      ? selectedDiscount.description
+                      : ""
+                  }
                   onChange={(e) =>
                     setSelectedDiscount(prev => ({
                       ...prev,
                       description: e.target.value
                     }))
                   }
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200"
+                  placeholder="Enter description..."
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500/20"
                 />
 
               </FormField>
@@ -1356,14 +1469,14 @@ const DealerDetails = () => {
 
               <button
                 onClick={() => setEditDiscountModalOpen(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
               >
                 Cancel
               </button>
 
               <button
                 onClick={handleUpdateDiscount}
-                className="px-5 py-2 bg-gradient-to-r from-[#9333EA] to-[#7e22ce] text-white rounded-lg shadow hover:opacity-90"
+                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg shadow hover:opacity-90 transition"
               >
                 Update Discount
               </button>

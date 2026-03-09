@@ -17,6 +17,7 @@ import CustomSelect from "../components/CustomSelect";
 import { createUser, fetchUsers, fetchUserById, updateUser, deleteUser } from "../api/user";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES, getRoleLabel } from "../utils/roles";
+import { capitalizeFirstLetter } from "../utils/constants";
 
 /* ============================================================
    ROLE COLORS
@@ -436,7 +437,6 @@ const User = () => {
     ROLES.SUPER_ADMIN,
     ROLES.ADMIN,
     ROLES.MANAGER,
-    ROLES.SUPERVISOR,
     ROLES.SALESMAN,
     ROLES.PRODUCTION,
     ROLES.PACKING,
@@ -612,11 +612,15 @@ const User = () => {
 
                             {roleTabs
                               .filter((role) => role !== "ALL")
-                              .map((role) => (
-                                <option key={role} value={role}>
-                                  {getRoleLabel(role)}
-                                </option>
-                              ))}
+                              .map((role) => {
+                                const label = getRoleLabel(role);
+
+                                return (
+                                  <option key={role} value={role}>
+                                    {label}
+                                  </option>
+                                );
+                              })}
                           </select>
 
                           {/* Custom Dropdown Arrow */}
@@ -688,17 +692,16 @@ const User = () => {
                   return (
                     <button
                       key={role}
+                      type="button"
                       onClick={() => {
                         setSelectedRole(role);
                         setPage(1);
                       }}
-                      className={`
-            px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200
-            ${isActive
+                      className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200
+                        ${isActive
                           ? "bg-[#9333EA] text-white shadow-md scale-105"
                           : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                        }
-          `}
+                        }`}
                     >
                       {getRoleLabel(role)}
                     </button>
@@ -805,7 +808,7 @@ const User = () => {
                         className="border-b hover:bg-gray-50 transition"
                       >
                         <td className="px-4 py-4 font-medium text-gray-900">
-                          {u.employee_name?.charAt(0).toUpperCase() + u.employee_name?.slice(1)}
+                          {capitalizeFirstLetter(u.employee_name)}
                         </td>
                         <td className="px-4 py-4 text-gray-600">
                           {u.employee_email}
