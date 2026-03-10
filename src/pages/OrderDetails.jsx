@@ -40,6 +40,16 @@ const formatNotes = (notes) =>
       )
     : [];
 
+const formatDealerDiscountNotes = (notes) =>
+  notes
+    ? notes
+      .split("|")
+      .map((n) => n.trim())
+      .filter((n) =>
+        /^(dealer discount| manual discount)/i.test(n)
+      )
+    : [];
+
 /* ================= REUSABLE INFO ================= */
 
 const Info = ({ icon, label, children }) => (
@@ -55,6 +65,37 @@ const Info = ({ icon, label, children }) => (
     </div>
   </div>
 );
+
+const NotesCard = ({ title, notes, color }) => {
+
+  const colorStyles =
+    color === "purple"
+      ? "bg-purple-50 border-purple-100 text-purple-600"
+      : "bg-gray-50 border-gray-100 text-gray-500";
+
+  return (
+    <div className={`mt-4 border rounded-lg p-4 ${colorStyles}`}>
+
+      <p className="text-xs font-semibold uppercase tracking-wide mb-2">
+        {title}
+      </p>
+
+      <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+
+        {notes.map((note, idx) => (
+          <li key={idx}>
+            {note.replace(
+              /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z/,
+              (match) => formatDate(match)
+            )}
+          </li>
+        ))}
+
+      </ul>
+
+    </div>
+  );
+};
 
 /* ========================= FINANCIAL SUMMARY ========================= */
 
@@ -531,109 +572,165 @@ const OrderDetails = () => {
         </div>
 
         {/* ================= DESKTOP TABLE ================= */}
-        <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-100">
+        <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+
           <table className="min-w-full text-sm">
 
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide">
+            {/* ================= TABLE HEADER ================= */}
+            <thead className="bg-gray-50 text-gray-500 uppercase text-xs tracking-wide">
               <tr>
-                <th className="px-6 py-3 text-left">Product</th>
-                <th className="px-6 py-3 text-center">Qty</th>
-                <th className="px-6 py-3 text-right">Unit</th>
-                <th className="px-6 py-3 text-right">Total</th>
-                <th className="px-6 py-3 text-center">Status</th>
+                <th className="px-6 py-3 text-left font-medium">Product</th>
+                <th className="px-6 py-3 text-center font-medium">Qty</th>
+                <th className="px-6 py-3 text-right font-medium">Unit</th>
+                <th className="px-6 py-3 text-right font-medium">Total</th>
+                <th className="px-6 py-3 text-center font-medium">Status</th>
               </tr>
             </thead>
 
+            {/* ================= TABLE BODY ================= */}
             <tbody className="divide-y divide-gray-100">
 
-              {order.order_details?.map((d) => (
-                <tr
-                  key={d.order_details_number}
-                  className="hover:bg-gray-50 transition-colors"
-                >
+              {order.order_details?.map((d) => {
 
-                  {/* Product Info */}
-                  <td className="px-6 py-5 align-top">
+                const stockNotes = formatNotes(d.notes);
+                const discountNotes = formatDealerDiscountNotes(d.notes);
 
-                    <div className="font-semibold text-gray-900">
-                      {capitalizeFirstLetter(d.product_name)}
-                    </div>
+                const hasDiscount =
+                  !d.is_free &&
+                  d.total_dealer_discount &&
+                  d.total_dealer_discount > 0;
 
-                    <div className="text-xs text-gray-500 mt-1">
-                      {capitalizeFirstLetter(d.product_brand)} • {capitalizeFirstLetter(d.product_model)}
-                    </div>
+                return (
+                  <tr
+                    key={d.order_details_number}
+                    className="hover:bg-gray-50 transition-colors duration-200"
+                  >
 
-                    {/* Badges */}
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    {/* ================= PRODUCT COLUMN ================= */}
+                    <td className="px-6 py-5 align-top">
 
-                      {d.is_free && (
-                        <span className="px-2.5 py-1 text-xs rounded-full bg-blue-50 text-blue-700 font-medium">
-                          Free Item
+                      {/* Product Identity */}
+                      <div className="flex flex-col">
+
+                        <div className="flex items-center gap-2">
+
+                          <span className="font-semibold text-gray-900">
+                            {capitalizeFirstLetter(d.product_name)}
+                          </span>
+
+                          <span className="text-[10px] font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+                            {d.product_id}
+                          </span>
+
+                        </div>
+
+                        <span className="text-xs text-gray-500 mt-1">
+                          {capitalizeFirstLetter(d.product_brand)} •{" "}
+                          {capitalizeFirstLetter(d.product_model)}
                         </span>
+
+                      </div>
+
+                      {/* ================= PRODUCT BADGES ================= */}
+                      <div className="mt-3 flex flex-wrap gap-2">
+
+                        {d.is_free && (
+                          <span className="px-2.5 py-1 text-xs rounded-full bg-blue-50 text-blue-700 font-medium">
+                            Free Item
+                          </span>
+                        )}
+
+                        <span
+                          className={`px-2.5 py-1 text-xs rounded-full font-medium ${d.is_free
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-gray-100 text-gray-600"
+                            }`}
+                        >
+                          {d.is_free ? "Product Scheme" : "Regular Product"}
+                        </span>
+
+                      </div>
+
+                      {/* ================= STOCK NOTES ================= */}
+                      {stockNotes?.length > 0 && (
+                        <NotesCard
+                          title="Stock Notes"
+                          color="gray"
+                          notes={stockNotes}
+                        />
                       )}
 
+                      {/* ================= DISCOUNT NOTES ================= */}
+                      {discountNotes?.length > 0 && (
+                        <NotesCard
+                          title="Dealer Discount Notes"
+                          color="purple"
+                          notes={discountNotes}
+                        />
+                      )}
+
+                    </td>
+
+
+                    {/* ================= QUANTITY ================= */}
+                    <td className="px-6 py-5 text-center font-medium text-gray-800">
+                      {d.qty_ordered}
+                    </td>
+
+
+                    {/* ================= UNIT PRICE ================= */}
+                    <td className="px-6 py-5 text-right whitespace-nowrap text-gray-700">
+                      {formatCurrency(d.unit_product_price)}
+                    </td>
+
+                    {/* ================= TOTAL PRICE ================= */}
+                    <td className="px-6 py-5 text-right whitespace-nowrap">
+
+                      <div className="flex flex-col items-end gap-0.5">
+
+                        {/* Original Price */}
+                        {hasDiscount && (
+                          <span className="text-xs text-gray-400 line-through">
+                            {formatCurrency(d.total_product_price)}
+                          </span>
+                        )}
+
+                        {/* Final Price */}
+                        <span className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(d.total_price)}
+                        </span>
+
+                        {/* Discount Info */}
+                        {hasDiscount && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                            − {formatCurrency(d.total_dealer_discount)}
+                          </span>
+                        )}
+
+                      </div>
+
+                    </td>
+
+                    {/* ================= STATUS ================= */}
+                    <td className="px-6 py-5 text-center">
+
                       <span
-                        className={`px-2.5 py-1 text-xs rounded-full font-medium ${d.is_free
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-gray-100 text-gray-600"
-                          }`}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusStyle(
+                          d?.status
+                        )}`}
                       >
-                        {d.is_free ? "Product Scheme" : "Regular Product"}
+                        {d?.status || "Unknown"}
                       </span>
 
-                    </div>
+                    </td>
 
-                    {/* Notes */}
-                    {d.notes && formatNotes(d.notes).length > 0 && (
-                      <div className="mt-4 bg-gray-50 border border-gray-100 rounded-lg p-4">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                          Notes
-                        </p>
-
-                        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-                          {formatNotes(d.notes).map((note, idx) => (
-                            <li key={idx}>
-                              {note.replace(
-                                /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z/,
-                                (match) => formatDate(match)
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                  </td>
-
-                  {/* Qty */}
-                  <td className="px-6 py-5 text-center font-medium text-gray-800">
-                    {d.qty_ordered}
-                  </td>
-
-                  {/* Unit Price */}
-                  <td className="px-6 py-5 text-right whitespace-nowrap text-gray-700">
-                    {formatCurrency(d.unit_product_price)}
-                  </td>
-
-                  {/* Total */}
-                  <td className="px-6 py-5 text-right whitespace-nowrap font-semibold text-gray-900">
-                    {formatCurrency(d.total_price)}
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-6 py-5 text-center">
-                    <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusStyle(d?.status)}`}
-                    >
-                      {d?.status || "Unknown"}
-                    </span>
-                  </td>
-
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
 
             </tbody>
           </table>
+
         </div>
 
         {/* ================= MOBILE CARDS ================= */}
