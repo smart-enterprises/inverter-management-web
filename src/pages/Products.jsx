@@ -1325,7 +1325,6 @@ const Products = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Product ID</th>
                     <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Name</th>
                     <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Brand</th>
                     <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Model</th>
@@ -1369,25 +1368,37 @@ const Products = () => {
 
                     return (
                       <tr
-                        key={product.product_id}
-                        className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                        key={product_id}
+                        className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors duration-200"
                       >
 
-                        {/* Product ID */}
-                        <td className="py-4 px-4 text-sm text-gray-500">
-                          {product_id}
-                        </td>
-
                         {/* Product Name */}
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
+                        <td className="px-6 py-5">
+
+                          <div className="flex items-start gap-3">
+
+                            {/* Product Icon */}
+                            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100">
                               <FiBox className="text-gray-500 text-sm" />
                             </div>
-                            <span className="text-sm font-semibold text-gray-900">
-                              {product_name}
-                            </span>
+
+                            {/* Product Info */}
+                            <div className="flex flex-col">
+
+                              {/* Name */}
+                              <span className="text-sm font-semibold text-gray-900">
+                                {product_name}
+                              </span>
+
+                              {/* Product ID */}
+                              <span className="inline-flex w-fit mt-1 px-2 py-0.5 text-[11px] font-mono rounded bg-gray-100 text-gray-600">
+                                {product_id}
+                              </span>
+
+                            </div>
+
                           </div>
+
                         </td>
 
                         {/* Brand */}
