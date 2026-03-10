@@ -30,25 +30,26 @@ const formatDate = (date) =>
 const formatCurrency = (amount) =>
   `₹  ${Number(amount || 0).toLocaleString("en-IN")}`;
 
-const formatNotes = (notes) =>
-  notes
-    ? notes
-      .split("|")
-      .map((n) => n.trim())
-      .filter((n) =>
-        /^(production|required|unpacked|delivered)/i.test(n)
-      )
-    : [];
+const parseNotes = (notes = "") => {
+  if (!notes || typeof notes !== "string") return [];
 
-const formatDealerDiscountNotes = (notes) =>
-  notes
-    ? notes
-      .split("|")
-      .map((n) => n.trim())
-      .filter((n) =>
-        /^(dealer discount| manual discount)/i.test(n)
-      )
-    : [];
+  return notes
+    .split("|")
+    .map(note => note.trim())
+    .filter(Boolean);
+};
+
+export const formatNotes = (notes) => {
+  const STOCK_NOTE_REGEX = /^(production|required|unpacked|delivered)/i;
+
+  return parseNotes(notes).filter(note => STOCK_NOTE_REGEX.test(note));
+};
+
+export const formatDealerDiscountNotes = (notes) => {
+  const DISCOUNT_NOTE_REGEX = /^(dealer discount|manual discount)/i;
+
+  return parseNotes(notes).filter(note => DISCOUNT_NOTE_REGEX.test(note));
+};
 
 /* ================= REUSABLE INFO ================= */
 
@@ -595,10 +596,10 @@ const OrderDetails = () => {
                 const stockNotes = formatNotes(d.notes);
                 const discountNotes = formatDealerDiscountNotes(d.notes);
 
-                const hasDiscount =
-                  !d.is_free &&
-                  d.total_dealer_discount &&
-                  d.total_dealer_discount > 0;
+                console.log("stock note: ", stockNotes);
+                console.log("discount note: ", discountNotes);
+
+                const hasDiscount = !d.is_free && d.total_dealer_discount && d.total_dealer_discount > 0;
 
                 return (
                   <tr
