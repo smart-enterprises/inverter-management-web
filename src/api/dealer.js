@@ -1,50 +1,6 @@
-import { API_BASE_URL } from "../utils/api";
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-
-  return {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-  };
-};
-
-/* ========================= CORE REQUEST ========================= */
-const request = async (endpoint, options = {}) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        ...getAuthHeaders(),
-        ...(options.headers || {}),
-      },
-    });
-
-    const data = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      const message =
-        data && typeof data.message === "string"
-          ? data.message
-          : "Request failed";
-
-      throw new Error(message);
-    }
-
-    return data;
-  } catch (error) {
-    return {
-      success: false,
-      message:
-        error && typeof error.message === "string"
-          ? error.message
-          : "Unexpected error occurred",
-    };
-  }
-};
+import { apiRequest } from "./apiClient.js";
 
 /* ========================= DEALER APIs ========================= */
-
 export const fetchDealers = ({
   page = 1,
   limit = 10,
@@ -71,30 +27,30 @@ export const fetchDealers = ({
   query.set("includePassword", String(Boolean(includePassword)));
   query.set("includeDealers", String(Boolean(includeDealers)));
 
-  return request(`/employees?${query.toString()}`, {
+  return apiRequest(`/employees?${query.toString()}`, {
     method: "GET",
   });
 };
 
 export const fetchDealerById = (id) =>
-  request(`/employees/${id}`, {
+  apiRequest(`/employees/${id}`, {
     method: "GET",
   });
 
 export const createDealer = (payload) =>
-  request(`/employees/signup`, {
+  apiRequest(`/employees/signup`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 
 export const updateDealer = (id, payload) =>
-  request(`/employees/${id}`, {
+  apiRequest(`/employees/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
 
 export const deleteDealer = (employeeId, reason) =>
-  request(`/employees/update/delete-employee`, {
+  apiRequest(`/employees/update/delete-employee`, {
     method: "PUT",
     body: JSON.stringify({ employeeId, reason }),
   });
@@ -119,7 +75,7 @@ export const fetchDealerDiscounts = ({
   if (brand_name) payload.brand_name = brand_name;
   if (model_name) payload.model_name = model_name;
 
-  return request(
+  return apiRequest(
     `/employees/dealer/get-discounts?${query.toString()}`,
     {
       method: "POST",
@@ -129,19 +85,19 @@ export const fetchDealerDiscounts = ({
 };
 
 export const createDealerDiscount = (payload) =>
-  request(`/employees/dealer/create-discount`, {
+  apiRequest(`/employees/dealer/create-discount`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 
 export const createDealerDiscounts = (payloadArray) =>
-  request(`/employees/dealer/create-discounts`, {
+  apiRequest(`/employees/dealer/create-discounts`, {
     method: "POST",
     body: JSON.stringify(payloadArray),
   });
 
 export const updateDealerDiscount = (payload) =>
-  request(`/employees/dealer/update-discount`, {
+  apiRequest(`/employees/dealer/update-discount`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });

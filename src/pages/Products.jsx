@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiSearch, FiBox, FiX, FiTrash2, FiChevronLeft, FiChevronRight, FiEdit3, FiPackage } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiBox, FiX, FiTrash2, FiChevronLeft, FiChevronRight, FiEdit3, FiPackage, FiClock } from 'react-icons/fi';
 import CustomSelect from '../components/CustomSelect';
 import { fetchProducts, createProduct, updateProduct, updateProductStock, fetchProductById } from '../api/products';
 import { getAllBrands } from '../api/brands';
@@ -1036,6 +1036,130 @@ const StockUpdateModal = ({ isOpen, onClose, onStockUpdated, productId, productN
   );
 };
 
+const PriceHistoryModal = ({
+  isOpen,
+  onClose,
+  productName,
+  priceHistory = []
+}) => {
+
+  if (!isOpen) return null;
+
+  const sortedHistory = [...priceHistory].sort(
+    (a, b) => new Date(b.changed_at) - new Date(a.changed_at)
+  );
+
+  return (
+    <>
+      {/* BACKDROP */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+        onClick={onClose}
+      />
+
+      {/* MODAL */}
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
+
+        <div
+          className="bg-white rounded-xl shadow-lg w-full max-w-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+
+          {/* HEADER */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Price History
+              </h2>
+
+              <p className="text-sm text-gray-500 mt-1">
+                {productName}
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <FiX size={20} />
+            </button>
+
+          </div>
+
+          {/* BODY */}
+          <div className="p-6 max-h-[420px] overflow-y-auto">
+
+            {sortedHistory.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-8">
+                No price changes recorded.
+              </p>
+            ) : (
+
+              <table className="w-full text-sm">
+
+                <thead className="text-xs uppercase text-gray-500 border-b">
+                  <tr>
+                    <th className="py-3 text-left">Old Price</th>
+                    <th className="py-3 text-left">New Price</th>
+                    <th className="py-3 text-left">Reason</th>
+                    <th className="py-3 text-left">Changed At</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-gray-100">
+
+                  {sortedHistory.map((history) => (
+
+                    <tr key={history.price_history_id}>
+
+                      <td className="py-3 font-medium text-gray-700">
+                        ₹ {history.old_price?.toLocaleString("en-IN")}
+                      </td>
+
+                      <td className="py-3 font-semibold text-indigo-600">
+                        ₹ {history.new_price?.toLocaleString("en-IN")}
+                      </td>
+
+                      <td className="py-3 text-gray-600">
+                        {history.change_reason || "Manual update"}
+                      </td>
+
+                      <td className="py-3 text-gray-500 text-xs">
+                        {new Date(history.changed_at).toLocaleString()}
+                      </td>
+
+                    </tr>
+
+                  ))}
+
+                </tbody>
+
+              </table>
+
+            )}
+
+          </div>
+
+          {/* FOOTER */}
+          <div className="flex justify-end p-6 border-t border-gray-100">
+
+            <button
+              onClick={onClose}
+              className="px-5 py-2 rounded-lg border border-gray-200 text-sm hover:bg-gray-50"
+            >
+              Close
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+    </>
+  );
+};
+
 const ProductsPagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
 
@@ -1116,6 +1240,10 @@ const Products = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+
+  const [isPriceHistoryModalOpen, setIsPriceHistoryModalOpen] = useState(false);
+  const [selectedPriceHistory, setSelectedPriceHistory] = useState([]);
+
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [selectedProductName, setSelectedProductName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1220,6 +1348,18 @@ const Products = () => {
     setSelectedProductId(productId);
     setSelectedProductName(productName);
     setIsStockModalOpen(true);
+  };
+
+  // Open price history modal
+  const openPriceHistoryModal = (productId, productName) => {
+    const product = products.find(p => p.product_id === productId);
+
+    if (!product) return;
+
+    setSelectedProductId(productId);
+    setSelectedProductName(productName);
+    setSelectedPriceHistory(product.price_history || []);
+    setIsPriceHistoryModalOpen(true);
   };
 
   return (
@@ -1349,7 +1489,8 @@ const Products = () => {
                       price,
                       available_stock,
                       status,
-                      stocks = []
+                      stocks = [],
+                      price_history = [],
                     } = product;
 
                     /* -------------------- Stock Calculations -------------------- */
@@ -1490,6 +1631,15 @@ const Products = () => {
                                 </button>
                               )}
 
+                              {/* View Price History */}
+                              <button
+                                onClick={() => openPriceHistoryModal(product_id, product_name, product)}
+                                className="inline-flex items-center justify-center p-2 text-[#9333EA] hover:text-[#8829DD] hover:bg-[#9333EA]/5 rounded-lg transition-colors"
+                                title="View Price History"
+                              >
+                                <FiClock size={16} />
+                              </button>
+
                             </div>
                           </td>
                         )}
@@ -1550,6 +1700,14 @@ const Products = () => {
             productId={selectedProductId}
             productName={selectedProductName}
           />
+
+          <PriceHistoryModal
+            isOpen={isPriceHistoryModalOpen}
+            onClose={() => setIsPriceHistoryModalOpen(false)}
+            productName={selectedProductName}
+            priceHistory={selectedPriceHistory}
+          />
+
         </>
       )}
     </div>

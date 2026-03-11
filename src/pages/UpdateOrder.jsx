@@ -13,6 +13,7 @@ import {
   PRIORITY_OPTIONS,
 } from '../utils/status';
 import { useUpdateOrderPermissions } from '../hooks/useUpdateOrderPermissions';
+import { formatDateForInput } from '../utils/dateUtils';
 
 const FormField = ({ label, children }) => (
   <div>
@@ -58,18 +59,6 @@ export const normalizeOrder = (order) => ({
     has_production_completed: false,
   })),
 });
-
-export const formatDateForInput = (isoDate) => {
-  if (!isoDate) return '';
-  const date = new Date(isoDate);
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60000);
-  return local.toISOString().slice(0, 16);
-};
-
-export const formatDateForAPI = (value) =>
-  value ? new Date(value).toISOString() : undefined;
-
 
 const UpdateOrder = () => {
   const navigate = useNavigate();

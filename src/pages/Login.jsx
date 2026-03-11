@@ -7,7 +7,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -19,10 +19,10 @@ export default function Login() {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (isAuthenticated()) {
-      const from = location.state?.from?.pathname || "/dashboard";
-      navigate(from, { replace: true });
+      const redirectTo = location.state?.from?.pathname || "/dashboard";
+      navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [navigate, location, isAuthenticated]);
 
   const handleChange = (e) => {
     setFormData({
@@ -49,19 +49,26 @@ export default function Login() {
 
     try {
       const result = await login(formData.email, formData.password);
-      
-      if (result.success) {
-        const from = location.state?.from?.pathname || "/dashboard";
-        navigate(from, { replace: true });
-      } else {
-        setError(result.message || 'Login failed');
+
+      if (!result?.success) {
+        setError(result?.message || "Login failed");
+        return;
       }
+
+      const { token, user } = result.data || {};
+
+      if (!token) {
+        setError("Invalid authentication response");
+        return;
+      }
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      const from = location.state?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
     } catch (err) {
-      if (err && err.message) {
-        setError(err.message);
-      } else {
-        setError("An error occurred. Please try again.");
-      }
+      setError(err?.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
