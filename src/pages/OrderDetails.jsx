@@ -15,6 +15,7 @@ import {
 import { fetchOrderById } from "../api/orders";
 import { fetchUsers } from "../api/user";
 import { capitalizeFirstLetter } from "../utils/constants";
+import { formatDealerDiscountNotes, formatStockNotes } from "../utils/notesUtils";
 
 /* ================= FORMAT HELPERS ================= */
 
@@ -29,27 +30,6 @@ const formatDate = (date) =>
 
 const formatCurrency = (amount) =>
   `₹  ${Number(amount || 0).toLocaleString("en-IN")}`;
-
-const parseNotes = (notes = "") => {
-  if (!notes || typeof notes !== "string") return [];
-
-  return notes
-    .split("|")
-    .map(note => note.trim())
-    .filter(Boolean);
-};
-
-export const formatNotes = (notes) => {
-  const STOCK_NOTE_REGEX = /^(production|required|unpacked|delivered)/i;
-
-  return parseNotes(notes).filter(note => STOCK_NOTE_REGEX.test(note));
-};
-
-export const formatDealerDiscountNotes = (notes) => {
-  const DISCOUNT_NOTE_REGEX = /^(dealer discount|manual discount)/i;
-
-  return parseNotes(notes).filter(note => DISCOUNT_NOTE_REGEX.test(note));
-};
 
 /* ================= REUSABLE INFO ================= */
 
@@ -593,7 +573,7 @@ const OrderDetails = () => {
 
               {order.order_details?.map((d) => {
 
-                const stockNotes = formatNotes(d.notes);
+                const stockNotes = formatStockNotes(d.notes);
                 const discountNotes = formatDealerDiscountNotes(d.notes);
 
                 console.log("stock note: ", stockNotes);

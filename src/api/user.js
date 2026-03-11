@@ -1,52 +1,22 @@
-import { API_BASE_URL } from "../utils/api";
+import { apiRequest } from "./apiClient.js";
 
-/* ========================= AUTH HEADER ========================= */
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+// QUERY BUILDER
+const buildQuery = (params = {}) => {
+  const query = new URLSearchParams();
 
-/* ========================= CORE REQUEST ========================= */
-const request = async (endpoint, options = {}) => {
-  try {
-    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeaders(),
-        ...(options.headers || {}),
-      },
-      ...options,
-    });
-
-    let data = null;
-
-    try {
-      data = await res.json();
-    } catch {
-      data = null;
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.append(key, value);
     }
+  });
 
-    if (!res.ok) {
-      const message =
-        data && typeof data.message === "string" ?
-          data.message : "Request failed";
-
-      throw new Error(message);
-    }
-
-    return data;
-  } catch (error) {
-    return {
-      success: false,
-      message: error && typeof error.message === "string" ?
-        error.message : "Unexpected error occurred",
-    };
-  }
+  return query.toString();
 };
 
 /* ========================= EMPLOYEE APIs ========================= */
 
-export const fetchUsers = ({
+// FETCH EMPLOYEES (PAGINATED)
+export const fetchUsers = async ({
   page = 1,
   limit = 10,
   role,
@@ -55,67 +25,83 @@ export const fetchUsers = ({
   includePassword = false,
   includeDealers = false,
 } = {}) => {
-  const query = new URLSearchParams();
+  const query = buildQuery({ page, limit, role, search, status, includePassword, includeDealers });
 
-  query.append("page", String(page));
-  query.append("limit", String(limit));
-
-  if (role) query.append("role", role);
-  if (search) query.append("search", search);
-  if (status) query.append("status", status);
-
-  query.append("includePassword", String(includePassword));
-  query.append("includeDealers", String(includeDealers));
-
-  return request(`/employees?${query.toString()}`, {
+  return apiRequest(`/employees?${query}`, {
     method: "GET",
   });
 };
 
-export const fetchDeletedUsers = (page = 1, limit = 10) =>
-  request(`/employees/get/deleted-employees?page=${page}&limit=${limit}`);
+// FETCH DELETED EMPLOYEES (PAGINATED)
+export const fetchDeletedUsers = async (page = 1, limit = 10) => {
+  const query = buildQuery({ page, limit });
 
-export const fetchUserById = (id) =>
-  request(`/employees/${id}`);
+  return apiRequest(`/employees/get/deleted-employees?${query}`, {
+    method: "GET",
+  });
+};
 
-export const fetchUserByRole = (role) =>
-  request(`/employees/getByRole/${role}`);
+// FETCH EMPLOYEE BY ID
+export const fetchUserById = async (employeeId) => {
+  return apiRequest(`/employees/${employeeId}`, {
+    method: "GET",
+  });
+};
 
-export const fetchProfile = () =>
-  request(`/employees/get/profile`);
+export const fetchUserByRole = async (role) =>
+  apiRequest(`/employees/getByRole/${role}`, {
+    method: "GET",
+  });
 
-export const fetchEmployeeCount = (role) =>
-  request(`/employees/count${role ? `?role=${role}` : ""}`);
+export const fetchProfile = async () =>
+  request(`/employees/get/profile`, {
+    method: "GET",
+  });
 
-export const createUser = (payload) =>
-  request(`/employees/signup`, {
+export const fetchEmployeeCount = async (role) => {
+
+  const query = buildQuery({ role });
+
+  return apiRequest(`/employees/count${query ? `?${query}` : ""}`, {
+    method: "GET",
+  });
+};
+
+export const createUser = async (payload) =>
+  apiRequest(`/employees/signup`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 
-export const updateUser = (id, payload) =>
-  request(`/employees/${id}`, {
+export const updateUser = async (employeeId, payload) =>
+  apiRequest(`/employees/${employeeId}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
 
-export const deleteUser = (employeeId, reason) =>
-  request(`/employees/update/delete-employee`, {
+export const deleteUser = async (employeeId, reason) =>
+  apiRequest(`/employees/update/delete-employee`, {
     method: "PUT",
     body: JSON.stringify({ employeeId, reason }),
   });
 
-export const resetPasswordById = (employeeId, payload) =>
-  request(`/employees/update/reset-password/${employeeId}`, {
+export const resetPasswordById = async (employeeId, payload) =>
+  apiRequest(`/employees/update/reset-password/${employeeId}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
 
-export const resetOwnPassword = (payload) =>
-  request(`/employees/update/reset-password`, {
+export const resetOwnPassword = async (payload) =>
+  apiRequest(`/employees/update/reset-password`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
 
-export const fetchEmployeesWithPassword = (page = 1, limit = 10) =>
-  request(`/employees/get/employees-password?page=${page}&limit=${limit}`);
+export const fetchEmployeesWithPassword = async (page = 1, limit = 10) => {
+
+  const query = buildQuery({ page, limit });
+
+  return apiRequest(`/employees/get/employees-password?${query}`, {
+    method: "GET",
+  });
+};

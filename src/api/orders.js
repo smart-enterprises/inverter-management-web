@@ -1,23 +1,11 @@
-import { API_BASE_URL } from '../utils/api';
-
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-};
+import { apiRequest } from "./apiClient.js";
 
 // ✅ Create Order
 export const createOrder = async (orderData) => {
-    const response = await fetch(
-        `${API_BASE_URL}/order-details/create-order`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-        },
+    return apiRequest("/order-details/create-order", {
+        method: "POST",
         body: JSON.stringify(orderData),
-    }
-    );
-    return response.json();
+    });
 };
 
 // ✅ Fetch Orders (with optional filters & search)
@@ -30,77 +18,54 @@ export const fetchOrders = async ({
     search,
     dealer
 } = {}) => {
-    try {
-        const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams();
 
-        // Pagination
-        queryParams.append('page', page);
-        queryParams.append('limit', limit);
+    // Pagination
+    queryParams.append('page', page);
+    queryParams.append('limit', limit);
 
-        // Include rejected
-        if (includeRejected) {
-            queryParams.append('includeRejected', 'true');
-        }
-
-        // Status filter
-        if (status && status !== 'ALL') {
-            queryParams.append('status', status);
-        }
-
-        if (priority && priority !== 'ALL') {
-            queryParams.append('priority', priority);
-        }
-
-        // Search filter (order number / dealer etc.)
-        if (search && search.trim() !== '') {
-            queryParams.append('search', search.trim());
-        }
-
-        // Dealer filter
-        if (dealer) {
-            queryParams.append('dealer', dealer);
-        }
-
-        const response = await fetch(
-            `${API_BASE_URL}/order-details?${queryParams.toString()}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
-        }
-        );
-
-        return await response.json();
-    } catch (error) {
-        console.error('❌ fetchOrders error:', error);
-        throw error;
+    // Include rejected
+    if (includeRejected) {
+        queryParams.append('includeRejected', 'true');
     }
+
+    // Status filter
+    if (status && status !== 'ALL') {
+        queryParams.append('status', status);
+    }
+
+    if (priority && priority !== 'ALL') {
+        queryParams.append('priority', priority);
+    }
+
+    // Search filter (order number / dealer etc.)
+    if (search && search.trim() !== '') {
+        queryParams.append('search', search.trim());
+    }
+
+    // Dealer filter
+    if (dealer) {
+        queryParams.append('dealer', dealer);
+    }
+
+    return apiRequest(`/order-details?${queryParams.toString()}`, {
+        method: "GET",
+    });
 };
 
 // ✅ Get Order by ID
 export const fetchOrderById = async (orderId) => {
-    const response = await fetch(
-        `${API_BASE_URL}/order-details/${orderId}`, {
-        headers: { ...getAuthHeaders() },
-    }
-    );
-    return response.json();
+    return apiRequest(`/order-details/${orderId}`, {
+        method: "GET",
+    });
 };
 
 // ✅ Update Order Status
 export const updateOrderStatus = async (orderNumber, payload) => {
-    const response = await fetch(
-        `${API_BASE_URL}/order-details/status/${orderNumber}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-        },
+    return apiRequest(`/order-details/status/${orderNumber}`, {
+        method: "PUT",
         body: JSON.stringify(payload),
-    }
-    );
-    return response.json();
+    });
 };
 
 // ✅ Fetch Orders By Date Filter (Monthly)
@@ -110,28 +75,15 @@ export const fetchOrdersByDate = async ({
     start_date,
     end_date,
 } = {}) => {
-    try {
-        const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams();
 
-        if (year) queryParams.append("year", year);
-        if (month) queryParams.append("month", month);
-        if (start_date) queryParams.append("start_date", start_date);
-        if (end_date) queryParams.append("end_date", end_date);
+    if (year) queryParams.append("year", year);
+    if (month) queryParams.append("month", month);
+    if (start_date) queryParams.append("start_date", start_date);
+    if (end_date) queryParams.append("end_date", end_date);
 
-        const response = await fetch(
-            `${API_BASE_URL}/order-details/date-filter?${queryParams.toString()}`,
-            {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...getAuthHeaders(),
-                },
-            }
-        );
-
-        return await response.json();
-    } catch (error) {
-        console.error("❌ fetchOrdersByDate error:", error);
-        throw error;
-    }
+    return apiRequest(
+        `/order-details/date-filter?${queryParams.toString()}`,
+        { method: "GET" }
+    );
 };
