@@ -1,13 +1,36 @@
-import React from "react";
-import { BrowserRouter } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter, useNavigate } from "react-router-dom";
 import AppRoutes from "./routes/AppRoutes";
 import { AuthProvider } from "./contexts/AuthContext";
+
+/* ================= LOGOUT SYNC LISTENER ================= */
+const LogoutListener = ({ children }) => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key === "logout-event") {
+        navigate("/login");
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [navigate]);
+
+  return children;
+};
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <AppRoutes />
+        <LogoutListener>
+          <AppRoutes />
+        </LogoutListener>
       </BrowserRouter>
     </AuthProvider>
   );

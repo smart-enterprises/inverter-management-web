@@ -1,40 +1,6 @@
-import { API_BASE_URL } from "../utils/api";
-
-// AUTH HEADER
-
-const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
-// GENERIC REQUEST HANDLER
-
-const apiRequest = async (endpoint, options = {}) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            headers: {
-                "Content-Type": "application/json",
-                ...getAuthHeaders(),
-                ...options.headers,
-            },
-            ...options,
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data?.message || "API request failed");
-        }
-
-        return data;
-    } catch (error) {
-        console.error(`❌ API Error (${endpoint}):`, error);
-        throw error;
-    }
-};
+import { apiRequest } from "./apiClient.js";
 
 //  QUERY BUILDER
-
 const buildQuery = (params = {}) => {
     const query = new URLSearchParams();
 
@@ -51,41 +17,45 @@ const buildQuery = (params = {}) => {
 
 // 🔹 Get All Products
 export const fetchProducts = () =>
-    apiRequest("/product-details/get/all");
+    apiRequest("/product-details/get/all", {
+        method: "GET",
+    });
 
 // 🔹 Get Product By ID
-export const fetchProductById = (productId) =>
-    apiRequest(`/product-details/${productId}`);
+export const fetchProductById = async (productId) =>
+    apiRequest(`/product-details/${productId}`, {
+        method: "GET",
+    });
 
 // 🔹 Create Product
-export const createProduct = (productData) =>
+export const createProduct = async (productData) =>
     apiRequest("/product-details/create-product", {
         method: "POST",
         body: JSON.stringify(productData),
     });
 
 // 🔹 Update Product
-export const updateProduct = (productId, productData) =>
+export const updateProduct = async (productId, productData) =>
     apiRequest(`/product-details/${productId}`, {
         method: "PUT",
         body: JSON.stringify(productData),
     });
 
 // 🔹 Delete Product
-export const deleteProduct = (productId) =>
+export const deleteProduct = async (productId) =>
     apiRequest(`/product-details/delete/${productId}`, {
         method: "DELETE",
     });
 
 // 🔹 Create / Update Stock
-export const updateProductStock = (stockData) =>
+export const updateProductStock = async (stockData) =>
     apiRequest("/product-details/createOrUpdate/product-stocks", {
         method: "PUT",
         body: JSON.stringify(stockData),
     });
 
 // 🔹 Fetch Products By Brands
-export const fetchProductsByBrands = (brands) =>
+export const fetchProductsByBrands = async (brands = []) =>
     apiRequest("/product-details/getAllProductsByBrand", {
         method: "POST",
         body: JSON.stringify({ brands }),
@@ -100,5 +70,7 @@ export const fetchLowStockProducts = ({
 } = {}) => {
     const query = buildQuery({ page, limit, threshold });
 
-    return apiRequest(`/product-details/low-stock?${query}`);
+    return apiRequest(`/product-details/low-stock?${query}`, {
+        method: "GET",
+    });
 };
