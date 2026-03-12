@@ -33,6 +33,7 @@ export const apiRequest = async (endpoint, options = {}) => {
         ...options,
     };
 
+    console.log("API Request:", url, config);
     try {
         const response = await fetch(url, config);
 
