@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiPlus, FiSearch, FiBox, FiX, FiTrash2, FiChevronLeft, FiChevronRight, FiEdit3, FiPackage, FiClock } from 'react-icons/fi';
+import { useNavigate } from "react-router-dom";
 import CustomSelect from '../components/CustomSelect';
 import { fetchProducts, createProduct, updateProduct, updateProductStock, fetchProductById } from '../api/products';
 import { getAllBrands } from '../api/brands';
@@ -1237,6 +1238,8 @@ const ProductsPagination = ({ currentPage, totalPages, onPageChange }) => {
 };
 
 const Products = () => {
+  const navigate = useNavigate();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -1610,6 +1613,15 @@ const Products = () => {
                         {!isSalesman && (
                           <td className="py-4 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
+
+                              {/* View */}
+                              <button
+                                onClick={() => navigate(`/products/${product_id}`)}
+                                className="inline-flex items-center justify-center p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                title="View Product"
+                              >
+                                <FiBox size={16} />
+                              </button>
 
                               {/* Edit */}
                               <button
