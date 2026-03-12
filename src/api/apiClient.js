@@ -22,6 +22,8 @@ export const getAuthHeaders = () => {
 
 /* ================= API REQUEST ================= */
 export const apiRequest = async (endpoint, options = {}) => {
+    console.log("API Request:", endpoint, options);
+
     const url = `${API_BASE_URL}${endpoint}`;
 
     const config = {
