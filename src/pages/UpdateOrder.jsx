@@ -74,6 +74,15 @@ const UpdateOrder = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  /* ================= EDIT PERMISSIONS ================= */
+  const isCompleted = order?.status === "COMPLETED";
+  const isDelivered = order?.status === "DELIVERED";
+  const isCancelled = order?.status === "CANCELLED";
+
+  const isOrderLocked = isCompleted || isDelivered || isCancelled;
+
+  const isPaymentFullyDone = Number(order?.order_total_price || 0) === Number(amountPaid || 0);
+
   /* ================= LOAD ORDER ================= */
 
   useEffect(() => {
@@ -312,8 +321,9 @@ const UpdateOrder = () => {
 
           <button
             onClick={handleSubmit}
-            disabled={submitting}
-            className="px-6 py-2.5 bg-[#9333EA] text-white rounded-lg flex items-center gap-2"
+            disabled={submitting || (isOrderLocked && isPaymentFullyDone)}
+            title={(isOrderLocked && isPaymentFullyDone) ? "Completed or Delivered orders cannot be edited" : ""}
+            className="px-6 py-2.5 bg-[#9333EA] text-white rounded-lg flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <FiSave />
             {submitting ? 'Updating...' : 'Save Changes'}
@@ -343,8 +353,8 @@ const UpdateOrder = () => {
               <CustomSelect
                 value={order.status}
                 disabled={
-                  !permissions.canEditAll &&
-                  !permissions.editableFields?.includes("status")
+                  isOrderLocked ||
+                  (!permissions.canEditAll && !permissions.editableFields?.includes("status"))
                 }
                 onChange={(e) => {
                   if (permissions.restrictStatusToDelivered) {
@@ -365,8 +375,8 @@ const UpdateOrder = () => {
               <CustomSelect
                 value={order.priority}
                 disabled={
-                  !permissions.canEditAll &&
-                  !permissions.editableFields?.includes("priority")
+                  isOrderLocked ||
+                  (!permissions.canEditAll && !permissions.editableFields?.includes("priority"))
                 }
                 onChange={(e) =>
                   updateOrderField("priority", e.target.value)
@@ -380,8 +390,8 @@ const UpdateOrder = () => {
               <CustomSelect
                 value={order.payment_method}
                 disabled={
-                  !permissions.canEditAll &&
-                  !permissions.editableFields?.includes("payment_method")
+                  isPaymentFullyDone ||
+                  (!permissions.canEditAll && !permissions.editableFields?.includes("payment_method"))
                 }
                 onChange={(e) =>
                   updateOrderField("payment_method", e.target.value)
@@ -395,8 +405,8 @@ const UpdateOrder = () => {
               <input
                 type="number"
                 disabled={
-                  !permissions.canEditAll &&
-                  !permissions.editableFields?.includes("amount_paid")
+                  isPaymentFullyDone ||
+                  (!permissions.canEditAll && !permissions.editableFields?.includes("amount_paid"))
                 }
                 min={0}
                 max={Number(order?.order_total_price || 0) - amountPaid}
@@ -418,13 +428,17 @@ const UpdateOrder = () => {
 
         {/* ================= ORDER DETAILS ================= */}
         <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-8">
-          <header>
+
+          {/* Header */}
+          <header className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900">
               Order Details
             </h2>
           </header>
 
           {order.order_details.map((detail, index) => {
+
+            /* ================= DESTRUCTURE ================= */
             const {
               order_details_number,
               is_free,
@@ -441,30 +455,39 @@ const UpdateOrder = () => {
 
             const { hasUnpacked, hasProduction } = stock_flags;
 
-            /* ================= Quantity Calculations ================= */
+            /* ================= QUANTITY CALCULATIONS ================= */
 
             const totalQty = Number(qty_ordered ?? 0);
             const alreadyDelivered = Number(qty_delivered ?? 0);
             const alreadyCancelled = Number(total_cancelled_qty ?? 0);
 
-            // Editable state values (if you're tracking temporary updates)
-            const deliveredQty = Number(detail.delivered_qty ?? alreadyDelivered);
-            const cancelQty = Number(detail.cancel_qty ?? alreadyCancelled);
-
             const maxDeliverableQty = totalQty - alreadyCancelled;
             const maxCancelableQty = totalQty - alreadyDelivered;
+
+            /* ================= ORDER LOCK CHECK ================= */
+
+            const isCompleted = status === "COMPLETED";
+            const isDelivered = status === "DELIVERED";
+            const isCancelled = status === "CANCELLED";
+
+            const isOrderLocked = isCompleted || isDelivered || isCancelled;
+
+            const showCompletionSection = !isOrderLocked && (hasUnpacked || hasProduction);
 
             return (
               <article
                 key={order_details_number}
-                className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-6 transition-all"
+                className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-6"
               >
-                {/* ===== Header Row ===== */}
+
+                {/* ================= HEADER ================= */}
                 <div className="flex items-center justify-between">
+
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-wide">
-                      Order Detail No
+                      Order Detail Number
                     </p>
+
                     <p className="font-mono text-sm font-medium text-gray-800 mt-1">
                       {order_details_number}
                     </p>
@@ -472,145 +495,201 @@ const UpdateOrder = () => {
 
                   <span
                     className={`px-3 py-1 text-xs font-medium rounded-full ${is_free
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-200 text-gray-600'
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-200 text-gray-600"
                       }`}
                   >
-                    {is_free ? 'Product Scheme' : 'Regular Product'}
+                    {is_free ? "Product Scheme" : "Regular Product"}
                   </span>
+
                 </div>
 
-                {/* ===== Form Grid ===== */}
+                {/* ================= MAIN CONTENT GRID ================= */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
 
-                  {/* --- Status Section --- */}
+                  {/* ================= STATUS SECTION ================= */}
+
                   <div className="space-y-5">
+
                     <FormField label="Order Status">
                       <CustomSelect
                         value={status}
-                        onChange={(e) =>
-                          updateDetailField(index, 'status', e.target.value)
+                        disabled={
+                          isOrderLocked ||
+                          (!permissions.canEditAll &&
+                            !permissions.editableFields?.includes("status"))
                         }
-                        options={ORDER_STATUS_LIST.filter((s) => s !== 'ALL')}
+                        onChange={(e) =>
+                          updateDetailField(index, "status", e.target.value)
+                        }
+                        options={ORDER_STATUS_LIST.filter((s) => s !== "ALL")}
                       />
                     </FormField>
 
                     <FormField label="Delivered Date & Time">
                       <input
                         type="datetime-local"
-                        value={formatDateForInput(detail.delivery_date)}
+                        value={formatDateForInput(delivery_date)}
+                        disabled={
+                          isOrderLocked ||
+                          (!permissions.canEditAll &&
+                            !permissions.editableFields?.includes("delivery_date"))
+                        }
                         onChange={(e) =>
-                          updateDetailField(index, 'delivery_date', e.target.value)
+                          updateDetailField(index, "delivery_date", e.target.value)
                         }
                         className="form-input"
                       />
                     </FormField>
+
                   </div>
 
-                  {/* --- Quantity Section --- */}
-                  <div className="space-y-5">
-                    <FormField label="Delivered Quantity">
-                      <input
-                        type="number"
-                        disabled={
-                          !permissions.canEditAll &&
-                          !permissions.editableDetailFields?.includes("delivered_qty")
-                        }
-                        min={0}
-                        max={maxDeliverableQty}
-                        onChange={(e) => {
-                          const value = Number(e.target.value || 0);
-                          if (value <= maxDeliverableQty) {
-                            updateDetailField(index, 'delivered_qty', value);
-                          }
-                        }}
-                        className="form-input"
-                        placeholder={`Enter delivered quantity (Max: ${maxDeliverableQty})`}
-                      />
-                    </FormField>
+                  {/* ================= QUANTITY SECTION ================= */}
 
-                    <FormField label="Cancelled Quantity">
-                      <input
-                        type="number"
-                        disabled={
-                          !permissions.canEditAll &&
-                          !permissions.editableDetailFields?.includes("cancel_qty")
-                        }
-                        min={0}
-                        max={maxCancelableQty}
-                        onChange={(e) => {
-                          const value = Number(e.target.value || 0);
-                          if (value <= maxCancelableQty) {
-                            updateDetailField(index, 'cancel_qty', value);
-                          }
-                        }}
-                        className="form-input"
-                        placeholder={`Enter cancelled quantity (Max: ${maxCancelableQty})`} />
-                    </FormField>
-                  </div>
+                  {!isOrderLocked && (
+                    <div className="space-y-5">
 
-                  {/* --- Completion & Financial Section --- */}
+                      <FormField label="Delivered Quantity">
+                        <input
+                          type="number"
+                          min={0}
+                          max={maxDeliverableQty}
+                          disabled={
+                            isOrderLocked ||
+                            (!permissions.canEditAll &&
+                              !permissions.editableDetailFields?.includes(
+                                "delivered_qty"
+                              ))
+                          }
+                          onChange={(e) => {
+                            const value = Number(e.target.value || 0);
+
+                            if (value <= maxDeliverableQty) {
+                              updateDetailField(index, "delivered_qty", value);
+                            }
+                          }}
+                          className="form-input"
+                          placeholder={`Max: ${maxDeliverableQty}`}
+                        />
+                      </FormField>
+
+                      <FormField label="Cancelled Quantity">
+                        <input
+                          type="number"
+                          min={0}
+                          max={maxCancelableQty}
+                          disabled={
+                            isOrderLocked ||
+                            (!permissions.canEditAll &&
+                              !permissions.editableDetailFields?.includes(
+                                "cancel_qty"
+                              ))
+                          }
+                          onChange={(e) => {
+                            const value = Number(e.target.value || 0);
+
+                            if (value <= maxCancelableQty) {
+                              updateDetailField(index, "cancel_qty", value);
+                            }
+                          }}
+                          className="form-input"
+                          placeholder={`Max: ${maxCancelableQty}`}
+                        />
+                      </FormField>
+
+                    </div>
+                  )}
+
+                  {/* ================= COMPLETION SECTION ================= */}
+
                   <div className="space-y-6">
 
+                    {showCompletionSection && (
+                      <div>
+
+                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500 mb-3">
+                          Completion Status
+                        </p>
+
+                        <div className="flex flex-col gap-3">
+
+                          {hasUnpacked && (
+                            <CheckboxField
+                              label="Unpacked Completed"
+                              checked={has_unPacked_completed}
+                              disabled={
+                                isOrderLocked ||
+                                (!permissions.canEditAll &&
+                                  !permissions.editableDetailFields?.includes(
+                                    "has_unPacked_completed"
+                                  ))
+                              }
+                              onChange={(e) =>
+                                updateDetailField(
+                                  index,
+                                  "has_unPacked_completed",
+                                  e.target.checked
+                                )
+                              }
+                            />
+                          )}
+
+                          {hasProduction && (
+                            <CheckboxField
+                              label="Production Completed"
+                              checked={has_production_completed}
+                              disabled={
+                                isOrderLocked ||
+                                (!permissions.canEditAll &&
+                                  !permissions.editableDetailFields?.includes(
+                                    "has_production_completed"
+                                  ))
+                              }
+                              onChange={(e) =>
+                                updateDetailField(
+                                  index,
+                                  "has_production_completed",
+                                  e.target.checked
+                                )
+                              }
+                            />
+                          )}
+
+                        </div>
+
+                      </div>
+                    )}
+
+                  </div>
+
+                </div>
+
+                {/* ================= ITEM TOTAL (FOOTER STYLE) ================= */}
+
+                <div className="flex justify-end pt-4 border-t border-gray-200">
+
+                  <div className="bg-white border border-gray-200 rounded-xl px-6 py-5 shadow-sm flex items-center gap-6 min-w-[260px]">
+
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500 mb-3">
-                        Completion Status
+                      <p className="text-xs uppercase tracking-wide text-gray-500 font-medium">
+                        Item Total
                       </p>
 
-                      <div className="flex flex-col gap-3">
-                        {hasUnpacked && (
-                          <CheckboxField
-                            label="Unpacked Completed"
-                            checked={has_unPacked_completed}
-                            onChange={(e) =>
-                              updateDetailField(
-                                index,
-                                'has_unPacked_completed',
-                                e.target.checked
-                              )
-                            }
-                            disabled={
-                              !permissions.canEditAll &&
-                              !permissions.editableDetailFields?.includes(
-                                "has_unPacked_completed"
-                              )
-                            }
-                          />
-                        )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-gray-500 font-medium text-lg">₹</span>
 
-                        {hasProduction && (
-                          <CheckboxField
-                            label="Production Completed"
-                            checked={has_production_completed}
-                            onChange={(e) =>
-                              updateDetailField(
-                                index,
-                                'has_production_completed',
-                                e.target.checked
-                              )
-                            }
-                            disabled={
-                              !permissions.canEditAll &&
-                              !permissions.editableDetailFields?.includes(
-                                "has_production_completed"
-                              )
-                            }
-                          />
-                        )}
+                        <span className="text-3xl font-bold text-gray-900 tracking-tight">
+                          {total_price?.toLocaleString("en-IN")}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Financial Card */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">
-                        Item Total
-                      </p>
-                      <p className="text-2xl font-semibold text-gray-900 mt-2">
-                        ₹  {total_price?.toLocaleString('en-IN')}
-                      </p>
+                    <div className="flex items-center justify-center w-11 h-11 rounded-lg bg-purple-50">
+                      <span className="text-purple-600 text-lg font-bold">₹</span>
                     </div>
 
                   </div>
+
                 </div>
               </article>
             );
@@ -621,21 +700,21 @@ const UpdateOrder = () => {
         <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8 mt-10">
 
           <div className="flex justify-end">
-            <div className="w-full sm:w-[420px] bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
+            <div className="w-full sm:w-[440px] bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
 
-              {/* Header */}
-              <div className="border-b border-gray-100 pb-4 mb-6 flex items-center justify-between">
+              {/* ================= HEADER ================= */}
+              <div className="px-6 py-5 flex items-center justify-between border-b border-gray-100 bg-gray-50/60">
 
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-600">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-600">
                   Order Financial Summary
                 </h3>
 
                 {/* Payment Status */}
                 <span
                   className={`px-3 py-1 text-xs font-semibold rounded-full ${order.payment_status === "PAID"
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-emerald-100 text-emerald-700"
                     : order.payment_status === "PARTIAL"
-                      ? "bg-yellow-100 text-yellow-700"
+                      ? "bg-amber-100 text-amber-700"
                       : "bg-red-100 text-red-700"
                     }`}
                 >
@@ -644,43 +723,58 @@ const UpdateOrder = () => {
 
               </div>
 
-              {/* Financial Rows */}
-              <div className="space-y-4">
+              {/* ================= BODY ================= */}
+              <div className="px-6 py-6 space-y-5">
 
                 {/* Total Order Value */}
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Total Order Value</span>
-                  <span className="font-medium text-gray-900">
-                    ₹  {order.order_total_price?.toLocaleString('en-IN')}
+                  <span className="text-gray-500 font-medium">
+                    Total Order Value
+                  </span>
+
+                  <span className="text-gray-900 font-semibold">
+                    ₹ {order.order_total_price?.toLocaleString("en-IN")}
                   </span>
                 </div>
 
                 {/* Amount Paid */}
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Amount Paid</span>
-                  <span className="font-medium text-green-600">
-                    ₹  {amountPaid?.toLocaleString('en-IN')}
+                  <span className="text-gray-500 font-medium">
+                    Amount Paid
+                  </span>
+
+                  <span className="text-emerald-600 font-semibold">
+                    ₹ {amountPaid?.toLocaleString("en-IN")}
                   </span>
                 </div>
 
                 {/* Divider */}
-                <div className="border-t border-gray-200 my-4"></div>
+                <div className="border-t border-gray-200"></div>
 
-                {/* Balance */}
-                <div className="flex items-center justify-between">
+                {/* Balance Amount */}
+                <div className="flex items-center justify-between pt-2">
+
                   <span className="text-base font-semibold text-gray-800">
                     Balance Amount
                   </span>
-                  <span className="text-xl font-bold text-purple-700">
-                    ₹  {order.amount_due?.toLocaleString('en-IN')}
-                  </span>
+
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500 text-lg font-medium">₹</span>
+
+                    <span className="text-2xl font-bold text-purple-700 tracking-tight">
+                      {order.amount_due?.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+
                 </div>
 
               </div>
+
             </div>
           </div>
 
         </section>
+
       </div>
     </div>
   );

@@ -397,6 +397,8 @@ const Orders = () => {
                       ? new Date(order.promised_delivery_date)
                       : maxDetailDate;
 
+                    const isCompleted = order.status === "COMPLETED";
+
                     return (
 
                       <tr
@@ -483,6 +485,7 @@ const Orders = () => {
 
                           <div className="flex items-center justify-end gap-2">
 
+                            {/* VIEW */}
                             <button
                               onClick={() =>
                                 navigate(`/orders/${order.order_number}`)
@@ -494,24 +497,29 @@ const Orders = () => {
                                 hover:bg-purple-50
                                 transition
                               "
+                              title="View Order"
                             >
                               <FiEye size={18} />
                             </button>
 
+                            {/* Edit Order (Hide if COMPLETED) */}
+                            {/* {!isCompleted && ( */}
                             <button
                               onClick={() =>
                                 navigate(`/orders/update/${order.order_number}`)
                               }
                               className="
-                                p-2 rounded-lg
-                                text-gray-500
-                                hover:text-blue-600
-                                hover:bg-blue-50
-                                transition
-                              "
+                                  p-2 rounded-lg
+                                  text-gray-500
+                                  hover:text-blue-600
+                                  hover:bg-blue-50
+                                  transition
+                                "
+                              title="Edit Order"
                             >
                               <FiEdit2 size={18} />
                             </button>
+                            {/* )} */}
 
                           </div>
 
