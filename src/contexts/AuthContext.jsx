@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AuthContext } from './AuthContextValue';
-import { login as apiLogin, logout as apiLogout } from '../api/auth';
+import { login as apiLogin, logout as apiLogout } from '../api/auth.js';
 import { canManageUsers } from '../utils/roles';
 
 const INACTIVITY_LIMIT = 60 * 60 * 1000;

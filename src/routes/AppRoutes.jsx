@@ -21,6 +21,7 @@ import UserDetails from "../pages/UserDetails";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
+import ProductDetails from "../pages/ProductDetails";
 
 export default function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -58,6 +59,8 @@ export default function AppRoutes() {
         <Route path="/dealers/:id" element={<DealerDetails />} />
 
         <Route path="/products" element={<Products />} />
+        <Route path="/products/:id" element={<ProductDetails />} />
+
         <Route path="/brands" element={<Brands />} />
 
         <Route path="/orders" element={<Orders />} />
