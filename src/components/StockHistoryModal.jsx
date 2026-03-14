@@ -5,63 +5,59 @@ import {
     FiClock,
     FiTrendingUp,
     FiTrendingDown,
-    FiRefreshCw,
-    FiCornerDownLeft
+    FiCornerDownLeft,
+    FiBox,
+    FiArrowUpRight,
+    FiArrowDownRight,
+    FiPackage
 } from "react-icons/fi";
+
 import { STOCK_ACTIONS, STOCK_TYPES } from "../utils/constants";
 
-{/* ACTION BADGE */ }
+/* ACTION BADGE */
 export const getActionBadge = (action) => {
-
     switch (action) {
-
         case STOCK_ACTIONS.STOCK_ADD:
             return {
                 label: "Added",
-                className: "bg-green-100 text-green-700",
-                icon: <FiTrendingUp size={12} />,
+                className: "bg-emerald-100 text-emerald-700",
+                icon: <FiTrendingUp size={12} />
             };
 
         case STOCK_ACTIONS.STOCK_SALE:
             return {
                 label: "Sale",
-                className: "bg-red-100 text-red-700",
-                icon: <FiTrendingDown size={12} />,
+                className: "bg-rose-100 text-rose-700",
+                icon: <FiTrendingDown size={12} />
             };
 
         case STOCK_ACTIONS.STOCK_RETURN:
             return {
                 label: "Return",
-                className: "bg-blue-100 text-blue-700",
-                icon: <FiCornerDownLeft size={12} />,
+                className: "bg-sky-100 text-sky-700",
+                icon: <FiCornerDownLeft size={12} />
             };
 
         default:
             return {
                 label: action,
                 className: "bg-gray-100 text-gray-700",
-                icon: null,
+                icon: null
             };
     }
-
 };
 
-{/* STOCK TYPE BADGE */ }
+/* STOCK TYPE BADGE */
 export const getStockTypeBadge = (type) => {
-
-    if (type === STOCK_TYPES.STOCK_PACKED) {
+    if (type === STOCK_TYPES.STOCK_PACKED)
         return "bg-purple-100 text-purple-700";
-    }
 
-    if (type === STOCK_TYPES.STOCK_UNPACKED) {
+    if (type === STOCK_TYPES.STOCK_UNPACKED)
         return "bg-blue-100 text-blue-700";
-    }
 
     return "bg-gray-100 text-gray-700";
-
 };
 
-{/* FORMAT NOTES */ }
 const formatNotes = (notes) => {
     if (!notes) return "—";
     return notes.split("||")[0].trim();
@@ -77,14 +73,14 @@ const StockHistoryModal = ({
 
     if (!isOpen) return null;
 
-    {/* SORTED HISTORY */ }
+    /* SORT HISTORY */
     const sortedHistory = useMemo(() => {
         return [...stockHistory].sort(
             (a, b) => new Date(b.created_at) - new Date(a.created_at)
         );
     }, [stockHistory]);
 
-    {/* SUMMARY */ }
+    /* SUMMARY */
     const summary = useMemo(() => {
 
         let added = 0;
@@ -104,44 +100,49 @@ const StockHistoryModal = ({
 
         });
 
-        return { added, sold, returned };
+        return {
+            added,
+            sold,
+            returned,
+            currentStock: added - sold + returned
+        };
 
     }, [stockHistory]);
 
-    {/* UI */ }
     return (
         <>
             {/* BACKDROP */}
             <div
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+                className="fixed inset-0 bg-black/60 backdrop-blur-lg z-40"
                 onClick={onClose}
             />
 
             {/* MODAL */}
-            <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="fixed inset-0 flex items-center justify-center z-50 p-6">
 
                 <div
-                    className="bg-white rounded-2xl shadow-2xl border border-gray-100 
-                        max-w-5xl w-full max-h-[80vh] overflow-y-auto p-6
+                    className="bg-white/90 backdrop-blur-xl border border-gray-200
+                        rounded-3xl shadow-[0_20px_70px_rgba(0,0,0,0.15)]
+                        w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden
                     "
                     onClick={(e) => e.stopPropagation()}
                 >
 
                     {/* HEADER */}
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between px-8 py-6 bg-white/70 backdrop-blur">
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
 
-                            <div className="p-2 bg-gray-100 rounded-lg">
-                                <FiClock className="text-gray-600" />
+                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow">
+                                <FiClock />
                             </div>
 
                             <div>
-                                <h2 className="text-lg font-semibold text-gray-900">
+                                <h2 className="text-xl font-semibold text-gray-900">
                                     Stock History
                                 </h2>
                                 <p className="text-sm text-gray-500">
-                                    Recent inventory movements
+                                    Inventory movements & stock analytics
                                 </p>
                             </div>
 
@@ -156,150 +157,199 @@ const StockHistoryModal = ({
 
                     </div>
 
-                    {/* SUMMARY CARDS */}
-                    <div className="grid grid-cols-3 gap-4 mb-6">
+                    {/* SUMMARY */}
+                    <div className="grid grid-cols-4 gap-6 p-8 bg-gray-50 ">
 
                         <SummaryCard
-                            label="Total Added"
+                            label="Stock Added"
                             value={summary.added}
                             icon={<FiTrendingUp />}
-                            color="green"
+                            color="emerald"
                         />
 
                         <SummaryCard
-                            label="Total Sold"
+                            label="Stock Sold"
                             value={summary.sold}
                             icon={<FiTrendingDown />}
-                            color="red"
+                            color="rose"
                         />
 
                         <SummaryCard
-                            label="Total Returned"
+                            label="Returned"
                             value={summary.returned}
                             icon={<FiCornerDownLeft />}
-                            color="blue"
+                            color="sky"
+                        />
+
+                        <SummaryCard
+                            label="Current Inventory"
+                            value={summary.currentStock}
+                            icon={<FiBox />}
+                            color="indigo"
                         />
 
                     </div>
 
-                    {/* TABLE OR EMPTY STATE */}
-                    {sortedHistory.length === 0 ? (
-                        <EmptyState />
-                    ) : (
+                    {/* TABLE */}
+                    <div className="overflow-auto px-8 pb-8 pt-4">
 
-                        <div className="border rounded-xl overflow-hidden">
+                        {sortedHistory.length === 0 ? (
+                            <EmptyState />
+                        ) : (
 
-                            <table className="w-full text-sm">
+                            <div className="rounded-2xl border shadow-sm overflow-hidden">
 
-                                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                                <table className="w-full text-sm">
 
-                                    <tr>
-                                        <th className="py-3 px-4 text-left">Action</th>
-                                        <th className="py-3 px-4 text-left">Type</th>
-                                        <th className="py-3 px-4 text-left">Qty</th>
-                                        <th className="py-3 px-4 text-left">Previous</th>
-                                        <th className="py-3 px-4 text-left">New</th>
-                                        <th className="py-3 px-4 text-left">Notes</th>
-                                        <th className="py-3 px-4 text-left">Created By</th>
-                                        <th className="py-3 px-4 text-left">Created At</th>
-                                    </tr>
+                                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
 
-                                </thead>
+                                        <tr>
+                                            <th className="px-6 py-4 text-left">Action</th>
+                                            <th className="px-6 py-4 text-left">Type</th>
+                                            <th className="px-6 py-4 text-left">Stock Movement</th>
+                                            <th className="px-6 py-4 text-left">Qty</th>
+                                            <th className="px-6 py-4 text-left">Order</th>
+                                            <th className="px-6 py-4 text-left">Notes</th>
+                                            <th className="px-6 py-4 text-left">User</th>
+                                            <th className="px-6 py-4 text-left">Date</th>
+                                        </tr>
 
-                                <tbody className="divide-y">
+                                    </thead>
 
-                                    {sortedHistory.map((item) => {
+                                    <tbody className="divide-y divide-gray-100">
 
-                                        const action = getActionBadge(item.action);
+                                        {sortedHistory.map((item) => {
 
-                                        return (
-                                            <tr
-                                                key={item.stock_history_id}
-                                                className="hover:bg-gray-50 transition"
-                                            >
+                                            const action = getActionBadge(item.action);
 
-                                                {/* ACTION */}
-                                                <td className="py-3 px-4">
+                                            const diff = item.new_stock - item.previous_stock;
 
-                                                    <span
-                                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold ${action.className}`}
-                                                    >
-                                                        {action.icon}
-                                                        {action.label}
-                                                    </span>
+                                            const showOrder =
+                                                item.action === STOCK_ACTIONS.STOCK_SALE ||
+                                                item.action === STOCK_ACTIONS.STOCK_RETURN;
 
-                                                </td>
+                                            const isUp = diff > 0;
 
-                                                {/* TYPE */}
-                                                <td className="py-3 px-4">
+                                            return (
 
-                                                    <span
-                                                        className={`px-2.5 py-1 rounded-md text-xs font-semibold ${getStockTypeBadge(item.stock_type)}`}
-                                                    >
-                                                        {item.stock_type}
-                                                    </span>
+                                                <tr
+                                                    key={item.stock_history_id}
+                                                    className="hover:bg-gray-50 transition"
+                                                >
 
-                                                </td>
+                                                    {/* ACTION */}
+                                                    <td className="px-6 py-4">
 
-                                                {/* QUANTITY */}
-                                                <td className="py-3 px-4 font-semibold text-gray-900">
-                                                    {item.quantity}
-                                                </td>
+                                                        <span
+                                                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${action.className}`}
+                                                        >
+                                                            {action.icon}
+                                                            {action.label}
+                                                        </span>
 
-                                                {/* PREVIOUS */}
-                                                <td className="py-3 px-4 text-gray-600">
-                                                    {item.previous_stock}
-                                                </td>
+                                                    </td>
 
-                                                {/* NEW */}
-                                                <td className="py-3 px-4 font-semibold text-purple-600">
-                                                    {item.new_stock}
-                                                </td>
+                                                    {/* TYPE */}
+                                                    <td className="px-6 py-4">
 
-                                                {/* NOTES */}
-                                                <td className="py-3 px-4 text-gray-600 max-w-[240px] truncate">
-                                                    {formatNotes(item.notes)}
-                                                </td>
+                                                        <span
+                                                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStockTypeBadge(item.stock_type)}`}
+                                                        >
+                                                            <FiPackage size={12} />
+                                                            {item.stock_type}
+                                                        </span>
 
-                                                {/* CREATED BY */}
-                                                <td className="py-3 px-4">
+                                                    </td>
 
-                                                    <div className="flex items-center gap-2">
+                                                    {/* STOCK MOVEMENT */}
+                                                    <td className="px-6 py-4">
 
-                                                        <FiUser className="text-gray-400" />
+                                                        <div className="flex flex-col">
 
-                                                        <div className="flex flex-col leading-tight">
-
-                                                            <span className="text-sm font-medium text-gray-900">
-                                                                {userMap[item.created_by] || "Unknown"}
+                                                            <span className="font-medium text-gray-800">
+                                                                {item.previous_stock} → {item.new_stock}
                                                             </span>
 
-                                                            <span className="text-xs text-gray-400 font-mono">
-                                                                {item.created_by}
+                                                            <span
+                                                                className={`text-xs font-semibold flex items-center gap-1
+                                                                    ${isUp ? "text-emerald-600" : "text-rose-600"}`}
+                                                            >
+                                                                {isUp ? (
+                                                                    <FiArrowUpRight />
+                                                                ) : (
+                                                                    <FiArrowDownRight />
+                                                                )}
+
+                                                                {isUp ? `+${diff}` : diff}
+
                                                             </span>
 
                                                         </div>
 
-                                                    </div>
+                                                    </td>
 
-                                                </td>
+                                                    {/* QTY */}
+                                                    <td className="px-6 py-4 font-semibold text-gray-900">
+                                                        {item.quantity}
+                                                    </td>
 
-                                                {/* DATE */}
-                                                <td className="py-3 px-4 text-xs text-gray-500">
-                                                    {formatDate(item.created_at)}
-                                                </td>
+                                                    {/* ORDER */}
+                                                    <td className="px-6 py-4 text-gray-600">
+                                                        {showOrder ? item.order_number || "—" : "—"}
+                                                    </td>
 
-                                            </tr>
-                                        );
-                                    })}
+                                                    {/* NOTES */}
+                                                    <td
+                                                        className="px-6 py-4 max-w-[220px] truncate text-gray-600"
+                                                        title={formatNotes(item.notes)}
+                                                    >
+                                                        {formatNotes(item.notes)}
+                                                    </td>
 
-                                </tbody>
+                                                    {/* USER */}
+                                                    <td className="px-6 py-4">
 
-                            </table>
+                                                        <div className="flex items-center gap-3">
 
-                        </div>
+                                                            <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+                                                                <FiUser className="text-gray-500" />
+                                                            </div>
 
-                    )}
+                                                            <div className="flex flex-col">
+
+                                                                <span className="font-medium text-gray-900">
+                                                                    {userMap[item.created_by] || "Unknown"}
+                                                                </span>
+
+                                                                <span className="text-xs text-gray-400 font-mono">
+                                                                    {item.created_by}
+                                                                </span>
+
+                                                            </div>
+
+                                                        </div>
+
+                                                    </td>
+
+                                                    {/* DATE */}
+                                                    <td className="px-6 py-4 text-xs text-gray-500">
+                                                        {formatDate(item.created_at)}
+                                                    </td>
+
+                                                </tr>
+
+                                            );
+                                        })}
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        )}
+
+                    </div>
 
                 </div>
 
@@ -308,46 +358,62 @@ const StockHistoryModal = ({
     );
 };
 
-{/* Summary Card */ }
+/* SUMMARY CARD */
+
 const SummaryCard = ({ label, value, icon, color }) => {
 
     const colors = {
-        green: "bg-green-50 border-green-100 text-green-700",
-        red: "bg-red-50 border-red-100 text-red-700",
-        blue: "bg-blue-50 border-blue-100 text-blue-700"
+        emerald: "border-emerald-100 bg-emerald-50 text-emerald-700",
+        rose: "border-rose-100 bg-rose-50 text-rose-700",
+        sky: "border-sky-100 bg-sky-50 text-sky-700",
+        indigo: "border-indigo-100 bg-indigo-50 text-indigo-700"
     };
 
     return (
-        <div className={`flex items-center gap-3 border rounded-lg p-4 ${colors[color]}`}>
 
-            <div className="text-lg">
+        <div className={`rounded-2xl border shadow-sm p-5 flex items-center justify-between transition hover:shadow-md ${colors[color]}`}>
+
+            <div
+                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out bg-${color}-100 text-${color}-700`}
+            >
                 {icon}
             </div>
 
             <div>
-                <p className="text-xs uppercase">{label}</p>
-                <p className="text-xl font-bold">{value}</p>
+
+                <p className="text-xs uppercase text-gray-500 font-medium">
+                    {label}
+                </p>
+
+                <p className="text-2xl font-bold text-gray-900">
+                    {value}
+                </p>
+
             </div>
 
-        </div>
+        </div >
+
     );
 };
 
-{/* Empty State */ }
+/* EMPTY */
+
 const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
 
-        <FiClock size={36} className="mb-3" />
+    <div className="flex flex-col items-center justify-center py-24 text-gray-400">
 
-        <p className="text-sm font-medium">
-            No stock history recorded
+        <FiClock size={52} className="mb-4 opacity-40" />
+
+        <p className="text-lg font-semibold">
+            No stock history yet
         </p>
 
-        <p className="text-xs text-gray-400 mt-1">
-            Stock movements will appear here
+        <p className="text-sm mt-2">
+            Stock transactions will appear here when inventory changes occur
         </p>
 
     </div>
+
 );
 
 export default StockHistoryModal;
