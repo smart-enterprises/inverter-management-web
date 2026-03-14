@@ -442,35 +442,77 @@ const OrderDetails = () => {
             {formatDate(order?.last_payment_date)}
           </Info>
 
-          <Info icon={<FiUser className="text-gray-400" />} label="Salesman ID">
-            {userMap[order?.salesman_id] || order?.salesman_id || "—"}
+          {/* Salesman */}
+          <Info
+            icon={
+              <FiUser className="text-gray-400" />
+            }
+            label="Salesman"
+          >
+            <div className="flex flex-col leading-tight">
+
+              {/* Employee Name */}
+              <span className="text-sm font-medium text-gray-900">
+                {userMap[order?.salesman_id] || "Unknown"}
+              </span>
+
+              {/* Employee ID */}
+              {order?.salesman_id && (
+                <span className="text-xs text-gray-400 font-mono">
+                  {order?.salesman_id}
+                </span>
+              )}
+
+            </div>
           </Info>
 
-          <Info icon={<FiUser className="text-gray-400" />} label="Created By">
-            {userMap[order?.created_by] || order?.created_by || "—"}
+          {/* Created By */}
+          <Info
+            icon={
+              <FiUser className="text-gray-400" />
+            }
+            label="Created By"
+          >
+            <div className="flex flex-col leading-tight">
+
+              {/* Employee Name */}
+              <span className="text-sm font-medium text-gray-900">
+                {userMap[order?.created_by] || "Unknown"}
+              </span>
+
+              {/* Employee ID */}
+              {order?.created_by && (
+                <span className="text-xs text-gray-400 font-mono">
+                  {order?.created_by}
+                </span>
+              )}
+
+            </div>
           </Info>
         </div>
 
         {/* Order Note */}
-        {order?.order_note && (
-          <div className="mt-10 pt-6 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Order Note
-            </p>
+        {
+          order?.order_note && (
+            <div className="mt-10 pt-6 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Order Note
+              </p>
 
-            <p className="text-sm text-gray-800 mt-2 leading-relaxed">
-              {order.order_note}
-            </p>
-          </div>
-        )}
+              <p className="text-sm text-gray-800 mt-2 leading-relaxed">
+                {order.order_note}
+              </p>
+            </div>
+          )
+        }
 
-      </section>
+      </section >
 
       {/* ================= DEALER ================= */}
-      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+      < section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8" >
 
         {/* Section Header */}
-        <div className="flex items-center justify-between mb-8">
+        < div className="flex items-center justify-between mb-8" >
           <h2 className="text-lg font-semibold text-gray-900 tracking-tight">
             Dealer Information
           </h2>
@@ -478,10 +520,10 @@ const OrderDetails = () => {
           <span className="text-xs text-gray-400 uppercase tracking-wide">
             Profile
           </span>
-        </div>
+        </div >
 
         {/* Dealer Info Grid */}
-        <div className="grid sm:grid-cols-2 gap-x-10 gap-y-6">
+        < div className="grid sm:grid-cols-2 gap-x-10 gap-y-6" >
 
           <Info
             icon={<FiUser className="text-gray-400" />}
@@ -534,15 +576,15 @@ const OrderDetails = () => {
             </span>
           </Info>
 
-        </div>
+        </div >
 
-      </section>
+      </section >
 
       {/* ================= ORDER ITEMS ================= */}
-      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+      < section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8" >
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        < div className="flex items-center justify-between mb-8" >
           <h2 className="text-lg font-semibold text-gray-900 tracking-tight">
             Order Items
           </h2>
@@ -550,10 +592,10 @@ const OrderDetails = () => {
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
             {totalItems} {totalItems === 1 ? "Item" : "Items"}
           </span>
-        </div>
+        </div >
 
         {/* ================= DESKTOP TABLE ================= */}
-        <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        < div className="hidden md:block overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm" >
 
           <table className="min-w-full text-sm">
 
@@ -712,122 +754,128 @@ const OrderDetails = () => {
             </tbody>
           </table>
 
-        </div>
+        </div >
 
         {/* ================= MOBILE CARDS ================= */}
-        <div className="md:hidden space-y-5">
+        < div className="md:hidden space-y-5" >
 
-          {order.order_details?.map((d) => (
-            <div
-              key={d.order_details_number}
-              className="border border-gray-100 rounded-xl p-5 shadow-sm bg-white"
-            >
+          {
+            order.order_details?.map((d) => (
+              <div
+                key={d.order_details_number}
+                className="border border-gray-100 rounded-xl p-5 shadow-sm bg-white"
+              >
 
-              {/* Top Row */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-mono text-xs text-gray-400">
-                  {d.order_details_number}
-                </span>
+                {/* Top Row */}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-xs text-gray-400">
+                    {d.order_details_number}
+                  </span>
 
-                <span
-                  className={`px-2.5 py-1 text-xs rounded-full font-medium ${d.is_free
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-gray-100 text-gray-600"
-                    }`}
-                >
-                  {d.is_free ? "Product Scheme" : "Regular Product"}
-                </span>
-              </div>
-
-              {/* Product Name */}
-              <div className="font-semibold text-gray-900 mb-2">
-                {capitalizeFirstLetter(d.product_name)}
-              </div>
-
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-
-                <div>
-                  <p className="text-gray-500">Qty</p>
-                  <p className="font-medium text-gray-900">
-                    {d.qty_ordered}
-                  </p>
+                  <span
+                    className={`px-2.5 py-1 text-xs rounded-full font-medium ${d.is_free
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-gray-100 text-gray-600"
+                      }`}
+                  >
+                    {d.is_free ? "Product Scheme" : "Regular Product"}
+                  </span>
                 </div>
 
-                <div>
-                  <p className="text-gray-500">Total</p>
-                  <p className="font-semibold text-gray-900">
-                    {formatCurrency(d.total_price)}
-                  </p>
+                {/* Product Name */}
+                <div className="font-semibold text-gray-900 mb-2">
+                  {capitalizeFirstLetter(d.product_name)}
+                </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+
+                  <div>
+                    <p className="text-gray-500">Qty</p>
+                    <p className="font-medium text-gray-900">
+                      {d.qty_ordered}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-gray-500">Total</p>
+                    <p className="font-semibold text-gray-900">
+                      {formatCurrency(d.total_price)}
+                    </p>
+                  </div>
+
                 </div>
 
               </div>
+            ))
+          }
 
-            </div>
-          ))}
+        </div >
 
-        </div>
-
-      </section>
+      </section >
 
       {/* ================= DELIVERY NOTES ================= */}
-      {order?.delivery_notes && (
-        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+      {
+        order?.delivery_notes && (
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
 
-          {/* Section Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 tracking-tight">
-              Delivery Notes
-            </h2>
+            {/* Section Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 tracking-tight">
+                Delivery Notes
+              </h2>
 
-            <span className="text-xs text-gray-400 uppercase tracking-wide">
-              Additional Info
-            </span>
-          </div>
+              <span className="text-xs text-gray-400 uppercase tracking-wide">
+                Additional Info
+              </span>
+            </div>
 
-          {/* Content */}
-          <div className="bg-gray-50 border border-gray-100 rounded-xl p-5">
-            <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">
-              {capitalizeFirstLetter(order.delivery_notes)}
-            </p>
-          </div>
+            {/* Content */}
+            <div className="bg-gray-50 border border-gray-100 rounded-xl p-5">
+              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">
+                {capitalizeFirstLetter(order.delivery_notes)}
+              </p>
+            </div>
 
-        </section>
-      )}
+          </section>
+        )
+      }
 
       {/* ================= FINANCIAL SUMMARY ================= */}
       <FinancialSummary order={order} />
 
       {/* ================= PAYMENT NOTES ================= */}
-      {order?.payment_notes?.length > 0 && (
-        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+      {
+        order?.payment_notes?.length > 0 && (
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
 
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 tracking-tight">
-              Payment Notes
-            </h2>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 tracking-tight">
+                Payment Notes
+              </h2>
 
-            <span className="text-xs text-gray-400 uppercase tracking-wide">
-              Transaction History
-            </span>
-          </div>
+              <span className="text-xs text-gray-400 uppercase tracking-wide">
+                Transaction History
+              </span>
+            </div>
 
-          {/* Notes List */}
-          <ul className="space-y-3">
-            {order.payment_notes.map((note, index) => (
-              <li
-                key={index}
-                className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm text-gray-800 leading-relaxed hover:bg-gray-100/60 transition-colors"
-              >
-                {capitalizeFirstLetter(note)}
-              </li>
-            ))}
-          </ul>
+            {/* Notes List */}
+            <ul className="space-y-3">
+              {order.payment_notes.map((note, index) => (
+                <li
+                  key={index}
+                  className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm text-gray-800 leading-relaxed hover:bg-gray-100/60 transition-colors"
+                >
+                  {capitalizeFirstLetter(note)}
+                </li>
+              ))}
+            </ul>
 
-        </section>
-      )}
-    </div>
+          </section>
+        )
+      }
+    </div >
   );
 };
 
