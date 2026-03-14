@@ -5,7 +5,9 @@ import {
     FiClock,
     FiTrendingUp,
     FiTrendingDown,
-    FiDollarSign
+    FiDollarSign,
+    FiArrowUpRight,
+    FiArrowDownRight
 } from "react-icons/fi";
 
 const PriceHistoryModal = ({
@@ -19,91 +21,63 @@ const PriceHistoryModal = ({
 
     if (!isOpen) return null;
 
-    {/* SORTED HISTORY */ }
+    /* SORT HISTORY */
     const sortedHistory = useMemo(() => {
         return [...priceHistory].sort(
             (a, b) => new Date(b.changed_at) - new Date(a.changed_at)
         );
     }, [priceHistory]);
 
-    {/* ANALYTICS */ }
+    /* ANALYTICS */
     const analytics = useMemo(() => {
 
         if (priceHistory.length === 0)
-            return { avg: 0, max: 0, min: 0 };
+            return { avg: 0, max: 0, min: 0, current: 0 };
 
         const prices = priceHistory.map(p => p.new_price);
 
         const max = Math.max(...prices);
         const min = Math.min(...prices);
-        const avg =
-            prices.reduce((sum, p) => sum + p, 0) / prices.length;
-
-        return { max, min, avg };
+        const avg = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+        const current = prices[0];
+        return { max, min, avg, current };
 
     }, [priceHistory]);
-
-    {/* PRICE CHANGE BADGE */ }
-    const getPriceChangeBadge = (oldPrice, newPrice) => {
-
-        if (newPrice > oldPrice) {
-            return {
-                icon: <FiTrendingUp size={12} />,
-                className: "bg-green-100 text-green-700",
-                label: "Increase"
-            };
-        }
-
-        if (newPrice < oldPrice) {
-            return {
-                icon: <FiTrendingDown size={12} />,
-                className: "bg-red-100 text-red-700",
-                label: "Decrease"
-            };
-        }
-
-        return {
-            icon: null,
-            className: "bg-gray-100 text-gray-600",
-            label: "No Change"
-        };
-
-    };
 
     return (
         <>
             {/* BACKDROP */}
             <div
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+                className="fixed inset-0 bg-black/60 backdrop-blur-lg z-40"
                 onClick={onClose}
             />
 
             {/* MODAL */}
-            <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="fixed inset-0 flex items-center justify-center z-50 p-6">
 
                 <div
-                    className="bg-white rounded-2xl shadow-2xl border border-gray-100 
-                        max-w-6xl w-full max-h-[80vh] overflow-y-auto p-6
-                    "
+                    className="bg-white/90 backdrop-blur-xl border border-gray-200
+          rounded-3xl shadow-[0_20px_70px_rgba(0,0,0,0.15)]
+          w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                 >
 
                     {/* HEADER */}
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between px-8 py-6 bg-white/70 backdrop-blur">
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
 
-                            <div className="p-2 rounded-lg bg-gray-100">
-                                <FiDollarSign className="text-gray-600" />
+                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white shadow">
+                                <FiDollarSign />
                             </div>
 
                             <div>
-                                <h2 className="text-lg font-semibold text-gray-900">
+                                <h2 className="text-xl font-semibold text-gray-900">
                                     Price History
                                 </h2>
 
                                 <p className="text-sm text-gray-500">
-                                    Historical price changes for this product
+                                    Historical price movements for this product
                                 </p>
                             </div>
 
@@ -119,140 +93,183 @@ const PriceHistoryModal = ({
                     </div>
 
                     {/* ANALYTICS CARDS */}
-                    <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-4 gap-6 p-8 bg-gray-50">
 
                         <AnalyticsCard
                             label="Highest Price"
                             value={formatCurrency(analytics.max)}
-                            color="green"
                             icon={<FiTrendingUp />}
+                            color="emerald"
                         />
 
                         <AnalyticsCard
                             label="Lowest Price"
                             value={formatCurrency(analytics.min)}
-                            color="red"
                             icon={<FiTrendingDown />}
+                            color="rose"
                         />
 
                         <AnalyticsCard
                             label="Average Price"
                             value={formatCurrency(analytics.avg)}
-                            color="purple"
                             icon={<FiDollarSign />}
+                            color="indigo"
+                        />
+
+                        <AnalyticsCard
+                            label="Current Price"
+                            value={formatCurrency(analytics.current)}
+                            icon={<FiDollarSign />}
+                            color="purple"
                         />
 
                     </div>
 
-                    {/* TABLE OR EMPTY STATE */}
-                    {sortedHistory.length === 0 ? (
+                    {/* TABLE */}
+                    <div className="overflow-auto px-8 pb-8 pt-4">
 
-                        <EmptyState />
+                        {sortedHistory.length === 0 ? (
 
-                    ) : (
+                            <EmptyState />
 
-                        <div className="border rounded-xl overflow-hidden">
+                        ) : (
 
-                            <table className="w-full text-sm">
+                            <div className="rounded-2xl border shadow-sm overflow-hidden">
 
-                                <thead className="bg-gray-50 text-xs uppercase text-gray-500 tracking-wide">
+                                <table className="w-full text-sm">
 
-                                    <tr>
-                                        <th className="py-3 px-4 text-left">Old Price</th>
-                                        <th className="py-3 px-4 text-left">New Price</th>
-                                        <th className="py-3 px-4 text-left">Change</th>
-                                        <th className="py-3 px-4 text-left">Reason</th>
-                                        <th className="py-3 px-4 text-left">Changed By</th>
-                                        <th className="py-3 px-4 text-left">Changed At</th>
-                                    </tr>
+                                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
 
-                                </thead>
+                                        <tr>
+                                            <th className="px-6 py-4 text-left">Price Movement</th>
+                                            <th className="px-6 py-4 text-left">Change</th>
+                                            <th className="px-6 py-4 text-left">Reason</th>
+                                            <th className="px-6 py-4 text-left">Changed By</th>
+                                            <th className="px-6 py-4 text-left">Date</th>
+                                        </tr>
 
-                                <tbody className="divide-y">
+                                    </thead>
 
-                                    {sortedHistory.map((p) => {
+                                    <tbody className="divide-y divide-gray-100">
 
-                                        const change = getPriceChangeBadge(
-                                            p.old_price,
-                                            p.new_price
-                                        );
+                                        {sortedHistory.map((p) => {
 
-                                        return (
+                                            const diff = p.new_price - p.old_price;
+                                            const isIncrease = diff > 0;
 
-                                            <tr
-                                                key={p.price_history_id}
-                                                className="hover:bg-gray-50 transition"
-                                            >
+                                            return (
 
-                                                {/* OLD PRICE */}
-                                                <td className="py-3 px-4 text-gray-600">
-                                                    {formatCurrency(p.old_price)}
-                                                </td>
+                                                <tr
+                                                    key={p.price_history_id}
+                                                    className="hover:bg-gray-50 transition"
+                                                >
 
-                                                {/* NEW PRICE */}
-                                                <td className="py-3 px-4 font-semibold text-purple-600">
-                                                    {formatCurrency(p.new_price)}
-                                                </td>
+                                                    {/* PRICE MOVEMENT */}
+                                                    <td className="px-6 py-4">
 
-                                                {/* CHANGE BADGE */}
-                                                <td className="py-3 px-4">
+                                                        <div className="flex flex-col">
 
-                                                    <span
-                                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold ${change.className}`}
-                                                    >
-                                                        {change.icon}
-                                                        {change.label}
-                                                    </span>
-
-                                                </td>
-
-                                                {/* REASON */}
-                                                <td className="py-3 px-4 text-gray-600 max-w-[220px] truncate">
-                                                    {p.change_reason || "Manual update"}
-                                                </td>
-
-                                                {/* CHANGED BY */}
-                                                <td className="py-3 px-4">
-
-                                                    <div className="flex items-center gap-2">
-
-                                                        <FiUser className="text-gray-400" />
-
-                                                        <div className="flex flex-col leading-tight">
-
-                                                            <span className="text-sm font-medium text-gray-900">
-                                                                {userMap[p.changed_by] || "Unknown"}
+                                                            <span className="font-medium text-gray-800">
+                                                                {formatCurrency(p.old_price)} → {formatCurrency(p.new_price)}
                                                             </span>
 
-                                                            {p.changed_by && (
-                                                                <span className="text-xs text-gray-400 font-mono">
-                                                                    {p.changed_by}
-                                                                </span>
-                                                            )}
+                                                            <span
+                                                                className={`text-xs font-semibold flex items-center gap-1
+                                                                    ${isIncrease
+                                                                        ? "text-emerald-600"
+                                                                        : "text-rose-600"}`
+                                                                }
+                                                            >
+                                                                {isIncrease
+                                                                    ? <FiArrowUpRight />
+                                                                    : <FiArrowDownRight />
+                                                                }
+
+                                                                {isIncrease ? `+${formatCurrency(diff)}` : formatCurrency(diff)}
+
+                                                            </span>
 
                                                         </div>
 
-                                                    </div>
+                                                    </td>
 
-                                                </td>
+                                                    {/* CHANGE BADGE */}
+                                                    <td className="px-6 py-4">
 
-                                                {/* DATE */}
-                                                <td className="py-3 px-4 text-xs text-gray-500">
-                                                    {formatDate(p.changed_at)}
-                                                </td>
+                                                        <span
+                                                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold
+                                                                ${isIncrease
+                                                                    ? "bg-emerald-100 text-emerald-700"
+                                                                    : "bg-rose-100 text-rose-700"
+                                                                }`}
+                                                        >
+                                                            {isIncrease ? (
+                                                                <>
+                                                                    <FiTrendingUp size={12} /> Increase
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <FiTrendingDown size={12} /> Decrease
+                                                                </>
+                                                            )}
+                                                        </span>
 
-                                            </tr>
+                                                    </td>
 
-                                        );
-                                    })}
+                                                    {/* REASON */}
+                                                    <td
+                                                        className="px-6 py-4 text-gray-600 max-w-[220px] truncate"
+                                                        title={p.change_reason}
+                                                    >
+                                                        {p.change_reason || "Manual update"}
+                                                    </td>
 
-                                </tbody>
+                                                    {/* USER */}
+                                                    <td className="px-6 py-4">
 
-                            </table>
+                                                        <div className="flex items-center gap-3">
 
-                        </div>
+                                                            <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+                                                                <FiUser className="text-gray-500" />
+                                                            </div>
 
-                    )}
+                                                            <div className="flex flex-col">
+
+                                                                <span className="font-medium text-gray-900">
+                                                                    {userMap[p.changed_by] || "Unknown"}
+                                                                </span>
+
+                                                                {p.changed_by && (
+                                                                    <span className="text-xs text-gray-400 font-mono">
+                                                                        {p.changed_by}
+                                                                    </span>
+                                                                )}
+
+                                                            </div>
+
+                                                        </div>
+
+                                                    </td>
+
+                                                    {/* DATE */}
+                                                    <td className="px-6 py-4 text-xs text-gray-500">
+                                                        {formatDate(p.changed_at)}
+                                                    </td>
+
+                                                </tr>
+
+                                            );
+                                        })}
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        )}
+
+                    </div>
 
                 </div>
 
@@ -261,26 +278,36 @@ const PriceHistoryModal = ({
     );
 };
 
-{/* ANALYTICS CARD */ }
+/* ANALYTICS CARD */
 const AnalyticsCard = ({ label, value, icon, color }) => {
 
     const colors = {
-        green: "bg-green-50 border-green-100 text-green-700",
-        red: "bg-red-50 border-red-100 text-red-700",
+        emerald: "bg-emerald-50 border-emerald-100 text-emerald-700",
+        rose: "bg-rose-50 border-rose-100 text-rose-700",
+        indigo: "bg-indigo-50 border-indigo-100 text-indigo-700",
         purple: "bg-purple-50 border-purple-100 text-purple-700"
     };
 
     return (
 
-        <div className={`flex items-center gap-3 border rounded-lg p-4 ${colors[color]}`}>
+        <div
+            className={`flex items-center gap-4 border rounded-xl px-5 py-4 shadow-sm ${colors[color]}`}
+        >
 
-            <div className="text-lg">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white/60">
                 {icon}
             </div>
 
-            <div>
-                <p className="text-xs uppercase">{label}</p>
-                <p className="text-xl font-bold">{value}</p>
+            <div className="flex flex-col">
+
+                <span className="text-xs uppercase tracking-wide opacity-70 font-medium">
+                    {label}
+                </span>
+
+                <span className="text-xl font-bold">
+                    {value}
+                </span>
+
             </div>
 
         </div>
@@ -289,19 +316,20 @@ const AnalyticsCard = ({ label, value, icon, color }) => {
 
 };
 
-{/* EMPTY STATE */ }
+/* EMPTY STATE */
+
 const EmptyState = () => (
 
-    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+    <div className="flex flex-col items-center justify-center py-24 text-gray-400">
 
-        <FiClock size={36} className="mb-3" />
+        <FiClock size={52} className="mb-4 opacity-40" />
 
-        <p className="text-sm font-medium">
+        <p className="text-lg font-semibold">
             No price changes recorded
         </p>
 
-        <p className="text-xs text-gray-400 mt-1">
-            Price updates will appear here
+        <p className="text-sm mt-2">
+            Price updates will appear here when product prices change
         </p>
 
     </div>
