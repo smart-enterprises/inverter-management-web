@@ -29,3 +29,14 @@ export const capitalizeFirstLetter = (value) => {
 
     return value.charAt(0).toUpperCase() + value.slice(1);
 };
+
+export const STOCK_ACTIONS = {
+    STOCK_ADD: 'ADD',
+    STOCK_RETURN: 'RETURN',
+    STOCK_SALE: 'SALE',
+};
+
+export const STOCK_TYPES = {
+    STOCK_PACKED: 'PACKED',
+    STOCK_UNPACKED: 'UNPACKED'
+};
