@@ -1,3 +1,5 @@
+import { ROLE_LABELS, ROLES } from "./roles";
+
 export const ORDER_STATUSES = {
     PENDING: "PENDING",
     CONFIRMED: "CONFIRMED",
@@ -107,4 +109,25 @@ export const ALLOWED_TRANSITIONS = {
 
     [ORDER_STATUSES.CANCELLED]: [],
     [ORDER_STATUSES.REJECTED]: []
+};
+
+export const getRoleBasedStatusOptions = (role) => {
+
+    switch (role) {
+
+        case ROLES.PRODUCTION:
+            return [
+                ORDER_STATUSES.PRODUCTION,
+                ORDER_STATUSES.PACKED
+            ];
+
+        case ROLES.PACKING:
+            return [
+                ORDER_STATUSES.PRODUCTION,
+                ORDER_STATUSES.PACKED
+            ];
+
+        default:
+            return ORDER_STATUS_LIST;
+    }
 };
