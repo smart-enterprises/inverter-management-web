@@ -138,6 +138,15 @@ const Orders = () => {
   const isAdmin = role === ROLES.ADMIN;
   const isSuperAdmin = role === ROLES.SUPER_ADMIN;
 
+  const canCreateOrder = useMemo(() => {
+    return (
+      isSuperAdmin ||
+      isAdmin ||
+      isManager ||
+      isSalesman
+    );
+  }, [user?.role]);
+
   const [orders, setOrders] = useState([]);
 
   const [pagination, setPagination] = useState({
@@ -210,6 +219,7 @@ const Orders = () => {
         setError("Failed to load orders");
       } finally {
         if (isMounted) setLoading(false);
+        // setLoading(false);
       }
     };
 
@@ -298,9 +308,10 @@ const Orders = () => {
             </p>
           </div>
 
-          <button
-            onClick={() => navigate("/orders/create")}
-            className="
+          {canCreateOrder && (
+            <button
+              onClick={() => navigate("/orders/create")}
+              className="
               inline-flex items-center gap-2
               px-4 py-2.5
               text-sm font-medium text-white
@@ -310,10 +321,11 @@ const Orders = () => {
               hover:shadow-md hover:opacity-95
               transition-all
             "
-          >
-            <FiPlus size={16} />
-            Create Order
-          </button>
+            >
+              <FiPlus size={16} />
+              Create Order
+            </button>
+          )}
 
         </div>
 
