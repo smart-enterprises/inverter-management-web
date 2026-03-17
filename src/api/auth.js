@@ -18,6 +18,9 @@ export const logout = async () => {
     if (token) {
       await apiRequest("/auth/logout", {
         method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
     }
   } catch (error) {

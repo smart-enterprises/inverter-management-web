@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   FiPlus,
   FiSearch,
@@ -10,8 +10,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrders } from "../api/orders";
-import { ORDER_STATUS_LIST, PRIORITY_OPTIONS } from "../utils/status";
+import { getRoleBasedStatusOptions, ORDER_STATUS_LIST, PRIORITY_OPTIONS } from "../utils/status";
 import { capitalizeFirstLetter } from "../utils/constants";
+import { useAuth } from "../hooks/useAuth";
+import { ROLE_LABELS, ROLES } from "../utils/roles";
 
 /* ============================= Pagination Component ============================= */
 
@@ -120,9 +122,24 @@ const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
 /* ============================= Orders Page ============================= */
 
 const Orders = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
 
+  /* ================= ROLE FLAGS ================= */
+  const role = user?.role;
+
+  const isProduction = role === ROLES.PRODUCTION;
+  const isPacking = role === ROLES.PACKING;
+  const isSalesman = role === ROLES.SALESMAN;
+  const isSupervisor = role === ROLES.SUPERVISOR;
+  const isAccounts = role === ROLES.ACCOUNTS;
+  const isDelivery = role === ROLES.DELIVERY;
+  const isManager = role === ROLES.MANAGER;
+  const isAdmin = role === ROLES.ADMIN;
+  const isSuperAdmin = role === ROLES.SUPER_ADMIN;
+
   const [orders, setOrders] = useState([]);
+
   const [pagination, setPagination] = useState({
     page: 1,
     totalPages: 1,
@@ -137,23 +154,50 @@ const Orders = () => {
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [selectedPriority, setSelectedPriority] = useState("ALL");
 
-  /* ============================= Fetch Orders (Backend Pagination) ============================= */
-
+  /* ================= ROLE BASED DEFAULT STATUS ================= */
   useEffect(() => {
+    if (isProduction) {
+      setSelectedStatus("PRODUCTION");
+    } else if (isPacking) {
+      setSelectedStatus("PACKED");
+    } else if (isDelivery) {
+      setSelectedStatus("SHIPPED");
+    }
+  }, [isProduction, isPacking, isDelivery]);
+
+  /* ================= API PARAMS (MEMOIZED) ================= */
+  const queryParams = useMemo(() => {
+    return {
+      page: pagination.page,
+      limit: pagination.limit,
+      status: selectedStatus !== "ALL" ? selectedStatus : undefined,
+      priority: selectedPriority !== "ALL" ? selectedPriority : undefined,
+      search: searchQuery || undefined,
+    };
+  }, [
+    pagination.page,
+    pagination.limit,
+    selectedStatus,
+    selectedPriority,
+    searchQuery,
+  ]);
+
+  /* ================= FETCH ORDERS ================= */
+  useEffect(() => {
+    let isMounted = true;
+
     const loadOrders = async () => {
       try {
         setLoading(true);
+        setError(null);
 
-        const response = await fetchOrders({
-          page: pagination.page,
-          limit: pagination.limit,
-          status: selectedStatus !== "ALL" ? selectedStatus : undefined,
-          priority: selectedPriority !== "ALL" ? selectedPriority : undefined,
-          search: searchQuery || undefined,
-        });
+        const response = await fetchOrders(queryParams);
+
+        if (!isMounted) return;
 
         if (response.success) {
           setOrders(response.data || []);
+
           setPagination((prev) => ({
             ...prev,
             totalPages: response.pagination?.totalPages || 1,
@@ -165,18 +209,15 @@ const Orders = () => {
       } catch {
         setError("Failed to load orders");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     loadOrders();
-  }, [
-    pagination.limit,
-    pagination.page,
-    searchQuery,
-    selectedPriority,
-    selectedStatus,
-  ]);
+    return () => {
+      isMounted = false;
+    };
+  }, [queryParams]);
 
   /* ============================= Utility Functions ============================= */
 
@@ -295,19 +336,19 @@ const Orders = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="
-              w-full
-              pl-11 pr-4 py-3
-              text-sm
-              rounded-xl
-              border border-gray-200
-              bg-white
-              placeholder:text-gray-400
-              focus:outline-none
-              focus:ring-2 focus:ring-purple-100
-              focus:border-purple-300
-              transition-all
-              shadow-sm
-            "
+                    w-full
+                    pl-11 pr-4 py-3
+                    text-sm
+                    rounded-xl
+                    border border-gray-200
+                    bg-white
+                    placeholder:text-gray-400
+                    focus:outline-none
+                    focus:ring-2 focus:ring-purple-100
+                    focus:border-purple-300
+                    transition-all
+                    shadow-sm
+                  "
                 />
 
               </div>
@@ -325,7 +366,7 @@ const Orders = () => {
                       page: 1,
                     }));
                   }}
-                  options={ORDER_STATUS_LIST}
+                  options={getRoleBasedStatusOptions(role)}
                 />
 
                 <CustomSelect
