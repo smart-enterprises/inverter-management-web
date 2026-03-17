@@ -296,7 +296,7 @@ const User = () => {
         address: "",
       });
 
-      fetchUsersList?.();
+      loadUsers?.();
 
     } catch (err) {
       console.error("❌ Create Error:", err);
