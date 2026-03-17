@@ -22,12 +22,12 @@ export const UPDATE_ORDER_PERMISSIONS = {
     },
 
     [ROLES.PRODUCTION]: {
-        editableDetailFields: ["has_production_completed"],
+        editableDetailFields: ["has_production_completed", "delivery_date"],
         viewOnly: true,
     },
 
     [ROLES.PACKING]: {
-        editableDetailFields: ["has_unPacked_completed"],
+        editableDetailFields: ["has_unPacked_completed", "delivery_date"],
         viewOnly: true,
     },
 
