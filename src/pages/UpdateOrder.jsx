@@ -14,6 +14,7 @@ import {
 } from '../utils/status';
 import { useUpdateOrderPermissions } from '../hooks/useUpdateOrderPermissions';
 import { formatDateForInput } from '../utils/dateUtils';
+import { getAllowedNextStatuses } from '../utils/orderStatusHelper';
 
 const FormField = ({ label, children }) => (
   <div>
@@ -365,7 +366,7 @@ const UpdateOrder = () => {
                 options={
                   permissions.restrictStatusToDelivered
                     ? ["DELIVERED"]
-                    : ORDER_STATUS_LIST.filter((s) => s !== "ALL")
+                    : getAllowedNextStatuses(order.status)
                 }
               />
             </FormFieldSecondary>
@@ -522,7 +523,8 @@ const UpdateOrder = () => {
                         onChange={(e) =>
                           updateDetailField(index, "status", e.target.value)
                         }
-                        options={ORDER_STATUS_LIST.filter((s) => s !== "ALL")}
+                        // options={ORDER_STATUS_LIST.filter((s) => s !== "ALL")}
+                        options={getAllowedNextStatuses(status)}
                       />
                     </FormField>
 

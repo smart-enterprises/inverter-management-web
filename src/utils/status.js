@@ -1,15 +1,29 @@
+export const ORDER_STATUSES = {
+    PENDING: "PENDING",
+    CONFIRMED: "CONFIRMED",
+    PRODUCTION: "PRODUCTION",
+    PACKED: "PACKED",
+    INVOICE: "INVOICE",
+    SHIPPED: "SHIPPED",
+    DELIVERED: "DELIVERED",
+    COMPLETED: "COMPLETED",
+
+    CANCELLED: "CANCELLED",
+    REJECTED: "REJECTED"
+};
+
 export const ORDER_STATUS_LIST = [
     'ALL',
-    'PENDING',
-    'CONFIRMED',
-    'PRODUCTION',
-    'PACKED',
-    'INVOICE',
-    'SHIPPED',
-    'DELIVERED',
-    'COMPLETED',
-    'CANCELLED',
-    'REJECTED',
+    ORDER_STATUSES.PENDING,
+    ORDER_STATUSES.CONFIRMED,
+    ORDER_STATUSES.PRODUCTION,
+    ORDER_STATUSES.PACKED,
+    ORDER_STATUSES.INVOICE,
+    ORDER_STATUSES.SHIPPED,
+    ORDER_STATUSES.DELIVERED,
+    ORDER_STATUSES.COMPLETED,
+    ORDER_STATUSES.CANCELLED,
+    ORDER_STATUSES.REJECTED
 ];
 
 export const PRIORITY_OPTIONS = ['ALL', 'HIGH', 'MEDIUM', 'LOW'];
@@ -27,16 +41,16 @@ export const getStatusStyle = (status) => {
     const normalized = status?.toUpperCase();
 
     const statusMap = {
-        PENDING: "bg-yellow-50 text-yellow-700",
-        CONFIRMED: "bg-blue-50 text-blue-700",
-        PRODUCTION: "bg-indigo-50 text-indigo-700",
-        PACKED: "bg-purple-50 text-purple-700",
-        INVOICE: "bg-cyan-50 text-cyan-700",
-        SHIPPED: "bg-orange-50 text-orange-700",
-        DELIVERED: "bg-green-50 text-green-700",
-        COMPLETED: "bg-emerald-50 text-emerald-700",
-        CANCELLED: "bg-red-50 text-red-700",
-        REJECTED: "bg-red-50 text-red-700",
+        [ORDER_STATUSES.PENDING]: "bg-yellow-50 text-yellow-700",
+        [ORDER_STATUSES.CONFIRMED]: "bg-blue-50 text-blue-700",
+        [ORDER_STATUSES.PRODUCTION]: "bg-indigo-50 text-indigo-700",
+        [ORDER_STATUSES.PACKED]: "bg-purple-50 text-purple-700",
+        [ORDER_STATUSES.INVOICE]: "bg-cyan-50 text-cyan-700",
+        [ORDER_STATUSES.SHIPPED]: "bg-orange-50 text-orange-700",
+        [ORDER_STATUSES.DELIVERED]: "bg-green-50 text-green-700",
+        [ORDER_STATUSES.COMPLETED]: "bg-emerald-50 text-emerald-700",
+        [ORDER_STATUSES.CANCELLED]: "bg-red-50 text-red-700",
+        [ORDER_STATUSES.REJECTED]: "bg-red-50 text-red-700",
     };
 
     return statusMap[normalized] || "bg-gray-50 text-gray-700";
@@ -53,4 +67,44 @@ export const getPriorityStyle = (priority) => {
     };
 
     return priorityMap[normalized] || "bg-gray-50 text-gray-700";
+};
+
+export const ALLOWED_TRANSITIONS = {
+    [ORDER_STATUSES.PENDING]: [
+        ORDER_STATUSES.CONFIRMED,
+        ORDER_STATUSES.REJECTED
+    ],
+
+    [ORDER_STATUSES.CONFIRMED]: [
+        ORDER_STATUSES.PRODUCTION,
+        ORDER_STATUSES.PACKED,
+        ORDER_STATUSES.CANCELLED
+    ],
+
+    [ORDER_STATUSES.PRODUCTION]: [
+        ORDER_STATUSES.PACKED,
+        ORDER_STATUSES.CANCELLED
+    ],
+
+    [ORDER_STATUSES.PACKED]: [
+        ORDER_STATUSES.INVOICE,
+        ORDER_STATUSES.CANCELLED
+    ],
+
+    [ORDER_STATUSES.INVOICE]: [
+        ORDER_STATUSES.SHIPPED
+    ],
+
+    [ORDER_STATUSES.SHIPPED]: [
+        ORDER_STATUSES.DELIVERED
+    ],
+
+    [ORDER_STATUSES.DELIVERED]: [
+        ORDER_STATUSES.COMPLETED
+    ],
+
+    [ORDER_STATUSES.COMPLETED]: [],
+
+    [ORDER_STATUSES.CANCELLED]: [],
+    [ORDER_STATUSES.REJECTED]: []
 };
