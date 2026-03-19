@@ -330,7 +330,7 @@ const Orders = () => {
         </div>
 
         {/* ================= MAIN CARD ================= */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-visible">
 
           {/* ================= FILTER SECTION ================= */}
           <div className="px-6 py-5 border-b border-gray-100">

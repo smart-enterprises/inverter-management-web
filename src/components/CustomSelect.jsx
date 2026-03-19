@@ -5,6 +5,8 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef(null);
+  const [dropdownWidth, setDropdownWidth] = useState(null);
+  const measureRef = useRef(null);
 
   // Support both string and object options
   const getOptionLabel = (option) => typeof option === 'object' ? option.label : option;
@@ -22,7 +24,7 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
   // Filter options based on search query
   const filterOptions = (opts) => {
     if (!searchQuery) return opts;
-    
+
     if (isGrouped) {
       return opts.map(group => ({
         ...group,
@@ -35,6 +37,29 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
         getOptionLabel(option).toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
+  };
+
+  const calculateMaxWidth = () => {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    // Match your font styles (IMPORTANT ❗)
+    context.font = "14px Inter, sans-serif";
+
+    const allOptionsList = flattenOptions(options);
+
+    let maxWidth = 0;
+
+    allOptionsList.forEach((opt) => {
+      const text = getOptionLabel(opt);
+      const metrics = context.measureText(text);
+      maxWidth = Math.max(maxWidth, metrics.width);
+    });
+
+    // Add padding + icon space
+    const finalWidth = Math.ceil(maxWidth) + 60;
+
+    setDropdownWidth(finalWidth);
   };
 
   const filteredOptions = filterOptions(options);
@@ -51,12 +76,13 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      calculateMaxWidth();
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, options]);
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -64,11 +90,10 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-left text-sm flex items-center justify-between transition-all ${
-          disabled 
-            ? 'opacity-50 cursor-not-allowed bg-gray-50' 
-            : 'hover:border-[#9333EA] focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20'
-        }`}
+        className={`w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-left text-sm flex items-center justify-between transition-all ${disabled
+          ? 'opacity-50 cursor-not-allowed bg-gray-50'
+          : 'hover:border-[#9333EA] focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20'
+          }`}
       >
         <span className={value ? "text-gray-900" : "text-gray-500"}>{
           getOptionLabel(allOptions.find(opt => getOptionValue(opt) === value)) || placeholder
@@ -77,7 +102,12 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 animate-fadeIn">
+        <div className="absolute z-20 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 animate-fadeIn"
+          style={{
+            width: dropdownWidth ? `${dropdownWidth}px` : "auto",
+          }}
+        >
+
           {searchable && (
             <div className="px-2 pb-2">
               <div className="relative">
@@ -102,7 +132,7 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
               isGrouped ? (
                 filteredOptions.map((group, groupIndex) => (
                   <div key={group.group || groupIndex}>
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 sticky top-0">
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 sticky top-0 whitespace-nowrap">
                       {group.group || group.label}
                     </div>
                     {(group.options || []).map((option) => (
@@ -114,11 +144,10 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
                           setIsOpen(false);
                           setSearchQuery('');
                         }}
-                        className={`w-full px-6 py-2 text-sm text-left transition-colors ${
-                          value === getOptionValue(option)
-                            ? 'bg-[#9333EA]/10 text-[#9333EA]'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
+                        className={`w-full px-6 py-2 text-sm text-left transition-colors ${value === getOptionValue(option)
+                          ? 'bg-[#9333EA]/10 text-[#9333EA]'
+                          : 'text-gray-700 hover:bg-gray-50'
+                          }`}
                       >
                         {getOptionLabel(option)}
                       </button>
@@ -135,11 +164,10 @@ const CustomSelect = ({ value, onChange, options, placeholder, name, searchable 
                       setIsOpen(false);
                       setSearchQuery('');
                     }}
-                    className={`w-full px-4 py-2 text-sm text-left transition-colors ${
-                      value === getOptionValue(option)
-                        ? 'bg-[#9333EA]/10 text-[#9333EA]'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className={`w-full px-4 py-2 text-sm text-left transition-colors ${value === getOptionValue(option)
+                      ? 'bg-[#9333EA]/10 text-[#9333EA]'
+                      : 'text-gray-700 hover:bg-gray-50'
+                      }`}
                   >
                     {getOptionLabel(option)}
                   </button>
