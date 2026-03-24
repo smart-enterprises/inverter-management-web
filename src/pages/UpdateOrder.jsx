@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { FiArrowLeft, FiSave } from 'react-icons/fi';
+import { FiArrowLeft, FiCheckCircle, FiSave, FiShoppingCart, FiXCircle } from 'react-icons/fi';
 import { useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import CustomSelect from '../components/CustomSelect';
@@ -8,6 +8,7 @@ import {
   updateOrderStatus,
 } from '../api/orders';
 import {
+  getStatusStyle,
   ORDER_STATUS_LIST,
   PAYMENT_METHOD_OPTIONS,
   PRIORITY_OPTIONS,
@@ -46,16 +47,48 @@ const CheckboxField = ({ label, checked, onChange }) => (
   </label>
 );
 
+const Badge = ({ label, color, icon }) => {
+
+  const styles = {
+    blue: "bg-blue-50 text-blue-700 border-blue-100",
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    rose: "bg-rose-50 text-rose-700 border-rose-100",
+    gray: "bg-gray-100 text-gray-600 border-gray-200",
+  };
+
+  return (
+    <span
+      className={`
+        inline-flex items-center gap-1.5 
+        px-3 py-1.5 
+        text-xs font-medium 
+        rounded-full 
+        border 
+        shadow-sm
+        transition-all duration-150
+        ${styles[color] || styles.gray}
+      `}
+    >
+      {icon && <span className="text-[12px]">{icon}</span>}
+      {label}
+    </span>
+  );
+};
+
 // utils/orderHelpers.js
 
 export const normalizeOrder = (order) => ({
   ...order,
   payment_method: order.payment_type || '',
   amount_paid: 0,
+  delivered_date: order.delivered_date || "",
+  delivery_note: order.delivery_note || "",
   order_details: order.order_details.map((detail) => ({
     ...detail,
     delivered_qty: '',
     cancel_qty: '',
+    delivery_note: "",
+    reason_for_cancellation: "",
     has_unPacked_completed: false,
     has_production_completed: false,
   })),
@@ -73,6 +106,7 @@ const UpdateOrder = () => {
   const [amountPaid, setAmountPaid] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deliveryDate, setDeliveryDate] = useState(null);
   const [error, setError] = useState('');
 
   /* ================= EDIT PERMISSIONS ================= */
@@ -83,6 +117,11 @@ const UpdateOrder = () => {
   const isOrderLocked = isCompleted || isDelivered || isCancelled;
 
   const isPaymentFullyDone = Number(order?.order_total_price || 0) === Number(amountPaid || 0);
+
+  const isOrderDeliveryDateChanged =
+    !!order?.promised_delivery_date &&
+    !!originalOrder &&
+    order.promised_delivery_date !== originalOrder.promised_delivery_date;
 
   /* ================= LOAD ORDER ================= */
 
@@ -99,6 +138,8 @@ const UpdateOrder = () => {
         const fetched = res.data.order;
 
         setAmountPaid(fetched?.amount_paid ?? 0);
+        setDeliveryDate(fetched?.promised_delivery_date);
+
         const normalized = normalizeOrder(fetched);
 
         setOrder(normalized);
@@ -164,6 +205,20 @@ const UpdateOrder = () => {
       payload.amount_paid = Number(order.amount_paid);
     }
 
+    /* ================= ORDER LEVEL DELIVERY ================= */
+    const isDateChanged =
+      order.promised_delivery_date &&
+      order.promised_delivery_date !== originalOrder.promised_delivery_date;
+
+    if (isDateChanged) {
+      payload.delivery_date = new Date(order.promised_delivery_date).toISOString();
+    }
+
+    /* DELIVERY NOTE (ONLY IF DATE CHANGED) */
+    if (isDateChanged && order.delivery_note?.trim()) {
+      payload.delivery_note = order.delivery_note.trim();
+    }
+
     const updatedDetails = order.order_details
       .map((detail, index) => {
         const originalDetail = originalOrder.order_details[index];
@@ -207,13 +262,28 @@ const UpdateOrder = () => {
           hasChanges = true;
         }
 
+        /* ================= DELIVERY NOTE ================= */
+        if (hasDateChanged && detail.delivery_note?.trim()) {
+          item.delivery_note = detail.delivery_note.trim();
+          hasChanges = true;
+        }
+
         /* ================= CANCEL QTY ================= */
         const cancelQty = Number(detail.cancel_qty);
-        if (
-          cancelQty > 0 &&
-          cancelQty !== Number(originalDetail.total_cancelled_qty || 0)
-        ) {
+        const originalCancelQty = Number(originalDetail.total_cancelled_qty || 0);
+
+        const hasCancelChanged =
+          cancelQty > 0 && cancelQty !== originalCancelQty;
+
+        /* ================= CANCEL QTY ================= */
+        if (hasCancelChanged) {
           item.cancel_qty = cancelQty;
+          hasChanges = true;
+        }
+
+        /* ================= CANCELLATION REASON ================= */
+        if (hasCancelChanged && detail.reason_for_cancellation?.trim()) {
+          item.reason_for_cancellation = detail.reason_for_cancellation.trim();
           hasChanges = true;
         }
 
@@ -250,6 +320,7 @@ const UpdateOrder = () => {
     if (
       !buildPayload.status &&
       !buildPayload.priority &&
+      !buildPayload.delivery_date &&
       !buildPayload.amount_paid &&
       !buildPayload.payment_method &&
       !buildPayload.order_details
@@ -424,24 +495,68 @@ const UpdateOrder = () => {
               />
             </FormFieldSecondary>
 
+            {/* Delivered Date */}
+            <FormFieldSecondary label="Delivered Date">
+              <input
+                type="datetime-local"
+                value={formatDateForInput(order.promised_delivery_date)}
+                disabled={
+                  isOrderLocked ||
+                  (!permissions.canEditAll &&
+                    !permissions.editableFields?.includes("promised_delivery_date"))
+                }
+                onChange={(e) => {
+                  setDeliveryDate(e.target.value);
+                  updateOrderField("promised_delivery_date", e.target.value);
+                }}
+                className="form-input"
+              />
+            </FormFieldSecondary>
+
+            {/* Delivery Note (ONLY WHEN DATE CHANGED) */}
+            {isOrderDeliveryDateChanged && (
+              <FormFieldSecondary label="Delivery Note">
+
+                <input
+                  type="text"
+                  disabled={
+                    isOrderLocked ||
+                    (!permissions.canEditAll &&
+                      !permissions.editableFields?.includes("delivery_note"))
+                  }
+                  onChange={(e) =>
+                    updateOrderField("delivery_note", e.target.value)
+                  }
+                  className="form-input"
+                  placeholder="Enter reason for delivery update"
+                />
+
+              </FormFieldSecondary>
+            )}
+
           </div>
         </section>
 
-        {/* ================= ORDER DETAILS ================= */}
+        {/* second section */}
         <section className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-8">
 
-          {/* Header */}
+          {/* HEADER */}
           <header className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900">
-              Order Details
+              Order Items
             </h2>
+            <span className="text-xs bg-gray-100 px-3 py-1 rounded-full font-medium text-gray-600">
+              {order.order_details.length} items
+            </span>
           </header>
 
           {order.order_details.map((detail, index) => {
 
-            /* ================= DESTRUCTURE ================= */
             const {
               order_details_number,
+              product_brand,
+              product_model,
+              product_name,
               is_free,
               total_price,
               status,
@@ -456,243 +571,313 @@ const UpdateOrder = () => {
 
             const { hasUnpacked, hasProduction } = stock_flags;
 
-            /* ================= QUANTITY CALCULATIONS ================= */
-
             const totalQty = Number(qty_ordered ?? 0);
-            const alreadyDelivered = Number(qty_delivered ?? 0);
-            const alreadyCancelled = Number(total_cancelled_qty ?? 0);
+            const delivered = Number(qty_delivered ?? 0);
+            const cancelled = Number(total_cancelled_qty ?? 0);
 
-            const maxDeliverableQty = totalQty - alreadyCancelled;
-            const maxCancelableQty = totalQty - alreadyDelivered;
+            const maxDeliverableQty = totalQty - cancelled;
+            const maxCancelableQty = totalQty - delivered;
 
-            /* ================= ORDER LOCK CHECK ================= */
+            const isLocked = status === "COMPLETED" || status === "DELIVERED" || status === "CANCELLED";
 
-            const isCompleted = status === "COMPLETED";
-            const isDelivered = status === "DELIVERED";
-            const isCancelled = status === "CANCELLED";
+            const showCompletion = !isLocked && (hasUnpacked || hasProduction);
 
-            const isOrderLocked = isCompleted || isDelivered || isCancelled;
+            const originalDetail = originalOrder?.order_details?.[index];
 
-            const showCompletionSection = !isOrderLocked && (hasUnpacked || hasProduction);
+            const isDeliveryDateChanged = detail.delivery_date && originalDetail && detail.delivery_date !== originalDetail.delivery_date;
+
+            const isCancelQtyChanged = Number(detail.cancel_qty || 0) >= 1;
 
             return (
               <article
                 key={order_details_number}
-                className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-6"
+                className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-6 space-y-6 shadow-sm"
               >
 
-                {/* ================= HEADER ================= */}
-                <div className="flex items-center justify-between">
+                {/* ================= PRODUCT HEADER ================= */}
+                <div className="flex items-start justify-between gap-6">
 
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">
-                      Order Detail Number
+                  {/* ================= LEFT SECTION ================= */}
+                  <div className="flex flex-col gap-2">
+
+                    {/* PRODUCT NAME + ID */}
+                    <div className="flex items-center gap-2">
+
+                      <h3 className="text-base font-semibold text-gray-900 tracking-tight">
+                        {product_name}
+                      </h3>
+
+                      <span className="text-[10px] font-mono bg-gray-100 px-2 py-0.5 rounded-md text-gray-400">
+                        {order_details_number}
+                      </span>
+
+                    </div>
+
+                    {/* BRAND + MODEL */}
+                    <p className="text-xs text-gray-500">
+                      {product_brand} • {product_model}
                     </p>
 
-                    <p className="font-mono text-sm font-medium text-gray-800 mt-1">
-                      {order_details_number}
-                    </p>
+                    {/* TAGS */}
+                    <div className="flex flex-wrap gap-2 mt-1">
+
+                      {is_free && (
+                        <span className="inline-flex items-center px-2.5 py-1 text-xs rounded-full bg-blue-50 text-blue-700 font-medium">
+                          Free Item
+                        </span>
+                      )}
+
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 text-xs rounded-full font-medium
+        ${is_free
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-gray-100 text-gray-600"
+                          }`}
+                      >
+                        {is_free ? "Scheme Product" : "Regular"}
+                      </span>
+
+                    </div>
+
                   </div>
 
-                  <span
-                    className={`px-3 py-1 text-xs font-medium rounded-full ${is_free
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-200 text-gray-600"
-                      }`}
-                  >
-                    {is_free ? "Product Scheme" : "Regular Product"}
-                  </span>
+                  {/* ================= RIGHT SECTION ================= */}
+                  <div className="flex flex-col items-end gap-2 min-w-[120px]">
+
+                    {/* STATUS BADGE */}
+                    <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 ${getStatusStyle(status)}`}>
+                      {status}
+                    </span>
+
+                    {/* PRICE CARD */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-right min-w-[110px]">
+
+                      {is_free ? (
+                        <span className="text-xs font-semibold text-blue-700 tracking-wide">
+                          FREE
+                        </span>
+                      ) : (
+                        <>
+                          <p className="text-[10px] uppercase text-gray-400 tracking-wide">
+                            Total
+                          </p>
+
+                          <p className="text-lg font-bold text-gray-900 leading-tight">
+                            ₹ {total_price?.toLocaleString("en-IN")}
+                          </p>
+                        </>
+                      )}
+
+                    </div>
+
+                  </div>
 
                 </div>
 
-                {/* ================= MAIN CONTENT GRID ================= */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                {/* ================= QUICK STATS ================= */}
+                <div className="flex flex-wrap gap-3 mt-2">
 
-                  {/* ================= STATUS SECTION ================= */}
+                  <Badge
+                    label={`Ordered ${totalQty}`}
+                    color="blue"
+                    icon={<FiShoppingCart />}
+                  />
 
-                  <div className="space-y-5">
+                  <Badge
+                    label={`Delivered ${delivered}`}
+                    color="emerald"
+                    icon={<FiCheckCircle />}
+                  />
 
-                    <FormField label="Order Status">
-                      <CustomSelect
-                        value={status}
-                        disabled={
-                          isOrderLocked ||
-                          (!permissions.canEditAll &&
-                            !permissions.editableFields?.includes("status"))
-                        }
-                        onChange={(e) =>
-                          updateDetailField(index, "status", e.target.value)
-                        }
-                        // options={ORDER_STATUS_LIST.filter((s) => s !== "ALL")}
-                        options={getAllowedNextStatuses(status)}
-                      />
-                    </FormField>
+                  <Badge
+                    label={`Cancelled ${cancelled}`}
+                    color="rose"
+                    icon={<FiXCircle />}
+                  />
 
-                    <FormField label="Delivered Date & Time">
+                </div>
+
+                {/* ================= FORM GRID ================= */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+                  {/* STATUS */}
+                  <FormField label="Status">
+                    <CustomSelect
+                      value={status}
+                      disabled={isLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("status"))}
+                      onChange={(e) =>
+                        updateDetailField(index, "status", e.target.value)
+                      }
+                      options={getAllowedNextStatuses(status)}
+                    />
+                  </FormField>
+
+                  {/* DATE */}
+                  <FormField label="Delivery Date">
+                    <input
+                      type="datetime-local"
+                      value={formatDateForInput(delivery_date)}
+                      disabled={isLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("delivery_date"))}
+                      onChange={(e) =>
+                        updateDetailField(index, "delivery_date", e.target.value)
+                      }
+                      className="form-input"
+                    />
+                  </FormField>
+
+                  {/* DELIVERY NOTE (ONLY WHEN DATE CHANGED) */}
+                  {isDeliveryDateChanged && (
+                    <FormField label="Delivery Note">
+
                       <input
-                        type="datetime-local"
-                        value={formatDateForInput(delivery_date)}
+                        type="text"
+                        value={detail.delivery_note || ""}
                         disabled={
-                          isOrderLocked ||
+                          isLocked ||
                           (!permissions.canEditAll &&
-                            !permissions.editableFields?.includes("delivery_date"))
+                            !permissions.editableDetailFields?.includes("delivery_note"))
                         }
                         onChange={(e) =>
-                          updateDetailField(index, "delivery_date", e.target.value)
+                          updateDetailField(index, "delivery_note", e.target.value)
                         }
                         className="form-input"
+                        placeholder="Enter reason for delivery date change"
                       />
+
                     </FormField>
-
-                  </div>
-
-                  {/* ================= QUANTITY SECTION ================= */}
-
-                  {!isOrderLocked && (
-                    <div className="space-y-5">
-
-                      <FormField label="Delivered Quantity">
-                        <input
-                          type="number"
-                          min={0}
-                          max={maxDeliverableQty}
-                          disabled={
-                            isOrderLocked ||
-                            (!permissions.canEditAll &&
-                              !permissions.editableDetailFields?.includes(
-                                "delivered_qty"
-                              ))
-                          }
-                          onChange={(e) => {
-                            const value = Number(e.target.value || 0);
-
-                            if (value <= maxDeliverableQty) {
-                              updateDetailField(index, "delivered_qty", value);
-                            }
-                          }}
-                          className="form-input"
-                          placeholder={`Max: ${maxDeliverableQty}`}
-                        />
-                      </FormField>
-
-                      <FormField label="Cancelled Quantity">
-                        <input
-                          type="number"
-                          min={0}
-                          max={maxCancelableQty}
-                          disabled={
-                            isOrderLocked ||
-                            (!permissions.canEditAll &&
-                              !permissions.editableDetailFields?.includes(
-                                "cancel_qty"
-                              ))
-                          }
-                          onChange={(e) => {
-                            const value = Number(e.target.value || 0);
-
-                            if (value <= maxCancelableQty) {
-                              updateDetailField(index, "cancel_qty", value);
-                            }
-                          }}
-                          className="form-input"
-                          placeholder={`Max: ${maxCancelableQty}`}
-                        />
-                      </FormField>
-
-                    </div>
                   )}
 
-                  {/* ================= COMPLETION SECTION ================= */}
+                  {/* DELIVERED */}
+                  {!isLocked && (
+                    <FormField label="Delivered Quantity">
+                      <input
+                        type="number"
+                        min={0}
+                        max={maxDeliverableQty}
+                        disabled={isLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("delivered_qty"))}
+                        onChange={(e) => {
+                          const value = Number(e.target.value || 0);
 
-                  <div className="space-y-6">
+                          if (value <= maxDeliverableQty) {
+                            updateDetailField(index, "delivered_qty", value);
+                          }
+                        }}
+                        className="form-input"
+                        placeholder={`Max ${maxDeliverableQty}`}
+                      />
+                    </FormField>
+                  )}
 
-                    {showCompletionSection && (
-                      <div>
+                  {/* CANCEL */}
+                  {!isLocked && (
+                    <FormField label="Cancelled Quantity">
+                      <input
+                        type="number"
+                        min={0}
+                        max={maxCancelableQty}
+                        disabled={
+                          isOrderLocked ||
+                          (!permissions.canEditAll &&
+                            !permissions.editableDetailFields?.includes(
+                              "cancel_qty"
+                            ))
+                        }
+                        onChange={(e) => {
+                          const value = Number(e.target.value || 0);
 
-                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500 mb-3">
-                          Completion Status
-                        </p>
+                          if (value <= maxCancelableQty) {
+                            updateDetailField(index, "cancel_qty", value);
+                          }
+                        }}
+                        className="form-input"
+                        placeholder={`Max ${maxCancelableQty}`}
+                      />
+                    </FormField>
+                  )}
 
-                        <div className="flex flex-col gap-3">
-
-                          {hasUnpacked && (
-                            <CheckboxField
-                              label="Unpacked Completed"
-                              checked={has_unPacked_completed}
-                              disabled={
-                                isOrderLocked ||
-                                (!permissions.canEditAll &&
-                                  !permissions.editableDetailFields?.includes(
-                                    "has_unPacked_completed"
-                                  ))
-                              }
-                              onChange={(e) =>
-                                updateDetailField(
-                                  index,
-                                  "has_unPacked_completed",
-                                  e.target.checked
-                                )
-                              }
-                            />
-                          )}
-
-                          {hasProduction && (
-                            <CheckboxField
-                              label="Production Completed"
-                              checked={has_production_completed}
-                              disabled={
-                                isOrderLocked ||
-                                (!permissions.canEditAll &&
-                                  !permissions.editableDetailFields?.includes(
-                                    "has_production_completed"
-                                  ))
-                              }
-                              onChange={(e) =>
-                                updateDetailField(
-                                  index,
-                                  "has_production_completed",
-                                  e.target.checked
-                                )
-                              }
-                            />
-                          )}
-
-                        </div>
-
-                      </div>
-                    )}
-
-                  </div>
-
-                </div>
-
-                {/* ================= ITEM TOTAL (FOOTER STYLE) ================= */}
-
-                <div className="flex justify-end pt-4 border-t border-gray-200">
-
-                  <div className="bg-white border border-gray-200 rounded-xl px-6 py-5 shadow-sm flex items-center gap-6 min-w-[260px]">
-
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-gray-500 font-medium">
-                        Item Total
-                      </p>
-
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-gray-500 font-medium text-lg">₹</span>
-
-                        <span className="text-3xl font-bold text-gray-900 tracking-tight">
-                          {total_price?.toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-center w-11 h-11 rounded-lg bg-purple-50">
-                      <span className="text-purple-600 text-lg font-bold">₹</span>
-                    </div>
-
-                  </div>
+                  {isCancelQtyChanged && (
+                    <FormField label="Reason for Cancellation">
+                      <textarea
+                        disabled={
+                          isOrderLocked ||
+                          (!permissions.canEditAll &&
+                            !permissions.editableDetailFields?.includes(
+                              "cancel_qty"
+                            ))
+                        }
+                        onChange={(e) =>
+                          updateDetailField(
+                            index,
+                            "reason_for_cancellation",
+                            e.target.value
+                          )
+                        }
+                        className="form-input"
+                        rows={1}
+                        placeholder="Enter reason for cancellation"
+                      />
+                    </FormField>
+                  )}
 
                 </div>
+
+                {/* ================= COMPLETION ================= */}
+                {showCompletion && (
+                  <div className="border-t pt-4 space-y-3">
+
+                    <p className="text-xs uppercase text-gray-500 font-medium">
+                      Completion Status
+                    </p>
+
+                    <div className="flex gap-4 flex-wrap">
+
+                      {hasUnpacked && (
+                        <CheckboxField
+                          label="Unpacked Completed"
+                          checked={has_unPacked_completed}
+                          disabled={
+                            isOrderLocked ||
+                            (!permissions.canEditAll &&
+                              !permissions.editableDetailFields?.includes(
+                                "has_unPacked_completed"
+                              ))
+                          }
+                          onChange={(e) =>
+                            updateDetailField(
+                              index,
+                              "has_unPacked_completed",
+                              e.target.checked
+                            )
+                          }
+                        />
+                      )}
+
+                      {hasProduction && (
+                        <CheckboxField
+                          label="Production Completed"
+                          checked={has_production_completed}
+                          disabled={
+                            isOrderLocked ||
+                            (!permissions.canEditAll &&
+                              !permissions.editableDetailFields?.includes(
+                                "has_production_completed"
+                              ))
+                          }
+                          onChange={(e) =>
+                            updateDetailField(
+                              index,
+                              "has_production_completed",
+                              e.target.checked
+                            )
+                          }
+                        />
+                      )}
+
+                    </div>
+
+                  </div>
+                )}
+
               </article>
             );
           })}
