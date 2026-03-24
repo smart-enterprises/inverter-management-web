@@ -81,16 +81,20 @@ const NotesCard = ({ title, notes, color }) => {
 /* ========================= FINANCIAL SUMMARY ========================= */
 
 const FinancialSummary = ({ order }) => {
-  const baseTotal = Number(order?.order_total_price ?? 0);
-  const discount = Number(order?.order_total_discount ?? 0);
+  const totalAmount = Number(order?.order_total_price ?? 0);
+  const discountAmount = Number(order?.order_total_discount ?? 0);
 
-  // If discount was already deducted from total and you want original gross:
-  const grossTotal = baseTotal + discount;
+  // BEFORE discount (gross)
+  const grossAmount = totalAmount + discountAmount;
 
-  const paid = Number(order?.amount_paid ?? 0);
+  // AFTER discount (what customer should pay)
+  const netPayable = totalAmount;
 
-  // Prefer backend value if provided, otherwise calculate
-  const due = Number(order?.amount_due ?? grossTotal - paid);
+  const amountReceived = Number(order?.amount_paid ?? 0);
+
+  const outstandingBalance = Number(
+    order?.amount_due ?? netPayable - amountReceived
+  );
 
   return (
     <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
@@ -124,44 +128,66 @@ const FinancialSummary = ({ order }) => {
 
       </div>
 
-      {/* Summary Card */}
-      <div className="max-w-md ml-auto bg-gray-50 border border-gray-100 rounded-xl p-6 space-y-5">
+      {/* ================= SUMMARY CARD ================= */}
+      <div className="max-w-md ml-auto bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-7 space-y-6">
 
-        {/* Total Price */}
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Total Price</span>
-          <span className="font-medium text-gray-900">
-            {formatCurrency(grossTotal)}
+        {/* GROSS AMOUNT */}
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-gray-500">Gross Amount</span>
+          <span className="text-base font-semibold text-gray-900">
+            {formatCurrency(grossAmount)}
           </span>
         </div>
 
-        {/* Discount */}
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Discount</span>
-          <span className="font-medium text-red-600">
-            - {formatCurrency(discount)}
+        {/* DISCOUNT */}
+        {discountAmount > 0 && (
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-500">Discount Applied</span>
+            <span className="text-base font-semibold text-rose-600">
+              − {formatCurrency(discountAmount)}
+            </span>
+          </div>
+        )}
+
+        {/* NET PAYABLE (NEW IMPORTANT FIELD) */}
+        <div className="flex justify-between items-center text-sm border-t border-gray-200 pt-4">
+
+          <span className="text-gray-700 font-medium">
+            Net Payable
           </span>
+
+          <span className="text-lg font-bold text-gray-900">
+            {formatCurrency(netPayable)}
+          </span>
+
         </div>
 
-        {/* Paid */}
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Amount Paid</span>
-          <span className="font-medium text-emerald-600">
-            {formatCurrency(paid)}
-          </span>
-        </div>
+        {/* AMOUNT RECEIVED */}
+        {amountReceived > 0 && (
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-500">Amount Received</span>
+            <span className="text-base font-semibold text-emerald-600">
+              {formatCurrency(amountReceived)}
+            </span>
+          </div>
+        )}
 
-        {/* Divider */}
-        <div className="border-t border-gray-200 pt-5 flex justify-between text-base font-semibold">
-          <span className="text-gray-900">Amount Due</span>
+        {/* DIVIDER */}
+        <div className="border-t border-gray-200 pt-5 flex justify-between items-center">
+
+          <span className="text-sm font-semibold text-gray-700">
+            Outstanding Balance
+          </span>
+
           <span
-            className={`${due > 0 ? "text-purple-700" : "text-emerald-600"
-              }`}
+            className={`text-xl font-bold tracking-tight
+              ${outstandingBalance > 0 ? "text-purple-700" : "text-emerald-600"}
+            `}
           >
-            {formatCurrency(due)}
+            {formatCurrency(outstandingBalance)}
           </span>
-        </div>
 
+        </div>
       </div>
     </section>
   );
@@ -694,12 +720,10 @@ const OrderDetails = () => {
 
                     </td>
 
-
                     {/* ================= QUANTITY ================= */}
                     <td className="px-6 py-5 text-center font-medium text-gray-800">
                       {d.qty_ordered}
                     </td>
-
 
                     {/* ================= UNIT PRICE ================= */}
                     <td className="px-6 py-5 text-right whitespace-nowrap text-gray-700">
@@ -709,25 +733,36 @@ const OrderDetails = () => {
                     {/* ================= TOTAL PRICE ================= */}
                     <td className="px-6 py-5 text-right whitespace-nowrap">
 
-                      <div className="flex flex-col items-end gap-0.5">
+                      <div className="flex flex-col items-end gap-1">
 
-                        {/* Original Price */}
-                        {hasDiscount && (
-                          <span className="text-xs text-gray-400 line-through">
-                            {formatCurrency(d.total_product_price)}
+                        {/* FREE PRODUCT UI */}
+                        {d.is_free ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+                            FREE
                           </span>
-                        )}
+                        ) : (
+                          <>
+                            {/* Original Price */}
+                            {hasDiscount && Number(d.total_product_price) > 0 && (
+                              <span className="text-xs text-gray-400 line-through">
+                                {formatCurrency(d.total_product_price)}
+                              </span>
+                            )}
 
-                        {/* Final Price */}
-                        <span className="text-sm font-semibold text-gray-900">
-                          {formatCurrency(d.total_price)}
-                        </span>
+                            {/* Final Price (ALWAYS show if > 0) */}
+                            {Number(d.total_price) > 0 && (
+                              <span className="text-sm font-semibold text-gray-900">
+                                {formatCurrency(d.total_price)}
+                              </span>
+                            )}
 
-                        {/* Discount Info */}
-                        {hasDiscount && (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                            − {formatCurrency(d.total_dealer_discount)}
-                          </span>
+                            {/* Discount Info */}
+                            {hasDiscount && Number(d.total_dealer_discount) > 0 && (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                − {formatCurrency(d.total_dealer_discount)}
+                              </span>
+                            )}
+                          </>
                         )}
 
                       </div>
