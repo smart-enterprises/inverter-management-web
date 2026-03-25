@@ -47,34 +47,6 @@ const CheckboxField = ({ label, checked, onChange }) => (
   </label>
 );
 
-const Badge = ({ label, color, icon }) => {
-
-  const styles = {
-    blue: "bg-blue-50 text-blue-700 border-blue-100",
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    rose: "bg-rose-50 text-rose-700 border-rose-100",
-    gray: "bg-gray-100 text-gray-600 border-gray-200",
-  };
-
-  return (
-    <span
-      className={`
-        inline-flex items-center gap-1.5 
-        px-3 py-1.5 
-        text-xs font-medium 
-        rounded-full 
-        border 
-        shadow-sm
-        transition-all duration-150
-        ${styles[color] || styles.gray}
-      `}
-    >
-      {icon && <span className="text-[12px]">{icon}</span>}
-      {label}
-    </span>
-  );
-};
-
 // utils/orderHelpers.js
 
 export const normalizeOrder = (order) => ({
@@ -561,6 +533,7 @@ const UpdateOrder = () => {
               total_price,
               status,
               delivery_date,
+              total_qty_ordered,
               qty_ordered,
               qty_delivered,
               total_cancelled_qty,
@@ -571,12 +544,14 @@ const UpdateOrder = () => {
 
             const { hasUnpacked, hasProduction } = stock_flags;
 
-            const totalQty = Number(qty_ordered ?? 0);
+            const totalOrdered = Number(total_qty_ordered ?? 0);
             const delivered = Number(qty_delivered ?? 0);
             const cancelled = Number(total_cancelled_qty ?? 0);
 
-            const maxDeliverableQty = totalQty - cancelled;
-            const maxCancelableQty = totalQty - delivered;
+            const balanceQty = Math.max(totalOrdered - delivered - cancelled, 0);
+
+            const maxDeliverableQty = balanceQty;
+            const maxCancelableQty = balanceQty;
 
             const isLocked = status === "COMPLETED" || status === "DELIVERED" || status === "CANCELLED";
 
@@ -629,7 +604,7 @@ const UpdateOrder = () => {
 
                       <span
                         className={`inline-flex items-center px-2.5 py-1 text-xs rounded-full font-medium
-        ${is_free
+                          ${is_free
                             ? "bg-emerald-50 text-emerald-700"
                             : "bg-gray-100 text-gray-600"
                           }`}
@@ -675,25 +650,63 @@ const UpdateOrder = () => {
                 </div>
 
                 {/* ================= QUICK STATS ================= */}
-                <div className="flex flex-wrap gap-3 mt-2">
+                <div className="mt-4 bg-white border border-gray-200 rounded-2xl px-5 py-4 shadow-sm hover:shadow-md transition-all duration-200">
 
-                  <Badge
-                    label={`Ordered ${totalQty}`}
-                    color="blue"
-                    icon={<FiShoppingCart />}
-                  />
+                  <div className="flex items-center justify-between divide-x divide-gray-100">
 
-                  <Badge
-                    label={`Delivered ${delivered}`}
-                    color="emerald"
-                    icon={<FiCheckCircle />}
-                  />
+                    {/* Total Ordered */}
+                    <div className="flex-1 px-4">
+                      <p className="text-[11px] uppercase tracking-wider text-gray-400">
+                        Total Ordered
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900 mt-1 tracking-tight">
+                        {totalOrdered}
+                      </p>
+                    </div>
 
-                  <Badge
-                    label={`Cancelled ${cancelled}`}
-                    color="rose"
-                    icon={<FiXCircle />}
-                  />
+                    {/* Delivered */}
+                    <div className="flex-1 px-4">
+                      <p className="text-[11px] uppercase tracking-wider text-gray-400">
+                        Delivered
+                      </p>
+                      <p className="text-lg font-semibold text-emerald-600 mt-1 tracking-tight">
+                        {delivered}
+                      </p>
+                    </div>
+
+                    {/* Cancelled */}
+                    <div className="flex-1 px-4">
+                      <p className="text-[11px] uppercase tracking-wider text-gray-400">
+                        Cancelled
+                      </p>
+                      <p className="text-lg font-semibold text-rose-600 mt-1 tracking-tight">
+                        {cancelled}
+                      </p>
+                    </div>
+
+                    {/* Balance */}
+                    <div className="flex-1 px-4">
+                      <p className="text-[11px] uppercase tracking-wider text-gray-400">
+                        Balance
+                      </p>
+                      <p className="text-lg font-semibold text-amber-600 mt-1 tracking-tight">
+                        {balanceQty}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* 🔥 Subtle Progress Bar */}
+                  <div className="mt-4">
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 transition-all duration-500"
+                        style={{
+                          width: `${totalOrdered > 0 ? ((delivered + cancelled) / totalOrdered) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
 
                 </div>
 

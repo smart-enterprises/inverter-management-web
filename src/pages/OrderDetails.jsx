@@ -339,7 +339,7 @@ const OrderDetails = () => {
     if (!Array.isArray(order?.order_details)) return 0;
 
     return order.order_details.reduce(
-      (sum, item) => sum + Number(item?.qty_ordered ?? 0),
+      (sum, item) => sum + Number(item?.total_qty_ordered ?? 0),
       0
     );
   }, [order]);
@@ -647,6 +647,12 @@ const OrderDetails = () => {
                 console.log("stock note: ", stockNotes);
                 console.log("discount note: ", discountNotes);
 
+                const totalOrdered = Number(d.total_qty_ordered ?? d.qty_ordered ?? 0);
+                const delivered = Number(d.qty_delivered ?? 0);
+                const cancelled = Number(d.qty_cancelled ?? d.total_cancelled_qty ?? 0);
+
+                const balanceQty = Math.max(totalOrdered - delivered - cancelled, 0);
+
                 const hasDiscount = !d.is_free && d.total_dealer_discount && d.total_dealer_discount > 0;
 
                 return (
@@ -721,8 +727,73 @@ const OrderDetails = () => {
                     </td>
 
                     {/* ================= QUANTITY ================= */}
-                    <td className="px-6 py-5 text-center font-medium text-gray-800">
-                      {d.qty_ordered}
+                    <td className="px-6 py-5 align-middle">
+                      <div className="min-w-[200px] bg-transparent border border-gray-200 rounded-xl px-4 py-3 shadow-sm transition-all duration-200 hover:shadow-md">
+
+                        {/* Top Section */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wider text-gray-400">
+                              Ordered
+                            </p>
+                            <p className="text-base font-semibold text-gray-900 mt-0.5 tabular-nums">
+                              {totalOrdered}
+                            </p>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-[10px] uppercase tracking-wider text-gray-400">
+                              Balance
+                            </p>
+                            <p
+                              className={`text-base font-semibold mt-0.5 tabular-nums ${balanceQty === 0 ? "text-emerald-600" : "text-amber-600"
+                                }`}
+                            >
+                              {balanceQty}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Progress */}
+                        <div className="mt-3">
+                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 ${balanceQty === 0 ? "bg-emerald-500" : "bg-indigo-500"
+                                }`}
+                              style={{
+                                width: `${totalOrdered > 0
+                                  ? Math.min(((delivered + cancelled) / totalOrdered) * 100, 100)
+                                  : 0
+                                  }%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Bottom Stats */}
+                        <div className="flex items-center justify-between mt-3 text-xs">
+
+                          <div className="flex flex-col">
+                            <span className="text-gray-400 uppercase tracking-wide text-[10px]">
+                              Delivered
+                            </span>
+                            <span className="font-medium text-emerald-600 tabular-nums">
+                              {delivered}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-col text-right">
+                            <span className="text-gray-400 uppercase tracking-wide text-[10px]">
+                              Cancelled
+                            </span>
+                            <span className="font-medium text-rose-600 tabular-nums">
+                              {cancelled}
+                            </span>
+                          </div>
+
+                        </div>
+
+                      </div>
                     </td>
 
                     {/* ================= UNIT PRICE ================= */}
