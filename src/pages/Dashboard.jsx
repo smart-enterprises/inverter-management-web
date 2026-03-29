@@ -268,13 +268,15 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-2.5">
               {recentOrders.map(({ order }) => (
-                <OrderCard
-                  key={order?.order_number}
-                  number={order?.order_number}
-                  dealer={capitalizeFirstLetter(order?.dealer?.employee_name || "Unknown Dealer")}
-                  priority={order?.priority}
-                  status={order?.status}
-                />
+                <button onClick={() => navigate(`/orders/${order.order_number}`)}>
+                  <OrderCard
+                    key={order?.order_number}
+                    number={order?.order_number}
+                    dealer={capitalizeFirstLetter(order?.dealer?.employee_name || "Unknown Dealer")}
+                    priority={order?.priority}
+                    status={order?.status}
+                  />
+                </button>
               ))}
             </div>
           )}

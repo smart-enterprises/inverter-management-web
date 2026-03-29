@@ -1,3 +1,5 @@
+// brands.jsx code
+
 import { useState, useEffect } from 'react';
 import { FiPlus, FiSearch, FiBox, FiX, FiChevronLeft, FiChevronRight, FiTrash2, FiEdit2 } from 'react-icons/fi';
 import CustomSelect from '../components/CustomSelect';

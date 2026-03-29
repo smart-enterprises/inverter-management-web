@@ -1,3 +1,5 @@
+// navbar.jsx code
+
 import React, { useState } from 'react';
 import {
   FiBell,
