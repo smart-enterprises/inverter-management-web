@@ -1033,29 +1033,86 @@ const CreateOrder = () => {
   );
 
   const financialSummary = useMemo(() => {
-    let subtotal = 0,
-      totalDiscount = 0;
+    let subtotal = 0;
+    let totalDiscount = 0;
+
     formData.order_details.forEach((item, index) => {
       const qty = Number(item.qty_ordered) || 0;
       const price = Number(item.product_price) || 0;
-      const itemTotal = qty * price;
+
+      if (!item.product_id || qty <= 0) return;
       if (item.is_product_scheme) return;
+
+      const itemTotal = qty * price;
       subtotal += itemTotal;
+
       const dealerDiscount = discountOptions[index]?.find(
         (d) => d.dealer_discount_id === item.dealer_discount_id
       );
+
+      // ✅ FIXED DISCOUNT CALCULATION
       if (dealerDiscount) {
-        totalDiscount += dealerDiscount.is_percentage
-          ? (itemTotal * dealerDiscount.discount_value) / 100
-          : dealerDiscount.discount_value;
+        if (dealerDiscount.is_percentage) {
+          totalDiscount += (itemTotal * dealerDiscount.discount_value) / 100;
+        } else {
+          totalDiscount += Number(dealerDiscount.discount_value || 0) * qty;
+        }
       } else if (item.discount_price > 0) {
-        totalDiscount += item.discount_price;
+        totalDiscount += Number(item.discount_price || 0) * qty;
       }
     });
+
     const netAmount = subtotal - totalDiscount;
     const amountPaid = Number(formData.amount_paid) || 0;
-    return { subtotal, totalDiscount, netAmount, amountPaid, balance: netAmount - amountPaid };
+    const balance = netAmount - amountPaid;
+
+    return {
+      subtotal,
+      totalDiscount,
+      netAmount,
+      amountPaid,
+      balance,
+    };
   }, [formData, discountOptions]);
+
+  const getItemFinalAmount = (item, index) => {
+    const qty = Number(item.qty_ordered) || 0;
+    const price = Number(item.product_price) || 0;
+
+    const itemTotal = qty * price;
+
+    if (item.is_product_scheme) {
+      return { final: 0, discountLabel: null, original: itemTotal };
+    }
+
+    const dealerDiscount = discountOptions[index]?.find(
+      (d) => d.dealer_discount_id === item.dealer_discount_id
+    );
+
+    let discount = 0;
+    let discountLabel = null;
+
+    if (dealerDiscount) {
+      if (dealerDiscount.is_percentage) {
+        discount = (itemTotal * dealerDiscount.discount_value) / 100;
+        discountLabel = `${dealerDiscount.discount_value}% off`;
+      } else {
+        discount = dealerDiscount.discount_value * qty;
+        discountLabel = `₹ ${discount.toLocaleString("en-IN")} off`;
+      }
+    } else if (item.discount_price > 0) {
+      discount = item.discount_price * qty;
+      discountLabel = `₹ ${discount.toLocaleString("en-IN")} off`;
+    }
+
+    discount = Math.min(discount, itemTotal);
+
+    return {
+      final: Math.max(0, itemTotal - discount),
+      discountLabel,
+      original: itemTotal,
+    };
+  };
 
   /* ================================================================
      RENDER
@@ -1237,19 +1294,27 @@ const CreateOrder = () => {
                 const dealerDiscount = discountOptions[index]?.find(
                   (d) => d.dealer_discount_id === item.dealer_discount_id
                 );
+
                 let finalAmount = itemTotal;
                 let discountLabel = null;
+
                 if (!item.is_product_scheme) {
                   if (dealerDiscount) {
-                    finalAmount -= dealerDiscount.is_percentage
+                    const discountAmount = dealerDiscount.is_percentage
                       ? (itemTotal * dealerDiscount.discount_value) / 100
-                      : dealerDiscount.discount_value * qty;
+                      : Number(dealerDiscount.discount_value || 0) * qty;
+
+                    finalAmount -= discountAmount;
+
                     discountLabel = dealerDiscount.is_percentage
                       ? `${dealerDiscount.discount_value}% off`
-                      : `₹ ${dealerDiscount.discount_value * qty} off`;
+                      : `₹ ${discountAmount.toLocaleString("en-IN")} off`;
                   } else if (item.discount_price > 0) {
-                    finalAmount -= item.discount_price * qty;
-                    discountLabel = `₹ ${item.discount_price * qty} off`;
+                    const discountAmount = Number(item.discount_price || 0) * qty;
+
+                    finalAmount -= discountAmount;
+
+                    discountLabel = `₹ ${discountAmount.toLocaleString("en-IN")} off`;
                   }
                 }
 
