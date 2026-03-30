@@ -175,8 +175,8 @@ const Dashboard = () => {
     const year = now.getFullYear(), month = now.getMonth() + 1;
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
     const endDate = now.toISOString().split("T")[0];
-    const monthlyRes = await fetchOrdersByDate({ year, month, start_date: startDate, end_date: endDate });
-    setMonthlyOrders(monthlyRes?.count || 0);
+    const monthlyRes = await fetchOrders({ page: 1, limit: 6, includeRejected: false, startDate: startDate, endDate: endDate });
+    setMonthlyOrders(monthlyRes?.pagination?.total || 0);
   };
 
   const loadUserCounts = async () => {

@@ -19,6 +19,8 @@ export const ROUTE_PERMISSIONS = {
     ROLES.ADMIN,
     ROLES.MANAGER,
     ROLES.SALESMAN,
+    ROLES.PACKING,
+    ROLES.PRODUCTION,
   ],
 
   "/brands": [

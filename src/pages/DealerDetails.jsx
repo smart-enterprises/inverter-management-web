@@ -496,6 +496,7 @@ const DealerDetails = () => {
                             </span>
                           </td>
                           <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">{formatDate(d.created_at)}</td>
+
                           <td className="px-5 py-4 text-right">
                             <button onClick={() => openEditDiscountModal(d)} className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"><FiEdit3 size={14} /></button>
                           </td>
