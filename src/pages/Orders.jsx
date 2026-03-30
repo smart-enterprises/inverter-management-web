@@ -1,64 +1,48 @@
-// orders.jsx — Redesigned
+// orders.jsx — Search debounce fix + redesigned
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
-  FiPlus,
-  FiSearch,
-  FiEye,
-  FiChevronLeft,
-  FiChevronRight,
-  FiEdit2,
-  FiPackage,
-  FiFilter,
-  FiTrendingUp,
-  FiAlertCircle,
+  FiPlus, FiSearch, FiEye, FiChevronLeft, FiChevronRight, FiEdit2,
+  FiPackage, FiFilter, FiAlertCircle, FiX,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrders } from "../api/orders";
-import {
-  getRoleBasedStatusOptions,
-  ORDER_STATUS_LIST,
-  PRIORITY_OPTIONS,
-} from "../utils/status";
+import { getRoleBasedStatusOptions, PRIORITY_OPTIONS } from "../utils/status";
 import { capitalizeFirstLetter } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
-import { ROLE_LABELS, ROLES } from "../utils/roles";
+import { ROLES } from "../utils/roles";
 
 /* ================================================================
    PAGINATION
    ================================================================ */
 const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
-
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
   const visiblePages = pages.filter(
-    (page) =>
-      page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1
+    (page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1
   );
 
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-white rounded-b-2xl">
+    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
       <p className="text-xs text-slate-400 font-medium hidden sm:block">
-        Page {currentPage} of {totalPages}
+        Page <span className="font-bold text-slate-600">{currentPage}</span> of{" "}
+        <span className="font-bold text-slate-600">{totalPages}</span>
       </p>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 ml-auto">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <FiChevronLeft size={14} />
+          <FiChevronLeft size={13} />
         </button>
-
         <div className="flex items-center gap-1">
           {visiblePages.map((page, index) => {
             const showDots = index > 0 && page - visiblePages[index - 1] > 1;
             return (
               <div key={page} className="flex items-center">
-                {showDots && (
-                  <span className="px-1.5 text-slate-400 text-xs select-none">…</span>
-                )}
+                {showDots && <span className="px-1.5 text-slate-300 text-xs select-none">…</span>}
                 <button
                   onClick={() => onPageChange(page)}
                   className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === currentPage
@@ -72,13 +56,12 @@ const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
             );
           })}
         </div>
-
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <FiChevronRight size={14} />
+          <FiChevronRight size={13} />
         </button>
       </div>
     </div>
@@ -86,33 +69,26 @@ const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
 };
 
 /* ================================================================
-   STATUS / PRIORITY BADGES
+   BADGES
    ================================================================ */
 const PriorityBadge = ({ priority }) => {
-  const styles = {
+  const map = {
     HIGH: "bg-rose-50 text-rose-700 border-rose-200",
     MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
     LOW: "bg-emerald-50 text-emerald-700 border-emerald-200",
   };
-  const dots = {
-    HIGH: "bg-rose-500",
-    MEDIUM: "bg-amber-500",
-    LOW: "bg-emerald-500",
-  };
+  const dotMap = { HIGH: "bg-rose-500", MEDIUM: "bg-amber-500", LOW: "bg-emerald-500" };
   const key = priority?.toUpperCase();
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${styles[key] || "bg-slate-50 text-slate-600 border-slate-200"
-        }`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${dots[key] || "bg-slate-400"}`} />
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotMap[key] || "bg-slate-400"}`} />
       {priority}
     </span>
   );
 };
 
 const StatusBadge = ({ status }) => {
-  const styles = {
+  const map = {
     PENDING: "bg-amber-50 text-amber-700 border-amber-200",
     CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
     PRODUCTION: "bg-indigo-50 text-indigo-700 border-indigo-200",
@@ -126,23 +102,20 @@ const StatusBadge = ({ status }) => {
   };
   const key = status?.toUpperCase();
   return (
-    <span
-      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${styles[key] || "bg-slate-50 text-slate-600 border-slate-200"
-        }`}
-    >
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
       {status}
     </span>
   );
 };
 
 /* ================================================================
-   MAIN COMPONENT — Orders
+   MAIN — Orders
    ================================================================ */
 const Orders = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const role = user?.role;
+
   const isProduction = role === ROLES.PRODUCTION;
   const isPacking = role === ROLES.PACKING;
   const isDelivery = role === ROLES.DELIVERY;
@@ -153,28 +126,44 @@ const Orders = () => {
 
   const canCreateOrder = useMemo(
     () => isSuperAdmin || isAdmin || isManager || isSalesman,
-    [user?.role]
+    [isSuperAdmin, isAdmin, isManager, isSalesman]
   );
 
+  /* ── State ── */
   const [orders, setOrders] = useState([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    totalPages: 1,
-    total: 0,
-    limit: 10,
-  });
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 10 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  /*
+   * FIX: Split search into two separate states:
+   *   searchInput  — bound directly to the <input>, never triggers a fetch
+   *   searchQuery  — debounced value that actually drives the API call
+   * Without this split, every keystroke updates queryParams → triggers useEffect
+   * → re-renders the whole list and unmounts the input → loses focus.
+   */
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [selectedPriority, setSelectedPriority] = useState("ALL");
 
+  /* Role-based default status */
   useEffect(() => {
     if (isProduction) setSelectedStatus("PRODUCTION");
     else if (isPacking) setSelectedStatus("PACKED");
     else if (isDelivery) setSelectedStatus("SHIPPED");
   }, [isProduction, isPacking, isDelivery]);
 
+  /* Debounce: push searchInput → searchQuery after 400 ms of inactivity */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setPagination((prev) => ({ ...prev, page: 1 }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  /* Query params — only depends on debounced searchQuery, not searchInput */
   const queryParams = useMemo(
     () => ({
       page: pagination.page,
@@ -186,6 +175,7 @@ const Orders = () => {
     [pagination.page, pagination.limit, selectedStatus, selectedPriority, searchQuery]
   );
 
+  /* Fetch orders */
   useEffect(() => {
     let isMounted = true;
     const loadOrders = async () => {
@@ -220,8 +210,18 @@ const Orders = () => {
   const getTotalItems = (details) =>
     details?.reduce((sum, item) => sum + (item.qty_ordered || 0), 0) || 0;
 
-  /* ---- LOADING ---- */
-  if (loading) {
+  const hasActiveFilters = searchQuery || selectedStatus !== "ALL" || selectedPriority !== "ALL";
+
+  const clearFilters = () => {
+    setSearchInput("");
+    setSearchQuery("");
+    setSelectedStatus("ALL");
+    setSelectedPriority("ALL");
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  /* ── Loading / error states ── */
+  if (loading && orders.length === 0) {
     return (
       <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -235,7 +235,7 @@ const Orders = () => {
     );
   }
 
-  if (error) {
+  if (error && orders.length === 0) {
     return (
       <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-center">
@@ -248,16 +248,19 @@ const Orders = () => {
     );
   }
 
+  /* ================================================================
+     RENDER
+     ================================================================ */
   return (
     <div className="min-h-screen bg-slate-50/60 px-4 sm:px-6 py-8">
-      <div className="max-w-screen-xl mx-auto space-y-6">
+      <div className="max-w-screen-2xl mx-auto space-y-5">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">Orders</h1>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              {pagination.total} total orders
+              {loading ? "Loading…" : `${pagination.total.toLocaleString()} total order${pagination.total !== 1 ? "s" : ""}`}
             </p>
           </div>
           {canCreateOrder && (
@@ -274,68 +277,80 @@ const Orders = () => {
         {/* ── MAIN CARD ── */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
 
-          {/* ── FILTERS ── */}
-          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+          {/* ── FILTER BAR ── */}
+          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/40">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-              {/* Search */}
-              <div className="relative w-full lg:max-w-sm">
-                <FiSearch
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
+
+              {/*
+               * KEY FIX: The input is bound to `searchInput`, NOT `searchQuery`.
+               * onChange only updates the local `searchInput` state.
+               * The debounce useEffect above propagates it to `searchQuery` after 400ms.
+               * This means the input never loses focus during API refetches.
+               */}
+              <div className="relative flex-1 lg:max-w-xs">
+                <FiSearch size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search orders, dealers or shops…"
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); }}
-                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
                 />
+                {searchInput && (
+                  <button
+                    onClick={() => { setSearchInput(""); setSearchQuery(""); setPagination((p) => ({ ...p, page: 1 })); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+                  >
+                    <FiX size={12} />
+                  </button>
+                )}
               </div>
-              {/* Dropdowns */}
+
               <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
-                  <FiFilter size={11} />
-                  Filter
-                </div>
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                  <FiFilter size={10} />Filter
+                </span>
                 <CustomSelect
                   name="status"
                   value={selectedStatus}
-                  onChange={(e) => {
-                    setSelectedStatus(e.target.value);
-                    setPagination((prev) => ({ ...prev, page: 1 }));
-                  }}
+                  onChange={(e) => { setSelectedStatus(e.target.value); setPagination((prev) => ({ ...prev, page: 1 })); }}
                   options={getRoleBasedStatusOptions(role)}
                 />
                 <CustomSelect
                   name="priority"
                   value={selectedPriority}
-                  onChange={(e) => setSelectedPriority(e.target.value)}
+                  onChange={(e) => { setSelectedPriority(e.target.value); setPagination((prev) => ({ ...prev, page: 1 })); }}
                   options={PRIORITY_OPTIONS}
                 />
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-wide hover:bg-rose-100 transition-all"
+                  >
+                    <FiX size={10} />Clear
+                  </button>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Inline loading indicator (shows while refetching with existing results) */}
+          {loading && orders.length > 0 && (
+            <div className="px-5 py-2 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+              <span className="text-xs text-indigo-600 font-semibold">Updating results…</span>
+            </div>
+          )}
 
           {/* ── TABLE ── */}
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60">
-                  {[
-                    "Dealer & Order",
-                    "Shop",
-                    "Created",
-                    "Delivery",
-                    "Items",
-                    "Total",
-                    "Priority",
-                    "Status",
-                    "",
-                  ].map((h, i) => (
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  {["Dealer & Order", "Shop", "Created", "Delivery", "Items", "Total", "Priority", "Status", ""].map((h, i) => (
                     <th
                       key={i}
-                      className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 ${i === 8 ? "text-right" : "text-left"
-                        }`}
+                      className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${i === 8 ? "text-right" : "text-left"}`}
                     >
                       {h}
                     </th>
@@ -345,13 +360,13 @@ const Orders = () => {
               <tbody className="divide-y divide-slate-50">
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-5 py-16 text-center">
+                    <td colSpan={9} className="px-5 py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <div className="p-4 bg-slate-100 rounded-2xl">
-                          <FiPackage size={22} className="text-slate-400" />
+                        <div className="p-5 bg-slate-100 rounded-2xl">
+                          <FiPackage size={24} className="text-slate-400" />
                         </div>
-                        <p className="text-sm text-slate-400 font-semibold">No orders found</p>
-                        <p className="text-xs text-slate-300">Try adjusting your filters</p>
+                        <p className="text-sm font-semibold text-slate-500">No orders found</p>
+                        <p className="text-xs text-slate-400">Try adjusting your filters</p>
                       </div>
                     </td>
                   </tr>
@@ -374,45 +389,39 @@ const Orders = () => {
                     return (
                       <tr
                         key={order.order_number}
-                        className="hover:bg-slate-50/60 transition-colors duration-150 group"
+                        className="hover:bg-slate-50/60 transition-colors duration-100"
                       >
                         {/* Dealer + Order */}
                         <td className="px-5 py-4">
-                          <div>
-                            <p className="font-bold text-slate-900 text-sm">
-                              {capitalizeFirstLetter(order.dealer?.employee_name)}
-                            </p>
-                            <p className="text-[10px] font-mono text-slate-400 mt-0.5">
-                              {order.order_number}
-                            </p>
-                          </div>
+                          <p className="font-bold text-slate-900">{capitalizeFirstLetter(order.dealer?.employee_name)}</p>
+                          <p className="text-[10px] font-mono text-slate-400 mt-0.5">{order.order_number}</p>
                         </td>
 
                         {/* Shop */}
-                        <td className="px-5 py-4 text-slate-600 font-medium text-sm">
+                        <td className="px-5 py-4 text-slate-600 font-medium">
                           {capitalizeFirstLetter(order.dealer?.shop_name)}
                         </td>
 
                         {/* Created */}
-                        <td className="px-5 py-4 text-slate-500 whitespace-nowrap text-xs font-medium">
+                        <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
                           {formatDate(order.created_at)}
                         </td>
 
                         {/* Delivery */}
-                        <td className="px-5 py-4 text-slate-500 whitespace-nowrap text-xs font-medium">
+                        <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
                           {formatDate(finalDeliveryDate)}
                         </td>
 
                         {/* Items */}
                         <td className="px-5 py-4">
-                          <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                          <span className="inline-flex px-2 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
                             {getTotalItems(order.order_details)}
                           </span>
                         </td>
 
                         {/* Total */}
                         <td className="px-5 py-4 whitespace-nowrap">
-                          <span className="text-sm font-bold text-slate-800">
+                          <span className="text-sm font-bold text-slate-900">
                             ₹{order.order_total_price?.toLocaleString("en-IN")}
                           </span>
                         </td>
@@ -429,13 +438,13 @@ const Orders = () => {
 
                         {/* Actions */}
                         <td className="px-5 py-4">
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => navigate(`/orders/${order.order_number}`)}
                               title="View Order"
                               className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
                             >
-                              <FiEye size={15} />
+                              <FiEye size={14} />
                             </button>
                             <button
                               onClick={() =>
@@ -444,9 +453,9 @@ const Orders = () => {
                                 })
                               }
                               title="Edit Order"
-                              className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                              className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all"
                             >
-                              <FiEdit2 size={15} />
+                              <FiEdit2 size={14} />
                             </button>
                           </div>
                         </td>
@@ -462,9 +471,7 @@ const Orders = () => {
           <OrdersPagination
             currentPage={pagination.page}
             totalPages={pagination.totalPages}
-            onPageChange={(page) =>
-              setPagination((prev) => ({ ...prev, page }))
-            }
+            onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
           />
         </div>
       </div>
