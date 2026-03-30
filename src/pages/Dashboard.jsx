@@ -1,4 +1,11 @@
-// dashboard.jsx — Redesigned with clickable orders
+// dashboard.jsx — Role-aware version
+//
+// Changes vs previous version:
+//  • Recent order rows — "View →" chevron + click handler only for roles
+//    allowed on /orders/:id
+//  • Low-stock table rows — clickable to /products/:id only for allowed roles
+//  • "View Products" button in low-stock section — shown only for allowed roles
+//  All permission logic derived from routePermissions via useRouteAccess hook.
 
 import React, { useEffect, useState } from "react";
 import {
@@ -9,9 +16,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import { fetchUsers } from "../api/user";
 import { ROLES } from "../utils/roles";
-import { fetchOrders, fetchOrdersByDate } from "../api/orders";
+import { fetchOrders } from "../api/orders";
 import { fetchLowStockProducts } from "../api/products";
 import { capitalizeFirstLetter } from "../utils/constants";
+
+// ── Permission helper ─────────────────────────────────────────────────
+import { useRouteAccess } from "../hooks/useRouteAccess";
 
 /* ================================================================
    STAT CARD
@@ -85,9 +95,9 @@ const MetricCard = ({ title, value, subValue, icon, color, loading, onClick }) =
 };
 
 /* ================================================================
-   ORDER ROW — clickable
+   ORDER ROW — conditionally clickable based on role
    ================================================================ */
-const OrderRow = ({ order, onClick }) => {
+const OrderRow = ({ order, canNavigate, onClick }) => {
   const priorityStyle = {
     HIGH: "bg-rose-50 text-rose-700 border-rose-200",
     MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
@@ -105,18 +115,30 @@ const OrderRow = ({ order, onClick }) => {
     CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
   }[order?.status?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
 
+  // Render as a plain div when the role cannot navigate to order details
+  const Wrapper = canNavigate ? "button" : "div";
+  const wrapperProps = canNavigate
+    ? {
+      onClick,
+      className:
+        "w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 hover:shadow-sm hover:bg-indigo-50/20 active:scale-[0.99] transition-all duration-150 text-left group cursor-pointer",
+    }
+    : {
+      className:
+        "w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-white border border-slate-100 rounded-xl transition-all duration-150 text-left",
+    };
+
   return (
-    <button
-      onClick={onClick}
-      className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 hover:shadow-sm hover:bg-indigo-50/20 active:scale-[0.99] transition-all duration-150 text-left group"
-    >
+    <Wrapper {...wrapperProps}>
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
           <FiPackage size={13} className="text-indigo-500" />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-900 font-mono truncate">{order?.order_number}</p>
-          <p className="text-xs text-slate-400 font-medium mt-0.5 truncate">{order?.dealer?.employee_name ? capitalizeFirstLetter(order.dealer.employee_name) : "Unknown Dealer"}</p>
+          <p className="text-xs text-slate-400 font-medium mt-0.5 truncate">
+            {order?.dealer?.employee_name ? capitalizeFirstLetter(order.dealer.employee_name) : "Unknown Dealer"}
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
@@ -126,9 +148,12 @@ const OrderRow = ({ order, onClick }) => {
         <span className={`px-2.5 py-1 text-[10px] font-black rounded-full border uppercase tracking-wide ${statusStyle}`}>
           {order?.status}
         </span>
-        <FiChevronRight size={13} className="text-slate-300 group-hover:text-indigo-400 transition-colors ml-auto flex-shrink-0 hidden sm:block" />
+        {/* Chevron only shown for roles that can navigate */}
+        {canNavigate && (
+          <FiChevronRight size={13} className="text-slate-300 group-hover:text-indigo-400 transition-colors ml-auto flex-shrink-0 hidden sm:block" />
+        )}
       </div>
-    </button>
+    </Wrapper>
   );
 };
 
@@ -151,6 +176,13 @@ const SectionHeader = ({ title, subtitle, action }) => (
 const Dashboard = () => {
   const navigate = useNavigate();
 
+  // ── Permission gates ──────────────────────────────────────────────
+  const { canAccess } = useRouteAccess();
+  const canViewOrderDetails = canAccess("/orders/:id");
+  const canViewProductList = canAccess("/products");
+  const canViewProductDetail = canAccess("/products/:id");
+
+  // ── State ─────────────────────────────────────────────────────────
   const [totalOrders, setTotalOrders] = useState(0);
   const [recentOrders, setRecentOrders] = useState([]);
   const [ongoingOrders, setOngoingOrders] = useState(0);
@@ -162,20 +194,25 @@ const Dashboard = () => {
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  /* ── Data loaders ───────────────────────────────────────────────── */
   const loadOrderData = async () => {
     const totalRes = await fetchOrders({ page: 1, limit: 6, includeRejected: false });
     setTotalOrders(totalRes?.pagination?.total || 0);
     setRecentOrders(totalRes?.data || []);
+
     const ongoingStatuses = ["PENDING", "CONFIRMED", "PRODUCTION", "PACKED"];
     const ongoingResponses = await Promise.all(
       ongoingStatuses.map((s) => fetchOrders({ page: 1, limit: 1, status: s, includeRejected: false }))
     );
     setOngoingOrders(ongoingResponses.reduce((sum, res) => sum + (res?.pagination?.total || 0), 0));
+
     const now = new Date();
     const year = now.getFullYear(), month = now.getMonth() + 1;
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
     const endDate = now.toISOString().split("T")[0];
-    const monthlyRes = await fetchOrders({ page: 1, limit: 6, includeRejected: false, startDate: startDate, endDate: endDate });
+    const monthlyRes = await fetchOrders({
+      page: 1, limit: 6, includeRejected: false, startDate, endDate,
+    });
     setMonthlyOrders(monthlyRes?.pagination?.total || 0);
   };
 
@@ -186,7 +223,9 @@ const Dashboard = () => {
       { role: ROLES.SALESMAN, setter: setSalesmanCount },
       { role: ROLES.DEALER, setter: setDealerCount },
     ];
-    const responses = await Promise.all(rolesToFetch.map(({ role }) => fetchUsers({ page: 1, limit: 1, role, status: "active" })));
+    const responses = await Promise.all(
+      rolesToFetch.map(({ role }) => fetchUsers({ page: 1, limit: 1, role, status: "active" }))
+    );
     responses.forEach((res, i) => rolesToFetch[i].setter(res?.data?.total || 0));
   };
 
@@ -228,14 +267,10 @@ const Dashboard = () => {
       <div>
         <SectionHeader title="Overview" subtitle="System summary at a glance" />
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard icon={<FiUsers />} title="Total Admins" value={adminCount} color="indigo" loading={loading}
-            onClick={() => navigate("/users")} />
-          <StatCard icon={<FiUsers />} title="Total Salesmen" value={salesmanCount} color="violet" loading={loading}
-            onClick={() => navigate("/users")} />
-          <StatCard icon={<FiUsers />} title="Total Dealers" value={dealerCount} color="blue" loading={loading}
-            onClick={() => navigate("/dealers")} />
-          <StatCard icon={<FiShoppingBag />} title="Total Orders" value={totalOrders} color="emerald" loading={loading}
-            onClick={() => navigate("/orders")} />
+          <StatCard icon={<FiUsers />} title="Total Admins" value={adminCount} color="indigo" loading={loading} onClick={() => navigate("/users")} />
+          <StatCard icon={<FiUsers />} title="Total Salesmen" value={salesmanCount} color="violet" loading={loading} onClick={() => navigate("/users")} />
+          <StatCard icon={<FiUsers />} title="Total Dealers" value={dealerCount} color="blue" loading={loading} onClick={() => navigate("/dealers")} />
+          <StatCard icon={<FiShoppingBag />} title="Total Orders" value={totalOrders} color="emerald" loading={loading} onClick={() => navigate("/orders")} />
         </div>
       </div>
 
@@ -243,13 +278,27 @@ const Dashboard = () => {
       <div>
         <SectionHeader title="Business Metrics" subtitle="Performance insights" />
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <MetricCard icon={<FiTrendingUp />} title="Monthly Sales Goal" value="₹ 75,000" subValue="75% of ₹ 1,00,000 achieved" color="emerald" loading={loading} />
-          <MetricCard icon={<FiShoppingBag />} title="Orders This Month" value={monthlyOrders} color="blue" loading={loading}
-            onClick={() => navigate("/orders")} />
-          <MetricCard icon={<FiTruck />} title="Ongoing Orders" value={ongoingOrders} color="amber" loading={loading}
-            onClick={() => navigate("/orders?status=PENDING")} />
-          <MetricCard icon={<FiAlertCircle />} title="Low Stock Products" value={lowStockCount} color="rose" loading={loading}
-            onClick={() => navigate("/products")} />
+          <MetricCard
+            icon={<FiTrendingUp />} title="Monthly Sales Goal"
+            value="₹ 75,000" subValue="75% of ₹ 1,00,000 achieved"
+            color="emerald" loading={loading}
+          />
+          <MetricCard
+            icon={<FiShoppingBag />} title="Orders This Month"
+            value={monthlyOrders} color="blue" loading={loading}
+            onClick={() => navigate("/orders")}
+          />
+          <MetricCard
+            icon={<FiTruck />} title="Ongoing Orders"
+            value={ongoingOrders} color="amber" loading={loading}
+            onClick={() => navigate("/orders?status=PENDING")}
+          />
+          <MetricCard
+            icon={<FiAlertCircle />} title="Low Stock Products"
+            value={lowStockCount} color="rose" loading={loading}
+            // Only navigate to products if the role has access
+            onClick={canViewProductList ? () => navigate("/products") : undefined}
+          />
         </div>
       </div>
 
@@ -263,7 +312,7 @@ const Dashboard = () => {
             <div>
               <h2 className="text-sm font-bold text-slate-900">Recent Orders</h2>
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
-                Click any order to view details
+                {canViewOrderDetails ? "Click any order to view details" : "Latest orders overview"}
               </p>
             </div>
           </div>
@@ -279,12 +328,18 @@ const Dashboard = () => {
           {loading ? (
             <div className="space-y-2.5">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
+                <div
+                  key={i}
+                  className="h-16 bg-slate-100 rounded-xl animate-pulse"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                />
               ))}
             </div>
           ) : recentOrders?.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <div className="p-4 bg-slate-100 rounded-2xl"><FiPackage size={22} className="text-slate-400" /></div>
+              <div className="p-4 bg-slate-100 rounded-2xl">
+                <FiPackage size={22} className="text-slate-400" />
+              </div>
               <p className="text-sm font-semibold text-slate-500">No recent orders</p>
               <p className="text-xs text-slate-400">Newly placed orders will appear here.</p>
             </div>
@@ -295,7 +350,8 @@ const Dashboard = () => {
                   <OrderRow
                     key={order.order_number}
                     order={order}
-                    onClick={() => navigate(`/orders/${order.order_number}`)}
+                    canNavigate={canViewOrderDetails}
+                    onClick={canViewOrderDetails ? () => navigate(`/orders/${order.order_number}`) : undefined}
                   />
                 ) : null
               )}
@@ -319,19 +375,28 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => navigate("/products")}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 transition-colors"
-            >
-              View Products <FiArrowRight size={11} />
-            </button>
+
+            {/* ── VIEW PRODUCTS button — role-gated ── */}
+            {canViewProductList && (
+              <button
+                onClick={() => navigate("/products")}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 transition-colors"
+              >
+                View Products <FiArrowRight size={11} />
+              </button>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
                   {["Product", "Brand", "Available", "Packed", "Unpacked"].map((h) => (
-                    <th key={h} className="px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 text-left whitespace-nowrap">{h}</th>
+                    <th
+                      key={h}
+                      className="px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 text-left whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -339,8 +404,10 @@ const Dashboard = () => {
                 {lowStockProducts.map((p) => (
                   <tr
                     key={p.product_id}
-                    onClick={() => navigate(`/products/${p.product_id}`)}
-                    className="hover:bg-slate-50/60 cursor-pointer transition-colors"
+                    // Navigate only if role has product detail access
+                    onClick={canViewProductDetail ? () => navigate(`/products/${p.product_id}`) : undefined}
+                    className={`hover:bg-slate-50/60 transition-colors ${canViewProductDetail ? "cursor-pointer" : "cursor-default"
+                      }`}
                   >
                     <td className="px-5 py-3.5">
                       <p className="font-bold text-slate-900">{p.product_name}</p>
@@ -353,10 +420,14 @@ const Dashboard = () => {
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="text-xs font-semibold text-violet-600 tabular-nums">{p.stocks?.[0]?.packed_stock ?? 0}</span>
+                      <span className="text-xs font-semibold text-violet-600 tabular-nums">
+                        {p.stocks?.[0]?.packed_stock ?? 0}
+                      </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="text-xs font-semibold text-blue-600 tabular-nums">{p.stocks?.[0]?.unpacked_stock ?? 0}</span>
+                      <span className="text-xs font-semibold text-blue-600 tabular-nums">
+                        {p.stocks?.[0]?.unpacked_stock ?? 0}
+                      </span>
                     </td>
                   </tr>
                 ))}

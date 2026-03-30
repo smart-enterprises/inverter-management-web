@@ -1,3 +1,4 @@
+// Roles.js Code
 /* ===================== ROLE CONSTANTS ===================== */
 
 export const ROLES = Object.freeze({
