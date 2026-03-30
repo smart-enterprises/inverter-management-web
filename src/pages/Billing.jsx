@@ -140,8 +140,8 @@ const Billing = () => {
                 <td className="py-4 px-6 whitespace-nowrap">
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${isSent
-                        ? "bg-green-100 text-green-600"
-                        : "bg-orange-100 text-orange-600"
+                      ? "bg-green-100 text-green-600"
+                      : "bg-orange-100 text-orange-600"
                       }`}
                   >
                     {isSent ? (
@@ -193,8 +193,8 @@ const Billing = () => {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab
-                    ? "bg-white text-gray-700 shadow-sm"
-                    : "text-gray-500 hover:bg-white/60"
+                  ? "bg-white text-gray-700 shadow-sm"
+                  : "text-gray-500 hover:bg-white/60"
                   }`}
               >
                 {tab === "Pending Bills" ? (

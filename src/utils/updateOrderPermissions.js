@@ -1,5 +1,4 @@
-// utils/updateOrderPermissions.js
-
+// updateOrderPermissions.js Code
 import { ROLES } from "./roles";
 
 
@@ -17,29 +16,50 @@ export const UPDATE_ORDER_PERMISSIONS = {
     },
 
     [ROLES.SALESMAN]: {
-        editableFields: ["priority"],
         viewOnly: true,
+        editableFields: [
+            "priority",
+            "delivery_date",
+            "delivery_note",
+            "promised_delivery_date",
+        ],
     },
 
     [ROLES.PRODUCTION]: {
-        editableDetailFields: ["has_production_completed", "delivery_date"],
         viewOnly: true,
+        editableDetailFields: [
+            "has_production_completed",
+            "delivery_date",
+            "promised_delivery_date",
+            "delivery_note",
+        ],
     },
 
     [ROLES.PACKING]: {
-        editableDetailFields: ["has_unPacked_completed", "delivery_date"],
         viewOnly: true,
+        editableDetailFields: [
+            "has_unPacked_completed",
+            "delivery_date",
+            "promised_delivery_date",
+            "delivery_note",
+        ],
     },
 
     [ROLES.ACCOUNTS]: {
-        editableFields: ["payment_method", "amount_paid"],
         viewOnly: true,
+        editableFields: [
+            "payment_method",
+            "amount_paid",
+            "promised_delivery_date",
+            "delivery_date",
+            "delivery_note",
+        ],
     },
 
     [ROLES.DELIVERY]: {
-        editableFields: ["status"], // only allow DELIVERED
+        viewOnly: true,
+        editableFields: ["status"],
         editableDetailFields: ["delivered_qty"],
         restrictStatusToDelivered: true,
-        viewOnly: true,
     },
 };
