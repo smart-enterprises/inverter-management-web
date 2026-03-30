@@ -1,7 +1,8 @@
+// AppRoutes.jsx Code
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// pages 
+// Pages
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import NotFound from "../pages/NotFound";
@@ -10,6 +11,7 @@ import Users from "../pages/User";
 import Dealers from "../pages/Dealers";
 import DealerDetails from "../pages/DealerDetails";
 import Products from "../pages/Products";
+import ProductDetails from "../pages/ProductDetails";
 import Brands from "../pages/Brands";
 import Orders from "../pages/Orders";
 import CreateOrder from "../pages/CreateOrder";
@@ -21,14 +23,13 @@ import UserDetails from "../pages/UserDetails";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
-import ProductDetails from "../pages/ProductDetails";
 
 export default function AppRoutes() {
   const { isAuthenticated } = useAuth();
 
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* ── Public ─────────────────────────────────────────────────────── */}
       <Route
         path="/login"
         element={
@@ -40,7 +41,9 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Protected Routes */}
+      {/* ── Protected — ProtectedRoute handles auth + role checks ────── */}
+      {/*   If the user's role isn't allowed on a route, ProtectedRoute   */}
+      {/*   renders <AccessDenied /> automatically — no extra wiring.     */}
       <Route
         element={
           <ProtectedRoute>
@@ -72,7 +75,7 @@ export default function AppRoutes() {
         <Route path="/billing" element={<Billing />} />
       </Route>
 
-      {/* 404 */}
+      {/* ── 404 ──────────────────────────────────────────────────────── */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

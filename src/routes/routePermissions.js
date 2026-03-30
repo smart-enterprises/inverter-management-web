@@ -1,88 +1,92 @@
-// routes/routePermissions.js
-
+// routePermissions.js code 
 import { matchPath } from "react-router-dom";
 import { ROLES } from "../utils/roles";
 
 export const ROUTE_PERMISSIONS = {
+  "/dashboard": [
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+    ROLES.ACCOUNTS,
+    ROLES.SALESMAN, ROLES.PRODUCTION, ROLES.PACKING, ROLES.DELIVERY,
+  ],
+
   "/users": [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER],
+  "/users/:id": [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER],
 
   "/dealers": [
-    ROLES.SUPER_ADMIN,
-    ROLES.ADMIN,
-    ROLES.MANAGER,
-    ROLES.SUPERVISOR,
-    ROLES.SALESMAN,
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.SALESMAN,
+  ],
+  "/dealers/:id": [
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.SALESMAN,
   ],
 
   "/products": [
-    ROLES.SUPER_ADMIN,
-    ROLES.ADMIN,
-    ROLES.MANAGER,
-    ROLES.SALESMAN,
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+    ROLES.SALESMAN, ROLES.PRODUCTION, ROLES.PACKING,
+  ],
+  "/products/:id": [
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+    ROLES.SALESMAN, ROLES.PRODUCTION, ROLES.PACKING,
   ],
 
   "/brands": [
-    ROLES.SUPER_ADMIN,
-    ROLES.ADMIN,
-    ROLES.MANAGER,
-    ROLES.SALESMAN,
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.SALESMAN,
   ],
 
   "/orders": [
-    ROLES.SUPER_ADMIN,
-    ROLES.ADMIN,
-    ROLES.MANAGER,
-    ROLES.SALESMAN,
-    ROLES.PACKING,
-    ROLES.PRODUCTION
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+    ROLES.SALESMAN, ROLES.PRODUCTION, ROLES.PACKING,
+    ROLES.ACCOUNTS, ROLES.DELIVERY,
   ],
-
+  "/orders/create": [
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.SALESMAN,
+  ],
   "/orders/:id": [
-    ROLES.SUPER_ADMIN,
-    ROLES.ADMIN,
-    ROLES.MANAGER,
-    ROLES.SALESMAN,
-    ROLES.PACKING,
-    ROLES.PRODUCTION
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+    ROLES.SALESMAN, ROLES.PRODUCTION, ROLES.PACKING,
+    ROLES.ACCOUNTS, ROLES.DELIVERY,
   ],
-
   "/orders/update/:id": [
-    ROLES.SUPER_ADMIN,
-    ROLES.ADMIN,
-    ROLES.MANAGER,
-    ROLES.SALESMAN,
-    ROLES.PRODUCTION,
-    ROLES.PACKING,
-    ROLES.ACCOUNTS,
-    ROLES.DELIVERY,
-    ROLES.SUPERVISOR
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+    ROLES.SALESMAN, ROLES.PRODUCTION, ROLES.PACKING,
+    ROLES.ACCOUNTS, ROLES.DELIVERY,
   ],
 
   "/delivery": [
-    ROLES.SUPER_ADMIN,
-    ROLES.ADMIN,
-    ROLES.MANAGER,
-    ROLES.SUPERVISOR,
-    ROLES.ACCOUNTS,
-    ROLES.DELIVERY,
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+    ROLES.ACCOUNTS, ROLES.DELIVERY,
   ],
-
   "/billing": [
-    ROLES.SUPER_ADMIN,
-    ROLES.ADMIN,
-    ROLES.MANAGER,
-    ROLES.SUPERVISOR,
-    ROLES.ACCOUNTS,
-    ROLES.DELIVERY,
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+    ROLES.ACCOUNTS, ROLES.DELIVERY,
   ],
 };
 
 export const getAllowedRoles = (pathname) => {
-  for (const route in ROUTE_PERMISSIONS) {
+  const staticRoutes = [
+    "/orders/create",
+    "/orders/update/:id",
+    "/orders/:id",
+    "/users/:id",
+    "/dealers/:id",
+    "/products/:id",
+  ];
+
+  for (const route of staticRoutes) {
     const match = matchPath({ path: route, end: true }, pathname);
-    if (match) {
-      return ROUTE_PERMISSIONS[route];
-    }
+    if (match) return ROUTE_PERMISSIONS[route] ?? null;
   }
+
+  for (const route of Object.keys(ROUTE_PERMISSIONS)) {
+    if (staticRoutes.includes(route)) continue;
+    const match = matchPath({ path: route, end: true }, pathname);
+    if (match) return ROUTE_PERMISSIONS[route] ?? null;
+  }
+
   return null;
+};
+
+export const isRouteAllowed = (role, pathname) => {
+  const allowed = getAllowedRoles(pathname);
+  if (allowed === null) return true;
+  return allowed.includes(role);
 };

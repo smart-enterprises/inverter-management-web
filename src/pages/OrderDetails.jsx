@@ -1179,6 +1179,7 @@ const OrderDetails = () => {
                   options={PAYMENT_METHOD_OPTIONS}
                 />
               </FormField>
+
               <FormField label="Amount Paid">
                 <EditInput
                   type="number"
@@ -1193,6 +1194,7 @@ const OrderDetails = () => {
                   placeholder="Enter paid amount"
                 />
               </FormField>
+
               <FormField label="Delivered Date">
                 <EditInput
                   type="datetime-local"
