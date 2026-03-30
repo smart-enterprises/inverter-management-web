@@ -16,10 +16,19 @@ const buildQuery = (params = {}) => {
 //  PRODUCT CRUD OPERATIONS
 
 // 🔹 Get All Products
-export const fetchProducts = () =>
-    apiRequest("/product-details/get/all", {
+export const fetchProducts = ({
+    page = 1,
+    limit = 10,
+    search = "",
+    type = "",
+    status = "",
+} = {}) => {
+    const query = buildQuery({ page, limit, search, type, status });
+
+    return apiRequest(`/product-details/get/all?${query}`, {
         method: "GET",
     });
+};
 
 // 🔹 Get Product By ID
 export const fetchProductById = async (productId) =>
