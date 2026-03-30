@@ -1,4 +1,4 @@
-// orderDetails.jsx — Redesigned
+// orderDetails.jsx — Redesigned + PDF Generation
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
@@ -28,10 +28,13 @@ import {
   FiLayers,
   FiTrendingDown,
   FiBarChart2,
+  FiDownload,
+  FiPrinter,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrderById, updateOrderStatus } from "../api/orders";
+
 import { fetchUsers } from "../api/user";
 import { capitalizeFirstLetter } from "../utils/constants";
 import { formatDealerDiscountNotes, formatStockNotes } from "../utils/notesUtils";
@@ -44,6 +47,7 @@ import {
 import { useUpdateOrderPermissions } from "../hooks/useUpdateOrderPermissions";
 import { formatDateForInput } from "../utils/dateUtils";
 import { getAllowedNextStatuses } from "../utils/orderStatusHelper";
+import { fetchCompanyAddress } from "../api/companyAddress";
 
 /* ================================================================
    FORMAT HELPERS
@@ -126,6 +130,270 @@ const getPaymentTypeStyle = (type) => {
     ONLINE: "bg-violet-50 text-violet-700 border-violet-200",
   };
   return map[type?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
+};
+
+/* ================================================================
+   PDF GENERATION UTILITY
+   Generates a professional order invoice PDF using browser print API
+   ================================================================ */
+const generateOrderPDF = (order, companyInfo, userMap) => {
+  console.log("order", order);
+  console.log("companyInfo", companyInfo);
+  console.log("userMap", userMap);
+  const company = companyInfo || {};
+  const totalAmount = Number(order?.order_total_price ?? 0);
+  const discountAmount = Number(order?.order_total_discount ?? 0);
+  const grossAmount = totalAmount + discountAmount;
+  const amountDue = Number(order?.amount_due ?? 0);
+
+  const statusColors = {
+    PENDING: "#d97706",
+    CONFIRMED: "#2563eb",
+    PRODUCTION: "#4f46e5",
+    PACKED: "#7c3aed",
+    INVOICE: "#0891b2",
+    SHIPPED: "#ea580c",
+    DELIVERED: "#16a34a",
+    COMPLETED: "#059669",
+    CANCELLED: "#e11d48",
+    REJECTED: "#e11d48",
+  };
+  const statusColor = statusColors[order?.status?.toUpperCase()] || "#64748b";
+
+  const paymentStatusColors = {
+    PAID: "#059669",
+    UNPAID: "#e11d48",
+    PARTIAL: "#d97706",
+    REFUNDED: "#2563eb",
+  };
+  const paymentColor = paymentStatusColors[order?.payment_status?.toUpperCase()] || "#64748b";
+
+  const itemsHTML = (order?.order_details || [])
+    .map((d, i) => {
+      const totalOrdered = Number(d.total_qty_ordered ?? d.qty_ordered ?? 0);
+      const delivered = Number(d.qty_delivered ?? 0);
+      const cancelled = Number(d.qty_cancelled ?? d.total_cancelled_qty ?? 0);
+      const hasDiscount = !d.is_free && d.total_dealer_discount && d.total_dealer_discount > 0;
+      const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
+
+      return `
+        <tr style="background:${bg};">
+          <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0;">
+            <div style="font-weight:700; color:#0f172a; font-size:12px;">${capitalizeFirstLetter(d.product_name)}</div>
+            <div style="font-size:10px; color:#94a3b8; margin-top:2px;">${capitalizeFirstLetter(d.product_brand || "")} · ${capitalizeFirstLetter(d.product_model || "")} · <span style="font-family:monospace;">${d.product_id}</span></div>
+            ${d.is_free ? `<span style="font-size:9px; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; padding:1px 6px; border-radius:20px; font-weight:700;">FREE ITEM</span>` : ""}
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:center; font-weight:700; color:#0f172a; font-size:13px;">${totalOrdered}</td>
+          <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:center; font-size:11px; color:#94a3b8;">${delivered} / ${cancelled}</td>
+          <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right; font-size:12px; color:#334155;">₹${Number(d.unit_product_price || 0).toLocaleString("en-IN")}</td>
+          <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right;">
+            ${d.is_free
+          ? `<span style="font-size:11px; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; padding:2px 8px; border-radius:20px; font-weight:700;">FREE</span>`
+          : `<div style="font-weight:800; color:#0f172a; font-size:13px;">₹${Number(d.total_price || 0).toLocaleString("en-IN")}</div>
+                 ${hasDiscount ? `<div style="font-size:10px; color:#10b981; margin-top:2px;">− ₹${Number(d.total_dealer_discount).toLocaleString("en-IN")} disc.</div>` : ""}`
+        }
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">
+            <span style="font-size:9px; font-weight:700; padding:2px 8px; border-radius:20px; background:${statusColors[d?.status?.toUpperCase()] || "#64748b"}20; color:${statusColors[d?.status?.toUpperCase()] || "#64748b"}; border:1px solid ${statusColors[d?.status?.toUpperCase()] || "#64748b"}40; text-transform:uppercase; letter-spacing:0.05em;">${d.status || "—"}</span>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Order ${order?.order_number}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: #fff; color: #0f172a; font-size: 13px; line-height: 1.5; }
+    .page { max-width: 820px; margin: 0 auto; padding: 32px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0; }
+    .company-block { flex: 1; }
+    .company-name { font-size: 20px; font-weight: 900; color: #0f172a; letter-spacing: -0.02em; }
+    .company-gst { font-size: 10px; color: #94a3b8; font-weight: 600; margin-top: 2px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .company-contact { margin-top: 8px; font-size: 11px; color: #64748b; line-height: 1.6; }
+    .order-block { text-align: right; }
+    .order-number { font-size: 22px; font-weight: 900; color: #4f46e5; font-family: monospace; letter-spacing: -0.02em; }
+    .order-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #94a3b8; margin-bottom: 4px; }
+    .order-date { font-size: 11px; color: #64748b; margin-top: 4px; }
+    .badges { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+    .badge { font-size: 9px; font-weight: 800; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.08em; border: 1px solid; }
+    .section-title { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.14em; color: #94a3b8; margin-bottom: 10px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .info-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; }
+    .info-card-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #94a3b8; margin-bottom: 6px; }
+    .info-card-value { font-size: 13px; font-weight: 700; color: #0f172a; }
+    .info-card-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .items-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .items-table thead tr { background: #f1f5f9; }
+    .items-table thead th { padding: 10px 12px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    .items-table thead th:nth-child(2), .items-table thead th:nth-child(3) { text-align: center; }
+    .items-table thead th:nth-child(4), .items-table thead th:nth-child(5) { text-align: right; }
+    .items-table thead th:nth-child(6) { text-align: center; }
+    .financial-block { display: flex; justify-content: flex-end; margin-bottom: 24px; }
+    .financial-card { width: 320px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+    .financial-card-header { background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.12em; color: #64748b; }
+    .financial-row { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 16px; border-bottom: 1px solid #f1f5f9; }
+    .financial-row:last-child { border-bottom: none; }
+    .financial-label { font-size: 12px; color: #64748b; font-weight: 500; }
+    .financial-value { font-size: 13px; font-weight: 700; color: #0f172a; }
+    .financial-total-row { background: #f8fafc; padding: 12px 16px; border-top: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: baseline; }
+    .financial-total-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #0f172a; }
+    .financial-total-value { font-size: 20px; font-weight: 900; color: #0f172a; }
+    .balance-row { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+    .footer { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .footer-note { font-size: 10px; color: #94a3b8; font-weight: 500; }
+    .footer-company { font-size: 11px; font-weight: 700; color: #64748b; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="company-block">
+      ${company.company_logo ? `<img src="${company.company_logo}" alt="Logo" style="height:40px; margin-bottom:8px; object-fit:contain;" onerror="this.style.display='none'"/>` : ""}
+      <div class="company-name">${company.company_name || "Company"}</div>
+      ${company.gst_number ? `<div class="company-gst">GST: ${company.gst_number}</div>` : ""}
+      <div class="company-contact">
+        ${[company.address_line_1, company.address_line_2, company.city, company.state, company.pincode, company.country].filter(Boolean).join(", ")}
+        ${company.phone ? `<br/>📞 ${company.phone}` : ""}
+        ${company.email ? ` &nbsp;·&nbsp; ✉ ${company.email}` : ""}
+      </div>
+    </div>
+    <div class="order-block">
+      <div class="order-label">Order Invoice</div>
+      <div class="order-number">${order?.order_number}</div>
+      <div class="order-date">Created: ${formatDate(order?.created_at)}</div>
+      <div class="badges">
+        <span class="badge" style="background:${statusColor}18; color:${statusColor}; border-color:${statusColor}40;">${order?.status}</span>
+        <span class="badge" style="background:${paymentColor}18; color:${paymentColor}; border-color:${paymentColor}40;">${order?.payment_status}</span>
+        ${order?.priority ? `<span class="badge" style="background:#f1f5f9; color:#64748b; border-color:#e2e8f0;">${order.priority}</span>` : ""}
+      </div>
+    </div>
+  </div>
+
+  <!-- INFO GRID -->
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="info-card-label">Dealer</div>
+      <div class="info-card-value">${capitalizeFirstLetter(order?.dealer?.employee_name) || "—"}</div>
+      <div class="info-card-sub">${capitalizeFirstLetter(order?.dealer?.shop_name) || ""}</div>
+      <div class="info-card-sub" style="margin-top:4px; font-size:10px; color:#94a3b8;">
+        ${[order?.dealer?.employee_phone, order?.dealer?.employee_email].filter(Boolean).join("  ·  ")}
+      </div>
+      ${order?.dealer?.address ? `<div class="info-card-sub" style="margin-top:4px; font-size:10px;">${capitalizeFirstLetter(order.dealer.address)}</div>` : ""}
+    </div>
+    <div class="info-card">
+      <div class="info-card-label">Order Details</div>
+      <div class="info-card-sub" style="display:flex; flex-direction:column; gap:4px;">
+        <span><strong>Salesman:</strong> ${userMap[order?.salesman_id] || order?.salesman_id || "—"}</span>
+        <span><strong>Created by:</strong> ${userMap[order?.created_by] || order?.created_by || "—"}</span>
+        <span><strong>Delivery by:</strong> ${order?.promised_delivery_date ? formatDate(order.promised_delivery_date) : "N/A"}</span>
+        <span><strong>Payment type:</strong> ${order?.payment_type || "—"}</span>
+      </div>
+    </div>
+  </div>
+
+  ${order?.order_note ? `
+  <div style="margin-bottom:20px; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:12px 16px;">
+    <div class="section-title" style="color:#b45309;">Order Note</div>
+    <div style="font-size:12px; color:#78350f;">${order.order_note}</div>
+  </div>
+  ` : ""}
+
+  <!-- ITEMS TABLE -->
+  <div class="section-title">Order Items</div>
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Qty</th>
+        <th>Delivered / Cancelled</th>
+        <th style="text-align:right;">Unit Price</th>
+        <th style="text-align:right;">Total</th>
+        <th style="text-align:center;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemsHTML}
+    </tbody>
+  </table>
+
+  <!-- FINANCIAL SUMMARY -->
+  <div class="financial-block">
+    <div class="financial-card">
+      <div class="financial-card-header">Financial Summary</div>
+      <div class="financial-row">
+        <span class="financial-label">Gross Total</span>
+        <span class="financial-value">₹${grossAmount.toLocaleString("en-IN")}</span>
+      </div>
+      ${discountAmount > 0 ? `
+      <div class="financial-row">
+        <span class="financial-label" style="color:#10b981;">Total Discount</span>
+        <span class="financial-value" style="color:#10b981;">− ₹${discountAmount.toLocaleString("en-IN")}</span>
+      </div>` : ""}
+      <div class="financial-total-row">
+        <span class="financial-total-label">Net Payable</span>
+        <span class="financial-total-value">₹${totalAmount.toLocaleString("en-IN")}</span>
+      </div>
+      ${amountDue > 0 ? `
+      <div class="balance-row" style="background:#fff1f2;">
+        <div>
+          <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:#e11d48;">Balance Due</div>
+          <div style="font-size:10px; color:#94a3b8; margin-top:1px;">To be collected</div>
+        </div>
+        <span style="font-size:18px; font-weight:900; color:#e11d48;">₹${amountDue.toLocaleString("en-IN")}</span>
+      </div>` : `
+      <div class="balance-row" style="background:#f0fdf4;">
+        <div>
+          <div style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:#16a34a;">Fully Paid</div>
+          <div style="font-size:10px; color:#94a3b8; margin-top:1px;">No dues remaining</div>
+        </div>
+        <span style="font-size:18px; font-weight:900; color:#16a34a;">₹0</span>
+      </div>`}
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-note">
+      Generated on ${new Date().toLocaleString("en-IN", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+    </div>
+    <div class="footer-company">${company.company_name || ""}</div>
+  </div>
+
+</div>
+</body>
+</html>`;
+
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+  if (!printWindow) {
+    Swal.fire({
+      icon: "warning",
+      title: "Popup Blocked",
+      text: "Please allow popups for this site to download the PDF.",
+    });
+    return;
+  }
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.onload = () => {
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 400);
+  };
 };
 
 /* ================================================================
@@ -459,7 +727,7 @@ const UpdateFinancialSummary = ({ order, amountPaid }) => (
 const OrderDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();   // ← detect openEditMode from navigation state
+  const location = useLocation();
 
   const [order, setOrder] = useState(null);
   const [userMap, setUserMap] = useState({});
@@ -472,13 +740,16 @@ const OrderDetails = () => {
   const [amountPaid, setAmountPaid] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
+  /* ── PDF state ── */
+  const [companyInfo, setCompanyInfo] = useState({});
+  const [pdfLoading, setPdfLoading] = useState(false);
+
   const permissions = useUpdateOrderPermissions();
 
   /* ---- Open edit mode if navigated from Orders list with state ---- */
   useEffect(() => {
     if (location.state?.openEditMode) {
       setIsEditMode(true);
-      // Clear the state so refreshing doesn't re-trigger it
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -542,6 +813,48 @@ const OrderDetails = () => {
       setLoading(false);
     }
   }, [id]);
+
+  // ✅ Fix validator (handle empty object correctly)
+  const isValidCompany = (data) => {
+    return (
+      data !== null &&
+      data !== undefined &&
+      typeof data === "object" &&
+      !Array.isArray(data) &&
+      Object.keys(data).length > 0
+    );
+  };
+
+  /* ---- FETCH COMPANY (lazy — only when PDF requested) ---- */
+  const loadCompanyAndGeneratePDF = useCallback(async () => {
+    if (!order) return;
+
+    setPdfLoading(true);
+
+    try {
+      let company = companyInfo;
+
+      if (!isValidCompany(company)) {
+        const res = await fetchCompanyAddress();
+
+        if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+          company = res.data[0];
+          setCompanyInfo(company);
+        }
+      }
+
+      generateOrderPDF(order, company, userMap);
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "PDF Generation Failed",
+        text: err.message || "Could not fetch company details. Please try again.",
+      });
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [order, companyInfo, userMap]);
 
   useEffect(() => {
     loadOrder();
@@ -709,6 +1022,27 @@ const OrderDetails = () => {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
+            {/* ── PDF / Print Button ── */}
+            <button
+              type="button"
+              onClick={loadCompanyAndGeneratePDF}
+              disabled={pdfLoading}
+              title="Download / Print PDF Invoice"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              {pdfLoading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  Generating…
+                </>
+              ) : (
+                <>
+                  <FiPrinter size={13} />
+                  Print / PDF
+                </>
+              )}
+            </button>
+
             {!isEditMode ? (
               <button
                 type="button"

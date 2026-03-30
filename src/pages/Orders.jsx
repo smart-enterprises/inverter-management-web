@@ -1,9 +1,9 @@
-// orders.jsx — Search debounce fix + redesigned
+// orders.jsx — Search debounce fix + redesigned + date range filter
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   FiPlus, FiSearch, FiEye, FiChevronLeft, FiChevronRight, FiEdit2,
-  FiPackage, FiFilter, FiAlertCircle, FiX,
+  FiPackage, FiFilter, FiAlertCircle, FiX, FiCalendar,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
@@ -109,6 +109,33 @@ const StatusBadge = ({ status }) => {
 };
 
 /* ================================================================
+   DATE INPUT — styled consistently with the rest of the filter bar
+   ================================================================ */
+const DateInput = ({ value, onChange, placeholder, max }) => (
+  <div className="relative">
+    <FiCalendar
+      size={12}
+      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+    />
+    <input
+      type="date"
+      value={value}
+      onChange={onChange}
+      max={max}
+      className="pl-8 pr-3 py-2.5 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all cursor-pointer"
+    />
+    {value && (
+      <button
+        onClick={() => onChange({ target: { value: "" } })}
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+      >
+        <FiX size={10} />
+      </button>
+    )}
+  </div>
+);
+
+/* ================================================================
    MAIN — Orders
    ================================================================ */
 const Orders = () => {
@@ -139,13 +166,15 @@ const Orders = () => {
    * FIX: Split search into two separate states:
    *   searchInput  — bound directly to the <input>, never triggers a fetch
    *   searchQuery  — debounced value that actually drives the API call
-   * Without this split, every keystroke updates queryParams → triggers useEffect
-   * → re-renders the whole list and unmounts the input → loses focus.
    */
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [selectedPriority, setSelectedPriority] = useState("ALL");
+
+  /* ── Date range filter state ── */
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   /* Role-based default status */
   useEffect(() => {
@@ -171,8 +200,10 @@ const Orders = () => {
       status: selectedStatus !== "ALL" ? selectedStatus : undefined,
       priority: selectedPriority !== "ALL" ? selectedPriority : undefined,
       search: searchQuery || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
     }),
-    [pagination.page, pagination.limit, selectedStatus, selectedPriority, searchQuery]
+    [pagination.page, pagination.limit, selectedStatus, selectedPriority, searchQuery, startDate, endDate]
   );
 
   /* Fetch orders */
@@ -210,13 +241,20 @@ const Orders = () => {
   const getTotalItems = (details) =>
     details?.reduce((sum, item) => sum + (item.qty_ordered || 0), 0) || 0;
 
-  const hasActiveFilters = searchQuery || selectedStatus !== "ALL" || selectedPriority !== "ALL";
+  const hasActiveFilters =
+    searchQuery ||
+    selectedStatus !== "ALL" ||
+    selectedPriority !== "ALL" ||
+    startDate ||
+    endDate;
 
   const clearFilters = () => {
     setSearchInput("");
     setSearchQuery("");
     setSelectedStatus("ALL");
     setSelectedPriority("ALL");
+    setStartDate("");
+    setEndDate("");
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
@@ -278,56 +316,104 @@ const Orders = () => {
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
 
           {/* ── FILTER BAR ── */}
-          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/40">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          <div className="px-5 py-3 border-b border-slate-200 bg-white">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
 
-              {/*
-               * KEY FIX: The input is bound to `searchInput`, NOT `searchQuery`.
-               * onChange only updates the local `searchInput` state.
-               * The debounce useEffect above propagates it to `searchQuery` after 400ms.
-               * This means the input never loses focus during API refetches.
-               */}
-              <div className="relative flex-1 lg:max-w-xs">
-                <FiSearch size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              {/* LEFT: Search */}
+              <div className="relative flex-1 min-w-[220px] max-w-sm">
+                <FiSearch
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
                 <input
                   type="text"
-                  placeholder="Search orders, dealers or shops…"
+                  placeholder="Search orders, dealers, shops..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
+                  className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition"
                 />
                 {searchInput && (
                   <button
-                    onClick={() => { setSearchInput(""); setSearchQuery(""); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+                    onClick={() => {
+                      setSearchInput("");
+                      setSearchQuery("");
+                      setPagination((p) => ({ ...p, page: 1 }));
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
-                    <FiX size={12} />
+                    <FiX size={13} />
                   </button>
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5">
+              {/* RIGHT: Filters */}
+              <div className="flex items-center gap-2 flex-wrap">
+
                 <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                   <FiFilter size={10} />Filter
                 </span>
+
+                {/* Status */}
                 <CustomSelect
                   name="status"
                   value={selectedStatus}
-                  onChange={(e) => { setSelectedStatus(e.target.value); setPagination((prev) => ({ ...prev, page: 1 })); }}
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value);
+                    setPagination((prev) => ({ ...prev, page: 1 }));
+                  }}
                   options={getRoleBasedStatusOptions(role)}
                 />
+
+                {/* Priority */}
                 <CustomSelect
                   name="priority"
                   value={selectedPriority}
-                  onChange={(e) => { setSelectedPriority(e.target.value); setPagination((prev) => ({ ...prev, page: 1 })); }}
+                  onChange={(e) => {
+                    setSelectedPriority(e.target.value);
+                    setPagination((prev) => ({ ...prev, page: 1 }));
+                  }}
                   options={PRIORITY_OPTIONS}
                 />
+
+                {/* Date Range */}
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                  <FiCalendar size={12} className="text-slate-400" title="Date Filter" />
+
+                  <DateInput
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      if (endDate && e.target.value > endDate) setEndDate("");
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                    }}
+                    className="bg-transparent text-xs focus:outline-none"
+                  />
+                  <span className="text-xs text-slate-400">–</span>
+                  <DateInput
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                    }}
+                    className="bg-transparent text-xs focus:outline-none"
+                  />
+
+                  {/* Active indicator */}
+                  {(startDate || endDate) && (
+                    <span className="ml-1 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full">
+                      Active
+                    </span>
+                  )}
+                </div>
+
+                {/* Clear */}
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-wide hover:bg-rose-100 transition-all"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-md hover:bg-rose-100 transition"
                   >
-                    <FiX size={10} />Clear
+                    <FiX size={12} />
+                    Clear
                   </button>
                 )}
               </div>
