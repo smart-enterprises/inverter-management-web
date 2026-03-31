@@ -1,91 +1,103 @@
-import { API_BASE_URL } from '../utils/api';
+import { apiRequest } from "./apiClient.js";
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
-};
+/* ========================= DEALER APIs ========================= */
+export const fetchDealers = ({
+  page = 1,
+  limit = 10,
+  role = "ROLE_DEALER",
+  search = "",
+  status = "",
+  includePassword = false,
+  includeDealers = false,
+} = {}) => {
+  const query = new URLSearchParams();
 
-export const fetchDealers = async (page = 1, limit = 1000) => {
-  const response = await fetch(`${API_BASE_URL}/employees/dealers/get/?page=${page}&limit=${limit}`, {
-    headers: { ...getAuthHeaders() },
+  query.set("page", String(page));
+  query.set("limit", String(limit));
+
+  if (role) query.append("role", role);
+  if (search.trim()) {
+    query.set("search", search.trim());
+  }
+
+  if (status) {
+    query.set("status", status);
+  }
+
+  query.set("includePassword", String(Boolean(includePassword)));
+  query.set("includeDealers", String(Boolean(includeDealers)));
+
+  return apiRequest(`/employees?${query.toString()}`, {
+    method: "GET",
   });
-  return response.json();
 };
 
-export const fetchDealerById = async (id) => {
-  const response = await fetch(`${API_BASE_URL}/employees/${id}`, {
-    headers: { ...getAuthHeaders() },
+export const fetchDealerById = (id) =>
+  apiRequest(`/employees/${id}`, {
+    method: "GET",
   });
-  return response.json();
-};
 
-export const createDealer = async (payload) => {
-  const response = await fetch(`${API_BASE_URL}/employees/signup`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+export const createDealer = (payload) =>
+  apiRequest(`/employees/signup`, {
+    method: "POST",
     body: JSON.stringify(payload),
   });
-  return response.json();
-};
 
-export const updateDealer = async (id, payload) => {
-  const response = await fetch(`${API_BASE_URL}/employees/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+export const updateDealer = (id, payload) =>
+  apiRequest(`/employees/${id}`, {
+    method: "PUT",
     body: JSON.stringify(payload),
   });
-  return response.json();
-};
 
-export const deleteDealerById = async (employeeId, reason) => {
-  const response = await fetch(`${API_BASE_URL}/employees/update/delete-employee`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+export const deleteDealer = (employeeId, reason) =>
+  apiRequest(`/employees/update/delete-employee`, {
+    method: "PUT",
     body: JSON.stringify({ employeeId, reason }),
   });
-  return response.json();
-}; 
 
+/* ========================= DEALER DISCOUNT APIs ========================= */
 
-export const fetchDealerDiscounts = async ({ page = 1, limit = 30, dealer_id } = {}) => {
-  const params = new URLSearchParams();
-  params.set('page', String(page));
-  params.set('limit', String(limit));
+export const fetchDealerDiscounts = ({
+  page = 1,
+  limit = 100,
+  dealer_id,
+  product_id,
+  brand_name,
+  model_name,
+}) => {
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("limit", String(limit));
 
   const payload = {};
   if (dealer_id) payload.dealer_id = dealer_id;
+  if (product_id) payload.product_id = product_id;
+  if (brand_name) payload.brand_name = brand_name;
+  if (model_name) payload.model_name = model_name;
 
-  const response = await fetch(`${API_BASE_URL}/employees/dealer/get-discounts?${params.toString()}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify(payload),
-  });
-  return response.json();
+  return apiRequest(
+    `/employees/dealer/get-discounts?${query.toString()}`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
 };
 
-export const createDealerDiscounts = async (payloadArray) => {
-  const response = await fetch(`${API_BASE_URL}/employees/dealer/create-discounts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+export const createDealerDiscount = (payload) =>
+  apiRequest(`/employees/dealer/create-discount`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const createDealerDiscounts = (payloadArray) =>
+  apiRequest(`/employees/dealer/create-discounts`, {
+    method: "POST",
     body: JSON.stringify(payloadArray),
   });
-  return response.json();
-};
 
-export const getDealerDiscountByProduct = async (dealerId, productId, page = 1, limit = 30) => {
-  const params = new URLSearchParams();
-  params.set('page', String(page));
-  params.set('limit', String(limit));
-
-  const payload = {
-    dealer_id: dealerId,
-    product_id: productId
-  };
-
-  const response = await fetch(`${API_BASE_URL}/employees/dealer/get-discounts?${params.toString()}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+export const updateDealerDiscount = (payload) =>
+  apiRequest(`/employees/dealer/update-discount`, {
+    method: "PUT",
     body: JSON.stringify(payload),
   });
-  return response.json();
-};

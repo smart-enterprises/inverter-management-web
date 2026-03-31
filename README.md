@@ -42,11 +42,14 @@ npm install
 yarn install
 ```
 
-3. Start the development server:
-```bash
-npm start
-# or
-yarn start
+3. Start the Development Server:
+  Use one of the following commands based on your package manager:
+
+  Using npm
+  npm run dev
+
+  Using yarn
+  yarn dev
 ```
 
 4. Open [http://localhost:3000](http://localhost:3000) to view it in your browser.

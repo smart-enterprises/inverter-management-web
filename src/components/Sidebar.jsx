@@ -1,3 +1,4 @@
+import React, { memo, useMemo, useCallback } from "react";
 import {
   FiUsers,
   FiPackage,
@@ -12,125 +13,88 @@ import {
   FiShield,
 } from "react-icons/fi";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { ROUTE_PERMISSIONS } from "../routes/routePermissions";
 
+/* ─────────────────────────────────────────────────────────────
+   NAV_ITEMS
+   ───────────────────────────────────────────────────────────── */
+const NAV_ITEMS = [
+  { icon: FiBarChart2, label: "Dashboard", path: "/dashboard" },
+  { icon: FiUsers, label: "Users", path: "/users" },
+  { icon: FiUser, label: "Dealers", path: "/dealers" },
+  { icon: FiBox, label: "Products", path: "/products" },
+  { icon: FiShield, label: "Brands", path: "/brands" },
+  { icon: FiClipboard, label: "Orders", path: "/orders" },
+  { icon: FiTruck, label: "Delivery", path: "/delivery" },
+  { icon: FiPackage, label: "Billing", path: "/billing" },
+];
+
+/* ─────────────────────────────────────────────────────────────
+   Helpers
+   ───────────────────────────────────────────────────────────── */
+const isItemVisibleForRole = (path, role) => {
+  const allowedRoles = ROUTE_PERMISSIONS[path];
+  if (!allowedRoles || allowedRoles.length === 0) return true;
+  if (!role) return false;
+  return allowedRoles.includes(role);
+};
+
+const isPathActive = (pathname, path) => {
+  if (path === "/dealers" || path === "/orders") {
+    return pathname.startsWith(path);
+  }
+  return pathname === path;
+};
+
+/* ─────────────────────────────────────────────────────────────
+   Sidebar
+   ───────────────────────────────────────────────────────────── */
 const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
   const location = useLocation();
-
-  const isPathActive = (path) => {
-    if (path === '/dealers') {
-      return location.pathname.startsWith('/dealers');
-    }
-    if (path === '/orders') {
-      return location.pathname.startsWith('/orders');
-    }
-    return location.pathname === path;
-  };
+  const { user } = useAuth();
+  const role = user?.role;
 
   const finalIsCollapsed = isCollapsed && !isMobileMenuOpen;
 
-  return (
-    <aside
-      className={`bg-white h-screen border-r border-gray-100 fixed left-0 top-0 transition-all duration-300 z-20 ${
-        finalIsCollapsed ? "w-16" : "w-64"
-      }`}
-    >
-      <div className="flex flex-col h-full">
-        <div className="p-8 relative">
-          <div className="flex justify-center mb-6">
-            <Link
-              to="/dashboard"
-              className={`flex items-center gap-2 ${
-                finalIsCollapsed ? "justify-center" : ""
-              }`}
-            >
-              <span className="text-2xl">🌀</span>
-              <span
-                className={`text-lg font-semibold transition-opacity duration-200 ${
-                  finalIsCollapsed ? "opacity-0 absolute" : "opacity-100"
-                }`}
-              >
-                Inverter MS
-              </span>
-            </Link>
-          </div>
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute -right-3 top-9 bg-white rounded-full p-1 shadow-sm border border-gray-100 hover:border-gray-200 transition-all hidden lg:block"
-          >
-            {finalIsCollapsed ? (
-              <FiChevronRight size={16} />
-            ) : (
-              <FiChevronLeft size={16} />
-            )}
-          </button>
-          <div className="border-b border-gray-100"></div>
-        </div>
+  const navItems = useMemo(
+    () => NAV_ITEMS.filter((item) => isItemVisibleForRole(item.path, role)),
+    [role]
+  );
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <NavItem
-            icon={<FiBarChart2 />}
-            label="Dashboard"
-            to="/dashboard"
-            active={isPathActive("/dashboard")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiUsers />}
-            label="Users"
-            to="/users"
-            active={isPathActive("/users")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiUser />}
-            label="Dealers"
-            to="/dealers"
-            active={isPathActive("/dealers")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiBox />}
-            label="Products"
-            to="/products"
-            active={isPathActive("/products")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiShield />}
-            label="Brands"
-            to="/brands"
-            active={isPathActive("/brands")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiClipboard />}
-            label="Orders"
-            to="/orders"
-            active={isPathActive("/orders")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiTruck />}
-            label="Delivery"
-            to="/delivery"
-            active={isPathActive("/delivery")}
-            isCollapsed={finalIsCollapsed}
-          />
-          <NavItem
-            icon={<FiPackage />}
-            label="Billing"
-            to="/billing"
-            active={isPathActive("/billing")}
-            isCollapsed={finalIsCollapsed}
-          />
+  const toggleSidebar = useCallback(
+    () => setIsCollapsed((prev) => !prev),
+    [setIsCollapsed]
+  );
+
+  return (
+    <aside className={`sidebar ${finalIsCollapsed ? "sidebar--collapsed" : "sidebar--expanded"}`}>
+      <div className="flex flex-col h-full">
+
+        <SidebarHeader
+          isCollapsed={finalIsCollapsed}
+          toggleSidebar={toggleSidebar}
+        />
+
+        <nav className="sidebar-nav">
+          {navItems.map((item) => (
+            <NavItem
+              key={item.path}
+              icon={item.icon}
+              label={item.label}
+              to={item.path}
+              active={isPathActive(location.pathname, item.path)}
+              isCollapsed={finalIsCollapsed}
+            />
+          ))}
         </nav>
 
-        <div className="px-3 py-4 space-y-1">
+        <div className="sidebar-footer">
           <NavItem
-            icon={<FiSettings />}
+            icon={FiSettings}
             label="Settings"
             to="/settings"
-            active={isPathActive("/settings")}
+            active={isPathActive(location.pathname, "/settings")}
             isCollapsed={finalIsCollapsed}
           />
         </div>
@@ -139,20 +103,59 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
   );
 };
 
-const NavItem = ({ icon, label, to, active, isCollapsed }) => (
+/* ─────────────────────────────────────────────────────────────
+   SidebarHeader
+   ───────────────────────────────────────────────────────────── */
+const SidebarHeader = memo(({ isCollapsed, toggleSidebar }) => (
+  <div className="sidebar-header">
+    <Link
+      to="/dashboard"
+      className={`sidebar-header__link ${isCollapsed ? "sidebar-header__link--centered" : ""}`}
+    >
+      <img
+        src="/logo.png"
+        alt="Smart Enterprises"
+        className="sidebar-logo"
+      />
+
+      <div className={`sidebar-brand ${isCollapsed ? "sidebar-brand--hidden" : "sidebar-brand--visible"}`}>
+        <span className="sidebar-brand__smart">SMART</span>
+        <span className="sidebar-brand__sub">Enterprises</span>
+      </div>
+    </Link>
+
+    <button
+      onClick={toggleSidebar}
+      className="sidebar-toggle"
+      aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+    >
+      {isCollapsed ? <FiChevronRight size={14} /> : <FiChevronLeft size={14} />}
+    </button>
+  </div>
+));
+
+SidebarHeader.displayName = "SidebarHeader";
+
+/* ─────────────────────────────────────────────────────────────
+   NavItem
+   ───────────────────────────────────────────────────────────── */
+const NavItem = memo(({ icon: Icon, label, to, active, isCollapsed }) => (
   <Link
     to={to}
-    className={`relative flex items-center ${
-      isCollapsed ? "justify-center" : ""
-    } px-3 py-2.5 rounded-lg transition-all group ${
-      active ? "bg-[#9333EA]/10 text-[#9333EA]" : "text-gray-600 hover:bg-gray-50"
-    }`}
+    className={[
+      "nav-item",
+      active ? "nav-item--active" : "",
+      isCollapsed ? "nav-item--centered" : "",
+    ].filter(Boolean).join(" ")}
   >
-    <span className={`text-xl ${active ? "text-[#9333EA]" : "text-gray-500"}`}>{icon}</span>
+    <Icon className="nav-item__icon" />
+
     {!isCollapsed && (
-      <span className={`ml-3 text-sm font-medium ${active ? "text-[#9333EA]" : "text-gray-600"}`}>{label}</span>
+      <span className="nav-item__label">{label}</span>
     )}
   </Link>
-);
+));
 
-export default Sidebar;
+NavItem.displayName = "NavItem";
+
+export default memo(Sidebar);

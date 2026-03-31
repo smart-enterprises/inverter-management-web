@@ -1,64 +1,85 @@
-import { API_BASE_URL } from '../utils/api';
+import { apiRequest } from "./apiClient.js";
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
+//  QUERY BUILDER
+const buildQuery = (params = {}) => {
+    const query = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+            query.append(key, value);
+        }
+    });
+
+    return query.toString();
 };
 
-export const fetchProducts = async () => {
-  const response = await fetch(`${API_BASE_URL}/product-details/get/all`, {
-    headers: { ...getAuthHeaders() },
-  });
-  return response.json();
+//  PRODUCT CRUD OPERATIONS
+
+// 🔹 Get All Products
+export const fetchProducts = ({
+    page = 1,
+    limit = 10,
+    search = "",
+    type = "",
+    status = "",
+} = {}) => {
+    const query = buildQuery({ page, limit, search, type, status });
+
+    return apiRequest(`/product-details/get/all?${query}`, {
+        method: "GET",
+    });
 };
 
-export const fetchProductById = async (productId) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/${productId}`, {
-    headers: { ...getAuthHeaders() },
-  });
-  return response.json();
-};
+// 🔹 Get Product By ID
+export const fetchProductById = async (productId) =>
+    apiRequest(`/product-details/${productId}`, {
+        method: "GET",
+    });
 
-export const createProduct = async (productData) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/create`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify(productData),
-  });
-  return response.json();
-};
+// 🔹 Create Product
+export const createProduct = async (productData) =>
+    apiRequest("/product-details/create-product", {
+        method: "POST",
+        body: JSON.stringify(productData),
+    });
 
-export const updateProduct = async (productId, productData) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/${productId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify(productData),
-  });
-  return response.json();
-};
+// 🔹 Update Product
+export const updateProduct = async (productId, productData) =>
+    apiRequest(`/product-details/${productId}`, {
+        method: "PUT",
+        body: JSON.stringify(productData),
+    });
 
-export const deleteProduct = async (productId) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/delete/${productId}`, {
-    method: 'DELETE',
-    headers: { ...getAuthHeaders() },
-  });
-  return response.json();
-};
+// 🔹 Delete Product
+export const deleteProduct = async (productId) =>
+    apiRequest(`/product-details/delete/${productId}`, {
+        method: "DELETE",
+    });
 
-export const updateProductStock = async (stockData) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/createOrUpdate/product-stocks`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify(stockData),
-  });
-  return response.json();
-};
+// 🔹 Create / Update Stock
+export const updateProductStock = async (stockData) =>
+    apiRequest("/product-details/createOrUpdate/product-stocks", {
+        method: "PUT",
+        body: JSON.stringify(stockData),
+    });
 
-export const fetchProductsByBrands = async (brands) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/getAllProductsByBrand`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify({ brands }),
-  });
-  return response.json();
+// 🔹 Fetch Products By Brands
+export const fetchProductsByBrands = async (brands = []) =>
+    apiRequest("/product-details/getAllProductsByBrand", {
+        method: "POST",
+        body: JSON.stringify({ brands }),
+    });
+
+// 🔹 LOW STOCK PRODUCTS
+
+export const fetchLowStockProducts = ({
+    page = 1,
+    limit = 10,
+    threshold = 5,
+} = {}) => {
+    const query = buildQuery({ page, limit, threshold });
+
+    return apiRequest(`/product-details/low-stock?${query}`, {
+        method: "GET",
+    });
 };

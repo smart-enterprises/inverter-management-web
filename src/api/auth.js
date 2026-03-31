@@ -1,26 +1,43 @@
-import { API_BASE_URL } from '../utils/api';
+import { apiRequest } from "./apiClient.js";
 
+/* ========================= AUTH APIs ========================= */
 export const login = async (email, password) => {
-  const response = await fetch(`${API_BASE_URL}/auth/signin`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ employee_email: email, password }),
+  return apiRequest("/auth/signin", {
+    method: "POST",
+    body: JSON.stringify({
+      employee_email: email,
+      password,
+    }),
   });
-  return response.json();
 };
 
 export const logout = async () => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+  try {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      await apiRequest("/auth/logout", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    }
+  } catch (error) {
+    console.warn("Logout request failed:", error);
+  } finally {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    localStorage.setItem("logout-event", Date.now().toString());
   }
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  localStorage.setItem('logout-event', Date.now().toString());
-}; 
+};
+
+export const checkTokenActive = async (token) => {
+  return apiRequest("/auth/token/active", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};

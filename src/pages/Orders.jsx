@@ -1,695 +1,568 @@
-import React, { useState, useEffect } from 'react';
-import { FiPlus, FiSearch, FiBox, FiCalendar, FiChevronDown, FiCheck, FiEye, FiArrowLeft, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { useNavigate, useLocation } from 'react-router-dom';
-import CustomSelect from '../components/CustomSelect';
-import { fetchOrders } from '../api/orders';
+// orders.jsx — Search debounce fix + redesigned + date range filter
 
-// Pagination Component
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import {
+  FiPlus, FiSearch, FiEye, FiChevronLeft, FiChevronRight, FiEdit2,
+  FiPackage, FiFilter, FiAlertCircle, FiX, FiCalendar,
+} from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import CustomSelect from "../components/CustomSelect";
+import { fetchOrders } from "../api/orders";
+import { getRoleBasedStatusOptions, PRIORITY_OPTIONS } from "../utils/status";
+import { capitalizeFirstLetter } from "../utils/constants";
+import { useAuth } from "../hooks/useAuth";
+import { ROLES } from "../utils/roles";
+
+/* ================================================================
+   PAGINATION
+   ================================================================ */
 const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
-  return (
-    <div className="border-t border-gray-100">
-      <div className="px-4 lg:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
-        <div className="flex items-center justify-center sm:justify-start">
-          <span className="text-sm text-gray-600">
-            Page <span className="font-medium text-gray-900">{currentPage}</span> of{' '}
-            <span className="font-medium text-gray-900">{totalPages}</span>
-          </span>
-        </div>
-        <div className="flex items-center justify-center gap-2">
-          <button 
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-400"
-          >
-            <FiChevronLeft size={18} />
-          </button>
-          <div className="flex gap-1">
-            {[...Array(totalPages)].map((_, idx) => {
-              const pageNumber = idx + 1;
-              const isActive = pageNumber === currentPage;
-              const isNearCurrent = Math.abs(pageNumber - currentPage) <= 1 || pageNumber === 1 || pageNumber === totalPages;
-              
-              if (!isNearCurrent && pageNumber !== 1 && pageNumber !== totalPages) {
-                if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
-                  return <span key={idx} className="inline-flex items-center justify-center w-9 h-9 text-gray-400">...</span>;
-                }
-                return null;
-              }
-
-              return (
-                <button
-                  key={idx}
-                  onClick={() => onPageChange(pageNumber)}
-                  className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-[#9333EA] text-white'
-                      : 'border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {pageNumber}
-                </button>
-              );
-            })}
-          </div>
-          <button 
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiChevronRight size={18} />
-          </button>
-        </div>
-      </div>
-    </div>
+  if (totalPages <= 1) return null;
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const visiblePages = pages.filter(
+    (page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1
   );
-};
-
-const CreateOrder = () => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    dealer: '',
-    priority: 'Medium',
-    notes: '',
-    items: [{ product: '', quantity: 1, deliveryDate: '' }]
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleItemChange = (index, field, value) => {
-    const newItems = [...formData.items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setFormData(prev => ({
-      ...prev,
-      items: newItems
-    }));
-  };
-
-  const addItem = () => {
-    setFormData(prev => ({
-      ...prev,
-      items: [...prev.items, { product: '', quantity: 1, deliveryDate: '' }]
-    }));
-  };
-
-  const removeItem = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      items: prev.items.filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Order submitted:', formData);
-    navigate('/orders');
-  };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center gap-4 mb-6">
+    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
+      <p className="text-xs text-slate-400 font-medium hidden sm:block">
+        Page <span className="font-bold text-slate-600">{currentPage}</span> of{" "}
+        <span className="font-bold text-slate-600">{totalPages}</span>
+      </p>
+      <div className="flex items-center gap-1.5 ml-auto">
         <button
-          onClick={() => navigate('/orders')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <FiArrowLeft className="text-gray-500" size={20} />
+          <FiChevronLeft size={13} />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Create New Order</h1>
+        <div className="flex items-center gap-1">
+          {visiblePages.map((page, index) => {
+            const showDots = index > 0 && page - visiblePages[index - 1] > 1;
+            return (
+              <div key={page} className="flex items-center">
+                {showDots && <span className="px-1.5 text-slate-300 text-xs select-none">…</span>}
+                <button
+                  onClick={() => onPageChange(page)}
+                  className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === currentPage
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                    }`}
+                >
+                  {page}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FiChevronRight size={13} />
+        </button>
       </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Order Details</h2>
-              <p className="text-sm text-gray-500 mt-1">Enter the basic information for this order</p>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Select Dealer
-                </label>
-                <select
-                  name="dealer"
-                  value={formData.dealer}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                  required
-                >
-                  <option value="">Select a dealer</option>
-                  <option value="Green Energy Solutions">Green Energy Solutions</option>
-                  <option value="Power Tech Distributors">Power Tech Distributors</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Priority
-                </label>
-                <select
-                  name="priority"
-                  value={formData.priority}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                >
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (Optional)
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Enter any special instructions or notes..."
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center gap-2">
-              <FiBox className="text-[#9333EA]" />
-              <h2 className="text-lg font-semibold text-gray-900">Ordered Items</h2>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">Add products to this order</p>
-
-            <div className="mt-6 space-y-4">
-              {formData.items.map((item, index) => (
-                <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-start">
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Product
-                    </label>
-                    <select
-                      value={item.product}
-                      onChange={(e) => handleItemChange(index, 'product', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                      required
-                    >
-                      <option value="">Select product</option>
-                      <option value="SI-1KW">SI-1KW PowerMax X100</option>
-                      <option value="SI-2KW">SI-2KW PowerMax X200</option>
-                      <option value="BI-500W">BI-500W Voltron A50</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Quantity
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                      required
-                    />
-                  </div>
-
-                  <div className="flex items-end gap-2">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Delivery Date
-                      </label>
-                      <input
-                        type="date"
-                        value={item.deliveryDate}
-                        onChange={(e) => handleItemChange(index, 'deliveryDate', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                        required
-                      />
-                    </div>
-                    {formData.items.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeItem(index)}
-                        className="px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              <button
-                type="button"
-                onClick={addItem}
-                className="mt-4 inline-flex items-center gap-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium"
-              >
-                <FiPlus /> Add More Item
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className="px-6 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors text-sm font-medium"
-          >
-            Submit Order
-          </button>
-        </div>
-      </form>
     </div>
   );
 };
 
+/* ================================================================
+   BADGES
+   ================================================================ */
+const PriorityBadge = ({ priority }) => {
+  const map = {
+    HIGH: "bg-rose-50 text-rose-700 border-rose-200",
+    MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
+    LOW: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  };
+  const dotMap = { HIGH: "bg-rose-500", MEDIUM: "bg-amber-500", LOW: "bg-emerald-500" };
+  const key = priority?.toUpperCase();
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotMap[key] || "bg-slate-400"}`} />
+      {priority}
+    </span>
+  );
+};
+
+const StatusBadge = ({ status }) => {
+  const map = {
+    PENDING: "bg-amber-50 text-amber-700 border-amber-200",
+    CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
+    PRODUCTION: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    PACKED: "bg-violet-50 text-violet-700 border-violet-200",
+    INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
+    SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
+    DELIVERED: "bg-green-50 text-green-700 border-green-200",
+    COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
+    REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
+  };
+  const key = status?.toUpperCase();
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+      {status}
+    </span>
+  );
+};
+
+/* ================================================================
+   DATE INPUT — styled consistently with the rest of the filter bar
+   ================================================================ */
+const DateInput = ({ value, onChange, placeholder, max }) => (
+  <div className="relative">
+    <FiCalendar
+      size={12}
+      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+    />
+    <input
+      type="date"
+      value={value}
+      onChange={onChange}
+      max={max}
+      className="pl-8 pr-3 py-2.5 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all cursor-pointer"
+    />
+    {value && (
+      <button
+        onClick={() => onChange({ target: { value: "" } })}
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+      >
+        <FiX size={10} />
+      </button>
+    )}
+  </div>
+);
+
+/* ================================================================
+   MAIN — Orders
+   ================================================================ */
 const Orders = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const role = user?.role;
+
+  const isProduction = role === ROLES.PRODUCTION;
+  const isPacking = role === ROLES.PACKING;
+  const isDelivery = role === ROLES.DELIVERY;
+  const isSalesman = role === ROLES.SALESMAN;
+  const isManager = role === ROLES.MANAGER;
+  const isAdmin = role === ROLES.ADMIN;
+  const isSuperAdmin = role === ROLES.SUPER_ADMIN;
+
+  const canCreateOrder = useMemo(
+    () => isSuperAdmin || isAdmin || isManager || isSalesman,
+    [isSuperAdmin, isAdmin, isManager, isSalesman]
+  );
+
+  /* ── State ── */
   const [orders, setOrders] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 10 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('All Statuses');
-  const [selectedPriority, setSelectedPriority] = useState('All Priorities');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
 
+  /*
+   * FIX: Split search into two separate states:
+   *   searchInput  — bound directly to the <input>, never triggers a fetch
+   *   searchQuery  — debounced value that actually drives the API call
+   */
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("ALL");
+  const [selectedPriority, setSelectedPriority] = useState("ALL");
+
+  /* ── Date range filter state ── */
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  /* Role-based default status */
   useEffect(() => {
+    if (isProduction) setSelectedStatus("PRODUCTION");
+    else if (isPacking) setSelectedStatus("PACKED");
+    else if (isDelivery) setSelectedStatus("SHIPPED");
+  }, [isProduction, isPacking, isDelivery]);
+
+  /* Debounce: push searchInput → searchQuery after 400 ms of inactivity */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setPagination((prev) => ({ ...prev, page: 1 }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  /* Query params — only depends on debounced searchQuery, not searchInput */
+  const queryParams = useMemo(
+    () => ({
+      page: pagination.page,
+      limit: pagination.limit,
+      status: selectedStatus !== "ALL" ? selectedStatus : undefined,
+      priority: selectedPriority !== "ALL" ? selectedPriority : undefined,
+      search: searchQuery || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+    }),
+    [pagination.page, pagination.limit, selectedStatus, selectedPriority, searchQuery, startDate, endDate]
+  );
+
+  /* Fetch orders */
+  useEffect(() => {
+    let isMounted = true;
     const loadOrders = async () => {
       try {
         setLoading(true);
-        const response = await fetchOrders();
+        setError(null);
+        const response = await fetchOrders(queryParams);
+        if (!isMounted) return;
         if (response.success) {
-          setOrders(response.data);
+          setOrders(response.data || []);
+          setPagination((prev) => ({
+            ...prev,
+            totalPages: response.pagination?.totalPages || 1,
+            total: response.pagination?.total || 0,
+          }));
         } else {
-          setError(response.message || 'Failed to load orders');
+          setError(response?.message || "Failed to load orders");
         }
-      } catch (err) {
-        console.error('Error loading orders:', err);
-        setError('Failed to load orders');
+      } catch {
+        setError("Failed to load orders");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
-
     loadOrders();
-  }, []);
+    return () => { isMounted = false; };
+  }, [queryParams]);
 
-  const getPriorityStyle = (priority) => {
-    switch (priority?.toLowerCase()) {
-      case 'high':
-        return 'bg-red-50 text-red-700';
-      case 'medium':
-        return 'bg-yellow-50 text-yellow-700';
-      case 'low':
-        return 'bg-green-50 text-green-700';
-      default:
-        return 'bg-gray-50 text-gray-700';
-    }
+  const formatDate = (date) =>
+    date ? new Date(date).toLocaleDateString("en-IN") : "N/A";
+
+  const getTotalItems = (details) =>
+    details?.reduce((sum, item) => sum + (item.qty_ordered || 0), 0) || 0;
+
+  const hasActiveFilters =
+    searchQuery ||
+    selectedStatus !== "ALL" ||
+    selectedPriority !== "ALL" ||
+    startDate ||
+    endDate;
+
+  const clearFilters = () => {
+    setSearchInput("");
+    setSearchQuery("");
+    setSelectedStatus("ALL");
+    setSelectedPriority("ALL");
+    setStartDate("");
+    setEndDate("");
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  const getStatusStyle = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return 'bg-yellow-50 text-yellow-700';
-      case 'in production':
-        return 'bg-blue-50 text-blue-700';
-      case 'packed':
-        return 'bg-purple-50 text-purple-700';
-      case 'delivered':
-        return 'bg-green-50 text-green-700';
-      case 'cancelled':
-        return 'bg-red-50 text-red-700';
-      default:
-        return 'bg-gray-50 text-gray-700';
-    }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
-  const getTotalItems = (orderDetails) => {
-    if (!orderDetails || !Array.isArray(orderDetails)) return 0;
-    return orderDetails.reduce((total, item) => total + (item.qty_ordered || 0), 0);
-  };
-
-  // Filter orders based on search query, status and priority
-  const filteredOrders = orders.filter(orderData => {
-    const order = orderData.order;
-    if (!order) return false;
-    
-    const matchesSearch = 
-      order.order_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.dealer?.employee_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.dealer?.shop_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = selectedStatus === 'All Statuses' || 
-                         order.status === selectedStatus;
-    
-    const matchesPriority = selectedPriority === 'All Priorities' || 
-                           order.priority === selectedPriority;
-    
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
-
-  // Pagination logic
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
-  const paginatedOrders = filteredOrders.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedStatus, selectedPriority]);
-
-  if (loading) {
+  /* ── Loading / error states ── */
+  if (loading && orders.length === 0) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
-            <p className="text-sm text-gray-500 mt-1">Total Orders: Loading...</p>
+      <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-10 h-10">
+            <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
+            <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
           </div>
-          <button 
-            onClick={() => navigate('/orders/create')}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
-          >
-            <FiPlus className="text-lg" />
-            Create New Order
-          </button>
+          <p className="text-sm text-slate-400 font-medium">Loading orders…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && orders.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
+            <FiAlertCircle size={24} className="text-rose-500" />
+          </div>
+          <p className="text-sm font-semibold text-rose-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ================================================================
+     RENDER
+     ================================================================ */
+  return (
+    <div className="min-h-screen bg-slate-50/60 px-4 sm:px-6 py-8">
+      <div className="max-w-screen-2xl mx-auto space-y-5">
+
+        {/* ── HEADER ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Orders</h1>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">
+              {loading ? "Loading…" : `${pagination.total.toLocaleString()} total order${pagination.total !== 1 ? "s" : ""}`}
+            </p>
+          </div>
+          {canCreateOrder && (
+            <button
+              onClick={() => navigate("/orders/create")}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+            >
+              <FiPlus size={14} />
+              Create Order
+            </button>
+          )}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">Orders List</h2>
-              <p className="text-sm text-gray-500 mt-1">Manage and track all orders</p>
-            </div>
+        {/* ── MAIN CARD ── */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
 
-            <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="relative flex-1">
-                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          {/* ── FILTER BAR ── */}
+          <div className="px-5 py-3 border-b border-slate-200 bg-white">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+
+              {/* LEFT: Search */}
+              <div className="relative flex-1 min-w-[220px] max-w-sm">
+                <FiSearch
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
                 <input
                   type="text"
-                  placeholder="Search by Order ID, Dealer Name, or Shop Name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                  disabled
+                  placeholder="Search orders, dealers, shops..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition"
                 />
+                {searchInput && (
+                  <button
+                    onClick={() => {
+                      setSearchInput("");
+                      setSearchQuery("");
+                      setPagination((p) => ({ ...p, page: 1 }));
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <FiX size={13} />
+                  </button>
+                )}
               </div>
-              <div className="flex items-center gap-3">
+
+              {/* RIGHT: Filters */}
+              <div className="flex items-center gap-2 flex-wrap">
+
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                  <FiFilter size={10} />Filter
+                </span>
+
+                {/* Status */}
                 <CustomSelect
                   name="status"
                   value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  options={['All Statuses', 'PENDING', 'IN PRODUCTION', 'PACKED', 'DELIVERED', 'CANCELLED']}
-                  placeholder="Select status"
-                  disabled
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value);
+                    setPagination((prev) => ({ ...prev, page: 1 }));
+                  }}
+                  options={getRoleBasedStatusOptions(role)}
                 />
+
+                {/* Priority */}
                 <CustomSelect
                   name="priority"
                   value={selectedPriority}
-                  onChange={(e) => setSelectedPriority(e.target.value)}
-                  options={['All Priorities', 'HIGH', 'MEDIUM', 'LOW']}
-                  placeholder="Select priority"
-                  disabled
+                  onChange={(e) => {
+                    setSelectedPriority(e.target.value);
+                    setPagination((prev) => ({ ...prev, page: 1 }));
+                  }}
+                  options={PRIORITY_OPTIONS}
                 />
+
+                {/* Date Range */}
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                  <FiCalendar size={12} className="text-slate-400" title="Date Filter" />
+
+                  <DateInput
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      if (endDate && e.target.value > endDate) setEndDate("");
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                    }}
+                    className="bg-transparent text-xs focus:outline-none"
+                  />
+                  <span className="text-xs text-slate-400">–</span>
+                  <DateInput
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                    }}
+                    className="bg-transparent text-xs focus:outline-none"
+                  />
+
+                  {/* Active indicator */}
+                  {(startDate || endDate) && (
+                    <span className="ml-1 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full">
+                      Active
+                    </span>
+                  )}
+                </div>
+
+                {/* Clear */}
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-md hover:bg-rose-100 transition"
+                  >
+                    <FiX size={12} />
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
-
-            <div className="mt-6 overflow-x-auto">
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
-                </div>
-              ) : (
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Order Number</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Dealer Info</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Created Date</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Total Items</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Priority</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Order Note</th>
-                      <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedOrders.map((orderData) => {
-                      const order = orderData.order;
-                      if (!order) return null;
-                      
-                      return (
-                        <tr key={order.order_number} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                          <td className="py-4 px-4">
-                            <span className="text-sm font-medium text-gray-900 font-mono">{order.order_number}</span>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="text-sm">
-                              <p className="font-medium text-gray-900">{order.dealer?.employee_name || 'N/A'}</p>
-                              <p className="text-gray-500">{order.dealer?.shop_name || 'N/A'}</p>
-                              <p className="text-xs text-gray-400">{order.dealer?.town}, {order.dealer?.district}</p>
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="text-sm text-gray-600">{formatDate(order.created_at)}</span>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="text-sm text-gray-600">
-                              {getTotalItems(order.order_details)} items
-                            </span>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityStyle(order.priority)}`}>
-                              {order.priority || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(order.status)}`}>
-                              {order.status || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="text-sm text-gray-600 max-w-xs truncate block" title={order.order_note || 'No notes'}>
-                              {order.order_note || 'No notes'}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-right">
-                            <button 
-                              onClick={() => navigate(`/orders/${order.order_number}`)}
-                              className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium hover:bg-[#9333EA]/5 px-2 py-1 rounded transition-colors"
-                            >
-                              <FiEye size={16} />
-                              
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {paginatedOrders.length === 0 && (
-                      <tr>
-                        <td colSpan="8" className="py-8 text-center">
-                          <p className="text-sm text-gray-500">
-                            {filteredOrders.length === 0 
-                              ? 'No orders found matching your criteria' 
-                              : `No orders on page ${currentPage}`
-                            }
-                          </p>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Orders Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Total Orders: {orders.length}</p>
-        </div>
-        <button 
-          onClick={() => navigate('/orders/create')}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
-        >
-          <FiPlus className="text-lg" />
-          Create New Order
-        </button>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Orders List</h2>
-            <p className="text-sm text-gray-500 mt-1">Manage and track all orders</p>
           </div>
 
-          <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="relative flex-1">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search by Order ID, Dealer Name, or Shop Name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-              />
+          {/* Inline loading indicator (shows while refetching with existing results) */}
+          {loading && orders.length > 0 && (
+            <div className="px-5 py-2 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+              <span className="text-xs text-indigo-600 font-semibold">Updating results…</span>
             </div>
-            <div className="flex items-center gap-3">
-              <CustomSelect
-                name="status"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                options={['All Statuses', 'PENDING', 'IN PRODUCTION', 'PACKED', 'DELIVERED', 'CANCELLED']}
-                placeholder="Select status"
-              />
-              <CustomSelect
-                name="priority"
-                value={selectedPriority}
-                onChange={(e) => setSelectedPriority(e.target.value)}
-                options={['All Priorities', 'HIGH', 'MEDIUM', 'LOW']}
-                placeholder="Select priority"
-              />
-            </div>
-          </div>
+          )}
 
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full">
+          {/* ── TABLE ── */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Order Number</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Dealer Info</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Created Date</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Total Items</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Priority</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Status</th>
-                  <th className="text-left py-4 px-4 text-sm font-medium text-gray-600">Order Note</th>
-                  <th className="text-right py-4 px-4 text-sm font-medium text-gray-600">Actions</th>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  {["Dealer & Order", "Shop", "Created", "Delivery", "Items", "Total", "Priority", "Status", ""].map((h, i) => (
+                    <th
+                      key={i}
+                      className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${i === 8 ? "text-right" : "text-left"}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody>
-                {paginatedOrders.map((orderData) => {
-                  const order = orderData.order;
-                  if (!order) return null;
-                  
-                  return (
-                    <tr key={order.order_number} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="py-4 px-4">
-                        <span className="text-sm font-medium text-gray-900 font-mono">{order.order_number}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="text-sm">
-                          <p className="font-medium text-gray-900">{order.dealer?.employee_name || 'N/A'}</p>
-                          <p className="text-gray-500">{order.dealer?.shop_name || 'N/A'}</p>
-                          <p className="text-xs text-gray-400">{order.dealer?.town}, {order.dealer?.district}</p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-gray-600">{formatDate(order.created_at)}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-gray-600">
-                          {getTotalItems(order.order_details)} items
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityStyle(order.priority)}`}>
-                          {order.priority || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(order.status)}`}>
-                          {order.status || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-gray-600 max-w-xs truncate block" title={order.order_note || 'No notes'}>
-                          {order.order_note || 'No notes'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <button 
-                          onClick={() => navigate(`/orders/${order.order_number}`)}
-                          className="inline-flex items-center gap-1 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium hover:bg-[#9333EA]/5 px-2 py-1 rounded transition-colors"
-                        >
-                          <FiEye size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {paginatedOrders.length === 0 && (
+              <tbody className="divide-y divide-slate-50">
+                {orders.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="py-8 text-center">
-                      <p className="text-sm text-gray-500">
-                        {filteredOrders.length === 0 
-                          ? 'No orders found matching your criteria' 
-                          : `No orders on page ${currentPage}`
-                        }
-                      </p>
+                    <td colSpan={9} className="px-5 py-20 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="p-5 bg-slate-100 rounded-2xl">
+                          <FiPackage size={24} className="text-slate-400" />
+                        </div>
+                        <p className="text-sm font-semibold text-slate-500">No orders found</p>
+                        <p className="text-xs text-slate-400">Try adjusting your filters</p>
+                      </div>
                     </td>
                   </tr>
+                ) : (
+                  orders.map((orderData) => {
+                    const { order } = orderData;
+                    if (!order) return null;
+
+                    const detailDeliveryDates =
+                      order.order_details
+                        ?.map((d) => (d.delivery_date ? new Date(d.delivery_date) : null))
+                        .filter(Boolean) || [];
+                    const maxDetailDate = detailDeliveryDates.length
+                      ? new Date(Math.max(...detailDeliveryDates))
+                      : null;
+                    const finalDeliveryDate = order.promised_delivery_date
+                      ? new Date(order.promised_delivery_date)
+                      : maxDetailDate;
+
+                    return (
+                      <tr
+                        key={order.order_number}
+                        className="hover:bg-slate-50/60 transition-colors duration-100"
+                      >
+                        {/* Dealer + Order */}
+                        <td className="px-5 py-4">
+                          <p className="font-bold text-slate-900">{capitalizeFirstLetter(order.dealer?.employee_name)}</p>
+                          <p className="text-[10px] font-mono text-slate-400 mt-0.5">{order.order_number}</p>
+                        </td>
+
+                        {/* Shop */}
+                        <td className="px-5 py-4 text-slate-600 font-medium">
+                          {capitalizeFirstLetter(order.dealer?.shop_name)}
+                        </td>
+
+                        {/* Created */}
+                        <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
+                          {formatDate(order.created_at)}
+                        </td>
+
+                        {/* Delivery */}
+                        <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
+                          {formatDate(finalDeliveryDate)}
+                        </td>
+
+                        {/* Items */}
+                        <td className="px-5 py-4">
+                          <span className="inline-flex px-2 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            {getTotalItems(order.order_details)}
+                          </span>
+                        </td>
+
+                        {/* Total */}
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <span className="text-sm font-bold text-slate-900">
+                            ₹{order.order_total_price?.toLocaleString("en-IN")}
+                          </span>
+                        </td>
+
+                        {/* Priority */}
+                        <td className="px-5 py-4">
+                          <PriorityBadge priority={order.priority} />
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-5 py-4">
+                          <StatusBadge status={order.status} />
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => navigate(`/orders/${order.order_number}`)}
+                              title="View Order"
+                              className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                            >
+                              <FiEye size={14} />
+                            </button>
+                            <button
+                              onClick={() =>
+                                navigate(`/orders/${order.order_number}`, {
+                                  state: { openEditMode: true },
+                                })
+                              }
+                              title="Edit Order"
+                              className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all"
+                            >
+                              <FiEdit2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* ── PAGINATION ── */}
+          <OrdersPagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
+          />
         </div>
       </div>
-      <OrdersPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
     </div>
   );
 };
 
-export default function OrdersPage() {
-  const location = useLocation();
-  return location.pathname === '/orders/create' ? <CreateOrder /> : <Orders />;
-} 
+export default Orders;

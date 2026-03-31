@@ -1,124 +1,159 @@
-import React, { useState } from 'react';
-import { 
-  FiBell, 
-  FiSearch,
-  FiSettings,
-  FiGrid,
-  FiGlobe,
-  FiLogOut,
-  FiUser,
-  FiChevronDown
-} from "react-icons/fi";
-import { useAuth } from '../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+// Navbar.jsx
 
-const ROLE_DISPLAY_NAMES = {
-  ROLE_SUPER_ADMIN: 'Super Admin',
-  ROLE_ADMIN: 'Admin',
-  ROLE_MANAGER: 'Manager',
-  ROLE_SUPERVISOR: 'Supervisor',
-  ROLE_SALESMAN: 'Salesman',
-  ROLE_PRODUCTION: 'Production',
-  ROLE_PACKING: 'Packing',
-  ROLE_ACCOUNTS: 'Accounts',
-  ROLE_DELIVERY: 'Delivery',
+import React, { useState, useRef, useEffect } from "react";
+import { FiBell, FiLogOut, FiChevronDown, FiShield } from "react-icons/fi";
+import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { capitalizeFirstLetter } from "../utils/constants";
+import { getRoleLabel } from "../utils/roles";
+
+/* ─────────────────────────────────────────────────────────────
+   Role → badge accent (all original roles preserved)
+   ───────────────────────────────────────────────────────────── */
+const ROLE_BADGE_COLORS = {
+  ROLE_SUPER_ADMIN: "nb-badge--violet",
+  ROLE_ADMIN: "nb-badge--blue",
+  ROLE_MANAGER: "nb-badge--indigo",
+  ROLE_SALESMAN: "nb-badge--emerald",
+  ROLE_PRODUCTION: "nb-badge--orange",
+  ROLE_PACKING: "nb-badge--pink",
+  ROLE_ACCOUNTS: "nb-badge--cyan",
+  ROLE_DELIVERY: "nb-badge--teal",
+  ROLE_SUPERVISOR: "nb-badge--amber",
 };
 
-const getDisplayRole = (role) => {
-  if (!role) return "";
-  return ROLE_DISPLAY_NAMES[role] || role.replace("ROLE_", "").replace("_", " ");
-};
+const getRoleBadgeClass = (role) =>
+  ROLE_BADGE_COLORS[role] ?? "nb-badge--slate";
 
+/* ─────────────────────────────────────────────────────────────
+   Navbar
+   ───────────────────────────────────────────────────────────── */
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const dropdownRef = useRef(null);
+
+  /* Close dropdown on outside click */
+  useEffect(() => {
+    if (!showProfileMenu) return;
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showProfileMenu]);
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate("/login");
   };
 
-  const toggleProfileMenu = () => {
-    setShowProfileMenu(!showProfileMenu);
-  };
+  const initials = user?.employee_name
+    ? user.employee_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+    : "U";
 
   return (
-    <div className="p-4 bg-[#F9FAFB]">
-      <div className="flex items-center justify-between px-6 py-2.5 bg-white rounded-xl shadow-sm max-w-[90%] mx-auto">
-        {/* Left Side - Search */}
-        <div className="flex items-center gap-4 flex-1 max-w-lg">
-          {/* Search Bar */}
-          <div className="relative w-full">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search (Ctrl+/)"
-              className="w-full pl-10 pr-4 py-2 bg-white text-sm focus:outline-none"
-            />
-          </div>
-        </div>
+    <header className="nb-header">
+      <div className="nb-bar">
 
-        {/* Right Side - Actions */}
-        <div className="flex items-center gap-3">
-          {/* Notifications */}
-          <button className="relative p-2 hover:bg-gray-50 rounded-lg">
-            <FiBell className="text-base text-gray-600" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+        {/* Left — reserved for search / breadcrumb */}
+        <div className="nb-bar__left" />
+
+        {/* Right — actions */}
+        <div className="nb-bar__right">
+
+          {/* Notification bell */}
+          <button className="nb-icon-btn" aria-label="Notifications">
+            <FiBell size={15} />
+            <span className="nb-icon-btn__dot" aria-hidden="true" />
           </button>
 
+          <div className="nb-divider" />
+
           {/* Profile */}
-          <div className="relative">
+          <div className="nb-profile" ref={dropdownRef}>
             <button
-              onClick={toggleProfileMenu}
-              className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+              className={`nb-profile__trigger ${showProfileMenu ? "nb-profile__trigger--open" : ""}`}
+              onClick={() => setShowProfileMenu((p) => !p)}
+              aria-haspopup="true"
+              aria-expanded={showProfileMenu}
             >
-              <div className="h-7 w-7 rounded-full overflow-hidden">
-                <img
-                  src={`https://ui-avatars.com/api/?name=${user?.employee_name || 'User'}&background=9333EA&color=fff`}
-                  alt="Profile"
-                  className="h-full w-full object-cover"
-                />
+              <Avatar initials={initials} size="sm" />
+
+              <div className="nb-profile__info">
+                <span className="nb-profile__name">
+                  {capitalizeFirstLetter(user?.employee_name) || "User"}
+                </span>
+                <span className="nb-profile__role">{getRoleLabel(user?.role)}</span>
               </div>
-              <div className="text-sm text-gray-600">
-                Welcome, <span className="font-semibold text-gray-900">{user?.employee_name || 'User'}</span>
-              </div>
-              <FiChevronDown className={`text-gray-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
+
+              <FiChevronDown
+                size={13}
+                className={`nb-profile__chevron ${showProfileMenu ? "nb-profile__chevron--open" : ""}`}
+              />
             </button>
 
-            {/* Profile Dropdown Menu */}
+            {/* Dropdown */}
             {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <div className="text-sm font-medium text-gray-900">{user?.employee_name}</div>
-                  <div className="text-xs text-gray-500">{user?.employee_email}</div>
-                  <div className="text-xs text-purple-600 font-medium mt-1">
-                    {getDisplayRole(user?.role)}
+              <div className="nb-dropdown" role="menu">
+
+                {/* User card */}
+                <div className="nb-dropdown__card">
+                  <Avatar initials={initials} size="md" />
+                  <div className="nb-dropdown__card-info">
+                    <p className="nb-dropdown__name">
+                      {capitalizeFirstLetter(user?.employee_name)}
+                    </p>
+                    <p className="nb-dropdown__email">{user?.employee_email}</p>
                   </div>
                 </div>
-                
+
+                {/* Role badge */}
+                <div className="nb-dropdown__badge-row">
+                  <span className={`nb-badge ${getRoleBadgeClass(user?.role)}`}>
+                    <FiShield size={9} />
+                    {getRoleLabel(user?.role)}
+                  </span>
+                </div>
+
+                {/* Employee ID */}
+                {user?.employee_id && (
+                  <div className="nb-dropdown__id-row">
+                    <span className="nb-dropdown__id-label">Employee ID</span>
+                    <span className="nb-dropdown__id-value">{user.employee_id}</span>
+                  </div>
+                )}
+
+                <div className="nb-dropdown__sep" />
+
+                {/* Sign out */}
                 <button
+                  className="nb-dropdown__signout"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  role="menuitem"
                 >
-                  <FiLogOut className="text-gray-400" />
-                  Sign out
+                  <FiLogOut size={13} />
+                  Sign Out
                 </button>
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Overlay to close dropdown when clicking outside */}
-      {showProfileMenu && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setShowProfileMenu(false)}
-        />
-      )}
-    </div>
+    </header>
   );
 };
+
+/* ─────────────────────────────────────────────────────────────
+   Avatar
+   ───────────────────────────────────────────────────────────── */
+const Avatar = ({ initials, size = "sm" }) => (
+  <div className={`nb-avatar nb-avatar--${size}`} aria-hidden="true">
+    {initials}
+  </div>
+);
 
 export default Navbar;

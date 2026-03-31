@@ -1,53 +1,70 @@
-import { API_BASE_URL } from '../utils/api';
+import { apiRequest } from "./apiClient.js";
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
-};
+/* ========================= BRAND APIs ========================= */
+export const getAllBrands = async (status) => {
+  const params = new URLSearchParams();
 
-export const getAllBrands = async () => {
-  const response = await fetch(`${API_BASE_URL}/product-details/getAll/brands`, {
-    headers: { ...getAuthHeaders() },
+  if (status) {
+    params.append('status', status);
+  }
+
+  const queryString = params.toString();
+
+  const url = queryString
+    ? `/product-details/getAll/brands?${queryString}`
+    : `/product-details/getAll/brands`;
+
+  return apiRequest(url, {
+    method: 'GET',
   });
-  return response.json();
-};
-
-export const getActiveBrands = async () => {
-  const response = await fetch(`${API_BASE_URL}/product-details/getActive/brands`, {
-    headers: { ...getAuthHeaders() },
-  });
-  return response.json();
-};
-
-export const createBrand = async (brandData) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/create/brands`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify(brandData),
-  });
-  return response.json();
-};
-
-export const updateBrand = async (brandName, brandData) => {
-  const response = await fetch(`${API_BASE_URL}/product-details/brand/${brandName}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    body: JSON.stringify(brandData),
-  });
-  return response.json();
 };
 
 export const getBrandsByDealer = async (dealerId, status = 'active') => {
-  const response = await fetch(`${API_BASE_URL}/product-details/getAll/brands?dealerId=${dealerId}&status=${status}`, {
-    headers: { ...getAuthHeaders() },
+  const params = new URLSearchParams();
+
+  if (dealerId) {
+    params.append('dealerId', dealerId);
+  }
+
+  if (status) {
+    params.append('status', status);
+  }
+
+  const queryString = params.toString();
+  const url = queryString
+    ? `/product-details/getAll/brands?${queryString}`
+    : `/product-details/getAll/brands`;
+
+  return apiRequest(url, {
+    method: 'GET',
   });
-  return response.json();
 };
 
-// export const deleteBrand = async (brandId) => {
-//   const response = await fetch(`${API_BASE_URL}/product-details/brands/${brandId}`, {
-//     method: 'DELETE',
-//     headers: { ...getAuthHeaders() },
-//   });
-//   return response.json();
-// };
+export const getBrandById = async (brandId) => {
+  return apiRequest(
+    `/product-details/product-brand/${brandId}`,
+    {
+      method: 'GET',
+    }
+  );
+};
+
+export const createBrands = async (brandsArray) => {
+  return apiRequest(
+    `/product-details/create/brands`,
+    {
+      method: 'POST',
+      body: JSON.stringify(brandsArray),
+    }
+  );
+};
+
+export const updateBrand = async (brandName, updateData) => {
+  return apiRequest(
+    `/product-details/brand/${encodeURIComponent(brandName)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    }
+  );
+};

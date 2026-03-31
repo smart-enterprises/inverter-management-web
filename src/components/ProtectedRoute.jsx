@@ -1,9 +1,10 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { getAllowedRoles } from "../routes/routePermissions";
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -15,8 +16,13 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!isAuthenticated()) {
-    // Redirect to login page with the return url
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  const allowedRoles = getAllowedRoles(location.pathname);
+
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
