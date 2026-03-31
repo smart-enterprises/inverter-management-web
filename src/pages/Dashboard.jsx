@@ -314,7 +314,7 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-            <button onClick={() => navigate("/orders")} className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200">
+            <button onClick={() => navigate("/orders")} className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 cursor-pointer">
               View All <FiArrowRight size={13} />
             </button>
           </div>
@@ -364,7 +364,7 @@ const Dashboard = () => {
               </div>
             </div>
             {canViewProductList && (
-              <button onClick={() => navigate("/products")} className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 transition-colors">
+              <button onClick={() => navigate("/products")} className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 transition-colors cursor-pointer">
                 View Products <FiArrowRight size={11} />
               </button>
             )}
