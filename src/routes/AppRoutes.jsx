@@ -23,6 +23,7 @@ import UserDetails from "../pages/UserDetails";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
+import CompanyDetails from "../pages/CompanyDetails";
 
 export default function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -73,6 +74,8 @@ export default function AppRoutes() {
 
         <Route path="/delivery" element={<Delivery />} />
         <Route path="/billing" element={<Billing />} />
+
+        <Route path="/company-details" element={<CompanyDetails />} />
       </Route>
 
       {/* ── 404 ──────────────────────────────────────────────────────── */}

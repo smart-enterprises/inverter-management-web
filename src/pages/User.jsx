@@ -185,6 +185,11 @@ const User = () => {
     [user?.role]
   );
 
+  const canViewPasswords = useMemo(
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(user?.role),
+    [user?.role]
+  );
+
   const navigate = useNavigate();
 
   const [users, setUsers] = useState([]);
@@ -201,11 +206,6 @@ const User = () => {
   const [originalData, setOriginalData] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({});
-
-  const canViewPasswords = useMemo(
-    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(user?.role),
-    [user?.role]
-  );
 
   const loadUsers = useCallback(async () => {
     try {
@@ -671,17 +671,44 @@ const User = () => {
                         {u.status}
                       </span>
                     </td>
+
                     <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</td>
+
                     {includePassword && canViewPasswords && (
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
-                          <input type={showPasswordMap[u.employee_id] ? "text" : "password"} value={u.password || ""} readOnly className="w-24 px-2 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50" />
-                          <button onClick={() => setShowPasswordMap((prev) => ({ ...prev, [u.employee_id]: !prev[u.employee_id] }))} className="text-slate-400 hover:text-slate-700 transition-colors">
-                            {showPasswordMap[u.employee_id] ? <FiEyeOff size={13} /> : <FiEye size={13} />}
-                          </button>
+                          {u.role === ROLES.SUPER_ADMIN || u.role === ROLES.ADMIN ? (
+                            <span className="text-slate-400 tracking-widest select-none">••••••••</span>
+                          ) : (
+                            <>
+                              <input
+                                type={showPasswordMap[u.employee_id] ? "text" : "password"}
+                                value={u.password || ""}
+                                readOnly
+                                className="w-28 px-2 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 focus:outline-none"
+                              />
+
+                              <button
+                                onClick={() =>
+                                  setShowPasswordMap((prev) => ({
+                                    ...prev,
+                                    [u.employee_id]: !prev[u.employee_id],
+                                  }))
+                                }
+                                className="text-slate-400 hover:text-slate-700 transition-colors"
+                              >
+                                {showPasswordMap[u.employee_id] ? (
+                                  <FiEyeOff size={14} />
+                                ) : (
+                                  <FiEye size={14} />
+                                )}
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     )}
+
                     <td className="px-5 py-4">
                       <UserActions user={u} onView={() => navigate(`/users/${u.employee_id}`)} onEdit={() => handleEdit(u.employee_id)} onDelete={() => handleDelete(u.employee_id)} />
                     </td>
