@@ -69,7 +69,7 @@ export default function AppRoutes() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/create" element={<CreateOrder />} />
         <Route path="/orders/:id" element={<OrderDetails />} />
-        <Route path="/orders/update/:id" element={<UpdateOrder />} />
+        {/* <Route path="/orders/update/:id" element={<UpdateOrder />} /> */}
 
         <Route path="/delivery" element={<Delivery />} />
         <Route path="/billing" element={<Billing />} />

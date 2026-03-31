@@ -40,9 +40,7 @@ import { useAuth } from "../hooks/useAuth";
 import { ROLES, getRoleLabel } from "../utils/roles";
 import { capitalizeFirstLetter } from "../utils/constants";
 
-/* ================================================================
-   ROLE CONFIG — color + label for tabs and badges
-   ================================================================ */
+//  ROLE CONFIG — color + label for tabs and badges
 const ROLE_CONFIG = {
   ALL: {
     tab: "bg-slate-800 text-white shadow-md",
@@ -105,9 +103,7 @@ const getRoleColor = (role) =>
   ROLE_CONFIG[role]?.badge || "bg-slate-50 text-slate-600 border-slate-200";
 >>>>>>> 843b7bd7fa825b6c8772625928e493e4cb26d285
 
-/* ================================================================
-   PAGINATION
-   ================================================================ */
+//  PAGINATION
 const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
   if (totalPages <= 1) return null;
   const generatePages = () => {
@@ -157,9 +153,7 @@ const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
   );
 };
 
-/* ================================================================
-   MODAL INPUT
-   ================================================================ */
+//  MODAL INPUT
 const ModalInput = ({ className = "", ...props }) => (
   <input
     {...props}
@@ -167,12 +161,30 @@ const ModalInput = ({ className = "", ...props }) => (
   />
 );
 
-/* ================================================================
-   MAIN — Users
-   ================================================================ */
+//  MAIN — Users
 const User = () => {
   const { user } = useAuth();
-  const isSalesman = user?.role === ROLES.SALESMAN;
+
+  const canCreateUser = useMemo(
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(user?.role),
+    [user?.role]
+  );
+
+  const canUpdateUser = useMemo(
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(user?.role),
+    [user?.role]
+  );
+
+  const canDeleteUser = useMemo(
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(user?.role),
+    [user?.role]
+  );
+
+  const canManageUser = useMemo(
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(user?.role),
+    [user?.role]
+  );
+
   const navigate = useNavigate();
 
   const [users, setUsers] = useState([]);
@@ -312,12 +324,15 @@ const User = () => {
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">Users</h1>
             <p className="text-xs text-slate-400 font-medium mt-0.5">Manage and track all system users</p>
           </div>
-          {!isSalesman && (
+          {canManageUser && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 
+                text-white text-sm font-bold rounded-xl hover:bg-indigo-700 
+                active:scale-95 transition-all shadow-sm shadow-indigo-200 cursor-pointer
+              "
             >
-              <FiPlus size={14} />Add New User
+              <FiPlus size={14} /> Add New User
             </button>
           )}
         </div>

@@ -1,5 +1,4 @@
 // orderDetails.jsx — Redesigned + PDF Generation
-
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -32,6 +31,7 @@ import {
   FiPrinter,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
+import { useAuth } from "../hooks/useAuth";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrderById, updateOrderStatus } from "../api/orders";
 
@@ -48,10 +48,9 @@ import { useUpdateOrderPermissions } from "../hooks/useUpdateOrderPermissions";
 import { formatDateForInput } from "../utils/dateUtils";
 import { getAllowedNextStatuses } from "../utils/orderStatusHelper";
 import { fetchCompanyAddress } from "../api/companyAddress";
+import { canPrintOrder, canViewOrderPrice } from "../utils/orderPermissions";
 
-/* ================================================================
-   FORMAT HELPERS
-   ================================================================ */
+//  FORMAT HELPERS
 const formatDate = (date) =>
   date
     ? new Date(date).toLocaleString("en-IN", {
@@ -64,9 +63,7 @@ const formatDate = (date) =>
 const formatCurrency = (amount) =>
   `₹ ${Number(amount || 0).toLocaleString("en-IN")}`;
 
-/* ================================================================
-   NORMALIZE ORDER
-   ================================================================ */
+//  NORMALIZE ORDER
 const normalizeOrder = (order) => ({
   ...order,
   payment_method: order.payment_type || "",
@@ -84,9 +81,7 @@ const normalizeOrder = (order) => ({
   })),
 });
 
-/* ================================================================
-   STATUS STYLE HELPERS
-   ================================================================ */
+//  STATUS STYLE HELPERS
 const getPriorityStyle = (priority) => {
   const map = {
     HIGH: "bg-rose-50 text-rose-700 border-rose-200",
@@ -132,10 +127,8 @@ const getPaymentTypeStyle = (type) => {
   return map[type?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
 };
 
-/* ================================================================
-   PDF GENERATION UTILITY
-   Generates a professional order invoice PDF using browser print API
-   ================================================================ */
+// PDF GENERATION UTILITY
+// Generates a professional order invoice PDF using browser print API
 const generateOrderPDF = (order, companyInfo, userMap) => {
   console.log("order", order);
   console.log("companyInfo", companyInfo);
@@ -396,9 +389,7 @@ const generateOrderPDF = (order, companyInfo, userMap) => {
   };
 };
 
-/* ================================================================
-   INFO ROW
-   ================================================================ */
+// INFO ROW
 const Info = ({ icon, label, children }) => (
   <div className="flex items-start gap-3.5 px-5 py-4 rounded-xl hover:bg-slate-50/60 transition-colors group">
     <div className="mt-0.5 p-2 rounded-lg bg-indigo-50 text-indigo-500 border border-indigo-100 group-hover:border-indigo-200 transition-colors flex-shrink-0">
@@ -415,9 +406,7 @@ const Info = ({ icon, label, children }) => (
   </div>
 );
 
-/* ================================================================
-   NOTES CARD
-   ================================================================ */
+//  NOTES CARD
 const NotesCard = ({ title, notes, color }) => (
   <div
     className={`mt-3 border rounded-xl p-3.5 ${color === "purple"
@@ -442,9 +431,7 @@ const NotesCard = ({ title, notes, color }) => (
   </div>
 );
 
-/* ================================================================
-   FORM FIELD WRAPPER
-   ================================================================ */
+//  FORM FIELD WRAPPER
 const FormField = ({ label, children }) => (
   <div className="space-y-1.5">
     <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
@@ -454,9 +441,7 @@ const FormField = ({ label, children }) => (
   </div>
 );
 
-/* ================================================================
-   STYLED INPUT (for edit fields)
-   ================================================================ */
+//  STYLED INPUT (for edit fields)
 const EditInput = ({ className = "", ...props }) => (
   <input
     {...props}
@@ -464,9 +449,7 @@ const EditInput = ({ className = "", ...props }) => (
   />
 );
 
-/* ================================================================
-   CHECKBOX FIELD
-   ================================================================ */
+//  CHECKBOX FIELD
 const CheckboxField = ({ label, checked, onChange, disabled }) => (
   <label
     className={`group flex items-center gap-3 text-sm cursor-pointer px-4 py-2.5 rounded-xl border transition-all ${checked
@@ -486,9 +469,7 @@ const CheckboxField = ({ label, checked, onChange, disabled }) => (
   </label>
 );
 
-/* ================================================================
-   SECTION CARD
-   ================================================================ */
+//  SECTION CARD
 const SectionCard = ({
   title,
   subtitle,
@@ -518,9 +499,7 @@ const SectionCard = ({
   </section>
 );
 
-/* ================================================================
-   STAT PILL
-   ================================================================ */
+//  STAT PILL
 const StatPill = ({ label, value, color = "gray" }) => {
   const colorMap = {
     gray: "text-slate-700",
@@ -541,9 +520,7 @@ const StatPill = ({ label, value, color = "gray" }) => {
   );
 };
 
-/* ================================================================
-   FINANCIAL SUMMARY
-   ================================================================ */
+//  FINANCIAL SUMMARY
 const FinancialSummary = ({ order }) => {
   const totalAmount = Number(order?.order_total_price ?? 0);
   const discountAmount = Number(order?.order_total_discount ?? 0);
@@ -673,9 +650,7 @@ const FinancialSummary = ({ order }) => {
   );
 };
 
-/* ================================================================
-   UPDATE FINANCIAL PANEL (edit mode)
-   ================================================================ */
+//  UPDATE FINANCIAL PANEL (edit mode)
 const UpdateFinancialSummary = ({ order, amountPaid }) => (
   <section className="bg-white border border-indigo-100 rounded-2xl shadow-sm overflow-hidden">
     <div className="flex justify-end p-6">
@@ -721,13 +696,15 @@ const UpdateFinancialSummary = ({ order, amountPaid }) => (
   </section>
 );
 
-/* ================================================================
-   MAIN COMPONENT — OrderDetails
-   ================================================================ */
+//  MAIN COMPONENT — OrderDetails
 const OrderDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { user } = useAuth();
+  const userCanPrint = canPrintOrder(user?.role);
+  const userCanViewPrice = canViewOrderPrice(user?.role);
 
   const [order, setOrder] = useState(null);
   const [userMap, setUserMap] = useState({});
@@ -1023,25 +1000,27 @@ const OrderDetails = () => {
 
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* ── PDF / Print Button ── */}
-            <button
-              type="button"
-              onClick={loadCompanyAndGeneratePDF}
-              disabled={pdfLoading}
-              title="Download / Print PDF Invoice"
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-            >
-              {pdfLoading ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-                  Generating…
-                </>
-              ) : (
-                <>
-                  <FiPrinter size={13} />
-                  Print / PDF
-                </>
-              )}
-            </button>
+            {userCanPrint && (
+              <button
+                type="button"
+                onClick={loadCompanyAndGeneratePDF}
+                disabled={pdfLoading}
+                title="Download / Print PDF Invoice"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                {pdfLoading ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <FiPrinter size={13} />
+                    Print / PDF
+                  </>
+                )}
+              </button>
+            )}
 
             {!isEditMode ? (
               <button
@@ -1152,17 +1131,29 @@ const OrderDetails = () => {
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+
               <FormField label="Order Status">
                 <CustomSelect
                   value={editOrder.status}
-                  disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("status"))}
+                  disabled={
+                    isOrderLocked ||
+                    (!permissions.canEditAll && !permissions.editableFields?.includes("status"))
+                  }
                   onChange={(e) => {
+                    if (permissions.allowedStatuses && !permissions.allowedStatuses.includes(e.target.value)) return;
                     if (permissions.restrictStatusToDelivered && e.target.value !== "DELIVERED") return;
                     updateOrderField("status", e.target.value);
                   }}
-                  options={permissions.restrictStatusToDelivered ? ["DELIVERED"] : getAllowedNextStatuses(editOrder.status)}
+                  options={
+                    permissions.restrictStatusToDelivered
+                      ? ["DELIVERED"]
+                      : permissions.allowedStatuses
+                        ? permissions.allowedStatuses
+                        : getAllowedNextStatuses(editOrder.status)
+                  }
                 />
               </FormField>
+
               <FormField label="Priority">
                 <CustomSelect
                   value={editOrder.priority}
@@ -1253,14 +1244,17 @@ const OrderDetails = () => {
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50/60 border-b border-slate-100">
               <tr>
-                {["Product", "Quantity", "Unit Price", "Total", "Status", ...(isEditMode ? ["Edit"] : [])].map((h, i) => (
-                  <th key={i} className={`px-6 py-3.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 ${i === 0 ? "text-left" : i === 1 ? "text-center" : "text-right"} ${isEditMode && i === 5 ? "text-center text-indigo-400" : ""}`}>
-                    {h}
-                  </th>
-                ))}
+                {["Product", "Quantity", "Unit Price", "Total", "Status",
+                  ...(isEditMode ? ["Edit"] : [])].map((h, i) => (
+                    <th key={i} className={`px-6 py-3.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 ${i === 0 ? "text-left" : i === 1 ? "text-center" : "text-right"} ${isEditMode && i === 5 ? "text-center text-indigo-400" : ""}`}>
+                      {h}
+                    </th>
+                  ))}
               </tr>
             </thead>
+
             <tbody className="divide-y divide-slate-50">
+
               {order.order_details?.map((d, index) => {
                 const stockNotes = formatStockNotes(d.notes);
                 const discountNotes = formatDealerDiscountNotes(d.notes);
@@ -1282,6 +1276,7 @@ const OrderDetails = () => {
                 return (
                   <React.Fragment key={d.order_details_number}>
                     <tr className="hover:bg-slate-50/60 transition-colors">
+
                       {/* Product */}
                       <td className="px-6 py-5 align-top">
                         <div className="flex flex-col gap-1.5">
@@ -1344,32 +1339,36 @@ const OrderDetails = () => {
                       </td>
 
                       {/* Unit Price */}
-                      <td className="px-6 py-5 text-right whitespace-nowrap align-middle">
-                        <span className="text-sm font-bold text-slate-700">{formatCurrency(d.unit_product_price)}</span>
-                      </td>
+                      {userCanViewPrice && (
+                        <td className="px-6 py-5 text-right whitespace-nowrap align-middle">
+                          <span className="text-sm font-bold text-slate-700">{formatCurrency(d.unit_product_price)}</span>
+                        </td>
+                      )}
 
                       {/* Total */}
-                      <td className="px-6 py-5 text-right whitespace-nowrap align-middle">
-                        {d.is_free ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-100 uppercase">
-                            FREE
-                          </span>
-                        ) : (
-                          <div className="flex flex-col items-end gap-1">
-                            {hasDiscount && Number(d.total_product_price) > 0 && (
-                              <span className="text-xs text-slate-400 line-through tabular-nums">{formatCurrency(d.total_product_price)}</span>
-                            )}
-                            {Number(d.total_price) > 0 && (
-                              <span className="text-sm font-black text-slate-900 tabular-nums">{formatCurrency(d.total_price)}</span>
-                            )}
-                            {hasDiscount && Number(d.total_dealer_discount) > 0 && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
-                                − {formatCurrency(d.total_dealer_discount)}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </td>
+                      {userCanViewPrice && (
+                        <td className="px-6 py-5 text-right whitespace-nowrap align-middle">
+                          {d.is_free ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-100 uppercase">
+                              FREE
+                            </span>
+                          ) : (
+                            <div className="flex flex-col items-end gap-1">
+                              {hasDiscount && Number(d.total_product_price) > 0 && (
+                                <span className="text-xs text-slate-400 line-through tabular-nums">{formatCurrency(d.total_product_price)}</span>
+                              )}
+                              {Number(d.total_price) > 0 && (
+                                <span className="text-sm font-black text-slate-900 tabular-nums">{formatCurrency(d.total_price)}</span>
+                              )}
+                              {hasDiscount && Number(d.total_dealer_discount) > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                                  − {formatCurrency(d.total_dealer_discount)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      )}
 
                       {/* Status */}
                       <td className="px-6 py-5 text-center align-middle">
@@ -1596,10 +1595,10 @@ const OrderDetails = () => {
       )}
 
       {/* ── FINANCIAL SUMMARY ── */}
-      <FinancialSummary order={order} />
+      {userCanViewPrice && <FinancialSummary order={order} />}
 
       {/* ── PAYMENT NOTES ── */}
-      {order?.payment_notes?.length > 0 && (
+      {userCanViewPrice && order?.payment_notes?.length > 0 && (
         <SectionCard title="Payment Notes" subtitle="Transaction History">
           <ul className="space-y-2">
             {order.payment_notes.map((note, index) => (
