@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
     FiSave, FiEdit2, FiPlus, FiLoader, FiAlertCircle,
     FiGlobe, FiMail, FiPhone, FiMapPin, FiShield, FiImage,
-    FiCheckCircle,
+    FiCheckCircle, FiX, FiBriefcase, FiRefreshCw,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { useAuth } from "../hooks/useAuth";
@@ -12,10 +12,9 @@ import { useNavigate } from "react-router-dom";
 import { ROLES } from "../utils/roles";
 import { fetchCompanyAddress, createOrUpdateCompanyAddress } from "../api/companyAddress";
 
-// Guard — only SUPER_ADMIN & ADMIN
 const ALLOWED_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN];
 
-// Small reusable field input
+/* ─── Field Input ─── */
 const Field = ({ label, icon: Icon, error, className = "", ...props }) => (
     <div className={`flex flex-col gap-1.5 ${className}`}>
         <label className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 flex items-center gap-1.5">
@@ -24,10 +23,10 @@ const Field = ({ label, icon: Icon, error, className = "", ...props }) => (
         </label>
         <input
             {...props}
-            className={`w-full border rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 transition-all
+            className={`w-full border rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 transition-all duration-150
         ${error
                     ? "border-rose-300 focus:ring-rose-200 focus:border-rose-400"
-                    : "border-slate-200 focus:ring-indigo-200 focus:border-indigo-400"
+                    : "border-slate-200 focus:ring-indigo-200 focus:border-indigo-400 hover:border-slate-300"
                 }`}
         />
         {error && (
@@ -38,12 +37,26 @@ const Field = ({ label, icon: Icon, error, className = "", ...props }) => (
     </div>
 );
 
-// Main Component
+/* ─── Detail Row (View Mode) ─── */
+const DetailRow = ({ icon: Icon, label, value, truncate = false }) => (
+    <div className="flex items-start gap-4 px-6 py-4 border-b border-slate-50 last:border-0 group hover:bg-slate-50/60 transition-colors duration-100">
+        <div className="mt-0.5 p-2 rounded-lg bg-indigo-50 text-indigo-500 border border-indigo-100 flex-shrink-0 group-hover:border-indigo-200 transition-colors">
+            <Icon size={12} />
+        </div>
+        <div className="flex-1 min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">{label}</p>
+            <p className={`text-sm font-semibold text-slate-800 ${truncate ? "truncate" : "leading-relaxed"}`}>
+                {value || <span className="text-slate-300 font-normal italic text-xs">Not provided</span>}
+            </p>
+        </div>
+    </div>
+);
+
+/* ─── Main Component ─── */
 const CompanyDetails = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
-    /* Access guard */
     useEffect(() => {
         if (!ALLOWED_ROLES.includes(user?.role)) {
             navigate("/", { replace: true });
@@ -52,27 +65,19 @@ const CompanyDetails = () => {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [existingData, setExistingData] = useState(null); // null = not loaded yet, false = no record
+    const [existingData, setExistingData] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
 
     const EMPTY_FORM = {
-        company_name: "",
-        gst_number: "",
-        email: "",
-        phone: "",
-        address_line_1: "",
-        address_line_2: "",
-        city: "",
-        state: "",
-        pincode: "",
-        country: "",
-        company_logo: "",
+        company_name: "", gst_number: "", email: "", phone: "",
+        address_line_1: "", address_line_2: "", city: "", state: "",
+        pincode: "", country: "", company_logo: "",
     };
 
     const [formData, setFormData] = useState(EMPTY_FORM);
     const [errors, setErrors] = useState({});
 
-    /* ── Fetch existing record ── */
+    /* ── Fetch ── */
     const loadCompanyDetails = useCallback(async () => {
         try {
             setLoading(true);
@@ -95,7 +100,7 @@ const CompanyDetails = () => {
                 });
             } else {
                 setExistingData(false);
-                setIsEditing(true); // auto-open form when no record
+                setIsEditing(true);
             }
         } catch (err) {
             Swal.fire("Error", err.message || "Failed to load company details", "error");
@@ -104,24 +109,22 @@ const CompanyDetails = () => {
         }
     }, []);
 
-    useEffect(() => {
-        loadCompanyDetails();
-    }, [loadCompanyDetails]);
+    useEffect(() => { loadCompanyDetails(); }, [loadCompanyDetails]);
 
-    /* ── Validation ── */
+    /* ── Validate ── */
     const validate = () => {
-        const newErrors = {};
-        if (!formData.company_name?.trim()) newErrors.company_name = "Company name is required";
-        if (!formData.email?.trim()) newErrors.email = "Email is required";
-        else if (!/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = "Invalid email address";
-        if (!formData.phone?.trim()) newErrors.phone = "Phone is required";
-        if (!formData.address_line_1?.trim()) newErrors.address_line_1 = "Address line 1 is required";
-        if (!formData.city?.trim()) newErrors.city = "City is required";
-        if (!formData.state?.trim()) newErrors.state = "State is required";
-        if (!formData.pincode?.trim()) newErrors.pincode = "Pincode is required";
-        if (!formData.country?.trim()) newErrors.country = "Country is required";
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        const e = {};
+        if (!formData.company_name?.trim()) e.company_name = "Company name is required";
+        if (!formData.email?.trim()) e.email = "Email is required";
+        else if (!/^\S+@\S+\.\S+$/.test(formData.email)) e.email = "Invalid email address";
+        if (!formData.phone?.trim()) e.phone = "Phone is required";
+        if (!formData.address_line_1?.trim()) e.address_line_1 = "Address line 1 is required";
+        if (!formData.city?.trim()) e.city = "City is required";
+        if (!formData.state?.trim()) e.state = "State is required";
+        if (!formData.pincode?.trim()) e.pincode = "Pincode is required";
+        if (!formData.country?.trim()) e.country = "Country is required";
+        setErrors(e);
+        return Object.keys(e).length === 0;
     };
 
     /* ── Submit ── */
@@ -130,12 +133,11 @@ const CompanyDetails = () => {
         try {
             setSaving(true);
             const payload = { ...formData };
-            // Include ID only when updating
             if (existingData && existingData.company_address_id) {
                 payload.company_address_id = existingData.company_address_id;
             }
             const res = await createOrUpdateCompanyAddress(payload);
-            if (!res?.success) throw new Error(res?.message || "Failed to save company details");
+            if (!res?.success) throw new Error(res?.message || "Failed to save");
             await Swal.fire({
                 icon: "success",
                 title: existingData ? "Details Updated" : "Details Saved",
@@ -151,10 +153,9 @@ const CompanyDetails = () => {
         }
     };
 
-    /* ── Cancel edit ── */
+    /* ── Cancel ── */
     const handleCancel = () => {
-        if (!existingData) return; // can't cancel if no record yet
-        // Restore original values
+        if (!existingData) return;
         setFormData({
             company_name: existingData.company_name || "",
             gst_number: existingData.gst_number || "",
@@ -177,23 +178,45 @@ const CompanyDetails = () => {
         if (errors[key]) setErrors((p) => ({ ...p, [key]: undefined }));
     };
 
-    /* ─────────────────────────────────────────────────────────
-       LOADING STATE
-       ───────────────────────────────────────────────────────── */
+    /* ── Loading ── */
     if (loading) {
         return (
             <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
-                <div className="relative w-10 h-10">
-                    <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-                    <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                <div className="flex flex-col items-center gap-4">
+                    <div className="relative w-10 h-10">
+                        <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
+                        <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                    <p className="text-sm text-slate-400 font-medium animate-pulse">Loading company details…</p>
                 </div>
             </div>
         );
     }
 
-    /* ─────────────────────────────────────────────────────────
-       RENDER
-       ───────────────────────────────────────────────────────── */
+    /* ── Logo helper — falls back to /logo.png ── */
+    const LogoBox = ({ src, className = "" }) => (
+        <div className={`relative overflow-hidden bg-white border border-slate-200 flex items-center justify-center ${className}`}>
+            {src ? (
+                <img
+                    src={src}
+                    alt="Company logo"
+                    className="w-full h-full object-contain p-1.5"
+                    onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/logo.png";
+                    }}
+                />
+            ) : (
+                <img
+                    src="/logo.png"
+                    alt="Smart Enterprises"
+                    className="sidebar-logo w-full h-full object-contain p-1.5"
+                    onError={(e) => { e.target.style.display = "none"; }}
+                />
+            )}
+        </div>
+    );
+
     return (
         <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8">
             <div className="max-w-3xl mx-auto space-y-5">
@@ -201,6 +224,14 @@ const CompanyDetails = () => {
                 {/* ── Page Header ── */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
+                        <div className="flex items-center gap-2.5 mb-1">
+                            <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                                <FiBriefcase size={13} className="text-indigo-600" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                                Organisation
+                            </span>
+                        </div>
                         <h1 className="text-xl font-bold text-slate-900 tracking-tight">Company Settings</h1>
                         <p className="text-xs text-slate-400 font-medium mt-0.5">
                             {existingData
@@ -209,54 +240,68 @@ const CompanyDetails = () => {
                         </p>
                     </div>
 
-                    {/* Edit / Update button — shown only when a record exists and not currently editing */}
-                    {existingData && !isEditing && (
-                        <button
-                            onClick={() => setIsEditing(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
-                        >
-                            <FiEdit2 size={13} />
-                            Modify Company Details
-                        </button>
-                    )}
+                    <div className="flex items-center gap-2.5">
+                        {existingData && !isEditing && (
+                            <>
+                                <button
+                                    onClick={loadCompanyDetails}
+                                    title="Refresh"
+                                    className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all"
+                                >
+                                    <FiRefreshCw size={14} />
+                                </button>
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+                                >
+                                    <FiEdit2 size={13} />
+                                    Modify Details
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
 
-                {/* ── View Mode: Summary Card ── */}
+                {/* ── VIEW MODE ── */}
                 {existingData && !isEditing && (
                     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
 
-                        {/* Logo / Name banner */}
-                        <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-4">
-                            {existingData.company_logo ? (
-                                <img
-                                    src={existingData.company_logo}
-                                    alt="Company logo"
-                                    className="w-14 h-14 rounded-xl object-contain border border-slate-200 bg-white p-1"
-                                    onError={(e) => { e.target.style.display = "none"; }}
-                                />
-                            ) : (
-                                <div className="w-14 h-14 rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-400">
-                                    <FiImage size={20} />
-                                </div>
-                            )}
-                            <div>
-                                <p className="text-base font-bold text-slate-900">{existingData.company_name}</p>
-                                {existingData.gst_number && (
-                                    <span className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-[10px] font-black uppercase tracking-wide">
-                                        <FiShield size={9} />
-                                        GST: {existingData.gst_number}
+                        {/* Company Banner */}
+                        <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                            <div className="flex items-center gap-5">
+                                {/* Logo */}
+                                <div className="relative flex-shrink-0">
+                                    <LogoBox
+                                        src={existingData.company_logo}
+                                        className="w-16 h-16 rounded-2xl shadow-sm"
+                                    />
+                                    <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-400 border-2 border-white flex items-center justify-center">
+                                        <FiCheckCircle size={8} className="text-white" />
                                     </span>
-                                )}
+                                </div>
+
+                                {/* Name + GST */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-base font-bold text-slate-900 truncate">
+                                        {existingData.company_name}
+                                    </p>
+                                    {existingData.gst_number && (
+                                        <span className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-[10px] font-black uppercase tracking-wide">
+                                            <FiShield size={9} />
+                                            GST · {existingData.gst_number}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Detail rows */}
-                        <div className="divide-y divide-slate-50">
-                            <DetailRow icon={FiMail} label="Email" value={existingData.email} />
-                            <DetailRow icon={FiPhone} label="Phone" value={existingData.phone} />
+                        {/* Detail Rows */}
+                        <div>
+                            <DetailRow icon={FiMail} label="Email Address" value={existingData.email} />
+                            <DetailRow icon={FiPhone} label="Phone Number" value={existingData.phone} />
                             <DetailRow
                                 icon={FiMapPin}
-                                label="Address"
+                                label="Registered Address"
                                 value={[
                                     existingData.address_line_1,
                                     existingData.address_line_2,
@@ -271,44 +316,57 @@ const CompanyDetails = () => {
                             )}
                         </div>
 
-                        {/* Status footer */}
-                        <div className="px-6 py-3 bg-slate-50/50 border-t border-slate-100 flex items-center gap-2">
-                            <FiCheckCircle size={12} className="text-emerald-500" />
-                            <span className="text-[11px] font-semibold text-slate-500">
+                        {/* Footer */}
+                        <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="text-[11px] font-semibold text-slate-400">
                                 Last updated: {new Date(existingData.updatedAt).toLocaleString()}
                             </span>
                         </div>
                     </div>
                 )}
 
-                {/* ── Form: Create or Edit ── */}
+                {/* ── FORM (Create / Edit) ── */}
                 {(isEditing || !existingData) && (
                     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
 
-                        {/* Form header */}
-                        <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-                            <div className={`p-2 rounded-xl border ${existingData ? "bg-sky-50 text-sky-600 border-sky-100" : "bg-indigo-50 text-indigo-600 border-indigo-100"}`}>
-                                {existingData ? <FiEdit2 size={14} /> : <FiPlus size={14} />}
+                        {/* Form Header */}
+                        <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-xl border ${existingData
+                                    ? "bg-sky-50 text-sky-600 border-sky-100"
+                                    : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                                    }`}>
+                                    {existingData ? <FiEdit2 size={14} /> : <FiPlus size={14} />}
+                                </div>
+                                <div>
+                                    <h2 className="text-sm font-bold text-slate-900">
+                                        {existingData ? "Update Company Details" : "Register Company Details"}
+                                    </h2>
+                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+                                        {existingData ? "Edit and save your changes" : "Fill in your organisation information"}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-sm font-bold text-slate-900">
-                                    {existingData ? "Update Company Details" : "Register Company Details"}
-                                </h2>
-                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
-                                    {existingData ? "Edit and save your changes" : "Fill in your organisation information"}
-                                </p>
-                            </div>
+                            {existingData && (
+                                <button
+                                    onClick={handleCancel}
+                                    className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                                >
+                                    <FiX size={15} />
+                                </button>
+                            )}
                         </div>
 
                         {/* Fields */}
-                        <div className="px-6 py-5 space-y-4">
+                        <div className="px-6 py-6 space-y-5">
 
-                            {/* Company name + GST */}
+                            {/* Company + GST */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Field
                                     label="Company Name"
-                                    icon={FiShield}
-                                    placeholder="SMART ENTERPRISES"
+                                    icon={FiBriefcase}
+                                    placeholder="Smart Enterprises"
                                     value={formData.company_name}
                                     onChange={set("company_name")}
                                     error={errors.company_name}
@@ -326,7 +384,7 @@ const CompanyDetails = () => {
                             {/* Email + Phone */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Field
-                                    label="Email"
+                                    label="Email Address"
                                     icon={FiMail}
                                     type="email"
                                     placeholder="support@company.com"
@@ -335,7 +393,7 @@ const CompanyDetails = () => {
                                     error={errors.email}
                                 />
                                 <Field
-                                    label="Phone"
+                                    label="Phone Number"
                                     icon={FiPhone}
                                     placeholder="9876543210"
                                     value={formData.phone}
@@ -344,7 +402,15 @@ const CompanyDetails = () => {
                                 />
                             </div>
 
-                            {/* Address lines */}
+                            {/* Address Section Divider */}
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 h-px bg-slate-100" />
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-1.5">
+                                    <FiMapPin size={8} /> Address
+                                </span>
+                                <div className="flex-1 h-px bg-slate-100" />
+                            </div>
+
                             <Field
                                 label="Address Line 1"
                                 icon={FiMapPin}
@@ -354,15 +420,14 @@ const CompanyDetails = () => {
                                 error={errors.address_line_1}
                             />
                             <Field
-                                label="Address Line 2"
+                                label="Address Line 2 (Optional)"
                                 icon={FiMapPin}
-                                placeholder="Near Infopark (optional)"
+                                placeholder="Near Infopark"
                                 value={formData.address_line_2}
                                 onChange={set("address_line_2")}
                             />
 
-                            {/* City, State, Pincode, Country */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 <Field
                                     label="City"
                                     placeholder="Kochi"
@@ -393,31 +458,45 @@ const CompanyDetails = () => {
                                 />
                             </div>
 
-                            {/* Logo URL */}
-                            <Field
-                                label="Company Logo URL"
-                                icon={FiImage}
-                                placeholder="https://cdn.example.com/logo.png"
-                                value={formData.company_logo}
-                                onChange={set("company_logo")}
-                            />
+                            {/* Branding Section Divider */}
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 h-px bg-slate-100" />
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-1.5">
+                                    <FiImage size={8} /> Branding
+                                </span>
+                                <div className="flex-1 h-px bg-slate-100" />
+                            </div>
 
-                            {/* Logo preview */}
-                            {formData.company_logo && (
-                                <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50">
-                                    <img
-                                        src={formData.company_logo}
-                                        alt="Logo preview"
-                                        className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white p-0.5"
-                                        onError={(e) => { e.target.style.display = "none"; }}
-                                    />
-                                    <p className="text-xs text-slate-500 font-medium">Logo preview</p>
+                            {/* Logo URL + inline preview */}
+                            <div className="flex items-end gap-4">
+                                <Field
+                                    label="Company Logo URL"
+                                    icon={FiImage}
+                                    className="flex-1"
+                                    placeholder="https://cdn.example.com/logo.png"
+                                    value={formData.company_logo}
+                                    onChange={set("company_logo")}
+                                />
+                                {/* Preview box — always shows /logo.png as fallback */}
+                                <div className="flex-shrink-0 mb-0.5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1.5">Preview</p>
+                                    <div className="w-14 h-14 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm flex items-center justify-center">
+                                        <img
+                                            src={formData.company_logo || "/logo.png"}
+                                            alt="Logo preview"
+                                            className="w-full h-full object-contain p-1.5"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = "/logo.png";
+                                            }}
+                                        />
+                                    </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
 
-                        {/* Action buttons */}
-                        <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
+                        {/* Action Buttons */}
+                        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex gap-3">
                             {existingData && (
                                 <button
                                     type="button"
@@ -431,40 +510,29 @@ const CompanyDetails = () => {
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={saving}
-                                className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 disabled:opacity-60"
+                                className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {saving ? (
                                     <FiLoader size={14} className="animate-spin" />
                                 ) : (
                                     <FiSave size={14} />
                                 )}
-                                {saving
-                                    ? "Saving…"
-                                    : existingData
-                                        ? "Save Changes"
-                                        : "Register Company"}
+                                {saving ? "Saving…" : existingData ? "Save Changes" : "Register Company"}
                             </button>
                         </div>
                     </div>
                 )}
+
+                {/* Helper tip */}
+                {!existingData && (
+                    <p className="text-center text-[11px] text-slate-400 font-medium">
+                        This information will appear on invoices and official documents.
+                    </p>
+                )}
+
             </div>
         </div>
     );
 };
-
-// DetailRow — used in view mode
-const DetailRow = ({ icon: Icon, label, value, truncate = false }) => (
-    <div className="flex items-start gap-3 px-6 py-3.5">
-        <div className="mt-0.5 p-1.5 rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
-            <Icon size={12} />
-        </div>
-        <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 mb-0.5">{label}</p>
-            <p className={`text-sm font-medium text-slate-800 ${truncate ? "truncate" : ""}`}>
-                {value || <span className="text-slate-300 italic">Not provided</span>}
-            </p>
-        </div>
-    </div>
-);
 
 export default CompanyDetails;
