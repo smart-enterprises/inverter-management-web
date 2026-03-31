@@ -1,6 +1,4 @@
-// updateOrderPermissions.js Code
 import { ROLES } from "./roles";
-
 
 export const UPDATE_ORDER_PERMISSIONS = {
     [ROLES.SUPER_ADMIN]: {
@@ -18,15 +16,16 @@ export const UPDATE_ORDER_PERMISSIONS = {
     [ROLES.SALESMAN]: {
         viewOnly: true,
         editableFields: [
-            "priority",
             "delivery_date",
             "delivery_note",
             "promised_delivery_date",
         ],
+        // priority is NOT in the spec for salesman — remove it
     },
 
     [ROLES.PRODUCTION]: {
         viewOnly: true,
+        // Can update when "Production Completed" flag is set
         editableDetailFields: [
             "has_production_completed",
             "delivery_date",
@@ -37,6 +36,7 @@ export const UPDATE_ORDER_PERMISSIONS = {
 
     [ROLES.PACKING]: {
         viewOnly: true,
+        // Can update when "Unpacked Completed" flag is set
         editableDetailFields: [
             "has_unPacked_completed",
             "delivery_date",
@@ -48,18 +48,21 @@ export const UPDATE_ORDER_PERMISSIONS = {
     [ROLES.ACCOUNTS]: {
         viewOnly: true,
         editableFields: [
-            "payment_method",
             "amount_paid",
-            "promised_delivery_date",
-            "delivery_date",
-            "delivery_note",
+            "payment_method",
+            "status",           // only INVOICE or SHIPPED (enforced below)
         ],
+        // Condition: all items must be PACKED — enforce this in the UI
+        allowedStatuses: ["INVOICE", "SHIPPED"],
+        requireAllItemsPacked: true,
     },
 
     [ROLES.DELIVERY]: {
         viewOnly: true,
         editableFields: ["status"],
         editableDetailFields: ["delivered_qty"],
-        restrictStatusToDelivered: true,
+        allowedStatuses: ["DELIVERED"],
+        restrictStatusToDelivered: true,  // only DELIVERED
+        hidePrice: true,
     },
 };

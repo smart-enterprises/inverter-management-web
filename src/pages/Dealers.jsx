@@ -8,17 +8,17 @@ import {
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
+
 import CustomSelect from "../components/CustomSelect";
+import { ROLES } from "../utils/roles";
+
 import { fetchDealers, fetchDealerById, createDealer, updateDealer, deleteDealer } from "../api/dealer";
 import { getAllBrands } from "../api/brands";
 import { useAuth } from "../hooks/useAuth";
-import { ROLES } from "../utils/roles";
 import { fetchUsers } from "../api/user";
 import { capitalizeFirstLetter } from "../utils/constants";
 
-/* ================================================================
-   MULTI-SELECT DROPDOWN  (logic unchanged)
-   ================================================================ */
+// MULTI-SELECT DROPDOWN  (logic unchanged)
 const MultiSelectDropdown = ({ options = [], selectedValues = [], onChange, placeholder, disabled, loading, searchable = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -110,9 +110,7 @@ const MultiSelectDropdown = ({ options = [], selectedValues = [], onChange, plac
   );
 };
 
-/* ================================================================
-   CREATE / EDIT DEALER MODAL
-   ================================================================ */
+// CREATE / EDIT DEALER MODAL
 const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, editingDealerData }) => {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", password: "", shop_name: "", district: "", town: "", brands: [], address: "" });
   const [loading, setLoading] = useState(false);
@@ -293,17 +291,15 @@ const CreateDealerModal = ({ isOpen, onClose, onDealerChanged, editingDealerId, 
   );
 };
 
-/* ================================================================
-   DEALER ACTIONS
-   ================================================================ */
-const DealerActions = ({ dealerId, onEdit, onDelete, dealerStatus, isSalesman }) => {
+// DEALER ACTIONS
+const DealerActions = ({ dealerId, onEdit, onDelete, dealerStatus, canUpdateDealer, canDeleteDealer }) => {
   if (dealerStatus?.toLowerCase() === "deleted") return null;
   return (
     <div className="flex items-center justify-end gap-1">
       <Link to={`/dealers/${dealerId}`} title="View Details" className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
         <FiEye size={14} />
       </Link>
-      {!isSalesman && (
+      {canUpdateDealer && canDeleteDealer && (
         <>
           <button onClick={onEdit} title="Edit Dealer" className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all">
             <FiEdit2 size={14} />
@@ -317,9 +313,7 @@ const DealerActions = ({ dealerId, onEdit, onDelete, dealerStatus, isSalesman })
   );
 };
 
-/* ================================================================
-   PAGINATION
-   ================================================================ */
+// PAGINATION
 const DealersPagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
   const pages = [...Array(totalPages)].map((_, i) => i + 1);
@@ -355,12 +349,29 @@ const DealersPagination = ({ currentPage, totalPages, onPageChange }) => {
   );
 };
 
-/* ================================================================
-   MAIN COMPONENT — Dealers
-   ================================================================ */
+// MAIN COMPONENT — Dealers
 const Dealers = () => {
   const { user } = useAuth();
-  const isSalesman = user?.role === ROLES.SALESMAN;
+
+  const canCreateDealer = useMemo(
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role),
+    [user?.role]
+  );
+
+  const canUpdateDealer = useMemo(
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role),
+    [user?.role]
+  );
+
+  const canDeleteDealer = useMemo(
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role),
+    [user?.role]
+  );
+
+  const canViewPasswords = useMemo(
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role),
+    [user?.role]
+  );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -380,8 +391,6 @@ const Dealers = () => {
   const [loading, setLoading] = useState(true);
   const [showPasswordMap, setShowPasswordMap] = useState({});
   const [error, setError] = useState("");
-
-  const canViewPasswords = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(user?.role), [user?.role]);
 
   const fetchDealersList = async () => {
     try {
@@ -411,15 +420,18 @@ const Dealers = () => {
 
   const handlePageChange = (page) => { if (page < 1 || page > totalPages) return; setCurrentPage(page); };
   const handleDealerChanged = () => { fetchDealersList(); setEditingDealerId(null); setEditingDealerData(null); };
+
   const handleEditDealer = async (dealerId) => {
-    if (isSalesman) return;
+    if (!canUpdateDealer) return;
     setEditingDealerId(dealerId); setIsModalOpen(true);
     try { const res = await fetchDealerById(dealerId); if (res?.success && res?.data) setEditingDealerData(res.data); } catch { }
   };
+
   const handleOpenDeleteModal = (dealerId) => {
-    if (isSalesman) return;
+    if (!canDeleteDealer) return;
     setSelectedDealerId(dealerId); setDeleteReason(""); setDeleteError(""); setShowDeleteModal(true);
   };
+
   const handleDeleteDealer = async () => {
     setDeleteLoading(true); setDeleteError("");
     try {
@@ -440,10 +452,14 @@ const Dealers = () => {
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">Dealers</h1>
             <p className="text-xs text-slate-400 font-medium mt-0.5">Manage and track dealer accounts</p>
           </div>
-          {!isSalesman && (
+          {canCreateDealer && (
             <button onClick={() => { setIsModalOpen(true); setEditingDealerId(null); setEditingDealerData(null); }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200">
-              <FiPlus size={14} />Add New Dealer
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white 
+                text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all 
+                shadow-sm shadow-indigo-200 cursor-pointer
+              "
+            >
+              <FiPlus size={14} /> Add New Dealer
             </button>
           )}
         </div>
@@ -522,6 +538,7 @@ const Dealers = () => {
                     </tr>
                   ) : dealers.map((dealer) => (
                     <tr key={dealer.employee_id} className="hover:bg-slate-50/60 transition-colors duration-100 group">
+
                       {/* Dealer */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
@@ -534,9 +551,17 @@ const Dealers = () => {
                           </div>
                         </div>
                       </td>
+
+                      {/* Shop Name */}
                       <td className="px-5 py-4 text-slate-600 font-medium">{capitalizeFirstLetter(dealer.shop_name)}</td>
+
+                      {/* Phone */}
                       <td className="px-5 py-4 text-slate-600 font-medium whitespace-nowrap">{dealer.employee_phone}</td>
+
+                      {/* District */}
                       <td className="px-5 py-4 text-slate-600 font-medium">{dealer.district}</td>
+
+                      {/* Status */}
                       <td className="px-5 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wide ${(dealer.status || "").toLowerCase() === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"
                           }`}>
@@ -544,8 +569,14 @@ const Dealers = () => {
                           {dealer.status || "N/A"}
                         </span>
                       </td>
+
+                      {/* Created By */}
                       <td className="px-5 py-4 text-slate-500 font-medium text-xs">{userMap[dealer.created_by] || dealer.created_by}</td>
+
+                      {/* Created At */}
                       <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">{dealer.created_at ? new Date(dealer.created_at).toLocaleDateString() : ""}</td>
+
+                      {/* Password */}
                       {includePassword && canViewPasswords && (
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
@@ -556,8 +587,17 @@ const Dealers = () => {
                           </div>
                         </td>
                       )}
+
+                      {/* Actions */}
                       <td className="px-5 py-4">
-                        <DealerActions dealerId={dealer.employee_id} onEdit={() => handleEditDealer(dealer.employee_id)} onDelete={() => handleOpenDeleteModal(dealer.employee_id)} dealerStatus={dealer.status} isSalesman={isSalesman} />
+                        <DealerActions
+                          dealerId={dealer.employee_id}
+                          onEdit={() => handleEditDealer(dealer.employee_id)}
+                          onDelete={() => handleOpenDeleteModal(dealer.employee_id)}
+                          dealerStatus={dealer.status}
+                          canUpdateDealer={canUpdateDealer}
+                          canDeleteDealer={canDeleteDealer}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -571,7 +611,13 @@ const Dealers = () => {
       </div>
 
       {/* Create/Edit Modal */}
-      <CreateDealerModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingDealerId(null); setEditingDealerData(null); }} onDealerChanged={handleDealerChanged} editingDealerId={editingDealerId} editingDealerData={editingDealerData} />
+      <CreateDealerModal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setEditingDealerId(null); setEditingDealerData(null); }}
+        onDealerChanged={handleDealerChanged}
+        editingDealerId={editingDealerId}
+        editingDealerData={editingDealerData}
+      />
 
       {/* Delete Modal */}
       {showDeleteModal && (

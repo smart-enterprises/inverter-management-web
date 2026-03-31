@@ -11,9 +11,7 @@ import Swal from "sweetalert2";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
 
-/* ================================================================
-   SHARED INPUT
-   ================================================================ */
+//  SHARED INPUT
 const BrandInput = ({ className = "", ...props }) => (
   <input
     {...props}
@@ -21,9 +19,7 @@ const BrandInput = ({ className = "", ...props }) => (
   />
 );
 
-/* ================================================================
-   CREATE BRAND MODAL  (logic unchanged)
-   ================================================================ */
+//  CREATE BRAND MODAL  (logic unchanged)
 const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
   const [brands, setBrands] = useState([{ brand_name: "", brand_models: [""], description: "" }]);
   const [loading, setLoading] = useState(false);
@@ -158,9 +154,7 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
   );
 };
 
-/* ================================================================
-   EDIT BRAND MODAL  (logic unchanged)
-   ================================================================ */
+//  EDIT BRAND MODAL  (logic unchanged)
 const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
   const [formData, setFormData] = useState({ brand_name: "", status: "active", description: "", brand_models: [""] });
   const [originalModels, setOriginalModels] = useState([]);
@@ -326,9 +320,7 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
   );
 };
 
-/* ================================================================
-   PAGINATION
-   ================================================================ */
+//  PAGINATION
 const BrandsPagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -366,10 +358,12 @@ const BrandsPagination = ({ currentPage, totalPages, onPageChange }) => {
   );
 };
 
-/* ================================================================
-   MAIN — Brands
-   ================================================================ */
+//  MAIN — Brands
 const Brands = () => {
+  const { user } = useAuth();
+
+  const canManageBrands = [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState(null);
@@ -380,8 +374,6 @@ const Brands = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const { user } = useAuth();
-  const isSalesman = user?.role === ROLES.SALESMAN;
 
   const fetchBrandsList = useCallback(async () => {
     try {
@@ -407,7 +399,7 @@ const Brands = () => {
   const currentBrands = filteredBrands.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.max(1, Math.ceil(filteredBrands.length / itemsPerPage));
 
-  const handleEditBrand = (brand) => { if (isSalesman) return; setSelectedBrand(brand); setIsEditModalOpen(true); };
+  const handleEditBrand = (brand) => { if (!canManageBrands) return; setSelectedBrand(brand); setIsEditModalOpen(true); };
   const handleBrandUpdated = () => { fetchBrandsList(); setSelectedBrand(null); };
 
   return (
@@ -427,7 +419,7 @@ const Brands = () => {
               className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50">
               <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
             </button>
-            {!isSalesman && (
+            {canManageBrands && (
               <button onClick={() => setIsModalOpen(true)}
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200">
                 <FiPlus size={14} />Create Brand
@@ -487,8 +479,13 @@ const Brands = () => {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/50">
-                    {["Brand", "Models", "Created", "Status", ...(!isSalesman ? [""] : [])].map((h, i, arr) => (
-                      <th key={i} className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${!isSalesman && i === arr.length - 1 ? "text-right" : "text-left"}`}>
+                    {["Brand", "Models", "Created", "Status", ...(!canManageBrands ? [""] : [])].map((h, i, arr) => (
+                      <th key={i}
+                        className={`px-5 py-3.5 text-[10px] font-black uppercase 
+                          tracking-[0.1em] text-slate-400 whitespace-nowrap 
+                          ${!canManageBrands && i === arr.length - 1 ? "text-right" : "text-left"}`
+                        }
+                      >
                         {h}
                       </th>
                     ))}
@@ -544,7 +541,7 @@ const Brands = () => {
                       </td>
 
                       {/* Actions */}
-                      {!isSalesman && (
+                      {canManageBrands && (
                         <td className="px-5 py-4 text-right">
                           <button onClick={() => handleEditBrand(brand)} title="Edit Brand"
                             className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all">
@@ -565,10 +562,19 @@ const Brands = () => {
         </div>
       </div>
 
-      {!isSalesman && (
+      {canManageBrands && (
         <>
-          <CreateBrandModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onBrandCreated={fetchBrandsList} />
-          <EditBrandModal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setSelectedBrand(null); }} onBrandUpdated={handleBrandUpdated} brandData={selectedBrand} />
+          <CreateBrandModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onBrandCreated={fetchBrandsList}
+          />
+          <EditBrandModal
+            isOpen={isEditModalOpen}
+            onClose={() => { setIsEditModalOpen(false); setSelectedBrand(null); }}
+            onBrandUpdated={handleBrandUpdated}
+            brandData={selectedBrand}
+          />
         </>
       )}
     </div>

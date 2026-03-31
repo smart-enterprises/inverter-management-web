@@ -26,8 +26,8 @@ const NAV_ITEMS = [
   { icon: FiBox, label: "Products", path: "/products" },
   { icon: FiShield, label: "Brands", path: "/brands" },
   { icon: FiClipboard, label: "Orders", path: "/orders" },
-  { icon: FiTruck, label: "Delivery", path: "/delivery" },
-  { icon: FiPackage, label: "Billing", path: "/billing" },
+  // { icon: FiTruck, label: "Delivery", path: "/delivery" },
+  // { icon: FiPackage, label: "Billing", path: "/billing" },
 ];
 
 /* ─────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
           ))}
         </nav>
 
-        <div className="sidebar-footer">
+        {/* <div className="sidebar-footer">
           <NavItem
             icon={FiSettings}
             label="Settings"
@@ -97,7 +97,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
             active={isPathActive(location.pathname, "/settings")}
             isCollapsed={finalIsCollapsed}
           />
-        </div>
+        </div> */}
       </div>
     </aside>
   );
