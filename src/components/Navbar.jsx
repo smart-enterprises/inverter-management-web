@@ -309,7 +309,7 @@ const Navbar = () => {
                   <button
                     onClick={handleLogout}
                     role="menuitem"
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-all duration-150"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-all duration-150 cursor-pointer"
                   >
                     <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-500 flex-shrink-0">
                       <FiLogOut size={13} />
