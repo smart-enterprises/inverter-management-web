@@ -38,7 +38,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
         const data = await response.json().catch(() => null);
 
-        /* ================= UNAUTHORIZED ================= */
+        /* ── 401 Unauthorized — session expired or invalid token ── */
         if (response.status === 401) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
@@ -57,7 +57,7 @@ export const apiRequest = async (endpoint, options = {}) => {
         if (!response.ok) {
             return {
                 success: false,
-                message: data?.message || "API request failed",
+                message: data?.message || `Request failed (${response.status})`,
                 errors: data?.errors || [],
                 status: response.status,
             };
@@ -70,7 +70,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
         return {
             success: false,
-            message: error.message || "Network error",
+            message: error.message || "Network error. Please check your connection.",
             errors: [],
         };
 
