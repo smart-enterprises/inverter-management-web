@@ -13,6 +13,8 @@ import {
     FiEdit3
 } from "react-icons/fi";
 
+import { useAuth } from "../hooks/useAuth";
+
 import { fetchProductById } from "../api/products";
 
 import EditProductModal from "../components/EditProductModal.jsx";
@@ -20,6 +22,8 @@ import StockUpdateModal from "../components/StockUpdateModal.jsx";
 import { fetchUsers } from "../api/user";
 import StockHistoryModal from "../components/StockHistoryModal.jsx";
 import PriceHistoryModal from "../components/PriceHistoryModal.jsx";
+
+import { canEditProduct, canUpdateProductStock, canViewProductPrice } from "../utils/productPermissions";
 
 /* ================= FORMATTERS ================= */
 
@@ -94,6 +98,12 @@ const Info = ({ icon, label, children }) => (
 const ProductDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+
+    const { user } = useAuth();
+    const role = user?.role;
+    const userCanEdit = canEditProduct(role);
+    const userCanUpdateStock = canUpdateProductStock(role);
+    const userCanViewPrice = canViewProductPrice(role);
 
     const [product, setProduct] = useState(null);
     const [userMap, setUserMap] = useState({});
@@ -249,34 +259,38 @@ const ProductDetails = () => {
                     <div className="flex items-center gap-2">
 
                         {/* Edit Product */}
-                        <button
-                            onClick={() => setIsEditOpen(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg
-                                bg-gradient-to-r from-purple-600 to-purple-700
-                                hover:from-purple-700 hover:to-purple-800
-                                shadow-sm hover:shadow-md
-                                transition duration-200 hover:-translate-y-[1px]
-                            "
-                            title="Edit Product"
-                        >
-                            <FiEdit3 size={16} />
-                            Edit
-                        </button>
+                        {userCanEdit && (
+                            <button
+                                onClick={() => setIsEditOpen(true)}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg
+                                    bg-gradient-to-r from-purple-600 to-purple-700
+                                    hover:from-purple-700 hover:to-purple-800
+                                    shadow-sm hover:shadow-md
+                                    transition duration-200 hover:-translate-y-[1px]
+                                "
+                                title="Edit Product"
+                            >
+                                <FiEdit3 size={16} />
+                                Edit
+                            </button>
+                        )}
 
                         {/* Update Stock */}
-                        <button
-                            onClick={() => setIsStockOpen(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg
-                                bg-gradient-to-r from-green-600 to-green-700
-                                hover:from-green-700 hover:to-green-800
-                                shadow-sm hover:shadow-md
-                                transition duration-200 hover:-translate-y-[1px]
-                            "
-                            title="Update Stock"
-                        >
-                            <FiPackage size={16} />
-                            Update Stock
-                        </button>
+                        {userCanUpdateStock && (
+                            <button
+                                onClick={() => setIsStockOpen(true)}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg
+                                    bg-gradient-to-r from-green-600 to-green-700
+                                    hover:from-green-700 hover:to-green-800
+                                    shadow-sm hover:shadow-md
+                                    transition duration-200 hover:-translate-y-[1px]
+                                "
+                                title="Update Stock"
+                            >
+                                <FiPackage size={16} />
+                                Update Stock
+                            </button>
+                        )}
 
                     </div>
 
@@ -341,36 +355,42 @@ const ProductDetails = () => {
                     </Info>
 
                     {/* Price */}
-                    <Info
-                        icon={
-                            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-purple-50 text-purple-600">
-                                <FiDollarSign size={16} />
+                    {userCanViewPrice && (
+                        <Info
+                            icon={
+                                <div
+                                    className="flex items-center justify-center w-9 h-9 rounded-lg 
+                                        bg-purple-50 text-purple-600
+                                    "
+                                >
+                                    <FiDollarSign size={16} />
+                                </div>
+                            }
+                            label="Price"
+                        >
+
+                            <div className="flex items-center gap-3">
+
+                                <span className="text-lg font-semibold text-purple-700">
+                                    {formatCurrency(price)}
+                                </span>
+
+                                {/* Price History Button */}
+                                <button
+                                    onClick={() => setIsPriceHistoryOpen(true)}
+                                    className="p-1.5 rounded-md border border-gray-200 text-gray-500
+                                        hover:bg-gray-100 hover:text-gray-700 transition
+                                        cursor-pointer
+                                    "
+                                    title="View Price History"
+                                >
+                                    <FiClock size={14} />
+                                </button>
+
                             </div>
-                        }
-                        label="Price"
-                    >
 
-                        <div className="flex items-center gap-3">
-
-                            <span className="text-lg font-semibold text-purple-700">
-                                {formatCurrency(price)}
-                            </span>
-
-                            {/* Price History Button */}
-                            <button
-                                onClick={() => setIsPriceHistoryOpen(true)}
-                                className="p-1.5 rounded-md border border-gray-200 text-gray-500
-                                    hover:bg-gray-100 hover:text-gray-700 transition
-                                    cursor-pointer
-                                "
-                                title="View Price History"
-                            >
-                                <FiClock size={14} />
-                            </button>
-
-                        </div>
-
-                    </Info>
+                        </Info>
+                    )}
 
                     {/* Available Stock */}
                     <Info

@@ -146,14 +146,20 @@ const Orders = () => {
   const isProduction = role === ROLES.PRODUCTION;
   const isPacking = role === ROLES.PACKING;
   const isDelivery = role === ROLES.DELIVERY;
-  const isSalesman = role === ROLES.SALESMAN;
-  const isManager = role === ROLES.MANAGER;
-  const isAdmin = role === ROLES.ADMIN;
-  const isSuperAdmin = role === ROLES.SUPER_ADMIN;
 
   const canCreateOrder = useMemo(
-    () => isSuperAdmin || isAdmin || isManager || isSalesman,
-    [isSuperAdmin, isAdmin, isManager, isSalesman]
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.SALESMAN].includes(user?.role),
+    [user?.role]
+  );
+
+  const canViewOrderPrice = useMemo(
+    () => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.SALESMAN].includes(user?.role),
+    [user?.role]
+  );
+
+  const cannotRemoveClear = useMemo(
+    () => [ROLES.PRODUCTION, ROLES.PACKING].includes(user?.role),
+    [user?.role]
   );
 
   /* ── State ── */
@@ -304,10 +310,12 @@ const Orders = () => {
           {canCreateOrder && (
             <button
               onClick={() => navigate("/orders/create")}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white 
+                text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all 
+                shadow-sm shadow-indigo-200 cursor-pointer
+              "
             >
-              <FiPlus size={14} />
-              Create Order
+              <FiPlus size={14} /> Create Order
             </button>
           )}
         </div>
@@ -407,7 +415,7 @@ const Orders = () => {
                 </div>
 
                 {/* Clear */}
-                {hasActiveFilters && (
+                {!cannotRemoveClear && hasActiveFilters && (
                   <button
                     onClick={clearFilters}
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-md hover:bg-rose-100 transition"
@@ -507,9 +515,10 @@ const Orders = () => {
 
                         {/* Total */}
                         <td className="px-5 py-4 whitespace-nowrap">
-                          <span className="text-sm font-bold text-slate-900">
-                            ₹{order.order_total_price?.toLocaleString("en-IN")}
-                          </span>
+                          {canViewOrderPrice
+                            ? <span className="text-sm font-bold text-slate-900">{order.order_total_price ? `₹ ${order.order_total_price.toLocaleString("en-IN")}` : "—"}</span>
+                            : <span className="text-sm text-slate-300">—</span>
+                          }
                         </td>
 
                         {/* Priority */}

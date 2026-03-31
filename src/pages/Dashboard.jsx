@@ -1,12 +1,4 @@
-// dashboard.jsx — Role-aware version
-//
-// Changes vs previous version:
-//  • Recent order rows — "View →" chevron + click handler only for roles
-//    allowed on /orders/:id
-//  • Low-stock table rows — clickable to /products/:id only for allowed roles
-//  • "View Products" button in low-stock section — shown only for allowed roles
-//  All permission logic derived from routePermissions via useRouteAccess hook.
-
+// dashboard.jsx — Role-aware version with dashboardPermissions
 import React, { useEffect, useState } from "react";
 import {
   FiUsers, FiShoppingBag, FiTruck, FiTrendingUp,
@@ -19,13 +11,14 @@ import { ROLES } from "../utils/roles";
 import { fetchOrders } from "../api/orders";
 import { fetchLowStockProducts } from "../api/products";
 import { capitalizeFirstLetter } from "../utils/constants";
-
-// ── Permission helper ─────────────────────────────────────────────────
 import { useRouteAccess } from "../hooks/useRouteAccess";
+import { useAuth } from "../hooks/useAuth";
+import {
+  canViewDashboardSection,
+  DASHBOARD_SECTIONS,
+} from "../utils/dashboardPermissions";
 
-/* ================================================================
-   STAT CARD
-   ================================================================ */
+// STAT CARD
 const StatCard = ({ icon, title, value, color, loading, onClick }) => {
   const c = {
     indigo: { bg: "bg-indigo-50", border: "border-indigo-100", icon: "text-indigo-600", val: "text-indigo-700", ring: "hover:ring-indigo-200" },
@@ -59,9 +52,7 @@ const StatCard = ({ icon, title, value, color, loading, onClick }) => {
   );
 };
 
-/* ================================================================
-   METRIC CARD
-   ================================================================ */
+//  METRIC CARD
 const MetricCard = ({ title, value, subValue, icon, color, loading, onClick }) => {
   const c = {
     emerald: { bg: "bg-emerald-50", border: "border-emerald-100", icon: "text-emerald-600", val: "text-emerald-700", ring: "hover:ring-emerald-200" },
@@ -94,9 +85,7 @@ const MetricCard = ({ title, value, subValue, icon, color, loading, onClick }) =
   );
 };
 
-/* ================================================================
-   ORDER ROW — conditionally clickable based on role
-   ================================================================ */
+// ORDER ROW — conditionally clickable based on role
 const OrderRow = ({ order, canNavigate, onClick }) => {
   const priorityStyle = {
     HIGH: "bg-rose-50 text-rose-700 border-rose-200",
@@ -157,9 +146,7 @@ const OrderRow = ({ order, canNavigate, onClick }) => {
   );
 };
 
-/* ================================================================
-   SECTION HEADER
-   ================================================================ */
+// SECTION HEADER
 const SectionHeader = ({ title, subtitle, action }) => (
   <div className="flex items-center justify-between mb-4">
     <div>
@@ -170,17 +157,26 @@ const SectionHeader = ({ title, subtitle, action }) => (
   </div>
 );
 
-/* ================================================================
-   DASHBOARD
-   ================================================================ */
+// DASHBOARD
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const role = user?.role;
 
-  // ── Permission gates ──────────────────────────────────────────────
   const { canAccess } = useRouteAccess();
   const canViewOrderDetails = canAccess("/orders/:id");
   const canViewProductList = canAccess("/products");
   const canViewProductDetail = canAccess("/products/:id");
+
+  // Dashboard section visibility helpers
+  const showStatsRow = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_USERS)
+    || canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_ORDERS);
+  const showBusinessMetrics = canViewDashboardSection(role, DASHBOARD_SECTIONS.BUSINESS_METRICS);
+  const showRecentOrders = canViewDashboardSection(role, DASHBOARD_SECTIONS.RECENT_ORDERS);
+  const showLowStockAlert = canViewDashboardSection(role, DASHBOARD_SECTIONS.LOW_STOCK_ALERT);
+  const showLowStockProducts = canViewDashboardSection(role, DASHBOARD_SECTIONS.LOW_STOCK_PRODUCTS);
+  const showUserStats = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_USERS);
+  const showDealerStats = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_DEALERS);
 
   // ── State ─────────────────────────────────────────────────────────
   const [totalOrders, setTotalOrders] = useState(0);
@@ -257,111 +253,103 @@ const Dashboard = () => {
     return () => { isMounted = false; };
   }, []);
 
-  /* ================================================================
-     RENDER
-     ================================================================ */
+  // UI
   return (
     <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-8">
 
-      {/* ── OVERVIEW STATS ── */}
-      <div>
-        <SectionHeader title="Overview" subtitle="System summary at a glance" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard icon={<FiUsers />} title="Total Admins" value={adminCount} color="indigo" loading={loading} onClick={() => navigate("/users")} />
-          <StatCard icon={<FiUsers />} title="Total Salesmen" value={salesmanCount} color="violet" loading={loading} onClick={() => navigate("/users")} />
-          <StatCard icon={<FiUsers />} title="Total Dealers" value={dealerCount} color="blue" loading={loading} onClick={() => navigate("/dealers")} />
-          <StatCard icon={<FiShoppingBag />} title="Total Orders" value={totalOrders} color="emerald" loading={loading} onClick={() => navigate("/orders")} />
-        </div>
-      </div>
-
-      {/* ── BUSINESS METRICS ── */}
-      <div>
-        <SectionHeader title="Business Metrics" subtitle="Performance insights" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <MetricCard
-            icon={<FiTrendingUp />} title="Monthly Sales Goal"
-            value="₹ 75,000" subValue="75% of ₹ 1,00,000 achieved"
-            color="emerald" loading={loading}
-          />
-          <MetricCard
-            icon={<FiShoppingBag />} title="Orders This Month"
-            value={monthlyOrders} color="blue" loading={loading}
-            onClick={() => navigate("/orders")}
-          />
-          <MetricCard
-            icon={<FiTruck />} title="Ongoing Orders"
-            value={ongoingOrders} color="amber" loading={loading}
-            onClick={() => navigate("/orders?status=PENDING")}
-          />
-          <MetricCard
-            icon={<FiAlertCircle />} title="Low Stock Products"
-            value={lowStockCount} color="rose" loading={loading}
-            // Only navigate to products if the role has access
-            onClick={canViewProductList ? () => navigate("/products") : undefined}
-          />
-        </div>
-      </div>
-
-      {/* ── RECENT ORDERS ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
-              <FiClock size={14} />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Recent Orders</h2>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
-                {canViewOrderDetails ? "Click any order to view details" : "Latest orders overview"}
-              </p>
-            </div>
+      {/* ── OVERVIEW STATS — only for roles that can see user/dealer stats */}
+      {showStatsRow && (
+        <div>
+          <SectionHeader title="Overview" subtitle="System summary at a glance" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {showUserStats && (
+              <>
+                <StatCard icon={<FiUsers />} title="Total Admins" value={adminCount} color="indigo" loading={loading} onClick={() => navigate("/users")} />
+                <StatCard icon={<FiUsers />} title="Total Salesmen" value={salesmanCount} color="violet" loading={loading} onClick={() => navigate("/users")} />
+              </>
+            )}
+            {showDealerStats && <StatCard icon={<FiUsers />} title="Total Dealers" value={dealerCount} color="blue" loading={loading} onClick={() => navigate("/dealers")} />}
+            {canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_ORDERS) && (
+              <StatCard icon={<FiShoppingBag />} title="Total Orders" value={totalOrders} color="emerald" loading={loading} onClick={() => navigate("/orders")} />
+            )}
           </div>
-          <button
-            onClick={() => navigate("/orders")}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
-          >
-            View All <FiArrowRight size={13} />
-          </button>
         </div>
+      )}
 
-        <div className="p-5">
-          {loading ? (
-            <div className="space-y-2.5">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-16 bg-slate-100 rounded-xl animate-pulse"
-                  style={{ animationDelay: `${i * 80}ms` }}
-                />
-              ))}
-            </div>
-          ) : recentOrders?.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <div className="p-4 bg-slate-100 rounded-2xl">
-                <FiPackage size={22} className="text-slate-400" />
+      {/* ── BUSINESS METRICS */}
+      {showBusinessMetrics && (
+        <div>
+          <SectionHeader title="Business Metrics" subtitle="Performance insights" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <MetricCard icon={<FiTrendingUp />} title="Monthly Sales Goal" value="₹ 75,000" subValue="75% of ₹ 1,00,000 achieved" color="emerald" loading={loading} />
+            <MetricCard icon={<FiShoppingBag />} title="Orders This Month" value={monthlyOrders} color="blue" loading={loading} onClick={() => navigate("/orders")} />
+            <MetricCard icon={<FiTruck />} title="Ongoing Orders" value={ongoingOrders} color="amber" loading={loading} onClick={() => navigate("/orders?status=PENDING")} />
+            {/* Low stock metric — only shown to roles that can see stock info */}
+            {showLowStockAlert && (
+              <MetricCard
+                icon={<FiAlertCircle />}
+                title="Low Stock Products"
+                value={lowStockCount}
+                color="rose"
+                loading={loading}
+                onClick={canViewProductList ? () => navigate("/products") : undefined}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── RECENT ORDERS */}
+      {showRecentOrders && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                <FiClock size={14} />
               </div>
-              <p className="text-sm font-semibold text-slate-500">No recent orders</p>
-              <p className="text-xs text-slate-400">Newly placed orders will appear here.</p>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Recent Orders</h2>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+                  {canViewOrderDetails ? "Click any order to view details" : "Latest orders overview"}
+                </p>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {recentOrders.map(({ order }) =>
-                order ? (
-                  <OrderRow
-                    key={order.order_number}
-                    order={order}
-                    canNavigate={canViewOrderDetails}
-                    onClick={canViewOrderDetails ? () => navigate(`/orders/${order.order_number}`) : undefined}
-                  />
-                ) : null
-              )}
-            </div>
-          )}
+            <button onClick={() => navigate("/orders")} className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200">
+              View All <FiArrowRight size={13} />
+            </button>
+          </div>
+          <div className="p-5">
+            {loading ? (
+              <div className="space-y-2.5">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
+                ))}
+              </div>
+            ) : recentOrders?.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <div className="p-4 bg-slate-100 rounded-2xl"><FiPackage size={22} className="text-slate-400" /></div>
+                <p className="text-sm font-semibold text-slate-500">No recent orders</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentOrders.map(({ order }) =>
+                  order ? (
+                    <OrderRow
+                      key={order.order_number}
+                      order={order}
+                      canNavigate={canViewOrderDetails}
+                      onClick={canViewOrderDetails ? () => navigate(`/orders/${order.order_number}`) : undefined}
+                    />
+                  ) : null
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ── LOW STOCK ALERT ── */}
-      {!loading && lowStockProducts.length > 0 && (
+      {/* ── LOW STOCK ALERT — Production/Packing can see, Salesman CANNOT */}
+      {showLowStockAlert && !loading && lowStockProducts.length > 0 && showLowStockProducts && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-rose-50/30">
             <div className="flex items-center gap-3">
@@ -375,13 +363,8 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-
-            {/* ── VIEW PRODUCTS button — role-gated ── */}
             {canViewProductList && (
-              <button
-                onClick={() => navigate("/products")}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 transition-colors"
-              >
+              <button onClick={() => navigate("/products")} className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 transition-colors">
                 View Products <FiArrowRight size={11} />
               </button>
             )}
@@ -391,12 +374,7 @@ const Dashboard = () => {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
                   {["Product", "Brand", "Available", "Packed", "Unpacked"].map((h) => (
-                    <th
-                      key={h}
-                      className="px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 text-left whitespace-nowrap"
-                    >
-                      {h}
-                    </th>
+                    <th key={h} className="px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 text-left whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -404,10 +382,8 @@ const Dashboard = () => {
                 {lowStockProducts.map((p) => (
                   <tr
                     key={p.product_id}
-                    // Navigate only if role has product detail access
                     onClick={canViewProductDetail ? () => navigate(`/products/${p.product_id}`) : undefined}
-                    className={`hover:bg-slate-50/60 transition-colors ${canViewProductDetail ? "cursor-pointer" : "cursor-default"
-                      }`}
+                    className={`hover:bg-slate-50/60 transition-colors ${canViewProductDetail ? "cursor-pointer" : "cursor-default"}`}
                   >
                     <td className="px-5 py-3.5">
                       <p className="font-bold text-slate-900">{p.product_name}</p>
@@ -415,20 +391,10 @@ const Dashboard = () => {
                     </td>
                     <td className="px-5 py-3.5 text-slate-600 font-medium">{p.brand}</td>
                     <td className="px-5 py-3.5">
-                      <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black border bg-rose-50 text-rose-700 border-rose-200 tabular-nums">
-                        {p.available_stock ?? 0}
-                      </span>
+                      <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black border bg-rose-50 text-rose-700 border-rose-200 tabular-nums">{p.available_stock ?? 0}</span>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="text-xs font-semibold text-violet-600 tabular-nums">
-                        {p.stocks?.[0]?.packed_stock ?? 0}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="text-xs font-semibold text-blue-600 tabular-nums">
-                        {p.stocks?.[0]?.unpacked_stock ?? 0}
-                      </span>
-                    </td>
+                    <td className="px-5 py-3.5"><span className="text-xs font-semibold text-violet-600 tabular-nums">{p.stocks?.[0]?.packed_stock ?? 0}</span></td>
+                    <td className="px-5 py-3.5"><span className="text-xs font-semibold text-blue-600 tabular-nums">{p.stocks?.[0]?.unpacked_stock ?? 0}</span></td>
                   </tr>
                 ))}
               </tbody>

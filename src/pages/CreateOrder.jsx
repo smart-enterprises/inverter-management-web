@@ -206,6 +206,7 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
   const searchRef = useRef(null);
   const panelRef = useRef(null);
   const selected = options.find((o) => o.value === value);
+  console.log("selected", selected);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return options;
@@ -213,6 +214,7 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
     return options.filter(
       (o) =>
         (o.product_name || "").toLowerCase().includes(q) ||
+        (o.product_brand || "").toLowerCase().includes(q) ||
         (o.product_model || "").toLowerCase().includes(q) ||
         (o.product_type || "").toLowerCase().includes(q)
     );
@@ -319,7 +321,7 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
           </div>
 
           <div className="grid grid-cols-[2fr_1fr_1fr_72px] gap-2 px-4 py-2 bg-slate-50 border-b border-slate-100">
-            {["Product", "Model", "Type", "Stock"].map((h) => (
+            {["Product", "Brand", "Model", "Type", "Stock"].map((h) => (
               <span
                 key={h}
                 className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400"
@@ -363,6 +365,13 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
                       {opt.product_name
                         ? capitalizeFirstLetter(opt.product_name)
                         : opt.label}
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium truncate">
+                      {opt.product_brand ? (
+                        capitalizeFirstLetter(opt.product_brand)
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
                     </span>
                     <span className="text-xs text-slate-500 font-medium truncate">
                       {opt.product_model ? (
@@ -1028,6 +1037,7 @@ const CreateOrder = () => {
         product_name: p.product_name,
         product_model: p.model,
         product_type: p.product_type,
+        product_brand: p.brand,
       })),
     [products]
   );

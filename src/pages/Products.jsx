@@ -15,18 +15,15 @@ import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
 import EditProductModal from "../components/EditProductModal";
 import StockUpdateModal from "../components/StockUpdateModal";
+import { canCreateProduct, canEditProduct, canUpdateProductStock, canViewProductPrice } from "../utils/productPermissions";
 
-/* ================================================================
-   CONSTANTS
-   ================================================================ */
+//  CONSTANTS
 const PRODUCT_TYPE_OPTIONS = [
   "All Types", "INV 12V", "INV 24V", "INV 48V",
   "SOLAR 12V", "SOLAR 24V", "SOLAR 48V",
 ];
 
-/* ================================================================
-   CREATE PRODUCT MODAL
-   ================================================================ */
+//  CREATE PRODUCT MODAL
 const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
   const initialFormState = {
     brand: "", product_name: "", model: "", product_type: "",
@@ -200,9 +197,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
   );
 };
 
-/* ================================================================
-   STAT CARD
-   ================================================================ */
+//  STAT CARD
 const StatCard = ({ label, value, icon, color }) => {
   const c = {
     indigo: "bg-indigo-50 border-indigo-100 text-indigo-600",
@@ -224,9 +219,7 @@ const StatCard = ({ label, value, icon, color }) => {
   );
 };
 
-/* ================================================================
-   PAGINATION  (server-driven)
-   ================================================================ */
+//  PAGINATION  (server-driven)
 const Pagination = ({ page, totalPages, total, limit, onPageChange }) => {
   if (totalPages <= 1) return null;
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -263,13 +256,17 @@ const Pagination = ({ page, totalPages, total, limit, onPageChange }) => {
   );
 };
 
-/* ================================================================
-   MAIN — Products
-   ================================================================ */
+//  MAIN — Products
 const Products = () => {
   const navigate = useNavigate();
+
   const { user } = useAuth();
-  const isSalesman = user?.role === ROLES.SALESMAN;
+  const role = user?.role;
+
+  const userCanCreate = canCreateProduct(role);
+  const userCanEdit = canEditProduct(role);
+  const userCanUpdateStock = canUpdateProductStock(role);
+  const userCanViewPrice = canViewProductPrice(role);
 
   /* ── Modal states ── */
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -278,7 +275,7 @@ const Products = () => {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [selectedProductName, setSelectedProductName] = useState("");
 
-  /* ── Filter / search states ── */
+  //  Filter / search states
   const [searchInput, setSearchInput] = useState("");   // controlled text input
   const [searchQuery, setSearchQuery] = useState("");   // debounced, sent to API
   const [selectedType, setSelectedType] = useState(""); // "" = all
@@ -304,7 +301,7 @@ const Products = () => {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  /* ── Fetch with all server-side params ── */
+  //  Fetch with all server-side params
   const loadProducts = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -358,8 +355,8 @@ const Products = () => {
     setSearchInput(""); setSearchQuery(""); setSelectedType(""); setSelectedStatus(""); setPage(1);
   };
 
-  const openEditModal = (id, name) => { if (isSalesman) return; setSelectedProductId(id); setSelectedProductName(name); setIsEditModalOpen(true); };
-  const openStockModal = (id, name) => { if (isSalesman) return; setSelectedProductId(id); setSelectedProductName(name); setIsStockModalOpen(true); };
+  const openEditModal = (id, name) => { if (!userCanEdit) return; setSelectedProductId(id); setSelectedProductName(name); setIsEditModalOpen(true); };
+  const openStockModal = (id, name) => { if (!userCanUpdateStock) return; setSelectedProductId(id); setSelectedProductName(name); setIsStockModalOpen(true); };
   const activeFilters = searchQuery || selectedType || selectedStatus;
 
   /* ================================================================
@@ -390,7 +387,7 @@ const Products = () => {
               className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50">
               <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
             </button>
-            {!isSalesman && (
+            {userCanCreate && (
               <button onClick={() => setIsModalOpen(true)}
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200">
                 <FiPlus size={14} />Create Product
@@ -485,8 +482,11 @@ const Products = () => {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/50">
-                    {["Product", "Brand", "Model", "Type", "Price", "Available", "Stock", "Status", ...(!isSalesman ? [""] : [])].map((h, i, arr) => (
-                      <th key={i} className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${!isSalesman && i === arr.length - 1 ? "text-right" : "text-left"}`}>
+                    {["Product", "Brand", "Model", "Type", "Price",
+                      "Available", "Stock", "Status",
+                      ...(userCanEdit || userCanUpdateStock ? [""] : [])
+                    ].map((h, i, arr) => (
+                      <th key={i} className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${!userCanEdit && i === arr.length - 1 ? "text-right" : "text-left"}`}>
                         {h}
                       </th>
                     ))}
@@ -495,7 +495,7 @@ const Products = () => {
                 <tbody className="divide-y divide-slate-50">
                   {products.length === 0 ? (
                     <tr>
-                      <td colSpan={isSalesman ? 8 : 9} className="py-20 text-center">
+                      <td colSpan={userCanEdit || userCanUpdateStock ? 8 : 9} className="py-20 text-center">
                         <div className="flex flex-col items-center gap-3">
                           <div className="p-5 bg-slate-100 rounded-2xl"><FiBox size={24} className="text-slate-400" /></div>
                           <p className="text-sm font-semibold text-slate-500">No products found</p>
@@ -505,15 +505,18 @@ const Products = () => {
                     </tr>
                   ) : products.map((product) => {
                     const { product_id, product_name, brand, model, product_type, price, available_stock, status, stocks = [] } = product;
+
                     // stocks[0] has packed_stock and unpacked_stock per API response
                     const unpackedStock = stocks.find((s) => s.stock_type === "UNPACKED")?.stock ?? stocks[0]?.unpacked_stock ?? 0;
                     const packedStock = stocks.find((s) => s.stock_type === "PACKED")?.stock ?? stocks[0]?.packed_stock ?? 0;
+
                     const isActive = status === "active";
                     const qty = available_stock ?? 0;
                     const stockBadge = qty === 0 ? "text-rose-600 bg-rose-50 border-rose-200" : qty < 5 ? "text-amber-600 bg-amber-50 border-amber-200" : "text-emerald-600 bg-emerald-50 border-emerald-200";
 
                     return (
                       <tr key={product_id} className="hover:bg-slate-50/60 transition-colors duration-100">
+
                         {/* Product */}
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
@@ -526,17 +529,26 @@ const Products = () => {
                             </div>
                           </div>
                         </td>
+
                         <td className="px-5 py-4"><span className="text-sm font-semibold text-slate-700">{brand}</span></td>
                         <td className="px-5 py-4"><span className="text-sm font-medium text-slate-500">{model}</span></td>
+
                         <td className="px-5 py-4">
                           <span className="inline-flex px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-black uppercase tracking-wide whitespace-nowrap">{product_type}</span>
                         </td>
+
+                        {/* Price */}
                         <td className="px-5 py-4 whitespace-nowrap">
-                          <span className="text-sm font-bold text-slate-900">{price ? `₹ ${price.toLocaleString("en-IN")}` : "—"}</span>
+                          {userCanViewPrice
+                            ? <span className="text-sm font-bold text-slate-900">{price ? `₹ ${price.toLocaleString("en-IN")}` : "—"}</span>
+                            : <span className="text-sm text-slate-300">—</span>
+                          }
                         </td>
+
                         <td className="px-5 py-4">
                           <span className={`inline-flex px-2.5 py-1 rounded-lg border text-[10px] font-black tabular-nums ${stockBadge}`}>{qty}</span>
                         </td>
+
                         <td className="px-5 py-4">
                           <div className="flex gap-1.5">
                             <span className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[10px] font-black whitespace-nowrap">
@@ -547,21 +559,46 @@ const Products = () => {
                             </span>
                           </div>
                         </td>
+
+                        {/* Status */}
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wide whitespace-nowrap ${isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"}`}>
                             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isActive ? "bg-emerald-500" : "bg-rose-500"}`} />
                             {isActive ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        {!isSalesman && (
-                          <td className="px-5 py-4">
-                            <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => navigate(`/products/${product_id}`)} title="View" className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"><FiEye size={14} /></button>
-                              <button onClick={() => openEditModal(product_id, product_name)} title="Edit" className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all"><FiEdit3 size={14} /></button>
-                              {isActive && <button onClick={() => openStockModal(product_id, product_name)} title="Update Stock" className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"><FiPackage size={14} /></button>}
-                            </div>
-                          </td>
-                        )}
+
+                        {/* Actions */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center justify-end gap-1">
+
+                            <button
+                              onClick={() => navigate(`/products/${product_id}`)}
+                              title="View"
+                              className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                            >
+                              <FiEye size={14} />
+                            </button>
+                            {userCanEdit && (
+                              <button
+                                onClick={() => openEditModal(product_id, product_name)}
+                                title="Edit"
+                                className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all">
+                                <FiEdit3 size={14} />
+                              </button>
+                            )}
+
+                            {userCanUpdateStock && isActive && (
+                              <button
+                                onClick={() => openStockModal(product_id, product_name)}
+                                title="Update Stock"
+                                className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+                                <FiPackage size={14} />
+                              </button>
+                            )}
+
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -584,14 +621,38 @@ const Products = () => {
       </div>
 
       {/* Modals */}
-      {!isSalesman && (
-        <>
-          <CreateProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onProductCreated={loadProducts} />
-          <EditProductModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onProductUpdated={() => { loadProducts(); setSuccess("Product updated successfully! 🎉"); }} productId={selectedProductId} />
-          <StockUpdateModal isOpen={isStockModalOpen} onClose={() => setIsStockModalOpen(false)} onStockUpdated={() => { loadProducts(); setSuccess("Stock updated! 📦"); }} productId={selectedProductId} productName={selectedProductName} />
-        </>
-      )}
+      <>
+        {userCanCreate &&
+          <CreateProductModal
+            isOpen={isModalOpen}
+            onClose={() =>
+              setIsModalOpen(false)}
+            onProductCreated={loadProducts}
+          />
+        }
+
+        {userCanEdit &&
+          <EditProductModal
+            isOpen={isEditModalOpen}
+            onClose={() =>
+              setIsEditModalOpen(false)}
+            onProductUpdated={() => { loadProducts(); setSuccess("Product updated successfully! 🎉"); }}
+            productId={selectedProductId}
+          />
+        }
+
+        {userCanUpdateStock &&
+          <StockUpdateModal
+            isOpen={isStockModalOpen}
+            onClose={() =>
+              setIsStockModalOpen(false)}
+            onStockUpdated={() => { loadProducts(); setSuccess("Stock updated! 📦"); }}
+            productId={selectedProductId} productName={selectedProductName}
+          />
+        }
+      </>
     </div>
+
   );
 };
 
