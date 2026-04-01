@@ -13,6 +13,7 @@ import { createUser, fetchUsers, fetchUserById, updateUser, deleteUser } from ".
 import { useAuth } from "../hooks/useAuth";
 import { ROLES, getRoleLabel } from "../utils/roles";
 import { capitalizeFirstLetter } from "../utils/constants";
+import { errorsToMap, validateEmployeeFields } from "../utils/validationUtils";
 
 //  ROLE CONFIG — color + label for tabs and badges
 const ROLE_CONFIG = {
@@ -207,16 +208,49 @@ const User = () => {
     try {
       setLoading(true);
       if (!formData) return;
-      const requiredFields = ["employee_name", "employee_email", "password", "confirm_password", "employee_phone", "role"];
-      requiredFields.forEach((field) => { if (!formData[field]?.toString().trim()) throw new Error(`${field.replace(/_/g, " ")} is required`); });
-      if (formData.password !== formData.confirm_password) throw new Error("Password and Confirm Password must match");
+
+      const errors = validateEmployeeFields({
+        employee_name: formData.employee_name,
+        employee_email: formData.employee_email,
+        employee_phone: formData.employee_phone,
+        password: formData.password,
+        role: formData.role,
+        isUpdate: false,
+        allowedRoles: Object.values(ROLES),
+      });
+
+      if (formData.password !== formData.confirm_password) {
+        errors.push({
+          field: "confirm_password",
+          message: "Password and Confirm Password must match",
+        });
+      }
+
+      if (errors.length > 0) {
+        const errorMap = errorsToMap(errors);
+        const firstError = Object.values(errorMap)[0];
+        throw new Error(firstError);
+      }
+
       const payload = {};
-      ["employee_name", "employee_email", "password", "employee_phone", "role", "photo", "district", "town", "address"].forEach((field) => {
+      [
+        "employee_name",
+        "employee_email",
+        "password",
+        "employee_phone",
+        "role",
+        "photo",
+        "district",
+        "town",
+        "address",
+      ].forEach((field) => {
         const value = formData[field]?.toString().trim();
         if (value) payload[field] = value;
       });
+
       const res = await createUser(payload);
       if (!res?.success) throw new Error(res?.message || "Failed to create user");
+
       await Swal.fire({ icon: "success", title: "User Created", text: res.message || "User created successfully!", confirmButtonColor: "#4f46e5" });
       setFormData({});
       setIsModalOpen(false);

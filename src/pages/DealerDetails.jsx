@@ -1,5 +1,5 @@
 // dealer-details.jsx
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   FiArrowLeft, FiUser, FiMapPin, FiPhone, FiMail, FiBox, FiCalendar,
@@ -17,7 +17,6 @@ import CustomSelect from "../components/CustomSelect";
 import { getPriorityStyle, getStatusStyle, ORDER_STATUS_LIST, PRIORITY_OPTIONS } from "../utils/status";
 import { capitalizeFirstLetter } from "../utils/constants";
 
-// ── Permission helpers ────────────────────────────────────────────────
 import { canManageDiscounts } from "../utils/discountPermissions";
 import { useRouteAccess } from "../hooks/useRouteAccess";
 
@@ -29,8 +28,10 @@ const createEmptyRow = () => ({
   brand_name: "", model_name: "", product_ids: [],
   discount_value: "", is_percentage: true, description: "",
 });
+
 const formatDate = (d) =>
   d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "N/A";
+
 const getTotalItems = (details = []) =>
   details.reduce((acc, item) => acc + (item.qty_ordered || 0), 0);
 
@@ -105,20 +106,38 @@ const PriorityBadge = ({ priority }) => (
 
 /* ================================================================
    PRODUCT MULTI-SELECT
+   Fix: use a ref-based outside-click check so clicking inside the
+   dropdown panel (including selecting a product) does NOT close it.
    ================================================================ */
 function ProductMultiSelect({ products, selected, onChange }) {
-  const [search, setSearch] = React.useState("");
-  const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  // Close ONLY when clicking outside the entire component
+  useEffect(() => {
+    if (!open) return;
+    const handleOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [open]);
+
   const filtered = products.filter((p) =>
     p.product_name.toLowerCase().includes(search.toLowerCase())
   );
+
   const toggleProduct = (id) =>
     onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
+      {/* Trigger / tag display */}
       <div
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen((prev) => !prev)}
         className="min-h-[44px] flex flex-wrap gap-1.5 px-3.5 py-2.5 border border-slate-200 rounded-lg cursor-pointer hover:border-indigo-300 transition-colors"
       >
         {selected.length === 0 && (
@@ -134,7 +153,9 @@ function ProductMultiSelect({ products, selected, onChange }) {
             >
               {product.product_name}
               <button
-                onClick={(e) => { e.stopPropagation(); toggleProduct(id); }}
+                // Use mousedown + stopPropagation so the document listener
+                // doesn't fire before our remove handler
+                onMouseDown={(e) => { e.stopPropagation(); toggleProduct(id); }}
                 className="text-indigo-400 hover:text-indigo-700"
               >
                 <FiX size={9} />
@@ -143,6 +164,8 @@ function ProductMultiSelect({ products, selected, onChange }) {
           );
         })}
       </div>
+
+      {/* Dropdown panel */}
       {open && (
         <div className="absolute z-40 mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
           <div className="p-2 border-b border-slate-100">
@@ -150,18 +173,28 @@ function ProductMultiSelect({ products, selected, onChange }) {
               placeholder="Search products…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              // Stop propagation so typing doesn't trigger outside-click
+              onMouseDown={(e) => e.stopPropagation()}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
             />
           </div>
           <div className="max-h-52 overflow-y-auto">
-            {filtered.map((product) => {
+            {filtered.length === 0 ? (
+              <div className="px-4 py-5 text-sm text-slate-400 text-center font-semibold">
+                No products found
+              </div>
+            ) : filtered.map((product) => {
               const active = selected.includes(product.product_id);
               return (
                 <div
                   key={product.product_id}
-                  onClick={() => toggleProduct(product.product_id)}
-                  className={`px-4 py-2.5 text-sm cursor-pointer flex justify-between hover:bg-slate-50 transition-colors ${active ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-700"
-                    }`}
+                  // Use onMouseDown instead of onClick so the document
+                  // mousedown listener (outside-click) never sees this event
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    toggleProduct(product.product_id);
+                  }}
+                  className={`px-4 py-2.5 text-sm cursor-pointer flex justify-between hover:bg-slate-50 transition-colors ${active ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-700"}`}
                 >
                   <span>{product.product_name} ({product.model})</span>
                   {active && <span className="text-indigo-600 font-black">✓</span>}
@@ -200,10 +233,7 @@ const MiniPagination = ({ page, total, limit, onPageChange }) => {
           )}
           <button
             onClick={() => onPageChange(p)}
-            className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${p === page
-              ? "bg-indigo-600 text-white shadow-sm"
-              : "border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
+            className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${p === page ? "bg-indigo-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
           >
             {p}
           </button>
@@ -227,12 +257,10 @@ const DealerDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // ── Permission gates ──────────────────────────────────────────────
   const { canAccess, role } = useRouteAccess();
-  const showDiscountActions = canManageDiscounts(role);   // Add / Edit discounts
-  const canViewOrderDetails = canAccess("/orders/:id");   // "View →" button
+  const showDiscountActions = canManageDiscounts(role);
+  const canViewOrderDetails = canAccess("/orders/:id");
 
-  // ── State ─────────────────────────────────────────────────────────
   const [dealer, setDealer] = useState(null);
   const [dealerOrders, setDealerOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -269,7 +297,7 @@ const DealerDetails = () => {
 
   const brandToModels = useMemo(() => buildBrandModelMap(allBrands), [allBrands]);
 
-  /* ── Data loaders ───────────────────────────────────────────────── */
+  /* ── Data loaders ── */
   const loadDealerData = useCallback(async () => {
     if (!id) return;
     try {
@@ -364,7 +392,7 @@ const DealerDetails = () => {
     loadDealerData(); loadDiscounts(1); loadOrderSummary(); loadBrands();
   }, [id, pagination.page, pagination.limit, selectedStatus, selectedPriority, searchQuery]);
 
-  /* ── Discount CRUD ──────────────────────────────────────────────── */
+  /* ── Discount CRUD ── */
   const handleSubmitDiscounts = async () => {
     try {
       setBulkSubmitting(true); setBulkError("");
@@ -438,7 +466,7 @@ const DealerDetails = () => {
     setEditDiscountModalOpen(true);
   };
 
-  /* ── Loading / Error states ─────────────────────────────────────── */
+  /* ── Loading / Error states ── */
   if (loading) return (
     <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
@@ -501,13 +529,9 @@ const DealerDetails = () => {
           <span
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wide ${dealer.status?.toLowerCase() === "active"
               ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-rose-50 text-rose-700 border-rose-200"
-              }`}
+              : "bg-rose-50 text-rose-700 border-rose-200"}`}
           >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${dealer.status?.toLowerCase() === "active" ? "bg-emerald-500" : "bg-rose-500"
-                }`}
-            />
+            <span className={`w-1.5 h-1.5 rounded-full ${dealer.status?.toLowerCase() === "active" ? "bg-emerald-500" : "bg-rose-500"}`} />
             {capitalizeFirstLetter(dealer.status)}
           </span>
         </div>
@@ -535,9 +559,7 @@ const DealerDetails = () => {
               </div>
               <div>
                 <h2 className="text-sm font-bold text-slate-800">Brands & Models</h2>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
-                  Assigned product lines
-                </p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">Assigned product lines</p>
               </div>
             </div>
             {dealer?.brand?.length > 0 && (
@@ -586,13 +608,9 @@ const DealerDetails = () => {
               </div>
               <div>
                 <h2 className="text-sm font-bold text-slate-800">Dealer Discounts</h2>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
-                  Pricing rules & configurations
-                </p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">Pricing rules & configurations</p>
               </div>
             </div>
-
-            {/* ── ADD DISCOUNTS — role-gated ── */}
             {showDiscountActions && (
               <button
                 onClick={() => setBulkModalOpen(true)}
@@ -617,9 +635,7 @@ const DealerDetails = () => {
                 </div>
                 <p className="text-sm font-semibold text-slate-500">No discounts configured</p>
                 <p className="text-xs text-slate-400">
-                  {showDiscountActions
-                    ? "Start by adding pricing rules for this dealer."
-                    : "No pricing rules have been set up yet."}
+                  {showDiscountActions ? "Start by adding pricing rules for this dealer." : "No pricing rules have been set up yet."}
                 </p>
               </div>
             ) : (
@@ -628,13 +644,11 @@ const DealerDetails = () => {
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/60">
-                        {/* Conditionally include the action column header */}
                         {["Brand", "Model", "Products", "Discount", "Status", "Created", ...(showDiscountActions ? [""] : [])].map(
                           (h, i) => (
                             <th
                               key={i}
-                              className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 ${showDiscountActions && i === 6 ? "text-right" : "text-left"
-                                } whitespace-nowrap`}
+                              className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 ${showDiscountActions && i === 6 ? "text-right" : "text-left"} whitespace-nowrap`}
                             >
                               {h}
                             </th>
@@ -657,10 +671,7 @@ const DealerDetails = () => {
                                     : d.discount_value;
                                   const finalPrice = Math.max(originalPrice - discountAmount, 0);
                                   return (
-                                    <div
-                                      key={p.product_id}
-                                      className="flex flex-col px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-100"
-                                    >
+                                    <div key={p.product_id} className="flex flex-col px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
                                       <span className="text-xs font-semibold text-slate-800">{p.product_name}</span>
                                       <div className="flex items-center gap-1.5 text-[10px] mt-0.5">
                                         <span className="text-slate-400 line-through">₹{originalPrice}</span>
@@ -680,24 +691,12 @@ const DealerDetails = () => {
                             </span>
                           </td>
                           <td className="px-5 py-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wide ${d.status === "active"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-slate-100 text-slate-600 border-slate-200"
-                                }`}
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${d.status === "active" ? "bg-emerald-500" : "bg-slate-400"
-                                  }`}
-                              />
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wide ${d.status === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${d.status === "active" ? "bg-emerald-500" : "bg-slate-400"}`} />
                               {d.status}
                             </span>
                           </td>
-                          <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
-                            {formatDate(d.created_at)}
-                          </td>
-
-                          {/* ── EDIT button — role-gated ── */}
+                          <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">{formatDate(d.created_at)}</td>
                           {showDiscountActions && (
                             <td className="px-5 py-4 text-right">
                               <button
@@ -741,9 +740,7 @@ const DealerDetails = () => {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
             <h2 className="text-sm font-bold text-slate-800">Order History</h2>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
-              Complete list of orders
-            </p>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">Complete list of orders</p>
           </div>
 
           {/* Filters */}
@@ -779,9 +776,7 @@ const DealerDetails = () => {
           <div className="p-6">
             {dealerOrders.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="p-4 bg-slate-100 rounded-2xl">
-                  <FiPackage size={22} className="text-slate-400" />
-                </div>
+                <div className="p-4 bg-slate-100 rounded-2xl"><FiPackage size={22} className="text-slate-400" /></div>
                 <p className="text-sm font-semibold text-slate-500">No orders found</p>
                 <p className="text-xs text-slate-400">Orders placed by this dealer will appear here.</p>
               </div>
@@ -791,13 +786,11 @@ const DealerDetails = () => {
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/60">
-                        {/* Conditionally add the action column header */}
                         {["Order ID", "Date", "Items", "Priority", "Status", ...(canViewOrderDetails ? [""] : [])].map(
                           (h, i) => (
                             <th
                               key={i}
-                              className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${canViewOrderDetails && i === 5 ? "text-right" : "text-left"
-                                }`}
+                              className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${canViewOrderDetails && i === 5 ? "text-right" : "text-left"}`}
                             >
                               {h}
                             </th>
@@ -809,16 +802,10 @@ const DealerDetails = () => {
                       {dealerOrders.map(({ order }) => (
                         <tr key={order.order_number} className="hover:bg-slate-50/60 transition-colors">
                           <td className="px-5 py-4 font-mono font-bold text-slate-900">{order.order_number}</td>
-                          <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
-                            {formatDate(order.created_at)}
-                          </td>
-                          <td className="px-5 py-4 font-semibold text-slate-700">
-                            {getTotalItems(order.order_details)} Items
-                          </td>
+                          <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">{formatDate(order.created_at)}</td>
+                          <td className="px-5 py-4 font-semibold text-slate-700">{getTotalItems(order.order_details)} Items</td>
                           <td className="px-5 py-4"><PriorityBadge priority={order.priority} /></td>
                           <td className="px-5 py-4"><StatusBadge status={order.status} /></td>
-
-                          {/* ── VIEW button — role-gated ── */}
                           {canViewOrderDetails && (
                             <td className="px-5 py-4 text-right">
                               <button
@@ -849,7 +836,7 @@ const DealerDetails = () => {
       </div>
 
       {/* ================================================================
-          ADD DISCOUNTS MODAL — only mounted when role allows
+          ADD DISCOUNTS MODAL
           ================================================================ */}
       {showDiscountActions && bulkModalOpen && (
         <>
@@ -859,12 +846,24 @@ const DealerDetails = () => {
               className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col"
               style={{ maxHeight: "92vh" }}
             >
-              <div className="px-7 py-6 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
-                <h3 className="text-sm font-bold text-slate-900">Add Dealer Discounts</h3>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">
-                  Configure pricing rules across brands, models and products.
-                </p>
+              {/* Modal header — with ✕ close button */}
+              <div className="px-7 py-6 border-b border-slate-100 bg-slate-50/50 flex-shrink-0 flex items-start justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Add Dealer Discounts</h3>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    Configure pricing rules across brands, models and products.
+                  </p>
+                </div>
+                {/* ✕ close button */}
+                <button
+                  onClick={() => setBulkModalOpen(false)}
+                  className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all flex-shrink-0 ml-4"
+                  title="Close"
+                >
+                  <FiX size={16} />
+                </button>
               </div>
+
               <div className="flex-1 overflow-y-auto px-7 py-6 space-y-5">
                 {bulkError && (
                   <div className="flex items-center gap-2.5 px-4 py-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-semibold">
@@ -911,6 +910,7 @@ const DealerDetails = () => {
                           placeholder="Select Brand"
                         />
                       </FormField>
+
                       <FormField label="Model">
                         <CustomSelect
                           value={row.model_name}
@@ -924,15 +924,17 @@ const DealerDetails = () => {
                           disabled={!row.brand_name}
                         />
                       </FormField>
+
                       <FormField label="Discount">
                         <div className="flex items-center gap-2">
                           <input
-                            type="number" min="0"
+                            type="number"
+                            min="0"
                             max={row.is_percentage ? 100 : undefined}
                             value={row.discount_value}
                             onChange={(e) => {
                               let value = e.target.value;
-                              if (row.is_percentage && Number(value) > 100) value = 100;
+                              if (row.is_percentage && Number(value) > 100) value = "100";
                               setBulkRows((prev) =>
                                 prev.map((r, i) => i === idx ? { ...r, discount_value: value } : r)
                               );
@@ -948,8 +950,7 @@ const DealerDetails = () => {
                                   prev.map((r, i) => i === idx ? { ...r, is_percentage: false } : r)
                                 )
                               }
-                              className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${!row.is_percentage ? "bg-white shadow text-indigo-600" : "text-slate-500"
-                                }`}
+                              className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${!row.is_percentage ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}
                             >
                               ₹
                             </button>
@@ -960,14 +961,14 @@ const DealerDetails = () => {
                                   prev.map((r, i) => i === idx ? { ...r, is_percentage: true } : r)
                                 )
                               }
-                              className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${row.is_percentage ? "bg-white shadow text-indigo-600" : "text-slate-500"
-                                }`}
+                              className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${row.is_percentage ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}
                             >
                               %
                             </button>
                           </div>
                         </div>
                       </FormField>
+
                       <FormField label="Products">
                         <ProductMultiSelect
                           products={(productsByBrand[row.brand_name] || []).filter((p) =>
@@ -982,9 +983,12 @@ const DealerDetails = () => {
                         />
                       </FormField>
                     </div>
+
                     <FormField label="Description (Optional)">
                       <textarea
-                        rows={2} maxLength={200} value={row.description}
+                        rows={2}
+                        maxLength={200}
+                        value={row.description}
                         onChange={(e) =>
                           setBulkRows((prev) =>
                             prev.map((r, i) => i === idx ? { ...r, description: e.target.value } : r)
@@ -1000,6 +1004,7 @@ const DealerDetails = () => {
                   </div>
                 ))}
               </div>
+
               <div className="px-7 py-5 border-t border-slate-100 bg-slate-50/30 flex justify-between items-center flex-shrink-0">
                 <button
                   onClick={() => setBulkRows((prev) => [...prev, createEmptyRow()])}
@@ -1024,9 +1029,7 @@ const DealerDetails = () => {
                         <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                         Saving…
                       </>
-                    ) : (
-                      "Save Discounts"
-                    )}
+                    ) : "Save Discounts"}
                   </button>
                 </div>
               </div>
@@ -1036,7 +1039,7 @@ const DealerDetails = () => {
       )}
 
       {/* ================================================================
-          EDIT DISCOUNT MODAL — only mounted when role allows
+          EDIT DISCOUNT MODAL
           ================================================================ */}
       {showDiscountActions && editDiscountModalOpen && selectedDiscount && (
         <>
@@ -1046,12 +1049,21 @@ const DealerDetails = () => {
               className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col"
               style={{ maxHeight: "90vh" }}
             >
-              <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
-                <h3 className="text-sm font-bold text-slate-900">Edit Discount Rule</h3>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">
-                  Update pricing configuration for this dealer
-                </p>
+              {/* Header with ✕ */}
+              <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0 flex items-start justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Edit Discount Rule</h3>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">Update pricing configuration for this dealer</p>
+                </div>
+                <button
+                  onClick={() => setEditDiscountModalOpen(false)}
+                  className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all flex-shrink-0 ml-4"
+                  title="Close"
+                >
+                  <FiX size={16} />
+                </button>
               </div>
+
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField label="Brand">
@@ -1064,22 +1076,21 @@ const DealerDetails = () => {
                 <FormField label="Discount">
                   <div className="flex items-center gap-2">
                     <input
-                      type="number" value={selectedDiscount.discount_value}
+                      type="number"
+                      value={selectedDiscount.discount_value}
                       onChange={(e) => setSelectedDiscount((prev) => ({ ...prev, discount_value: e.target.value }))}
                       className="flex-1 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
                     />
                     <div className="flex bg-slate-100 rounded-full p-1">
                       <button
                         onClick={() => setSelectedDiscount((prev) => ({ ...prev, is_percentage: false }))}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${!selectedDiscount.is_percentage ? "bg-white shadow text-indigo-600" : "text-slate-500"
-                          }`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${!selectedDiscount.is_percentage ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}
                       >
                         ₹
                       </button>
                       <button
                         onClick={() => setSelectedDiscount((prev) => ({ ...prev, is_percentage: true }))}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${selectedDiscount.is_percentage ? "bg-white shadow text-indigo-600" : "text-slate-500"
-                          }`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${selectedDiscount.is_percentage ? "bg-white shadow text-indigo-600" : "text-slate-500"}`}
                       >
                         %
                       </button>
@@ -1109,6 +1120,7 @@ const DealerDetails = () => {
                   />
                 </FormField>
               </div>
+
               <div className="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0">
                 <button
                   onClick={() => setEditDiscountModalOpen(false)}
