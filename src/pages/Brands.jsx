@@ -1,5 +1,4 @@
-// brands.jsx — Redesigned
-
+// brands.jsx
 import { useState, useEffect, useCallback } from "react";
 import {
   FiPlus, FiSearch, FiBox, FiX, FiChevronLeft, FiChevronRight,
@@ -26,10 +25,15 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
   const [error, setError] = useState("");
 
   const addBrand = () => setBrands([...brands, { brand_name: "", brand_models: [""], description: "" }]);
+
   const removeBrand = (index) => { if (brands.length > 1) setBrands(brands.filter((_, i) => i !== index)); };
+
   const updateBrandField = (index, field, value) => { const u = [...brands]; u[index][field] = value; setBrands(u); };
+
   const addModel = (bi) => { const u = [...brands]; u[bi].brand_models.push(""); setBrands(u); };
+
   const removeModel = (bi, mi) => { const u = [...brands]; if (u[bi].brand_models.length > 1) { u[bi].brand_models.splice(mi, 1); setBrands(u); } };
+
   const updateModel = (bi, mi, value) => { const u = [...brands]; u[bi].brand_models[mi] = value; setBrands(u); };
 
   const handleSubmit = async (e) => {
@@ -39,7 +43,9 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
       const validBrands = brands
         .map((b) => ({ ...b, brand_models: b.brand_models.filter((m) => m.trim() !== "") }))
         .filter((b) => b.brand_name.trim() !== "" && b.brand_models.length > 0 && b.description.trim() !== "");
+
       if (!validBrands.length) { setError("Please fill in at least one complete brand with name, models, and description."); return; }
+
       const response = await createBrands(validBrands);
       if (response.success) {
         setBrands([{ brand_name: "", brand_models: [""], description: "" }]);
@@ -49,6 +55,7 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
           if (onBrandCreated) onBrandCreated();
         }, 100);
       } else { setError(response.message || "Failed to create brands"); }
+
     } catch (err) { setError(err.message || "Network error. Please try again."); }
     finally { setLoading(false); }
   };
@@ -59,15 +66,25 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
     <>
       <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" onClick={onClose} />
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl border border-slate-200 flex flex-col" style={{ maxHeight: "90vh" }} onClick={(e) => e.stopPropagation()}>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl border 
+              border-slate-200 flex flex-col
+            "
+          style={{ maxHeight: "90vh" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100"><FiTag size={14} /></div>
+              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                <FiTag size={14} />
+              </div>
+
               <div>
                 <h2 className="text-sm font-bold text-slate-900">Create Brands</h2>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">Add brands to inventory</p>
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">Add inverter & solar brands to inventory</p>
               </div>
+
             </div>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"><FiX size={16} /></button>
           </div>
@@ -99,13 +116,22 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
                     <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                       Brand Name <span className="text-rose-400">*</span>
                     </label>
-                    <BrandInput type="text" value={brand.brand_name} onChange={(e) => updateBrandField(brandIndex, "brand_name", e.target.value)} placeholder="e.g. AJMI, MILMA" required />
+                    <BrandInput type="text"
+                      value={brand.brand_name}
+                      onChange={(e) => updateBrandField(brandIndex, "brand_name", e.target.value)}
+                      placeholder="e.g. WARRIOR, M-TECH" required
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                       Description <span className="text-rose-400">*</span>
                     </label>
-                    <BrandInput type="text" value={brand.description} onChange={(e) => updateBrandField(brandIndex, "description", e.target.value)} placeholder="e.g. High quality series" required />
+                    <BrandInput type="text"
+                      value={brand.description}
+                      onChange={(e) => updateBrandField(brandIndex, "description", e.target.value)}
+                      placeholder="e.g. High quality series"
+                      required
+                    />
                   </div>
                 </div>
 
