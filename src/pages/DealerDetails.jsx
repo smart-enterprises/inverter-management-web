@@ -1,12 +1,4 @@
-// dealer-details.jsx — Role-aware version
-//
-// Changes vs previous version:
-//  • "Add Discounts" button — visible only to DISCOUNT_CREATE_ROLES
-//  • "Edit discount" pencil  — same guard
-//  • "View →" in order table  — visible only to roles allowed on /orders/:id
-//  All permission logic is derived from routePermissions + discountPermissions;
-//  no raw role strings live in this file.
-
+// dealer-details.jsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -209,8 +201,8 @@ const MiniPagination = ({ page, total, limit, onPageChange }) => {
           <button
             onClick={() => onPageChange(p)}
             className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${p === page
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+              ? "bg-indigo-600 text-white shadow-sm"
+              : "border border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
           >
             {p}
@@ -508,8 +500,8 @@ const DealerDetails = () => {
           </div>
           <span
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wide ${dealer.status?.toLowerCase() === "active"
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                : "bg-rose-50 text-rose-700 border-rose-200"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+              : "bg-rose-50 text-rose-700 border-rose-200"
               }`}
           >
             <span
@@ -690,8 +682,8 @@ const DealerDetails = () => {
                           <td className="px-5 py-4">
                             <span
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wide ${d.status === "active"
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  : "bg-slate-100 text-slate-600 border-slate-200"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-100 text-slate-600 border-slate-200"
                                 }`}
                             >
                               <span

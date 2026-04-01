@@ -1,5 +1,4 @@
-// products.jsx — Redesigned with server-side pagination, search & filter
-
+// products.jsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   FiPlus, FiSearch, FiBox, FiX, FiChevronLeft, FiChevronRight,
@@ -19,8 +18,8 @@ import { canCreateProduct, canEditProduct, canUpdateProductStock, canViewProduct
 
 //  CONSTANTS
 const PRODUCT_TYPE_OPTIONS = [
-  "All Types", "INV 12V", "INV 24V", "INV 48V",
-  "SOLAR 12V", "SOLAR 24V", "SOLAR 48V",
+  "All", "INV 12V", "INV 24V", "INV 48V", "INV 96V",
+  "SOLAR 12V", "SOLAR 24V", "SOLAR 48V", "SOLAR 96V",
 ];
 
 //  CREATE PRODUCT MODAL

@@ -1,5 +1,4 @@
-// dealers.jsx — Redesigned
-
+// dealers.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import {
   FiPlus, FiSearch, FiX, FiCheck, FiChevronDown,
