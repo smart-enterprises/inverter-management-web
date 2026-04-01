@@ -130,9 +130,6 @@ const getPaymentTypeStyle = (type) => {
 // PDF GENERATION UTILITY
 // Generates a professional order invoice PDF using browser print API
 const generateOrderPDF = (order, companyInfo, userMap) => {
-  console.log("order", order);
-  console.log("companyInfo", companyInfo);
-  console.log("userMap", userMap);
   const company = companyInfo || {};
   const totalAmount = Number(order?.order_total_price ?? 0);
   const discountAmount = Number(order?.order_total_discount ?? 0);
