@@ -282,10 +282,6 @@ const CreateDealerModal = ({
       allowedRoles: [],
     });
 
-    console.log("errors", errors);
-    console.log("formData", formData);
-    console.log("editingDealerId", editingDealerId);
-
     if (!formData.brands.length) {
       errors.push({ field: "brands", message: "Please select at least one brand" });
     }
