@@ -206,7 +206,6 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
   const searchRef = useRef(null);
   const panelRef = useRef(null);
   const selected = options.find((o) => o.value === value);
-  console.log("selected", selected);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return options;
