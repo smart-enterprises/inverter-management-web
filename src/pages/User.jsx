@@ -1,5 +1,31 @@
 // users.jsx — Redesigned with colorful role tabs
 
+<<<<<<< HEAD
+const ROLE_LABELS = {
+  ROLE_SUPER_ADMIN: 'SUPER ADMIN',
+  ROLE_ADMIN: 'ADMIN',
+  ROLE_MANAGER: 'MANAGER',
+  ROLE_SUPERVISOR: 'SUPERVISOR',
+  ROLE_SALESMAN: 'SALESMAN',
+  ROLE_PRODUCTION: 'PRODUCTION',
+  ROLE_PACKING: 'PACKING',
+  ROLE_ACCOUNTS: 'ACCOUNTS',
+  ROLE_DELIVERY: 'DELIVERY',
+};
+
+const ALL_TABS = [
+  'ALL USERS',
+  'SUPER ADMIN',
+  'ADMIN',
+  'MANAGER',
+  'SUPERVISOR',
+  'SALESMAN',
+  'PRODUCTION',
+  'PACKING',
+  'ACCOUNTS',
+  'DELIVERY',
+];
+=======
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   FiSearch, FiEye, FiEyeOff, FiEdit2, FiChevronLeft, FiChevronRight,
@@ -76,6 +102,7 @@ const ROLE_CONFIG = {
 
 const getRoleColor = (role) =>
   ROLE_CONFIG[role]?.badge || "bg-slate-50 text-slate-600 border-slate-200";
+>>>>>>> 843b7bd7fa825b6c8772625928e493e4cb26d285
 
 //  PAGINATION
 const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
@@ -379,6 +406,205 @@ const User = () => {
           </div>
         </div>
 
+<<<<<<< HEAD
+const User = () => {
+  const [activeTab, setActiveTab] = useState('ALL USERS');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [editingEmployeeId, setEditingEmployeeId] = useState(null);
+  const [editingEmployeeData, setEditingEmployeeData] = useState(null);
+  const itemsPerPage = 5;
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const res = await fetchUsers();
+      if (res && res.success && res.data && res.data.employees) {
+        setEmployees(res.data.employees);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load users. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  // When a user is created or updated, re-fetch the user list from the backend
+  const handleUserChanged = () => {
+    fetchEmployees();
+    setEditingEmployeeId(null);
+    setEditingEmployeeData(null);
+  };
+
+  // Edit button handler
+  const handleEditUser = async (employeeId) => {
+    setEditingEmployeeId(employeeId);
+    setIsModalOpen(true);
+    // Fetch employee details
+    try {
+      const res = await fetchUserById(employeeId);
+      if (res && res.success && res.data) {
+        setEditingEmployeeData(res.data);
+      }
+    } catch {
+      // Optionally handle error
+    }
+  };
+
+  // Reset Password Handler
+  const handleOpenResetModal = (userId) => {
+    setSelectedUserId(userId);
+    setResetPassword('');
+    setResetError('');
+    setShowResetModal(true);
+  };
+  const handleResetPassword = async () => {
+    setResetLoading(true);
+    setResetError('');
+    try {
+      const res = await resetUserPasswordById(selectedUserId, {
+        password: resetPassword,
+      });
+      if (res && res.success) {
+        setShowResetModal(false);
+        await Swal.fire({ icon: 'success', title: 'Password Reset', text: res.message || 'Password reset successfully!', confirmButtonText: 'OK' });
+      } else {
+        setResetError(res?.message || 'Failed to reset password');
+      }
+    } catch (err) {
+      setResetError(err?.message || 'Network error');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  // Delete User Handler
+  const handleOpenDeleteModal = (userId) => {
+    setSelectedUserId(userId);
+    setDeleteReason('');
+    setDeleteError('');
+    setShowDeleteModal(true);
+  };
+  const handleDeleteUser = async () => {
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      const res = await deleteUserById(selectedUserId, deleteReason);
+      if (res && res.success) {
+        setShowDeleteModal(false);
+        await Swal.fire({ icon: 'success', title: 'User Deleted', text: res.message || 'User deleted successfully!', confirmButtonText: 'OK' });
+        fetchEmployees();
+      } else {
+        setDeleteError(res?.message || 'Failed to delete user');
+      }
+    } catch (err) {
+      setDeleteError(err?.message || 'Network error');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Filter employees based on active tab, but exclude ROLE_DEALER
+  const filteredEmployees = activeTab === 'ALL USERS'
+    ? employees.filter(emp => emp && emp.role !== 'ROLE_DEALER')
+    : employees.filter(emp => emp && getRoleLabel(emp.role) === activeTab && emp.role !== 'ROLE_DEALER');
+
+  const currentUsers = filteredEmployees.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col bg-[#F9FAFB]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Manage Users</h1>
+          <p className="text-sm text-gray-500">Add and manage system users</p>
+        </div>
+        <button 
+          onClick={() => { setIsModalOpen(true); setEditingEmployeeId(null); setEditingEmployeeData(null); }}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#9333EA] text-white rounded-lg hover:bg-[#8829DD] transition-colors w-full sm:w-auto text-sm font-medium"
+        >
+          <FiPlus className="text-lg" />
+          Add New User
+        </button>
+      </div>
+
+      <div className="mb-6 -mx-4 sm:mx-0">
+        <FilterTabs activeTab={activeTab} onTabChange={tab => { setActiveTab(tab); setCurrentPage(1); }} />
+      </div>
+      
+      <div className="flex-1 min-h-0">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9333EA]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-red-600">{error}</p>
+            <button 
+              onClick={fetchEmployees}
+              className="mt-2 text-sm text-[#9333EA] hover:text-[#8829DD] font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : (
+          <UserTable 
+            users={currentUsers}
+            onEdit={handleEditUser}
+            onResetPassword={handleOpenResetModal}
+            onDeleteUser={handleOpenDeleteModal}
+            currentPage={currentPage}
+            totalPages={Math.max(1, Math.ceil(filteredEmployees.length / itemsPerPage))}
+            onPageChange={page => setCurrentPage(page)}
+          />
+        )}
+      </div>
+
+      {/* Reset Password Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative animate-fadeIn">
+            {/* Close Button */}
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition"
+              onClick={() => setShowResetModal(false)}
+              aria-label="Close"
+            >
+              <FiX size={22} />
+            </button>
+            {/* Icon and Title */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="bg-[#F3E8FF] text-[#9333EA] rounded-full p-3 mb-2">
+                <FiKey size={28} />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Reset User Password</h2>
+              <p className="text-sm text-gray-500 mt-1">Set a new password for this user</p>
+            </div>
+            {/* Form */}
+            <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }} className="space-y-4">
+              <div>
+                <label htmlFor="resetPassword" className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+=======
         {/* Main Card */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
           {/* Filters */}
@@ -388,6 +614,7 @@ const User = () => {
               {/* search bar */}
               <div className="relative flex-1 sm:max-w-xs">
                 <FiSearch size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+>>>>>>> 843b7bd7fa825b6c8772625928e493e4cb26d285
                 <input
                   type="text"
                   placeholder="Search by name or email…"
