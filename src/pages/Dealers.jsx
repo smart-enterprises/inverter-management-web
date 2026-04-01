@@ -172,6 +172,33 @@ const INITIAL_DEALER_FORM = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FIELD KEY REMAPPER
+// validateEmployeeFields returns errors keyed as "employee_name", "employee_email",
+// "employee_phone", "password". The form state uses "name", "email", "phone",
+// "password". This remapper bridges the gap so errors display on the right fields
+// and the fieldErrors guard doesn't silently block valid submissions.
+// ─────────────────────────────────────────────────────────────────────────────
+const VALIDATOR_KEY_TO_FORM_KEY = {
+  employee_name: "name",
+  employee_email: "email",
+  employee_phone: "phone",
+  password: "password",
+};
+
+/**
+ * Converts the raw errors array from validateEmployeeFields into a map
+ * keyed by the *form* field names used in this component.
+ */
+const remapErrors = (errors) => {
+  const map = {};
+  errors.forEach(({ field, message }) => {
+    const formKey = VALIDATOR_KEY_TO_FORM_KEY[field] ?? field;
+    map[formKey] = message;
+  });
+  return map;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CREATE / EDIT DEALER MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 const CreateDealerModal = ({
@@ -182,7 +209,7 @@ const CreateDealerModal = ({
   const [loading, setLoading] = useState(false);
   /** Global API-level error message */
   const [apiError, setApiError] = useState("");
-  /** Per-field validation errors: Record<fieldKey, message> */
+  /** Per-field validation errors: Record<formFieldKey, message> */
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [brands, setBrands] = useState([]);
@@ -245,30 +272,29 @@ const CreateDealerModal = ({
     e.preventDefault();
     setApiError("");
 
-    // ── Run frontend validations ──────────────────────────────────────────
     const errors = validateEmployeeFields({
       employee_name: formData.name,
       employee_email: formData.email,
       employee_phone: formData.phone,
-      // Only validate password on create
       ...(editingDealerId ? {} : { password: formData.password }),
+      role: "ROLE_DEALER",
       isUpdate: Boolean(editingDealerId),
-      // Role is fixed for dealers — skip role validation here
       allowedRoles: [],
     });
 
-    // Additional: brands required
-    if (!formData.brands.length)
+    if (!formData.brands.length) {
       errors.push({ field: "brands", message: "Please select at least one brand" });
+    }
 
     if (errors.length > 0) {
-      setFieldErrors(errorsToMap(errors));
+      setFieldErrors(remapErrors(errors));
       return;
     }
 
     setLoading(true);
     try {
       let res;
+
       if (!editingDealerId) {
         const payload = {
           employee_name: formData.name.trim(),
@@ -382,7 +408,8 @@ const CreateDealerModal = ({
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label="Dealer Name" required errorMsg={fieldErrors["employee_name"]}>
+              {/* ✅ errorMsg now reads "name" key, matching remapped fieldErrors */}
+              <FormField label="Dealer Name" required errorMsg={fieldErrors["name"]}>
                 <FormInput
                   type="text"
                   name="name"
@@ -393,7 +420,7 @@ const CreateDealerModal = ({
                 />
               </FormField>
 
-              <FormField label="Email" required errorMsg={fieldErrors["employee_email"]}>
+              <FormField label="Email" required errorMsg={fieldErrors["email"]}>
                 <FormInput
                   type="email"
                   name="email"
@@ -404,7 +431,7 @@ const CreateDealerModal = ({
                 />
               </FormField>
 
-              <FormField label="Phone Number" required errorMsg={fieldErrors["employee_phone"]}>
+              <FormField label="Phone Number" required errorMsg={fieldErrors["phone"]}>
                 <FormInput
                   type="text"
                   name="phone"
@@ -500,7 +527,7 @@ const CreateDealerModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-all"
+              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-all cursor-pointer"
             >
               Cancel
             </button>
@@ -508,7 +535,7 @@ const CreateDealerModal = ({
               type="submit"
               form="dealer-form"
               disabled={loading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-indigo-200"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-indigo-200 cursor-pointer"
             >
               {loading
                 ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{editingDealerId ? "Updating…" : "Adding…"}</>
