@@ -1,16 +1,8 @@
-/**
- * UploadDetails.jsx
- * Renders a tabbed table of successful and failed rows returned
- * by the upload API. Failed rows are highlighted with inline
- * error messages.
- */
-
+// UploadDetails.jsx
 import React, { useState, useMemo } from "react";
 import { FiCheckCircle, FiXCircle, FiChevronDown, FiChevronUp, FiSearch } from "react-icons/fi";
 
-/* ─────────────────────────────────────────────────────────────
-   Constants
-   ───────────────────────────────────────────────────────────── */
+// Constants
 const TABS = {
     FAILED: "failed",
     SUCCESS: "success",
@@ -18,9 +10,7 @@ const TABS = {
 
 const PAGE_SIZE = 10;
 
-/* ─────────────────────────────────────────────────────────────
-   Helpers
-   ───────────────────────────────────────────────────────────── */
+// Helpers
 const getRowKeys = (rows) => {
     if (!rows?.length) return [];
     // Collect all unique keys, placing 'row' / 'rowNumber' first
@@ -39,18 +29,14 @@ const formatHeader = (key) =>
         .replace(/^\w/, (c) => c.toUpperCase())
         .trim();
 
-/* ─────────────────────────────────────────────────────────────
-   Row error badge
-   ───────────────────────────────────────────────────────────── */
+// Row error badge
 const ErrorBadge = ({ text }) => (
     <span className="detail-error-badge" title={text}>
         {text}
     </span>
 );
 
-/* ─────────────────────────────────────────────────────────────
-   Data table
-   ───────────────────────────────────────────────────────────── */
+// Data table
 const DetailTable = ({ rows, variant }) => {
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
@@ -219,9 +205,7 @@ const DetailTable = ({ rows, variant }) => {
     );
 };
 
-/* ─────────────────────────────────────────────────────────────
-   UploadDetails
-   ───────────────────────────────────────────────────────────── */
+// UploadDetails
 const UploadDetails = ({ details }) => {
     const [activeTab, setActiveTab] = useState(TABS.FAILED);
 
