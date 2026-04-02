@@ -495,13 +495,95 @@ body {
 }
 
 .nb-brand {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
     font-family: var(--font-display);
     font-size: 0.6875rem;
-    font-weight: 800;
+    font-weight: 400;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--color-text-dim);
+    color: var(--color-text-main);
+    overflow: hidden;
+    cursor: pointer;
     user-select: none;
+    border-radius: 6px;
+    padding: 3px 8px;
+}
+
+.nb-brand__text {
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
+    transition: color 0.35s ease, text-shadow 0.35s ease;
+}
+
+.nb-brand__tiger,
+.nb-brand__stripes {
+    position: absolute;
+    top: 0;
+    left: -130%;
+    width: 130%;
+    height: 100%;
+    transform: skewX(-22deg);
+    z-index: 1;
+    pointer-events: none;
+    will-change: left;
+}
+
+.nb-brand__tiger {
+    background: linear-gradient(110deg,
+            transparent 0%, rgba(255, 148, 0, 0.12) 25%,
+            rgba(255, 120, 0, 0.32) 45%, rgba(255, 168, 0, 0.45) 50%,
+            rgba(255, 120, 0, 0.32) 55%, rgba(255, 148, 0, 0.12) 75%,
+            transparent 100%);
+}
+
+.nb-brand__stripes {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+}
+
+.nb-brand__stripe {
+    height: 100%;
+    border-radius: 1px;
+    background: rgba(255, 130, 0, 0.55);
+}
+
+.nb-brand.swiped .nb-brand__tiger,
+.nb-brand.swiped .nb-brand__stripes {
+    animation: tigerSwipe 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.nb-brand.swiped .nb-brand__text {
+    animation: tigerText 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes tigerSwipe {
+    0% {
+        left: -130%;
+    }
+
+    100% {
+        left: 130%;
+    }
+}
+
+@keyframes tigerText {
+    0% {
+        color: var(--color-text-main);
+    }
+
+    35% {
+        color: #e06500;
+        text-shadow: 0 0 10px rgba(255, 110, 0, 0.35);
+    }
+
+    100% {
+        color: var(--color-text-main);
+        text-shadow: none;
+    }
 }
 
 .nb-breadcrumb-sep {
