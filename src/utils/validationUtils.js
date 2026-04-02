@@ -85,3 +85,20 @@ export const errorsToMap = (errors) =>
         if (!acc[field]) acc[field] = message;
         return acc;
     }, {});
+
+export const safeSheets = (sheets) => {
+    if (!sheets) return [];
+
+    // ✅ Case 1: Already array
+    if (Array.isArray(sheets)) return sheets;
+
+    // ✅ Case 2: Object → convert to array
+    if (typeof sheets === "object") {
+        return Object.entries(sheets).map(([name, value]) => ({
+            name,
+            ...value,
+        }));
+    }
+
+    return [];
+};

@@ -51,6 +51,7 @@ export const getStatusStyle = (status) => {
         [ORDER_STATUSES.SHIPPED]: "bg-orange-50 text-orange-700",
         [ORDER_STATUSES.DELIVERED]: "bg-green-50 text-green-700",
         [ORDER_STATUSES.COMPLETED]: "bg-emerald-50 text-emerald-700",
+
         [ORDER_STATUSES.CANCELLED]: "bg-red-50 text-red-700",
         [ORDER_STATUSES.REJECTED]: "bg-red-50 text-red-700",
     };

@@ -281,9 +281,11 @@ const Dashboard = () => {
         <div>
           <SectionHeader title="Business Metrics" subtitle="Performance insights" />
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <MetricCard icon={<FiTrendingUp />} title="Monthly Sales Goal" value="₹ 75,000" subValue="75% of ₹ 1,00,000 achieved" color="emerald" loading={loading} />
+            {/* not remove this (Monthly Sales Goal) any reason, because its want to future requirements */}
+            {/* <MetricCard icon={<FiTrendingUp />} title="Monthly Sales Goal" value="₹ 75,000" subValue="75% of ₹ 1,00,000 achieved" color="emerald" loading={loading} /> */}
             <MetricCard icon={<FiShoppingBag />} title="Orders This Month" value={monthlyOrders} color="blue" loading={loading} onClick={() => navigate("/orders")} />
             <MetricCard icon={<FiTruck />} title="Ongoing Orders" value={ongoingOrders} color="amber" loading={loading} onClick={() => navigate("/orders?status=PENDING")} />
+
             {/* Low stock metric — only shown to roles that can see stock info */}
             {showLowStockAlert && (
               <MetricCard
