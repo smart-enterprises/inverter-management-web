@@ -1,15 +1,8 @@
-/**
- * UploadSummary.jsx
- * Displays the high-level processing summary after an upload:
- * total records, successes, failures, and per-entity counts.
- */
-
+// UploadSummary.jsx
 import React from "react";
 import { FiUsers, FiTag, FiPackage, FiCheckCircle, FiAlertCircle, FiDatabase } from "react-icons/fi";
 
-/* ─────────────────────────────────────────────────────────────
-   Stat Card
-   ───────────────────────────────────────────────────────────── */
+// Stat Card
 const StatCard = ({ icon: Icon, label, value, variant = "default" }) => (
     <div className={`summary-stat summary-stat--${variant}`}>
         <div className="summary-stat__icon">
@@ -22,9 +15,7 @@ const StatCard = ({ icon: Icon, label, value, variant = "default" }) => (
     </div>
 );
 
-/* ─────────────────────────────────────────────────────────────
-   UploadSummary
-   ───────────────────────────────────────────────────────────── */
+// UploadSummary
 const UploadSummary = ({ summary }) => {
     if (!summary) return null;
 

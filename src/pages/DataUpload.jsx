@@ -9,6 +9,7 @@ import UploadBox from "./UploadBox";
 import UploadSummary from "./UploadSummary";
 import UploadDetails from "./UploadDetails";
 import TemplateViewer from "./TemplateViewer";
+import { normalizeSummary, normalizeUploadDetails } from "../utils/validationUtils";
 
 // Upload state machine values
 const STATUS = {
@@ -150,8 +151,10 @@ const DataUpload = () => {
     const isSuccess = status === STATUS.SUCCESS;
     const isError = status === STATUS.ERROR;
     const resultData = uploadResult?.data ?? uploadResult;
-    const summary = resultData?.summary;
-    const details = resultData?.details;
+    const summary = normalizeSummary(resultData?.summary);
+
+    const rawDetails = resultData?.details;
+    const details = normalizeUploadDetails(rawDetails);
 
     // Render
     return (

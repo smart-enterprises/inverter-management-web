@@ -1,12 +1,4 @@
-/**
- * Navbar.jsx
- * Sticky top navigation — role-coloured avatar, profile dropdown,
- * notifications bell, and contextual breadcrumb slot.
- *
- * This is a drop-in replacement that preserves all existing
- * behaviour while upgrading the visual polish and accessibility.
- */
-
+// Navbar.jsx
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   FiBell,
@@ -24,9 +16,7 @@ import { capitalizeFirstLetter } from "../utils/constants";
 import { getRoleLabel } from "../utils/roles";
 import { ROLES } from "../utils/roles";
 
-/* ─────────────────────────────────────────────────────────────
-   Role → accent color config
-   ───────────────────────────────────────────────────────────── */
+//  Role → accent color config
 const ROLE_ACCENTS = {
   [ROLES.SUPER_ADMIN]: {
     badge: "bg-violet-50 text-violet-700 border-violet-200",
@@ -95,9 +85,7 @@ const getAccent = (role) =>
     glow: "rgba(100,116,139,0.25)",
   };
 
-/* ─────────────────────────────────────────────────────────────
-   Avatar
-   ───────────────────────────────────────────────────────────── */
+//  Avatar
 const Avatar = ({ initials, role, size = "sm" }) => {
   const accent = getAccent(role);
   const dims = { sm: 32, md: 40, lg: 48 };
@@ -132,15 +120,16 @@ const Avatar = ({ initials, role, size = "sm" }) => {
   );
 };
 
-/* ─────────────────────────────────────────────────────────────
-   Navbar
-   ───────────────────────────────────────────────────────────── */
+//  Navbar
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showMenu, setShowMenu] = useState(false);
   const dropdownRef = useRef(null);
+
+  const brandRef = useRef(null);
+  const [brandState, setBrandState] = useState("");
 
   /* Close on outside click */
   useEffect(() => {
@@ -168,6 +157,13 @@ const Navbar = () => {
     navigate(path);
   }, [navigate]);
 
+  const handleBrandClick = useCallback(() => {
+    const el = document.getElementById("nb-brand-el");
+    if (!el || el.classList.contains("swiped")) return;
+    el.classList.add("swiped");
+    setTimeout(() => el.classList.remove("swiped"), 700);
+  }, []);
+
   const initials = user?.employee_name
     ? user.employee_name
       .split(" ")
@@ -187,8 +183,19 @@ const Navbar = () => {
 
         {/* ── Left: brand + breadcrumb ── */}
         <div className="nb-bar__left">
-          <span className="nb-brand hidden sm:inline-block">
-            Smart Enterprises
+          <span
+            className="nb-brand"
+            id="nb-brand-el"
+            onClick={handleBrandClick}
+          >
+            <span className="nb-brand__text">Smart Enterprises</span>
+            <span className="nb-brand__tiger" />
+            <span className="nb-brand__stripes">
+              <span className="nb-brand__stripe" style={{ width: "3px" }} />
+              <span className="nb-brand__stripe" style={{ width: "2px" }} />
+              <span className="nb-brand__stripe" style={{ width: "5px" }} />
+              <span className="nb-brand__stripe" style={{ width: "2px" }} />
+            </span>
           </span>
         </div>
 

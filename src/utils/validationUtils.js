@@ -102,3 +102,64 @@ export const safeSheets = (sheets) => {
 
     return [];
 };
+
+export const normalizeUploadDetails = (details) => {
+    if (!details) return { success: [], failed: [] };
+
+    const success = [];
+    const failed = [];
+
+    Object.entries(details).forEach(([entity, value]) => {
+        if (Array.isArray(value?.succeeded)) {
+            value.succeeded.forEach((item) => {
+                success.push({
+                    entity,
+                    ...item,
+                });
+            });
+        }
+
+        if (Array.isArray(value?.failed)) {
+            value.failed.forEach((item) => {
+                failed.push({
+                    entity,
+                    ...item,
+                    error: item.errors?.join(", "),
+                });
+            });
+        }
+    });
+
+    return { success, failed };
+};
+
+export const normalizeSummary = (summary) => {
+    if (!summary) return null;
+
+    let totalRows = 0;
+    let successCount = 0;
+    let failedCount = 0;
+
+    let dealers = 0;
+    let users = 0;
+    let brands = 0;
+
+    Object.entries(summary).forEach(([key, val]) => {
+        totalRows += val.total || 0;
+        successCount += val.created || 0;
+        failedCount += val.failed || 0;
+
+        if (key === "dealers") dealers = val.created || 0;
+        if (key === "users") users = val.created || 0;
+        if (key === "brands") brands = val.created || 0;
+    });
+
+    return {
+        totalRows,
+        successCount,
+        failedCount,
+        dealers,
+        users,
+        brands,
+    };
+};
