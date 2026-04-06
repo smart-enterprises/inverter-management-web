@@ -245,10 +245,6 @@ const PurchaseAnalytics = () => {
                 fetchDealers({ page: 1, limit: 500, role: "ROLE_DEALER", includeDealers: true }),
             ]);
 
-            console.log("curRes", curRes);
-            console.log("prevRes", prevRes);
-            console.log("dealerRes", dealerRes);
-
             const extractOrders = (res) =>
                 (res?.data || []).map((item) => item.order).filter(Boolean);
 

@@ -362,26 +362,30 @@ const Orders = () => {
                 </span>
 
                 {/* Status */}
-                <CustomSelect
-                  name="status"
-                  value={selectedStatus}
-                  onChange={(e) => {
-                    setSelectedStatus(e.target.value);
-                    setPagination((prev) => ({ ...prev, page: 1 }));
-                  }}
-                  options={getRoleBasedStatusOptions(role)}
-                />
+                <div className="w-36">
+                  <CustomSelect
+                    name="status"
+                    value={selectedStatus}
+                    onChange={(e) => {
+                      setSelectedStatus(e.target.value);
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                    }}
+                    options={getRoleBasedStatusOptions(role)}
+                  />
+                </div>
 
                 {/* Priority */}
-                <CustomSelect
-                  name="priority"
-                  value={selectedPriority}
-                  onChange={(e) => {
-                    setSelectedPriority(e.target.value);
-                    setPagination((prev) => ({ ...prev, page: 1 }));
-                  }}
-                  options={PRIORITY_OPTIONS}
-                />
+                <div className="w-36">
+                  <CustomSelect
+                    name="priority"
+                    value={selectedPriority}
+                    onChange={(e) => {
+                      setSelectedPriority(e.target.value);
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                    }}
+                    options={PRIORITY_OPTIONS}
+                  />
+                </div>
 
                 {/* Date Range */}
                 <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
