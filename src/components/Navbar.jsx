@@ -9,12 +9,14 @@ import {
   FiUser,
   FiHash,
   FiUploadCloud,
+  FiLock,
 } from "react-icons/fi";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { capitalizeFirstLetter } from "../utils/constants";
 import { getRoleLabel } from "../utils/roles";
 import { ROLES } from "../utils/roles";
+import ChangePasswordModal from "./Changepasswordmodal";
 
 //  Role → accent color config
 const ROLE_ACCENTS = {
@@ -126,10 +128,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showMenu, setShowMenu] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const dropdownRef = useRef(null);
-
-  const brandRef = useRef(null);
-  const [brandState, setBrandState] = useState("");
 
   /* Close on outside click */
   useEffect(() => {
@@ -178,211 +178,234 @@ const Navbar = () => {
   const canAccessDataUpload = [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role);
 
   return (
-    <header className="nb-header">
-      <div className="nb-bar">
+    <>
+      <header className="nb-header">
+        <div className="nb-bar">
 
-        {/* ── Left: brand + breadcrumb ── */}
-        <div className="nb-bar__left">
-          <span
-            className="nb-brand"
-            id="nb-brand-el"
-            onClick={handleBrandClick}
-          >
-            <span className="nb-brand__text">Smart Enterprises</span>
-            <span className="nb-brand__tiger" />
-            <span className="nb-brand__stripes">
-              <span className="nb-brand__stripe" style={{ width: "3px" }} />
-              <span className="nb-brand__stripe" style={{ width: "2px" }} />
-              <span className="nb-brand__stripe" style={{ width: "5px" }} />
-              <span className="nb-brand__stripe" style={{ width: "2px" }} />
-            </span>
-          </span>
-        </div>
-
-        {/* ── Right: actions + profile ── */}
-        <div className="nb-bar__right">
-
-          {/* Bulk upload quick-access (privileged) */}
-          {canAccessDataUpload && (
-            <button
-              type="button"
-              onClick={() => navigate("/data-upload")}
-              className="nb-quick-btn"
-              title="Data Upload"
-              aria-label="Go to Data Upload"
-            >
-              <FiUploadCloud size={14} />
-              <span className="hidden sm:inline-block text-xs font-semibold">
-                Data Upload
-              </span>
-            </button>
-          )}
-
-          {/* Bell */}
-          <button
-            type="button"
-            className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-400 hover:text-slate-600 transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 cursor-pointer"
-            aria-label="Notifications"
-          >
-            <FiBell size={15} />
+          {/* ── Left: brand + breadcrumb ── */}
+          <div className="nb-bar__left">
             <span
-              className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-rose-500 ring-[1.5px] ring-white"
-              aria-hidden="true"
-            />
-          </button>
+              className="nb-brand"
+              id="nb-brand-el"
+              onClick={handleBrandClick}
+            >
+              <span className="nb-brand__text">Smart Enterprises</span>
+              <span className="nb-brand__tiger" />
+              <span className="nb-brand__stripes">
+                <span className="nb-brand__stripe" style={{ width: "3px" }} />
+                <span className="nb-brand__stripe" style={{ width: "2px" }} />
+                <span className="nb-brand__stripe" style={{ width: "5px" }} />
+                <span className="nb-brand__stripe" style={{ width: "2px" }} />
+              </span>
+            </span>
+          </div>
 
-          {/* Divider */}
-          <div className="w-px h-5 bg-slate-200 mx-1.5" aria-hidden="true" />
+          {/* ── Right: actions + profile ── */}
+          <div className="nb-bar__right">
 
-          {/* Profile dropdown */}
-          <div className="relative" ref={dropdownRef}>
+            {/* Bulk upload quick-access (privileged) */}
+            {canAccessDataUpload && (
+              <button
+                type="button"
+                onClick={() => navigate("/data-upload")}
+                className="nb-quick-btn"
+                title="Data Upload"
+                aria-label="Go to Data Upload"
+              >
+                <FiUploadCloud size={14} />
+                <span className="hidden sm:inline-block text-xs font-semibold">
+                  Data Upload
+                </span>
+              </button>
+            )}
+
+            {/* Bell */}
             <button
               type="button"
-              onClick={() => setShowMenu((p) => !p)}
-              aria-haspopup="true"
-              aria-expanded={showMenu}
-              className={`
-                flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl border
-                transition-all duration-200
-                focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300
-                ${showMenu
-                  ? "bg-slate-100 border-slate-300"
-                  : "bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300 hover:shadow-sm cursor-pointer"
-                }
-              `}
+              className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-400 hover:text-slate-600 transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 cursor-pointer"
+              aria-label="Notifications"
             >
-              <Avatar initials={initials} role={user?.role} size="sm" />
-
-              <div className="hidden sm:flex flex-col items-start">
-                <span className="text-[13px] font-bold text-slate-800 leading-tight whitespace-nowrap">
-                  {capitalizeFirstLetter(user?.employee_name) || "User"}
-                </span>
-                <span className="text-[10px] font-semibold text-slate-400 leading-tight mt-[1px]">
-                  {getRoleLabel(user?.role)}
-                </span>
-              </div>
-
-              <FiChevronDown
-                size={12}
-                className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${showMenu ? "rotate-180" : ""}`}
+              <FiBell size={15} />
+              <span
+                className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-rose-500 ring-[1.5px] ring-white"
                 aria-hidden="true"
               />
             </button>
 
-            {/* ── Dropdown ── */}
-            {showMenu && (
-              <div
-                role="menu"
-                aria-label="Profile menu"
-                className="absolute right-0 top-[calc(100%+8px)] w-[272px] bg-white rounded-2xl border border-slate-200/80 z-50 overflow-hidden"
-                style={{
-                  boxShadow: "0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
-                  animation: "nb-dropdown-in 160ms cubic-bezier(0.4,0,0.2,1) forwards",
-                }}
+            {/* Divider */}
+            <div className="w-px h-5 bg-slate-200 mx-1.5" aria-hidden="true" />
+
+            {/* Profile dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowMenu((p) => !p)}
+                aria-haspopup="true"
+                aria-expanded={showMenu}
+                className={`
+                flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl border
+                transition-all duration-200
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300
+                ${showMenu
+                    ? "bg-slate-100 border-slate-300"
+                    : "bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300 hover:shadow-sm cursor-pointer"
+                  }
+              `}
               >
-                {/* Hero */}
-                <div className="p-4 pb-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar initials={initials} role={user?.role} size="md" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-slate-900 truncate">
-                        {capitalizeFirstLetter(user?.employee_name)}
-                      </p>
-                      <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                        {user?.employee_email}
-                      </p>
+                <Avatar initials={initials} role={user?.role} size="sm" />
+
+                <div className="hidden sm:flex flex-col items-start">
+                  <span className="text-[13px] font-bold text-slate-800 leading-tight whitespace-nowrap">
+                    {capitalizeFirstLetter(user?.employee_name) || "User"}
+                  </span>
+                  <span className="text-[10px] font-semibold text-slate-400 leading-tight mt-[1px]">
+                    {getRoleLabel(user?.role)}
+                  </span>
+                </div>
+
+                <FiChevronDown
+                  size={12}
+                  className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${showMenu ? "rotate-180" : ""}`}
+                  aria-hidden="true"
+                />
+              </button>
+
+              {/* ── Dropdown ── */}
+              {showMenu && (
+                <div
+                  role="menu"
+                  aria-label="Profile menu"
+                  className="absolute right-0 top-[calc(100%+8px)] w-[272px] bg-white rounded-2xl border border-slate-200/80 z-50 overflow-hidden"
+                  style={{
+                    boxShadow: "0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
+                    animation: "nb-dropdown-in 160ms cubic-bezier(0.4,0,0.2,1) forwards",
+                  }}
+                >
+                  {/* Hero */}
+                  <div className="p-4 pb-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar initials={initials} role={user?.role} size="md" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900 truncate">
+                          {capitalizeFirstLetter(user?.employee_name)}
+                        </p>
+                        <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                          {user?.employee_email}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Badges */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-[0.07em] ${accent.badge}`}>
+                        <FiShield size={9} aria-hidden="true" />
+                        {getRoleLabel(user?.role)}
+                      </span>
+                      {user?.employee_id && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-[10px] font-mono font-semibold text-slate-500">
+                          <FiHash size={8} aria-hidden="true" />
+                          {user.employee_id}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Badges */}
-                  <div className="flex flex-wrap items-center gap-1.5 mt-3">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-[0.07em] ${accent.badge}`}>
-                      <FiShield size={9} aria-hidden="true" />
-                      {getRoleLabel(user?.role)}
-                    </span>
-                    {user?.employee_id && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-[10px] font-mono font-semibold text-slate-500">
-                        <FiHash size={8} aria-hidden="true" />
-                        {user.employee_id}
-                      </span>
+                  <div className="h-px bg-slate-100 mx-3" />
+
+                  {/* Menu items */}
+                  <div className="p-2 space-y-0.5">
+                    <button
+                      type="button"
+                      onClick={() => handleNavigate(`/users/${user?.employee_id}`)}
+                      role="menuitem"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
+                    >
+                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
+                        <FiUser size={13} />
+                      </div>
+                      My Profile
+                    </button>
+
+                    {/* ── CHANGE PASSWORD ── */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowChangePassword(true);
+                      }}
+                      role="menuitem"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
+                    >
+                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
+                        <FiLock size={13} />
+                      </div>
+                      Change Password
+                    </button>
+
+                    {canAccessDataUpload && (
+                      <button
+                        type="button"
+                        onClick={() => handleNavigate("/data-upload")}
+                        role="menuitem"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
+                      >
+                        <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
+                          <FiUploadCloud size={13} />
+                        </div>
+                        Data Upload
+                      </button>
+                    )}
+
+                    {canAccessSettings && (
+                      <button
+                        type="button"
+                        onClick={() => handleNavigate("/company-details")}
+                        role="menuitem"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
+                      >
+                        <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
+                          <FiSettings size={13} />
+                        </div>
+                        Company Settings
+                      </button>
                     )}
                   </div>
-                </div>
 
-                <div className="h-px bg-slate-100 mx-3" />
+                  <div className="h-px bg-slate-100 mx-3" />
 
-                {/* Menu items */}
-                <div className="p-2 space-y-0.5">
-                  <button
-                    type="button"
-                    onClick={() => handleNavigate(`/users/${user?.employee_id}`)}
-                    role="menuitem"
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
-                  >
-                    <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
-                      <FiUser size={13} />
-                    </div>
-                    My Profile
-                  </button>
-
-                  {canAccessDataUpload && (
+                  {/* Sign out */}
+                  <div className="p-2">
                     <button
                       type="button"
-                      onClick={() => handleNavigate("/data-upload")}
+                      onClick={handleLogout}
                       role="menuitem"
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-all duration-150 cursor-pointer"
                     >
-                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
-                        <FiUploadCloud size={13} />
+                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-500 flex-shrink-0">
+                        <FiLogOut size={13} />
                       </div>
-                      Data Upload
+                      Sign Out
                     </button>
-                  )}
+                  </div>
 
-                  {canAccessSettings && (
-                    <button
-                      type="button"
-                      onClick={() => handleNavigate("/company-details")}
-                      role="menuitem"
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
-                    >
-                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
-                        <FiSettings size={13} />
-                      </div>
-                      Company Settings
-                    </button>
-                  )}
+                  {/* Footer */}
+                  <div className="px-4 py-2 bg-slate-50 border-t border-slate-100">
+                    <p className="text-[10px] text-slate-400 font-medium text-center tracking-wide">
+                      Smart Enterprises · v1.0
+                    </p>
+                  </div>
                 </div>
-
-                <div className="h-px bg-slate-100 mx-3" />
-
-                {/* Sign out */}
-                <div className="p-2">
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    role="menuitem"
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-all duration-150 cursor-pointer"
-                  >
-                    <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-500 flex-shrink-0">
-                      <FiLogOut size={13} />
-                    </div>
-                    Sign Out
-                  </button>
-                </div>
-
-                {/* Footer */}
-                <div className="px-4 py-2 bg-slate-50 border-t border-slate-100">
-                  <p className="text-[10px] text-slate-400 font-medium text-center tracking-wide">
-                    Smart Enterprises · v1.0
-                  </p>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+      />
+    </>
   );
 };
 
