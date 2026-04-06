@@ -25,6 +25,7 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
 import CompanyDetails from "../pages/CompanyDetails";
 import DataUpload from "../pages/DataUpload";
+import PurchaseAnalytics from "../pages/Purchaseanalytics";
 
 export default function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -78,6 +79,8 @@ export default function AppRoutes() {
 
         <Route path="/company-details" element={<CompanyDetails />} />
         <Route path="/data-upload" element={<DataUpload />} />
+
+        <Route path="/purchase-analytics" element={<PurchaseAnalytics />} />
       </Route>
 
       {/* ── 404 ──────────────────────────────────────────────────────── */}
