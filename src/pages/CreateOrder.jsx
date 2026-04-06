@@ -1,4 +1,4 @@
-// createOrder.jsx — Redesigned UI
+// createOrder.jsx — Redesigned UI with Brand → Model → Product cascading filters
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
@@ -10,9 +10,6 @@ import {
   FiAlertCircle,
   FiShoppingCart,
   FiTag,
-  FiDollarSign,
-  FiCalendar,
-  FiCheckSquare,
   FiFileText,
   FiBox,
   FiLayers,
@@ -22,6 +19,8 @@ import {
   FiPercent,
   FiCreditCard,
   FiBarChart2,
+  FiGrid,
+  FiCpu,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
@@ -146,17 +145,15 @@ const Field = ({ label, required, children, hint }) => (
 );
 
 /* ================================================================
-   SECTION CARD — Premium redesign
+   SECTION CARD
    ================================================================ */
 const SectionCard = ({ icon, title, subtitle, action, children, accent = "indigo" }) => {
   const accentMap = {
     indigo: {
-      dot: "bg-indigo-500",
       icon: "bg-indigo-50 text-indigo-600 border border-indigo-100",
       bar: "bg-indigo-500",
     },
     slate: {
-      dot: "bg-slate-400",
       icon: "bg-slate-50 text-slate-500 border border-slate-200",
       bar: "bg-slate-400",
     },
@@ -194,6 +191,45 @@ const StyledInput = ({ className = "", ...props }) => (
     className={`w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all duration-150 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${className}`}
   />
 );
+
+/* ================================================================
+   CASCADING SELECT — Brand / Model (styled consistently)
+   ================================================================ */
+const CascadeSelect = ({ value, options, onChange, placeholder, disabled, icon, color = "indigo" }) => {
+  const colorMap = {
+    indigo: { ring: "focus:ring-indigo-200 focus:border-indigo-400", active: "border-indigo-300" },
+    violet: { ring: "focus:ring-violet-200 focus:border-violet-400", active: "border-violet-300" },
+    sky: { ring: "focus:ring-sky-200 focus:border-sky-400", active: "border-sky-300" },
+  };
+  const c = colorMap[color] || colorMap.indigo;
+
+  return (
+    <div className="relative">
+      {icon && (
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10">
+          {icon}
+        </span>
+      )}
+      <select
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className={`w-full border border-slate-200 rounded-lg ${icon ? "pl-8" : "pl-3"} pr-8 py-2.5 text-sm font-medium text-slate-800 bg-white appearance-none focus:outline-none focus:ring-2 ${c.ring} transition-all duration-150 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed cursor-pointer ${value ? c.active : ""}`}
+      >
+        <option value="">{disabled ? "—" : placeholder}</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <FiChevronDown
+        size={13}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+      />
+    </div>
+  );
+};
 
 /* ================================================================
    PRODUCT DROPDOWN
@@ -260,33 +296,29 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
       <button
         ref={triggerRef}
         type="button"
-        disabled={isLoading}
-        onClick={() =>
-          isOpen ? (setIsOpen(false), setSearch("")) : openPanel()
-        }
+        disabled={isLoading || options.length === 0}
+        onClick={() => (isOpen ? (setIsOpen(false), setSearch("")) : openPanel())}
         className={`w-full px-3 py-2.5 bg-white border rounded-lg text-sm text-left flex items-center justify-between gap-2 transition-all duration-150 ${isOpen
           ? "border-indigo-400 ring-2 ring-indigo-100"
           : "border-slate-200 hover:border-indigo-300"
-          } ${isLoading ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+          } ${isLoading || options.length === 0 ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
       >
-        <span
-          className={`truncate font-medium ${selected ? "text-slate-800" : "text-slate-400"
-            }`}
-        >
+        <span className={`truncate font-medium ${selected ? "text-slate-800" : "text-slate-400"}`}>
           {isLoading
             ? "Loading products…"
-            : selected
-              ? capitalizeFirstLetter(selected.product_name || selected.label || "")
-              : placeholder}
+            : options.length === 0 && !isLoading
+              ? "Select brand & model first"
+              : selected
+                ? capitalizeFirstLetter(selected.product_name || selected.label || "")
+                : placeholder}
         </span>
         <FiChevronDown
           size={14}
-          className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
-            }`}
+          className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
-      {isOpen && !isLoading && (
+      {isOpen && !isLoading && options.length > 0 && (
         <div
           ref={panelRef}
           style={panelStyle}
@@ -301,11 +333,7 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
                 stroke="currentColor"
                 strokeWidth={2}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-4.35-4.35M17 11A6 6 0 1111 5a6 6 0 016 6z"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1111 5a6 6 0 016 6z" />
               </svg>
               <input
                 ref={searchRef}
@@ -320,11 +348,8 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
           </div>
 
           <div className="grid grid-cols-[2fr_1fr_1fr_72px] gap-2 px-4 py-2 bg-slate-50 border-b border-slate-100">
-            {["Product", "Brand", "Model", "Type", "Stock"].map((h) => (
-              <span
-                key={h}
-                className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400"
-              >
+            {["Product", "Brand", "Model", "Stock"].map((h) => (
+              <span key={h} className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">
                 {h}
               </span>
             ))}
@@ -357,42 +382,18 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
                     className={`w-full grid grid-cols-[2fr_1fr_1fr_72px] gap-2 items-center px-4 py-3 text-sm text-left transition-colors border-b border-slate-50 last:border-0 ${value === opt.value ? "bg-indigo-50" : "hover:bg-slate-50"
                       }`}
                   >
-                    <span
-                      className={`font-semibold truncate ${value === opt.value ? "text-indigo-700" : "text-slate-900"
-                        }`}
-                    >
-                      {opt.product_name
-                        ? capitalizeFirstLetter(opt.product_name)
-                        : opt.label}
+                    <span className={`font-semibold truncate ${value === opt.value ? "text-indigo-700" : "text-slate-900"}`}>
+                      {opt.product_name ? capitalizeFirstLetter(opt.product_name) : opt.label}
                     </span>
                     <span className="text-xs text-slate-500 font-medium truncate">
-                      {opt.product_brand ? (
-                        capitalizeFirstLetter(opt.product_brand)
-                      ) : (
-                        <span className="text-slate-300">—</span>
-                      )}
+                      {opt.product_brand ? capitalizeFirstLetter(opt.product_brand) : <span className="text-slate-300">—</span>}
                     </span>
                     <span className="text-xs text-slate-500 font-medium truncate">
-                      {opt.product_model ? (
-                        capitalizeFirstLetter(opt.product_model)
-                      ) : (
-                        <span className="text-slate-300">—</span>
-                      )}
-                    </span>
-                    <span>
-                      {opt.product_type ? (
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wide whitespace-nowrap">
-                          {opt.product_type}
-                        </span>
-                      ) : (
-                        <span className="text-slate-300 text-xs">—</span>
-                      )}
+                      {opt.product_model ? capitalizeFirstLetter(opt.product_model) : <span className="text-slate-300">—</span>}
                     </span>
                     <span>
                       {product ? (
-                        <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[9px] font-black border ${stockColors[lvl]}`}
-                        >
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[9px] font-black border ${stockColors[lvl]}`}>
                           <FiBox size={8} />
                           {total}
                         </span>
@@ -413,7 +414,6 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
 
 /* ================================================================
    UNIFIED DISCOUNT FIELD
-   — dealer discount (dropdown) OR manual (number input), mutually exclusive
    ================================================================ */
 const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualChange, onClear }) => {
   const [mode, setMode] = useState(() =>
@@ -470,7 +470,6 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
 
   const handleModeSwitch = (m) => {
     setMode(m);
-    // clear both on switch
     onClear(index);
   };
 
@@ -487,7 +486,6 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
   }
 
   if (options.length === 0 && mode !== "manual") {
-    // only manual entry available
     return (
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">₹</span>
@@ -517,7 +515,6 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
 
   return (
     <div className="space-y-1.5">
-      {/* Mode pills */}
       <div className="flex gap-1">
         {options.length > 0 && (
           <button
@@ -554,33 +551,23 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
         )}
       </div>
 
-      {/* Dealer dropdown */}
       {mode === "dealer" && options.length > 0 && (
         <>
           <button
             ref={triggerRef}
             type="button"
             onClick={() => (dropOpen ? setDropOpen(false) : openDrop())}
-            className={`w-full px-3 py-2.5 bg-white border rounded-lg text-sm text-left flex items-center justify-between gap-2 transition-all duration-150 ${dropOpen
-              ? "border-indigo-400 ring-2 ring-indigo-100"
-              : "border-slate-200 hover:border-indigo-300"
+            className={`w-full px-3 py-2.5 bg-white border rounded-lg text-sm text-left flex items-center justify-between gap-2 transition-all duration-150 ${dropOpen ? "border-indigo-400 ring-2 ring-indigo-100" : "border-slate-200 hover:border-indigo-300"
               }`}
           >
-            <span
-              className={`truncate font-medium ${selectedDealer ? "text-slate-800" : "text-slate-400"
-                }`}
-            >
+            <span className={`truncate font-medium ${selectedDealer ? "text-slate-800" : "text-slate-400"}`}>
               {selectedDealer
                 ? selectedDealer.is_percentage
                   ? `${selectedDealer.discount_value}% off`
-                  : `₹ ${selectedDealer.discount_value * qty} off`
+                  : `₹ ${selectedDealer.discount_value} off`
                 : "Pick discount…"}
             </span>
-            <FiChevronDown
-              size={13}
-              className={`text-slate-400 flex-shrink-0 transition-transform ${dropOpen ? "rotate-180" : ""
-                }`}
-            />
+            <FiChevronDown size={13} className={`text-slate-400 flex-shrink-0 transition-transform ${dropOpen ? "rotate-180" : ""}`} />
           </button>
           {dropOpen && (
             <div
@@ -599,9 +586,7 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
               </div>
               <div className="max-h-48 overflow-y-auto">
                 {filtered.length === 0 ? (
-                  <div className="px-4 py-5 text-sm text-slate-400 text-center font-semibold">
-                    No discounts found
-                  </div>
+                  <div className="px-4 py-5 text-sm text-slate-400 text-center font-semibold">No discounts found</div>
                 ) : (
                   filtered.map((opt) => (
                     <button
@@ -618,9 +603,7 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
                         }`}
                     >
                       <span className="font-black text-sm">
-                        {opt.is_percentage
-                          ? `${opt.discount_value}%`
-                          : `₹ ${opt.discount_value * qty}`}
+                        {opt.is_percentage ? `${opt.discount_value}%` : `₹ ${opt.discount_value}`}
                       </span>
                       <span className="ml-2 text-xs text-slate-400">
                         {opt.is_percentage ? "percentage off" : "flat off"}
@@ -634,12 +617,9 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
         </>
       )}
 
-      {/* Manual input */}
       {mode === "manual" && (
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
-            ₹
-          </span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">₹</span>
           <StyledInput
             type="number"
             value={item.discount_price ?? ""}
@@ -658,7 +638,7 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
 };
 
 /* ================================================================
-   ORDER SUMMARY CARD — Redesigned with catchy labels
+   ORDER SUMMARY CARD
    ================================================================ */
 const OrderSummaryCard = ({ financialSummary, itemCount }) => {
   const { subtotal, totalDiscount, netAmount, amountPaid, balance } = financialSummary;
@@ -667,30 +647,15 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
 
   const Row = ({ label, value, muted, large, color, icon }) => (
     <div className="flex items-center justify-between py-2.5">
-      <span
-        className={`flex items-center gap-2 text-sm ${muted ? "text-slate-400" : "text-slate-600"
-          } font-medium`}
-      >
+      <span className={`flex items-center gap-2 text-sm ${muted ? "text-slate-400" : "text-slate-600"} font-medium`}>
         {icon && (
-          <span
-            className={`w-5 h-5 rounded-md flex items-center justify-center ${muted ? "bg-slate-100 text-slate-400" : "bg-indigo-50 text-indigo-500"
-              }`}
-          >
+          <span className={`w-5 h-5 rounded-md flex items-center justify-center ${muted ? "bg-slate-100 text-slate-400" : "bg-indigo-50 text-indigo-500"}`}>
             {icon}
           </span>
         )}
         {label}
       </span>
-      <span
-        className={`font-bold tabular-nums ${large
-          ? "text-2xl font-black text-slate-900"
-          : color
-            ? color
-            : muted
-              ? "text-slate-500 text-sm"
-              : "text-slate-800 text-sm"
-          }`}
-      >
+      <span className={`font-bold tabular-nums ${large ? "text-2xl font-black text-slate-900" : color ? color : muted ? "text-slate-500 text-sm" : "text-slate-800 text-sm"}`}>
         {value}
       </span>
     </div>
@@ -698,10 +663,7 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-      {/* Accent strip */}
       <div className="h-0.5 bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400" />
-
-      {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
@@ -714,24 +676,14 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
             </p>
           </div>
         </div>
-        <span
-          className={`px-3 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${isPaid
-            ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-            : "bg-amber-50 text-amber-600 border-amber-200"
-            }`}
-        >
+        <span className={`px-3 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${isPaid ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-amber-50 text-amber-600 border-amber-200"
+          }`}>
           {isPaid ? "Settled" : "Outstanding"}
         </span>
       </div>
 
-      {/* Rows */}
       <div className="px-5 divide-y divide-slate-50">
-        <Row
-          label="Gross Total"
-          value={`₹ ${subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
-          icon={<FiLayers size={10} />}
-          muted
-        />
+        <Row label="Gross Total" value={`₹ ${subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`} icon={<FiLayers size={10} />} muted />
         {totalDiscount > 0 && (
           <Row
             label={`Savings ${savingsPct > 0 ? `(${savingsPct}%)` : ""}`}
@@ -742,9 +694,7 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
         )}
         <div className="py-3">
           <div className="flex items-baseline justify-between">
-            <span className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">
-              You Pay
-            </span>
+            <span className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">You Pay</span>
             <span className="text-2xl font-black text-slate-900 tabular-nums">
               ₹ {netAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </span>
@@ -758,33 +708,21 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
         />
       </div>
 
-      {/* Balance box */}
       <div className="px-5 pb-5 pt-3">
-        <div
-          className={`flex items-center justify-between px-4 py-3.5 rounded-xl border ${isPaid
-            ? "bg-emerald-50/80 border-emerald-200"
-            : "bg-rose-50/80 border-rose-200"
-            }`}
-        >
+        <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl border ${isPaid ? "bg-emerald-50/80 border-emerald-200" : "bg-rose-50/80 border-rose-200"
+          }`}>
           <div>
-            <p
-              className={`text-[10px] font-black uppercase tracking-[0.1em] ${isPaid ? "text-emerald-600" : "text-rose-500"
-                }`}
-            >
+            <p className={`text-[10px] font-black uppercase tracking-[0.1em] ${isPaid ? "text-emerald-600" : "text-rose-500"}`}>
               {isPaid ? "Fully Paid" : "Balance Due"}
             </p>
             <p className="text-[10px] text-slate-500 font-medium mt-0.5">
               {isPaid ? "No dues remaining" : "To be collected on delivery"}
             </p>
           </div>
-          <span
-            className={`text-xl font-black tabular-nums ${isPaid ? "text-emerald-600" : "text-rose-600"
-              }`}
-          >
+          <span className={`text-xl font-black tabular-nums ${isPaid ? "text-emerald-600" : "text-rose-600"}`}>
             ₹ {Math.abs(balance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </span>
         </div>
-
         {totalDiscount > 0 && (
           <div className="mt-3 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100">
             <span className="text-base leading-none">🎉</span>
@@ -809,23 +747,32 @@ const CreateOrder = () => {
   const [dealers, setDealers] = useState([]);
   const [salespersons, setSalespersons] = useState([]);
   const [products, setProducts] = useState([]);
+  const [allBrands, setAllBrands] = useState([]); // dealer brands with models
   const [discountOptions, setDiscountOptions] = useState({});
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [error, setError] = useState("");
 
-  const canSelectSalesmanPermission = useMemo(
-    () => canSelectSalesman(user?.role),
-    [user?.role]
-  );
+  // Per-item brand/model selection state
+  const [itemBrands, setItemBrands] = useState({}); // { index: brandName }
+  const [itemModels, setItemModels] = useState({}); // { index: modelName }
+
+  const canSelectSalesmanPermission = useMemo(() => canSelectSalesman(user?.role), [user?.role]);
 
   const productsMap = useMemo(() => {
     const map = {};
-    products.forEach((p) => {
-      map[p.product_id] = p;
-    });
+    products.forEach((p) => { map[p.product_id] = p; });
     return map;
   }, [products]);
+
+  // Build brand→models map from allBrands
+  const brandModelsMap = useMemo(() => {
+    const map = {};
+    allBrands.forEach((b) => {
+      map[b.brand_name] = b.brand_models || [];
+    });
+    return map;
+  }, [allBrands]);
 
   const getMinDeliveryDate = useCallback(() => {
     const d = new Date();
@@ -855,11 +802,15 @@ const CreateOrder = () => {
     loadInitialData();
   }, [canSelectSalesmanPermission]);
 
-  /* ---- LOAD PRODUCTS WHEN DEALER CHANGES ---- */
+  /* ---- LOAD PRODUCTS & BRANDS WHEN DEALER CHANGES ---- */
   useEffect(() => {
     const loadProducts = async () => {
       if (!formData.dealer_id) {
         setProducts([]);
+        setAllBrands([]);
+        // Reset item brand/model selections
+        setItemBrands({});
+        setItemModels({});
         return;
       }
       setLoadingProducts(true);
@@ -867,8 +818,10 @@ const CreateOrder = () => {
         const brandRes = await getBrandsByDealer(formData.dealer_id, "active");
         if (!brandRes?.success || !brandRes?.data?.length) {
           setProducts([]);
+          setAllBrands([]);
           return;
         }
+        setAllBrands(brandRes.data);
         const brandNames = brandRes.data.map((b) => b.brand_name);
         const productRes = await fetchProductsByBrands(brandNames);
         if (productRes?.success && Array.isArray(productRes.data))
@@ -881,6 +834,95 @@ const CreateOrder = () => {
     };
     loadProducts();
   }, [formData.dealer_id]);
+
+  /* ---- Per-item filtered product options based on brand + model ---- */
+  const getItemProductOptions = useCallback(
+    (index) => {
+      const brand = itemBrands[index];
+      const model = itemModels[index];
+
+      return products
+        .filter((p) => {
+          if (brand && p.brand !== brand) return false;
+          if (model && p.model !== model) return false;
+          return true;
+        })
+        .map((p) => ({
+          value: p.product_id,
+          label: p.product_name,
+          product_name: p.product_name,
+          product_model: p.model,
+          product_type: p.product_type,
+          product_brand: p.brand,
+        }));
+    },
+    [products, itemBrands, itemModels]
+  );
+
+  /* ---- Brand options for a given item ---- */
+  const getBrandOptions = useCallback(() => {
+    return allBrands.map((b) => ({ value: b.brand_name, label: b.brand_name }));
+  }, [allBrands]);
+
+  /* ---- Model options for a given item's selected brand ---- */
+  const getModelOptions = useCallback(
+    (index) => {
+      const brand = itemBrands[index];
+      if (!brand) return [];
+      const models = brandModelsMap[brand] || [];
+      return models.map((m) => ({ value: m, label: m }));
+    },
+    [itemBrands, brandModelsMap]
+  );
+
+  /* ---- Handle brand change for an item ---- */
+  const handleItemBrandChange = (index, brandName) => {
+    setItemBrands((prev) => ({ ...prev, [index]: brandName }));
+    setItemModels((prev) => ({ ...prev, [index]: "" }));
+    // Reset the product selection for this item
+    const updatedItems = [...formData.order_details];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      product_id: "",
+      product_brand: "",
+      product_name: "",
+      product_model: "",
+      product_type: "",
+      product_price: 0,
+      available_stock: 0,
+      packed_stock: 0,
+      unpacked_stock: 0,
+      discount_price: 0,
+      dealer_discount_id: null,
+      delivery_date: "",
+    };
+    setFormData((prev) => ({ ...prev, order_details: updatedItems }));
+    setDiscountOptions((prev) => ({ ...prev, [index]: [] }));
+  };
+
+  /* ---- Handle model change for an item ---- */
+  const handleItemModelChange = (index, modelName) => {
+    setItemModels((prev) => ({ ...prev, [index]: modelName }));
+    // Reset product selection
+    const updatedItems = [...formData.order_details];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      product_id: "",
+      product_brand: "",
+      product_name: "",
+      product_model: "",
+      product_type: "",
+      product_price: 0,
+      available_stock: 0,
+      packed_stock: 0,
+      unpacked_stock: 0,
+      discount_price: 0,
+      dealer_discount_id: null,
+      delivery_date: "",
+    };
+    setFormData((prev) => ({ ...prev, order_details: updatedItems }));
+    setDiscountOptions((prev) => ({ ...prev, [index]: [] }));
+  };
 
   /* ---- HANDLE BASIC CHANGE ---- */
   const handleChange = useCallback((e) => {
@@ -911,16 +953,20 @@ const CreateOrder = () => {
           dealer_discount_id: null,
           delivery_date: getMinDeliveryDate(),
         };
+        // Auto-set brand/model for this item if not set
+        if (!itemBrands[index] && selectedProduct.brand) {
+          setItemBrands((prev) => ({ ...prev, [index]: selectedProduct.brand }));
+        }
+        if (!itemModels[index] && selectedProduct.model) {
+          setItemModels((prev) => ({ ...prev, [index]: selectedProduct.model }));
+        }
         const discountRes = await fetchDealerDiscounts({
           dealer_id: formData.dealer_id,
           product_id: value,
         });
         setDiscountOptions((prev) => ({
           ...prev,
-          [index]:
-            discountRes?.success && discountRes?.data?.length
-              ? discountRes.data
-              : [],
+          [index]: discountRes?.success && discountRes?.data?.length ? discountRes.data : [],
         }));
       }
     }
@@ -963,6 +1009,33 @@ const CreateOrder = () => {
       ...prev,
       order_details: prev.order_details.filter((_, i) => i !== index),
     }));
+    // Clean up brand/model state for removed index
+    setItemBrands((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      // Re-index remaining
+      const reindexed = {};
+      Object.entries(next).forEach(([k, v]) => {
+        const ki = Number(k);
+        reindexed[ki > index ? ki - 1 : ki] = v;
+      });
+      return reindexed;
+    });
+    setItemModels((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      const reindexed = {};
+      Object.entries(next).forEach(([k, v]) => {
+        const ki = Number(k);
+        reindexed[ki > index ? ki - 1 : ki] = v;
+      });
+      return reindexed;
+    });
+    setDiscountOptions((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
   };
 
   /* ---- SUBMIT ---- */
@@ -986,10 +1059,8 @@ const CreateOrder = () => {
             delivery_date: item.delivery_date,
             is_product_scheme: item.is_product_scheme,
           };
-          if (item.dealer_discount_id)
-            payloadItem.dealer_discount_id = item.dealer_discount_id;
-          else if (item.discount_price > 0)
-            payloadItem.discount_price = Number(item.discount_price);
+          if (item.dealer_discount_id) payloadItem.dealer_discount_id = item.dealer_discount_id;
+          else if (item.discount_price > 0) payloadItem.discount_price = Number(item.discount_price);
           return payloadItem;
         });
 
@@ -1003,9 +1074,7 @@ const CreateOrder = () => {
         dealer_id: formData.dealer_id,
         priority: formData.priority,
         order_note: formData.order_note,
-        salesman_id: canSelectSalesmanPermission
-          ? formData.salesman_id
-          : user.employee_id,
+        salesman_id: canSelectSalesmanPermission ? formData.salesman_id : user.employee_id,
         amount_paid: Number(formData.amount_paid) || 0,
         payment_method: formData.payment_method,
         order_details: validItems,
@@ -1013,10 +1082,7 @@ const CreateOrder = () => {
 
       const response = await createOrder(payload);
       if (response?.success) {
-        await Swal.fire({
-          icon: "success",
-          title: "Order Created Successfully 🎉",
-        });
+        await Swal.fire({ icon: "success", title: "Order Created Successfully 🎉" });
         navigate("/orders");
       } else {
         setError(response?.message || "Failed to create order");
@@ -1028,19 +1094,6 @@ const CreateOrder = () => {
     }
   };
 
-  const productOptions = useMemo(
-    () =>
-      products.map((p) => ({
-        value: p.product_id,
-        label: p.product_name,
-        product_name: p.product_name,
-        product_model: p.model,
-        product_type: p.product_type,
-        product_brand: p.brand,
-      })),
-    [products]
-  );
-
   const financialSummary = useMemo(() => {
     let subtotal = 0;
     let totalDiscount = 0;
@@ -1048,7 +1101,6 @@ const CreateOrder = () => {
     formData.order_details.forEach((item, index) => {
       const qty = Number(item.qty_ordered) || 0;
       const price = Number(item.product_price) || 0;
-
       if (!item.product_id || qty <= 0) return;
       if (item.is_product_scheme) return;
 
@@ -1058,14 +1110,9 @@ const CreateOrder = () => {
       const dealerDiscount = discountOptions[index]?.find(
         (d) => d.dealer_discount_id === item.dealer_discount_id
       );
-
-      // ✅ FIXED DISCOUNT CALCULATION
       if (dealerDiscount) {
-        if (dealerDiscount.is_percentage) {
-          totalDiscount += (itemTotal * dealerDiscount.discount_value) / 100;
-        } else {
-          totalDiscount += Number(dealerDiscount.discount_value || 0) * qty;
-        }
+        if (dealerDiscount.is_percentage) totalDiscount += (itemTotal * dealerDiscount.discount_value) / 100;
+        else totalDiscount += Number(dealerDiscount.discount_value || 0) * qty;
       } else if (item.discount_price > 0) {
         totalDiscount += Number(item.discount_price || 0) * qty;
       }
@@ -1074,54 +1121,8 @@ const CreateOrder = () => {
     const netAmount = subtotal - totalDiscount;
     const amountPaid = Number(formData.amount_paid) || 0;
     const balance = netAmount - amountPaid;
-
-    return {
-      subtotal,
-      totalDiscount,
-      netAmount,
-      amountPaid,
-      balance,
-    };
+    return { subtotal, totalDiscount, netAmount, amountPaid, balance };
   }, [formData, discountOptions]);
-
-  const getItemFinalAmount = (item, index) => {
-    const qty = Number(item.qty_ordered) || 0;
-    const price = Number(item.product_price) || 0;
-
-    const itemTotal = qty * price;
-
-    if (item.is_product_scheme) {
-      return { final: 0, discountLabel: null, original: itemTotal };
-    }
-
-    const dealerDiscount = discountOptions[index]?.find(
-      (d) => d.dealer_discount_id === item.dealer_discount_id
-    );
-
-    let discount = 0;
-    let discountLabel = null;
-
-    if (dealerDiscount) {
-      if (dealerDiscount.is_percentage) {
-        discount = (itemTotal * dealerDiscount.discount_value) / 100;
-        discountLabel = `${dealerDiscount.discount_value}% off`;
-      } else {
-        discount = dealerDiscount.discount_value * qty;
-        discountLabel = `₹ ${discount.toLocaleString("en-IN")} off`;
-      }
-    } else if (item.discount_price > 0) {
-      discount = item.discount_price * qty;
-      discountLabel = `₹ ${discount.toLocaleString("en-IN")} off`;
-    }
-
-    discount = Math.min(discount, itemTotal);
-
-    return {
-      final: Math.max(0, itemTotal - discount),
-      discountLabel,
-      original: itemTotal,
-    };
-  };
 
   /* ================================================================
      RENDER
@@ -1139,15 +1140,10 @@ const CreateOrder = () => {
                 onClick={() => navigate("/orders")}
                 className="p-2 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all group"
               >
-                <FiArrowLeft
-                  size={15}
-                  className="text-slate-400 group-hover:text-slate-700 transition-colors"
-                />
+                <FiArrowLeft size={15} className="text-slate-400 group-hover:text-slate-700 transition-colors" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                  Place New Order
-                </h1>
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">Place New Order</h1>
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.12em] mt-0.5">
                   Order Management
                 </p>
@@ -1172,12 +1168,7 @@ const CreateOrder = () => {
           )}
 
           {/* ── ORDER DETAILS ── */}
-          <SectionCard
-            icon={<FiFileText size={13} />}
-            title="Order Details"
-            subtitle="Basic Information"
-            accent="indigo"
-          >
+          <SectionCard icon={<FiFileText size={13} />} title="Order Details" subtitle="Basic Information" accent="indigo">
             <div className="space-y-5">
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
                 <Field label="Dealer" required>
@@ -1218,9 +1209,7 @@ const CreateOrder = () => {
                 )}
                 <Field label="Amount Paid" hint="Optional">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
-                      ₹
-                    </span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">₹</span>
                     <StyledInput
                       type="number"
                       name="amount_paid"
@@ -1269,9 +1258,12 @@ const CreateOrder = () => {
             }
           >
             <div className="space-y-4">
+
               {/* Desktop column headers */}
-              <div className="hidden xl:grid xl:grid-cols-[minmax(180px,2fr)_68px_100px_180px_130px_42px] gap-3 px-5 pb-3 border-b border-slate-100">
+              <div className="hidden xl:grid xl:grid-cols-[120px_140px_minmax(160px,2fr)_68px_100px_180px_130px_42px] gap-3 px-5 pb-3 border-b border-slate-100">
                 {[
+                  { label: "Brand", icon: <FiTag size={9} /> },
+                  { label: "Model", icon: <FiCpu size={9} /> },
                   { label: "Product", icon: <FiPackage size={9} /> },
                   { label: "Qty" },
                   { label: "Unit Price" },
@@ -1312,20 +1304,22 @@ const CreateOrder = () => {
                     const discountAmount = dealerDiscount.is_percentage
                       ? (itemTotal * dealerDiscount.discount_value) / 100
                       : Number(dealerDiscount.discount_value || 0) * qty;
-
                     finalAmount -= discountAmount;
-
                     discountLabel = dealerDiscount.is_percentage
                       ? `${dealerDiscount.discount_value}% off`
                       : `₹ ${discountAmount.toLocaleString("en-IN")} off`;
                   } else if (item.discount_price > 0) {
                     const discountAmount = Number(item.discount_price || 0) * qty;
-
                     finalAmount -= discountAmount;
-
                     discountLabel = `₹ ${discountAmount.toLocaleString("en-IN")} off`;
                   }
                 }
+
+                const currentBrand = itemBrands[index] || "";
+                const currentModel = itemModels[index] || "";
+                const itemProductOptions = getItemProductOptions(index);
+                const brandOptions = getBrandOptions();
+                const modelOptions = getModelOptions(index);
 
                 return (
                   <div
@@ -1338,12 +1332,9 @@ const CreateOrder = () => {
                         Item #{index + 1}
                       </span>
                       <div className="flex items-center gap-2">
-                        {/* Scheme toggle mobile */}
                         <button
                           type="button"
-                          onClick={() =>
-                            handleItemChange(index, "is_product_scheme", !item.is_product_scheme)
-                          }
+                          onClick={() => handleItemChange(index, "is_product_scheme", !item.is_product_scheme)}
                           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-wide transition-all ${item.is_product_scheme
                             ? "bg-indigo-600 text-white border-indigo-600"
                             : "bg-white text-slate-400 border-slate-200 hover:border-indigo-300"
@@ -1365,15 +1356,51 @@ const CreateOrder = () => {
                     </div>
 
                     {/* Desktop row */}
-                    <div className="hidden xl:grid xl:grid-cols-[minmax(180px,2fr)_68px_100px_180px_130px_42px] gap-3 items-start px-5 py-4">
+                    <div className="hidden xl:grid xl:grid-cols-[120px_140px_minmax(160px,2fr)_68px_100px_180px_130px_42px] gap-3 items-start px-5 py-4">
+
+                      {/* Brand */}
+                      <div>
+                        <CascadeSelect
+                          value={currentBrand}
+                          options={brandOptions}
+                          onChange={(val) => handleItemBrandChange(index, val)}
+                          placeholder={formData.dealer_id ? "Brand…" : "Select dealer first"}
+                          disabled={!formData.dealer_id || loadingProducts || brandOptions.length === 0}
+                          color="indigo"
+                        />
+                        {currentBrand && (
+                          <div className="mt-1.5 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                            <span className="text-[9px] font-bold text-indigo-600 truncate">{currentBrand}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Model */}
+                      <div>
+                        <CascadeSelect
+                          value={currentModel}
+                          options={modelOptions}
+                          onChange={(val) => handleItemModelChange(index, val)}
+                          placeholder={currentBrand ? "Model…" : "Brand first"}
+                          disabled={!currentBrand || modelOptions.length === 0}
+                          color="violet"
+                        />
+                        {currentModel && (
+                          <div className="mt-1.5 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+                            <span className="text-[9px] font-bold text-violet-600 truncate">{currentModel}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product */}
                       <div>
                         <ProductDropdown
                           value={item.product_id}
-                          options={productOptions}
-                          onChange={(e) =>
-                            handleItemChange(index, "product_id", e.target.value)
-                          }
-                          placeholder="Search product…"
+                          options={itemProductOptions}
+                          onChange={(e) => handleItemChange(index, "product_id", e.target.value)}
+                          placeholder={currentBrand ? "Search product…" : "Select brand first"}
                           isLoading={loadingProducts}
                           productsMap={productsMap}
                         />
@@ -1382,20 +1409,18 @@ const CreateOrder = () => {
                         )}
                       </div>
 
+                      {/* Qty */}
                       <StyledInput
                         type="number"
                         min="1"
                         value={item.qty_ordered}
-                        onChange={(e) =>
-                          handleItemChange(index, "qty_ordered", e.target.value)
-                        }
+                        onChange={(e) => handleItemChange(index, "qty_ordered", e.target.value)}
                         className="text-center"
                       />
 
+                      {/* Unit Price */}
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-                          ₹
-                        </span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">₹</span>
                         <StyledInput
                           type="number"
                           value={item.product_price}
@@ -1404,6 +1429,7 @@ const CreateOrder = () => {
                         />
                       </div>
 
+                      {/* Discount */}
                       <DiscountField
                         item={item}
                         index={index}
@@ -1413,26 +1439,19 @@ const CreateOrder = () => {
                         onClear={handleClearDiscount}
                       />
 
+                      {/* Delivery Date */}
                       <StyledInput
                         type="date"
                         min={getMinDeliveryDate()}
                         value={item.delivery_date}
-                        onChange={(e) =>
-                          handleItemChange(index, "delivery_date", e.target.value)
-                        }
+                        onChange={(e) => handleItemChange(index, "delivery_date", e.target.value)}
                       />
 
+                      {/* Actions */}
                       <div className="flex flex-col items-center gap-2 pt-0.5">
-                        {/* Scheme toggle */}
                         <button
                           type="button"
-                          onClick={() =>
-                            handleItemChange(
-                              index,
-                              "is_product_scheme",
-                              !item.is_product_scheme
-                            )
-                          }
+                          onClick={() => handleItemChange(index, "is_product_scheme", !item.is_product_scheme)}
                           title={item.is_product_scheme ? "Remove scheme" : "Mark as Scheme"}
                           className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all ${item.is_product_scheme
                             ? "bg-indigo-600 border-indigo-600 text-white"
@@ -1441,7 +1460,6 @@ const CreateOrder = () => {
                         >
                           <FiZap size={12} />
                         </button>
-                        {/* Remove */}
                         {formData.order_details.length > 1 ? (
                           <button
                             type="button"
@@ -1458,14 +1476,35 @@ const CreateOrder = () => {
 
                     {/* Mobile stacked */}
                     <div className="xl:hidden px-4 py-4 space-y-3.5">
+                      {/* Brand + Model row */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field label="Brand" required>
+                          <CascadeSelect
+                            value={currentBrand}
+                            options={brandOptions}
+                            onChange={(val) => handleItemBrandChange(index, val)}
+                            placeholder={formData.dealer_id ? "Select brand" : "Select dealer"}
+                            disabled={!formData.dealer_id || loadingProducts || brandOptions.length === 0}
+                            color="indigo"
+                          />
+                        </Field>
+                        <Field label="Model">
+                          <CascadeSelect
+                            value={currentModel}
+                            options={modelOptions}
+                            onChange={(val) => handleItemModelChange(index, val)}
+                            placeholder={currentBrand ? "Select model" : "Brand first"}
+                            disabled={!currentBrand || modelOptions.length === 0}
+                            color="violet"
+                          />
+                        </Field>
+                      </div>
                       <Field label="Product" required>
                         <ProductDropdown
                           value={item.product_id}
-                          options={productOptions}
-                          onChange={(e) =>
-                            handleItemChange(index, "product_id", e.target.value)
-                          }
-                          placeholder="Search product…"
+                          options={itemProductOptions}
+                          onChange={(e) => handleItemChange(index, "product_id", e.target.value)}
+                          placeholder={currentBrand ? "Search product…" : "Select brand first"}
                           isLoading={loadingProducts}
                           productsMap={productsMap}
                         />
@@ -1479,9 +1518,7 @@ const CreateOrder = () => {
                             type="number"
                             min="1"
                             value={item.qty_ordered}
-                            onChange={(e) =>
-                              handleItemChange(index, "qty_ordered", e.target.value)
-                            }
+                            onChange={(e) => handleItemChange(index, "qty_ordered", e.target.value)}
                             className="text-center"
                           />
                         </Field>
@@ -1509,9 +1546,7 @@ const CreateOrder = () => {
                           type="date"
                           min={getMinDeliveryDate()}
                           value={item.delivery_date}
-                          onChange={(e) =>
-                            handleItemChange(index, "delivery_date", e.target.value)
-                          }
+                          onChange={(e) => handleItemChange(index, "delivery_date", e.target.value)}
                         />
                       </Field>
                     </div>
@@ -1519,7 +1554,7 @@ const CreateOrder = () => {
                     {/* Product summary strip */}
                     {item.product_name && (
                       <div className="px-4 pb-4">
-                        <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-gradient-to-r from-slate-50 to-indigo-50/30 border border-slate-100">
                           <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-white border border-slate-200 text-indigo-500">
                               <FiPackage size={12} />
@@ -1529,9 +1564,7 @@ const CreateOrder = () => {
                                 {capitalizeFirstLetter(item.product_name)}
                               </p>
                               <p className="text-xs text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
-                                {item.product_brand && (
-                                  <span>{capitalizeFirstLetter(item.product_brand)}</span>
-                                )}
+                                {item.product_brand && <span>{capitalizeFirstLetter(item.product_brand)}</span>}
                                 {item.product_model && (
                                   <>
                                     <span>·</span>
@@ -1569,9 +1602,7 @@ const CreateOrder = () => {
                                   </span>
                                 )}
                                 {discountLabel && (
-                                  <span className="text-[10px] font-black text-rose-500">
-                                    {discountLabel}
-                                  </span>
+                                  <span className="text-[10px] font-black text-rose-500">{discountLabel}</span>
                                 )}
                                 <span className="text-lg font-black text-slate-900">
                                   ₹{Math.max(0, finalAmount).toLocaleString("en-IN")}
@@ -1601,10 +1632,7 @@ const CreateOrder = () => {
 
             {/* Order Summary */}
             <div className="mt-6">
-              <OrderSummaryCard
-                financialSummary={financialSummary}
-                itemCount={formData.order_details.length}
-              />
+              <OrderSummaryCard financialSummary={financialSummary} itemCount={formData.order_details.length} />
             </div>
           </SectionCard>
 
