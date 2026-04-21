@@ -54,6 +54,7 @@ import {
   canViewDealerInformation,
 } from "../utils/orderPermissions";
 import DeliveryNotesCard from "../components/DeliveryNotesCard";
+import ProductionStatusBadge from "../components/ProductionStatusBadge";
 
 const formatDate = (date) =>
   date
@@ -1208,7 +1209,10 @@ const OrderDetails = () => {
                   originalOrder?.order_details?.[index] &&
                   editDetail.delivery_date !== originalOrder.order_details[index].delivery_date;
                 const isCancelQtyChanged = Number(editDetail?.cancel_qty || 0) >= 1;
+
                 const { hasUnpacked, hasProduction } = d.stock_flags || {};
+                const showProduction = hasProduction || hasUnpacked;
+
                 const showCompletion = isEditMode && !isLocked && (hasUnpacked || hasProduction);
 
                 const detailStatusOptions = (() => {
@@ -1322,9 +1326,18 @@ const OrderDetails = () => {
 
                       {/* Status */}
                       <td className="px-6 py-5 text-center align-middle">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(d?.status)}`}>
-                          {d?.status || "Unknown"}
-                        </span>
+                        {showProduction ? (
+                          <ProductionStatusBadge
+                            hasProduction={hasProduction}
+                            hasUnpacked={hasUnpacked}
+                            variant="detail"
+                          />
+                        ) : (
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(d?.status)}`}>
+                            {d?.status || "Unknown"}
+                          </span>
+                        )}
+
                       </td>
 
                       {userCanViewPrice && (

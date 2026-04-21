@@ -533,6 +533,7 @@ const Products = () => {
               {loading ? "Loading…" : `${paginationMeta.total} product${paginationMeta.total !== 1 ? "s" : ""} total`}
             </p>
           </div>
+
           <div className="flex items-center gap-2.5">
             <button
               onClick={loadProducts}
@@ -542,6 +543,7 @@ const Products = () => {
             >
               <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
             </button>
+
             {userCanCreate && (
               <button
                 onClick={() => setIsModalOpen(true)}
