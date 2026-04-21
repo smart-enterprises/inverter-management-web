@@ -6,6 +6,7 @@ import {
   FiShoppingCart, FiTag, FiFileText, FiBox, FiLayers, FiTrendingDown,
   FiZap, FiChevronDown, FiPercent, FiCreditCard, FiBarChart2,
   FiCheck, FiFilter, FiDollarSign, FiGift, FiTrendingUp,
+  FiSearch,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
@@ -290,6 +291,8 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
 
       {isOpen && !isLoading && options.length > 0 && (
         <div ref={panelRef} style={panelStyle} className="bg-white border border-slate-200 rounded-xl shadow-[0_20px_60px_-12px_rgba(15,23,42,0.18)] overflow-hidden">
+
+          {/* ── SEARCH BAR ── */}
           <div className="px-3 pt-3 pb-2 border-b border-slate-100 bg-slate-50/50">
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -302,12 +305,20 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
               />
             </div>
           </div>
-          <div className="grid grid-cols-[2fr_1fr_1fr_60px] gap-2 px-4 py-2 bg-slate-50 border-b border-slate-100">
-            {["Product", "Brand", "Model", "Stock"].map((h) => (
-              <span key={h} className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">{h}</span>
+
+          {/* ── HEADER ── */}
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_80px] px-4 py-2 bg-slate-50 border-b border-slate-100">
+            {["Product", "Brand", "Model", "Type", "Stock"].map((h) => (
+              <span
+                key={h}
+                className="text-[10px] font-semibold uppercase tracking-wide text-slate-400"
+              >
+                {h}
+              </span>
             ))}
           </div>
-          {/* ── Custom scrollbar applied here ── */}
+
+          {/* ── PRODUCT LIST ── */}
           <div className="max-h-60 overflow-y-auto dropdown-scroll overscroll-contain">
             {filtered.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-slate-400 font-semibold">No products found</div>
@@ -322,21 +333,44 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
               };
               const isSelected = value === opt.value;
               return (
-                <button key={opt.value} type="button"
-                  onClick={() => { onChange({ target: { value: opt.value } }); setIsOpen(false); setSearch(""); }}
-                  className={`w-full grid grid-cols-[2fr_1fr_1fr_60px] gap-2 items-center px-4 py-2.5 text-sm text-left transition-colors border-b border-slate-50 last:border-0 ${isSelected ? "bg-indigo-50" : "hover:bg-slate-50/80"}`}
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange({ target: { value: opt.value } });
+                    setIsOpen(false);
+                    setSearch("");
+                  }}
+                  className={`
+                    w-full grid grid-cols-[2fr_1fr_1fr_1fr_80px]
+                    gap-3 items-center
+                    px-4 py-3
+                    text-sm text-left
+                    transition-all duration-150
+                    border-b border-slate-100 last:border-0
+                    ${isSelected ? "bg-indigo-50" : "hover:bg-slate-50"}
+                  `}
                 >
                   <span className={`font-semibold truncate ${isSelected ? "text-indigo-700" : "text-slate-900"}`}>
                     {opt.product_name ? capitalizeFirstLetter(opt.product_name) : opt.label}
                   </span>
-                  <span className="text-xs text-slate-500 truncate">{opt.product_brand ? capitalizeFirstLetter(opt.product_brand) : <span className="text-slate-300">—</span>}</span>
-                  <span className="text-xs text-slate-500 truncate">{opt.product_model ? capitalizeFirstLetter(opt.product_model) : <span className="text-slate-300">—</span>}</span>
-                  <span>
-                    {product ? (
-                      <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-black border ${stockColors[lvl]}`}>
-                        <FiBox size={7} />{total}
-                      </span>
-                    ) : <span className="text-slate-300 text-xs">—</span>}
+
+                  <span className="text-sm text-slate-500 truncate">{opt.product_brand ? capitalizeFirstLetter(opt.product_brand) : <span className="text-slate-300">—</span>}</span>
+                  <span className="text-sm text-slate-500 truncate">{opt.product_model ? capitalizeFirstLetter(opt.product_model) : <span className="text-slate-300">—</span>}</span>
+                  <span className="text-sm text-slate-500 truncate">{opt.product_type ? capitalizeFirstLetter(opt.product_type) : <span className="text-slate-300">—</span>}</span>
+
+                  <span
+                    className={`
+                      inline-flex items-center gap-1
+                      px-2 py-1
+                      rounded-md
+                      text-xs font-semibold
+                      border
+                      ${stockColors[lvl]}
+                    `}
+                  >
+                    <FiBox size={10} />
+                    {total}
                   </span>
                 </button>
               );
@@ -787,54 +821,118 @@ const ItemCard = ({
           </div>
         </div>
 
-        {/* ── ROW 2: Product + Qty + Price + Discount + Delivery ── */}
-        <div className="grid grid-cols-[1fr_72px_100px_170px_130px] gap-3 items-start">
-          {/* Product */}
-          <div>
-            <div className="flex items-center gap-1 mb-1.5">
-              <FiPackage size={8} className="text-slate-400" />
-              <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Product</span>
-              <span className="text-rose-400 text-[9px]">*</span>
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 hover:shadow-md transition-all duration-200">
+          <div className="grid grid-cols-[1.2fr_70px_90px_150px_160px_130px] gap-4 items-start">
+
+            {/* Product */}
+            <div>
+              <label className="flex items-center gap-1 mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                <FiPackage size={10} className="text-slate-400" />
+                Product
+                <span className="text-rose-400">*</span>
+              </label>
+
+              <div className="space-y-1.5">
+                <ProductDropdown
+                  value={item.product_id}
+                  options={itemProductOptions}
+                  onChange={(e) => onItemChange(index, "product_id", e.target.value)}
+                  placeholder={currentBrand ? "Search product…" : "Select brand first"}
+                  isLoading={loadingProducts}
+                  productsMap={productsMap}
+                />
+
+                {stockInfo && item.product_id && (
+                  <StockIndicator stockInfo={stockInfo} qty={item.qty_ordered} />
+                )}
+              </div>
             </div>
-            <ProductDropdown
-              value={item.product_id} options={itemProductOptions}
-              onChange={(e) => onItemChange(index, "product_id", e.target.value)}
-              placeholder={currentBrand ? "Search product…" : "Select brand first"}
-              isLoading={loadingProducts} productsMap={productsMap}
-            />
-            {stockInfo && item.product_id && <StockIndicator stockInfo={stockInfo} qty={item.qty_ordered} />}
-          </div>
 
-          {/* Qty */}
-          <div>
-            <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-1.5">Qty</span>
-            <StyledInput type="number" min="1" value={item.qty_ordered}
-              onChange={(e) => onItemChange(index, "qty_ordered", e.target.value)}
-              className="text-center font-bold" />
-          </div>
+            {/* Type */}
+            <div>
+              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Type
+              </label>
 
-          {/* Unit Price */}
-          <div>
-            <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-1.5">Unit Price</span>
-            <div className="relative">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-semibold">₹</span>
-              <StyledInput type="number" value={item.product_price} readOnly
-                className="pl-5 text-right text-sm bg-slate-50 cursor-default font-semibold" />
+              <StyledInput
+                type="text"
+                readOnly
+                value={item.product_type}
+                className="text-center font-semibold bg-slate-50 border-slate-200"
+              />
             </div>
-          </div>
 
-          {/* Discount */}
-          <div>
-            <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-1.5">Discount</span>
-            <DiscountField item={item} index={index} discountOptions={discountOptions}
-              onDealerChange={onDealerDiscount} onManualChange={onManualDiscount} onClear={onClearDiscount} />
-          </div>
+            {/* Qty */}
+            <div>
+              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Qty
+              </label>
 
-          {/* Delivery Date */}
-          <div>
-            <span className="block text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-1.5">Delivery</span>
-            <StyledInput type="date" min={getMinDeliveryDate()} value={item.delivery_date}
-              onChange={(e) => onItemChange(index, "delivery_date", e.target.value)} className="text-xs" />
+              <StyledInput
+                type="number"
+                min="1"
+                value={item.qty_ordered}
+                onChange={(e) =>
+                  onItemChange(index, "qty_ordered", e.target.value)
+                }
+                className="text-center font-semibold"
+              />
+            </div>
+
+            {/* Unit Price */}
+            <div>
+              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Unit Price
+              </label>
+
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">
+                  ₹
+                </span>
+
+                <StyledInput
+                  type="number"
+                  value={item.product_price}
+                  readOnly
+                  className="pl-6 pr-2 text-right text-sm bg-slate-50 border-slate-200 font-semibold"
+                />
+              </div>
+            </div>
+
+            {/* Discount */}
+            <div>
+              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Discount
+              </label>
+
+              <div >
+                <DiscountField
+                  item={item}
+                  index={index}
+                  discountOptions={discountOptions}
+                  onDealerChange={onDealerDiscount}
+                  onManualChange={onManualDiscount}
+                  onClear={onClearDiscount}
+                />
+              </div>
+            </div>
+
+            {/* Delivery */}
+            <div>
+              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Delivery
+              </label>
+
+              <StyledInput
+                type="date"
+                min={getMinDeliveryDate()}
+                value={item.delivery_date}
+                onChange={(e) =>
+                  onItemChange(index, "delivery_date", e.target.value)
+                }
+                className="text-xs"
+              />
+            </div>
           </div>
         </div>
       </div>
