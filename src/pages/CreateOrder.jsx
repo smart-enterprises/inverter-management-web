@@ -332,6 +332,7 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
                 none: "text-rose-600 bg-rose-50 border-rose-100",
               };
               const isSelected = value === opt.value;
+
               return (
                 <button
                   key={opt.value}
@@ -351,13 +352,13 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
                     ${isSelected ? "bg-indigo-50" : "hover:bg-slate-50"}
                   `}
                 >
-                  <span className={`font-semibold truncate ${isSelected ? "text-indigo-700" : "text-slate-900"}`}>
+                  <span className={`font-semibold ${isSelected ? "text-indigo-700" : "text-slate-900"}`}>
                     {opt.product_name ? capitalizeFirstLetter(opt.product_name) : opt.label}
                   </span>
 
-                  <span className="text-sm text-slate-500 truncate">{opt.product_brand ? capitalizeFirstLetter(opt.product_brand) : <span className="text-slate-300">—</span>}</span>
-                  <span className="text-sm text-slate-500 truncate">{opt.product_model ? capitalizeFirstLetter(opt.product_model) : <span className="text-slate-300">—</span>}</span>
-                  <span className="text-sm text-slate-500 truncate">{opt.product_type ? capitalizeFirstLetter(opt.product_type) : <span className="text-slate-300">—</span>}</span>
+                  <span className="text-sm text-slate-500">{opt.product_brand ? capitalizeFirstLetter(opt.product_brand) : <span className="text-slate-300">—</span>}</span>
+                  <span className="text-sm text-slate-500">{opt.product_model ? capitalizeFirstLetter(opt.product_model) : <span className="text-slate-300">—</span>}</span>
+                  <span className="text-sm text-slate-500">{opt.product_type ? capitalizeFirstLetter(opt.product_type) : <span className="text-slate-300">—</span>}</span>
 
                   <span
                     className={`
@@ -822,7 +823,7 @@ const ItemCard = ({
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 hover:shadow-md transition-all duration-200">
-          <div className="grid grid-cols-[1.2fr_70px_90px_150px_160px_130px] gap-4 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_90px_120px_180px_160px] gap-4 items-start">
 
             {/* Product */}
             <div>
@@ -846,20 +847,6 @@ const ItemCard = ({
                   <StockIndicator stockInfo={stockInfo} qty={item.qty_ordered} />
                 )}
               </div>
-            </div>
-
-            {/* Type */}
-            <div>
-              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                Type
-              </label>
-
-              <StyledInput
-                type="text"
-                readOnly
-                value={item.product_type}
-                className="text-center font-semibold bg-slate-50 border-slate-200"
-              />
             </div>
 
             {/* Qty */}
