@@ -36,7 +36,7 @@ import CustomSelect from "../components/CustomSelect";
 import { fetchOrderById, updateOrderStatus } from "../api/orders";
 import { fetchUsers } from "../api/user";
 import { capitalizeFirstLetter } from "../utils/constants";
-import { formatDealerDiscountNotes, formatStockNotes } from "../utils/notesUtils";
+import { formatDealerDiscountNotes, formatDeliveryNotes, formatStockNotes } from "../utils/notesUtils";
 import {
   getStatusStyle,
   ORDER_STATUS_LIST,
@@ -53,6 +53,8 @@ import {
   canViewOrderPrice,
   canViewDealerInformation,
 } from "../utils/orderPermissions";
+import DeliveryNotesCard from "../components/DeliveryNotesCard";
+import ProductionStatusBadge from "../components/ProductionStatusBadge";
 
 const formatDate = (date) =>
   date
@@ -1172,7 +1174,7 @@ const OrderDetails = () => {
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50/60 border-b border-slate-100">
               <tr>
-                {["Product", "Quantity", "Unit Price", "Total", "Status",
+                {["Product", "Quantity", "Unit Price", "Total", "Status", "Delivery Date",
                   ...(isEditMode ? ["Edit"] : [])].map((h, i) => (
                     <th
                       key={i}
@@ -1189,6 +1191,9 @@ const OrderDetails = () => {
               {order.order_details?.map((d, index) => {
                 const stockNotes = formatStockNotes(d.notes);
                 const discountNotes = formatDealerDiscountNotes(d.notes);
+
+                const deliveryNotes = formatDeliveryNotes(d.delivery_notes);
+
                 const totalOrdered = Number(d.total_qty_ordered ?? d.qty_ordered ?? 0);
                 const delivered = Number(d.qty_delivered ?? 0);
                 const cancelled = Number(d.qty_cancelled ?? d.total_cancelled_qty ?? 0);
@@ -1204,8 +1209,20 @@ const OrderDetails = () => {
                   originalOrder?.order_details?.[index] &&
                   editDetail.delivery_date !== originalOrder.order_details[index].delivery_date;
                 const isCancelQtyChanged = Number(editDetail?.cancel_qty || 0) >= 1;
+
                 const { hasUnpacked, hasProduction } = d.stock_flags || {};
+                const showProduction = hasProduction || hasUnpacked;
+
                 const showCompletion = isEditMode && !isLocked && (hasUnpacked || hasProduction);
+
+                const detailStatusOptions = (() => {
+                  const base = permissions.allowedStatuses
+                    ?? getAllowedNextStatuses(editDetail.status);
+
+                  return base.includes(editDetail.status)
+                    ? base
+                    : [editDetail.status, ...base];
+                })();
 
                 return (
                   <React.Fragment key={d.order_details_number}>
@@ -1309,10 +1326,35 @@ const OrderDetails = () => {
 
                       {/* Status */}
                       <td className="px-6 py-5 text-center align-middle">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(d?.status)}`}>
-                          {d?.status || "Unknown"}
-                        </span>
+                        {showProduction ? (
+                          <ProductionStatusBadge
+                            hasProduction={hasProduction}
+                            hasUnpacked={hasUnpacked}
+                            variant="detail"
+                          />
+                        ) : (
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(d?.status)}`}>
+                            {d?.status || "Unknown"}
+                          </span>
+                        )}
+
                       </td>
+
+                      {userCanViewPrice && (
+                        <td className="px-6 py-5 text-right whitespace-nowrap align-middle">
+                          <span className="text-sm font-bold text-slate-700 tabular-nums">
+                            {formatDateForInput(d.delivery_date)}
+                          </span>
+
+                          {deliveryNotes?.length > 0 && (
+                            <DeliveryNotesCard
+                              title="Delivery Notes"
+                              color="blue"
+                              notes={deliveryNotes}
+                            />
+                          )}
+                        </td>
+                      )}
 
                       {isEditMode && <td />}
                     </tr>
@@ -1345,9 +1387,18 @@ const OrderDetails = () => {
                               <FormField label="Status">
                                 <CustomSelect
                                   value={editDetail.status}
-                                  disabled={isLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("status"))}
-                                  onChange={(e) => updateDetailField(index, "status", e.target.value)}
-                                  options={getAllowedNextStatuses(editDetail.status)}
+                                  disabled={isLocked ||
+                                    (!permissions.canEditAll &&
+                                      !permissions.editableFields?.includes("status"))}
+                                  onChange={(e) => {
+                                    const next = e.target.value;
+                                    if (
+                                      permissions.allowedStatuses &&
+                                      !permissions.allowedStatuses.includes(next)
+                                    ) return;
+                                    updateDetailField(index, "status", next);
+                                  }}
+                                  options={detailStatusOptions}
                                 />
                               </FormField>
 

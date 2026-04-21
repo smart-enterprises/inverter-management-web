@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
   FiPlus, FiSearch, FiEye, FiChevronLeft, FiChevronRight, FiEdit2,
   FiPackage, FiFilter, FiAlertCircle, FiX, FiCalendar,
+  FiRefreshCw,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
@@ -12,6 +13,7 @@ import { getRoleBasedStatusOptions, PRIORITY_OPTIONS } from "../utils/status";
 import { capitalizeFirstLetter } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
+import ProductionStatusBadge from "../components/ProductionStatusBadge";
 
 /* ================================================================
    PAGINATION
@@ -212,34 +214,43 @@ const Orders = () => {
     [pagination.page, pagination.limit, selectedStatus, selectedPriority, searchQuery, startDate, endDate]
   );
 
-  /* Fetch orders */
+  const loadOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetchOrders(queryParams);
+
+      if (response.success) {
+        setOrders(response.data || []);
+        setPagination((prev) => ({
+          ...prev,
+          totalPages: response.pagination?.totalPages || 1,
+          total: response.pagination?.total || 0,
+        }));
+      } else {
+        setError(response?.message || "Failed to load orders");
+      }
+    } catch {
+      setError("Failed to load orders");
+    } finally {
+      setLoading(false);
+    }
+  }, [queryParams]);
+
   useEffect(() => {
     let isMounted = true;
-    const loadOrders = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetchOrders(queryParams);
-        if (!isMounted) return;
-        if (response.success) {
-          setOrders(response.data || []);
-          setPagination((prev) => ({
-            ...prev,
-            totalPages: response.pagination?.totalPages || 1,
-            total: response.pagination?.total || 0,
-          }));
-        } else {
-          setError(response?.message || "Failed to load orders");
-        }
-      } catch {
-        setError("Failed to load orders");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
+
+    const safeLoad = async () => {
+      await loadOrders();
     };
-    loadOrders();
-    return () => { isMounted = false; };
-  }, [queryParams]);
+
+    safeLoad();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [loadOrders]);
 
   const formatDate = (date) =>
     date ? new Date(date).toLocaleDateString("en-IN") : "N/A";
@@ -307,17 +318,29 @@ const Orders = () => {
               {loading ? "Loading…" : `${pagination.total.toLocaleString()} total order${pagination.total !== 1 ? "s" : ""}`}
             </p>
           </div>
-          {canCreateOrder && (
+
+          <div className="flex items-center gap-2.5">
             <button
-              onClick={() => navigate("/orders/create")}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white 
+              onClick={loadOrders}
+              disabled={loading}
+              title="Refresh"
+              className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50"
+            >
+              <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            </button>
+
+            {canCreateOrder && (
+              <button
+                onClick={() => navigate("/orders/create")}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white 
                 text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all 
                 shadow-sm shadow-indigo-200 cursor-pointer
               "
-            >
-              <FiPlus size={14} /> Create Order
-            </button>
-          )}
+              >
+                <FiPlus size={14} /> Create Order
+              </button>
+            )}
+          </div>
         </div>
 
         {/* ── MAIN CARD ── */}
@@ -473,16 +496,28 @@ const Orders = () => {
                     const { order } = orderData;
                     if (!order) return null;
 
-                    const detailDeliveryDates =
-                      order.order_details
-                        ?.map((d) => (d.delivery_date ? new Date(d.delivery_date) : null))
-                        .filter(Boolean) || [];
+                    const orderDetails = order.order_details ?? [];
+
+                    const detailDeliveryDates = orderDetails
+                      .map((d) => (d.delivery_date ? new Date(d.delivery_date) : null))
+                      .filter(Boolean);
+
                     const maxDetailDate = detailDeliveryDates.length
                       ? new Date(Math.max(...detailDeliveryDates))
                       : null;
                     const finalDeliveryDate = order.promised_delivery_date
                       ? new Date(order.promised_delivery_date)
                       : maxDetailDate;
+
+                    const hasProduction = orderDetails?.some(
+                      (d) => d.stock_flags?.hasProduction === true
+                    );
+                    const hasUnpacked = orderDetails?.some(
+                      (d) => d.stock_flags?.hasUnpacked === true
+                    );
+
+                    const showProduction = hasProduction || hasUnpacked;
+                    console.log('order number', order.order_number, '-> ', 'showProduction', showProduction, 'hasProduction', hasProduction, 'hasUnpacked', hasUnpacked);
 
                     return (
                       <tr
@@ -532,7 +567,15 @@ const Orders = () => {
 
                         {/* Status */}
                         <td className="px-5 py-4">
-                          <StatusBadge status={order.status} />
+                          {showProduction ? (
+                            <ProductionStatusBadge
+                              hasProduction={hasProduction}
+                              hasUnpacked={hasUnpacked}
+                              variant="table"
+                            />
+                          ) : (
+                            <StatusBadge status={order.status} />
+                          )}
                         </td>
 
                         {/* Actions */}
