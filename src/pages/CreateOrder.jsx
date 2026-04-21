@@ -966,7 +966,7 @@ const CreateOrder = () => {
 
   const getMinDeliveryDate = useCallback(() => {
     const d = new Date();
-    d.setDate(d.getDate() + 5);
+    d.setDate(d.getDate());
     return d.toISOString().split("T")[0];
   }, []);
 
