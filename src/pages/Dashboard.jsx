@@ -182,10 +182,14 @@ const Dashboard = () => {
   const [totalOrders, setTotalOrders] = useState(0);
   const [recentOrders, setRecentOrders] = useState([]);
   const [ongoingOrders, setOngoingOrders] = useState(0);
+
   const [monthlyOrders, setMonthlyOrders] = useState(0);
+  const [todayOrders, setTodayOrders] = useState(0);
+
   const [adminCount, setAdminCount] = useState(0);
   const [salesmanCount, setSalesmanCount] = useState(0);
   const [dealerCount, setDealerCount] = useState(0);
+
   const [lowStockCount, setLowStockCount] = useState(0);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -210,6 +214,13 @@ const Dashboard = () => {
       page: 1, limit: 6, includeRejected: false, startDate, endDate,
     });
     setMonthlyOrders(monthlyRes?.pagination?.total || 0);
+
+    const today = now.toISOString().split("T")[0];
+    const todayRes = await fetchOrders({
+      page: 1, limit: 1, includeRejected: false,
+      startDate: today, endDate: today,
+    });
+    setTodayOrders(todayRes?.pagination?.total || 0);
   };
 
   const loadUserCounts = async () => {
@@ -286,7 +297,32 @@ const Dashboard = () => {
 
             <MetricCard icon={<FiTrendingUp />} title="Purchase Analytics" subValue="View Insights" color="blue" loading={loading} onClick={() => navigate("/purchase-analytics")} />
 
-            <MetricCard icon={<FiShoppingBag />} title="Orders This Month" value={monthlyOrders} color="blue" loading={loading} onClick={() => navigate("/orders")} />
+            <MetricCard
+              icon={<FiShoppingBag />}
+              title="Today's Orders"
+              value={todayOrders}
+              subValue="Placed today"
+              color="emerald"
+              loading={loading}
+              onClick={() => {
+                const today = new Date().toISOString().split("T")[0];
+                navigate("/orders", { state: { startDate: today, endDate: today } });
+              }}
+            />
+
+            <MetricCard
+              icon={<FiShoppingBag />}
+              title="Orders This Month"
+              value={monthlyOrders}
+              color="blue"
+              loading={loading}
+              onClick={() => {
+                const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
+                const today = new Date().toISOString().split("T")[0];
+                navigate("/orders", { state: { startDate: firstDayOfMonth, endDate: today } })
+              }}
+            />
+
             <MetricCard icon={<FiTruck />} title="Ongoing Orders" value={ongoingOrders} color="amber" loading={loading} onClick={() => navigate("/orders?status=PENDING")} />
 
             {/* Low stock metric — only shown to roles that can see stock info */}
