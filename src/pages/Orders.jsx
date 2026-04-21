@@ -6,7 +6,7 @@ import {
   FiPackage, FiFilter, FiAlertCircle, FiX, FiCalendar,
   FiRefreshCw,
 } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrders } from "../api/orders";
 import { getRoleBasedStatusOptions, PRIORITY_OPTIONS } from "../utils/status";
@@ -143,6 +143,8 @@ const DateInput = ({ value, onChange, placeholder, max }) => (
 const Orders = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { state: routeState } = useLocation();
+
   const role = user?.role;
 
   const isProduction = role === ROLES.PRODUCTION;
@@ -181,8 +183,8 @@ const Orders = () => {
   const [selectedPriority, setSelectedPriority] = useState("ALL");
 
   /* ── Date range filter state ── */
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(routeState?.startDate || "");
+  const [endDate, setEndDate] = useState(routeState?.endDate || "");
 
   /* Role-based default status */
   useEffect(() => {
