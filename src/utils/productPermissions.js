@@ -27,7 +27,15 @@ export const PRICE_HIDDEN_ROLES = Object.freeze([
     ROLES.DELIVERY,
 ]);
 
+// Who CANNOT see cost information
+export const COST_HIDDEN_ROLES = Object.freeze([
+    ROLES.PRODUCTION,
+    ROLES.PACKING,
+    ROLES.DELIVERY,
+]);
+
 export const canCreateProduct = (role) => PRODUCT_CREATE_ROLES.includes(role);
 export const canEditProduct = (role) => PRODUCT_EDIT_ROLES.includes(role);
 export const canUpdateProductStock = (role) => PRODUCT_STOCK_UPDATE_ROLES.includes(role);
 export const canViewProductPrice = (role) => !PRICE_HIDDEN_ROLES.includes(role);
+export const canViewProductCost = (role) => !COST_HIDDEN_ROLES.includes(role);

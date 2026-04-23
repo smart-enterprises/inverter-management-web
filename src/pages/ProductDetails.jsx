@@ -21,9 +21,9 @@ import EditProductModal from "../components/EditProductModal.jsx";
 import StockUpdateModal from "../components/StockUpdateModal.jsx";
 import { fetchUsers } from "../api/user";
 import StockHistoryModal from "../components/StockHistoryModal.jsx";
-import PriceHistoryModal from "../components/PriceHistoryModal.jsx";
 
-import { canEditProduct, canUpdateProductStock, canViewProductPrice } from "../utils/productPermissions";
+import { canEditProduct, canUpdateProductStock, canViewProductCost, canViewProductPrice } from "../utils/productPermissions";
+import { CostHistoryModal, PriceHistoryModal } from "../components/HistoryModals.jsx";
 
 /* ================= FORMATTERS ================= */
 
@@ -104,6 +104,7 @@ const ProductDetails = () => {
     const userCanEdit = canEditProduct(role);
     const userCanUpdateStock = canUpdateProductStock(role);
     const userCanViewPrice = canViewProductPrice(role);
+    const userCanViewCost = canViewProductCost(role);
 
     const [product, setProduct] = useState(null);
     const [userMap, setUserMap] = useState({});
@@ -115,6 +116,7 @@ const ProductDetails = () => {
 
     const [isStockHistoryOpen, setIsStockHistoryOpen] = useState(false);
     const [isPriceHistoryOpen, setIsPriceHistoryOpen] = useState(false);
+    const [isCostHistoryOpen, setIsCostHistoryOpen] = useState(false);
 
     /* ================= FETCH USERS ================= */
 
@@ -191,15 +193,19 @@ const ProductDetails = () => {
         brand,
         model,
         product_type,
+        product_category,
         price,
+        cost,
         available_stock,
         status,
         created_at,
         created_by,
         stocks = [],
-        price_history = [],
+        price_history: rawPriceHistory = [],
         stock_history = []
     } = product;
+
+
 
     const unpackedStock = stocks.find((s) => s.stock_type === "UNPACKED")?.stock ??
         stocks[0]?.unpacked_stock ??
@@ -208,6 +214,10 @@ const ProductDetails = () => {
     const packedStock = stocks.find((s) => s.stock_type === "PACKED")?.stock ??
         stocks[0]?.packed_stock ??
         0;
+
+    // ✅ Split histories
+    const cost_history = rawPriceHistory.filter((h) => h.is_cost_update === true);
+    const price_history = rawPriceHistory.filter((h) => !h.is_cost_update);
 
     /* ================= UI ================= */
 
@@ -354,6 +364,18 @@ const ProductDetails = () => {
                         {product_type}
                     </Info>
 
+                    {/* Product Type */}
+                    <Info
+                        icon={
+                            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 text-gray-600">
+                                <FiBox size={16} />
+                            </div>
+                        }
+                        label="Product Category"
+                    >
+                        {product_category}
+                    </Info>
+
                     {/* Price */}
                     {userCanViewPrice && (
                         <Info
@@ -383,6 +405,44 @@ const ProductDetails = () => {
                                         cursor-pointer
                                     "
                                     title="View Price History"
+                                >
+                                    <FiClock size={14} />
+                                </button>
+
+                            </div>
+
+                        </Info>
+                    )}
+
+                    {/* Cost */}
+                    {userCanViewCost && (
+                        <Info
+                            icon={
+                                <div
+                                    className="flex items-center justify-center w-9 h-9 rounded-lg 
+                                        bg-purple-50 text-purple-600
+                                    "
+                                >
+                                    <FiDollarSign size={16} />
+                                </div>
+                            }
+                            label="Cost"
+                        >
+
+                            <div className="flex items-center gap-3">
+
+                                <span className="text-lg font-semibold text-purple-700">
+                                    {formatCurrency(cost)}
+                                </span>
+
+                                {/* Price History Button */}
+                                <button
+                                    onClick={() => setIsCostHistoryOpen(true)}
+                                    className="p-1.5 rounded-md border border-gray-200 text-gray-500
+                                        hover:bg-gray-100 hover:text-gray-700 transition
+                                        cursor-pointer
+                                    "
+                                    title="View Cost History"
                                 >
                                     <FiClock size={14} />
                                 </button>
@@ -542,6 +602,16 @@ const ProductDetails = () => {
                 isOpen={isPriceHistoryOpen}
                 onClose={() => setIsPriceHistoryOpen(false)}
                 priceHistory={price_history}
+                userMap={userMap}
+                formatCurrency={formatCurrency}
+                formatDate={formatDate}
+            />
+
+            {/* ================= COST HISTORY MODAL ================= */}
+            <CostHistoryModal
+                isOpen={isCostHistoryOpen}
+                onClose={() => setIsCostHistoryOpen(false)}
+                costHistory={cost_history}
                 userMap={userMap}
                 formatCurrency={formatCurrency}
                 formatDate={formatDate}

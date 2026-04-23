@@ -1,3 +1,4 @@
+// price-history-modal.jsx
 import React, { useMemo } from "react";
 import {
     FiX,
