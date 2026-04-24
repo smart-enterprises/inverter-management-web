@@ -5,6 +5,7 @@ import {
   FiPlus, FiSearch, FiEye, FiChevronLeft, FiChevronRight, FiEdit2,
   FiPackage, FiFilter, FiAlertCircle, FiX, FiCalendar,
   FiRefreshCw,
+  FiArrowRight,
 } from "react-icons/fi";
 import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
@@ -114,26 +115,34 @@ const StatusBadge = ({ status }) => {
    DATE INPUT — styled consistently with the rest of the filter bar
    ================================================================ */
 const DateInput = ({ value, onChange, placeholder, max }) => (
-  <div className="relative">
-    <FiCalendar
-      size={12}
-      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-    />
-    <input
-      type="date"
-      value={value}
-      onChange={onChange}
-      max={max}
-      className="pl-8 pr-3 py-2.5 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all cursor-pointer"
-    />
-    {value && (
-      <button
-        onClick={() => onChange({ target: { value: "" } })}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
-      >
-        <FiX size={10} />
-      </button>
+  <div className="flex flex-col gap-1">
+    {placeholder && (
+      <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 px-0.5">
+        {placeholder}
+      </span>
     )}
+
+    <div className="relative">
+      <FiCalendar
+        size={12}
+        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+      />
+      <input
+        type="date"
+        value={value}
+        onChange={onChange}
+        max={max}
+        className="pl-8 pr-3 py-2.5 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all cursor-pointer"
+      />
+      {value && (
+        <button
+          onClick={() => onChange({ target: { value: "" } })}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+        >
+          <FiX size={10} />
+        </button>
+      )}
+    </div>
   </div>
 );
 
@@ -175,8 +184,8 @@ const Orders = () => {
   /*
    * FIX: Split search into two separate states:
    *   searchInput  — bound directly to the <input>, never triggers a fetch
-   *   searchQuery  — debounced value that actually drives the API call
-   */
+      *   searchQuery  — debounced value that actually drives the API call
+      */
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
@@ -353,11 +362,12 @@ const Orders = () => {
             <div className="flex items-center justify-between gap-4 flex-wrap">
 
               {/* LEFT: Search */}
-              <div className="relative flex-1 min-w-[220px] max-w-sm">
+              <div className="relative flex-1 min-w-[220px] max-w-sm sm:max-w-xs">
                 <FiSearch
                   size={14}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                 />
+
                 <input
                   type="text"
                   placeholder="Search orders, dealers, shops..."
@@ -365,6 +375,7 @@ const Orders = () => {
                   onChange={(e) => setSearchInput(e.target.value)}
                   className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition"
                 />
+
                 {searchInput && (
                   <button
                     onClick={() => {
@@ -388,6 +399,7 @@ const Orders = () => {
 
                 {/* Status */}
                 <div className="w-36">
+                  <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Status</span>
                   <CustomSelect
                     name="status"
                     value={selectedStatus}
@@ -401,6 +413,7 @@ const Orders = () => {
 
                 {/* Priority */}
                 <div className="w-36">
+                  <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Priority</span>
                   <CustomSelect
                     name="priority"
                     value={selectedPriority}
@@ -417,6 +430,7 @@ const Orders = () => {
                   <FiCalendar size={12} className="text-slate-400" title="Date Filter" />
 
                   <DateInput
+                    placeholder="From"
                     value={startDate}
                     onChange={(e) => {
                       setStartDate(e.target.value);
@@ -425,8 +439,13 @@ const Orders = () => {
                     }}
                     className="bg-transparent text-xs focus:outline-none"
                   />
-                  <span className="text-xs text-slate-400">–</span>
+
+                  <div className="flex items-center pb-2 text-slate-400">
+                    <FiArrowRight size={12} />
+                  </div>
+
                   <DateInput
+                    placeholder="To"
                     value={endDate}
                     onChange={(e) => {
                       setEndDate(e.target.value);
