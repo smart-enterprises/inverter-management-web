@@ -22,6 +22,11 @@ export const INITIAL_FORM_STATE = {
     order_details: [{ ...INITIAL_ORDER_ITEM }]
 };
 
+export const PRODUCT_CATEGORIES = [
+    "INVERTER",
+    "BATTERY",
+];
+
 export const capitalizeFirstLetter = (value) => {
     if (typeof value !== "string" || value.length === 0) {
         return "";

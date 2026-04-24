@@ -22,8 +22,11 @@ export const fetchProducts = ({
     search = "",
     type = "",
     status = "",
+    category = "",
+    brand = "",
+    model = "",
 } = {}) => {
-    const query = buildQuery({ page, limit, search, type, status });
+    const query = buildQuery({ page, limit, search, type, status, category, brand, model });
 
     return apiRequest(`/product-details/get/all?${query}`, {
         method: "GET",
