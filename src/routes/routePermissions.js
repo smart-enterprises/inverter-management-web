@@ -57,8 +57,10 @@ export const ROUTE_PERMISSIONS = {
 
   "/delivery": [
     ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+    ROLES.SALESMAN, ROLES.PRODUCTION, ROLES.PACKING,
     ROLES.ACCOUNTS, ROLES.DELIVERY,
   ],
+
   "/billing": [
     ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
     ROLES.ACCOUNTS, ROLES.DELIVERY,
@@ -77,6 +79,7 @@ export const getAllowedRoles = (pathname) => {
     "/users/:id",
     "/dealers/:id",
     "/products/:id",
+    "/delivery"
   ];
 
   for (const route of staticRoutes) {

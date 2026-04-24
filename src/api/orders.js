@@ -19,6 +19,8 @@ export const fetchOrders = async ({
     dealer,
     startDate,
     endDate,
+    deliveryStartDate,
+    deliveryEndDate,
 } = {}) => {
     const queryParams = new URLSearchParams();
 
@@ -41,8 +43,9 @@ export const fetchOrders = async ({
     }
 
     // Search filter (order number / dealer etc.)
-    if (search && search.trim() !== '') {
-        queryParams.append('search', search.trim());
+    const trimmedSearch = search?.trim();
+    if (trimmedSearch) {
+        params.append("search", trimmedSearch);
     }
 
     // Dealer filter
@@ -57,6 +60,15 @@ export const fetchOrders = async ({
 
     if (endDate) {
         queryParams.append('endDate', endDate);
+    }
+
+    // Delivery date range
+    if (deliveryStartDate) {
+        queryParams.append("deliveryStartDate", deliveryStartDate);
+    }
+
+    if (deliveryEndDate) {
+        queryParams.append("deliveryEndDate", deliveryEndDate);
     }
 
     return apiRequest(`/order-details?${queryParams.toString()}`, {

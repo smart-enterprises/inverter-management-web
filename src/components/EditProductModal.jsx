@@ -1,218 +1,451 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { FiX, FiBox, FiEdit3 } from "react-icons/fi";
+// edit-product-modal.jsx
+import React, { useEffect, useState, useCallback, useRef, memo } from "react";
+import { FiX, FiBox, FiEdit3, FiTag, FiAlertCircle, FiDollarSign, FiInfo } from "react-icons/fi";
 import Swal from "sweetalert2";
 
 import CustomSelect from "../components/CustomSelect";
 import { fetchProductById, updateProduct } from "../api/products";
 import { getAllBrands } from "../api/brands";
+import { PRODUCT_CATEGORIES } from "../utils/constants";
 
-/* ================= INITIAL STATE ================= */
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const initialFormState = {
+const INITIAL_FORM = {
     product_name: "",
     model: "",
     product_type: "",
+    product_category: "",
     brand: "",
     product_price: "",
+    product_cost: "",
     status: "active",
-    status_reason: ""
+    status_reason: "",
+    price_change_reason: "",
+    cost_change_reason: "",
 };
 
-const baseProductTypes = [];
+const STATUS_OPTIONS = ["active", "inactive"];
 
-/* ================= COMPONENT ================= */
+const REQUIRED_FIELDS = [
+    "product_name",
+    "model",
+    "product_type",
+    "product_category",
+    "brand",
+    "product_price",
+    "product_cost",
+];
 
-const EditProductModal = ({
-    isOpen,
-    onClose,
-    onProductUpdated,
-    productId
-}) => {
+// ─── Utilities ────────────────────────────────────────────────────────────────
 
-    const [formData, setFormData] = useState(initialFormState);
+const cls = (...args) => args.filter(Boolean).join(" ");
+
+const isBlank = (v) => v === undefined || v === null || String(v).trim() === "";
+
+const toFloat = (v) => parseFloat(String(v).trim());
+
+const isValidPositiveNumber = (v) => {
+    const n = toFloat(v);
+    return !isNaN(n) && n >= 0;
+};
+
+const normalizePrice = (v) => (isBlank(v) ? "" : String(toFloat(v)));
+
+const pricesEqual = (a, b) => {
+    if (isBlank(a) || isBlank(b)) return false;
+    return toFloat(a) === toFloat(b);
+};
+
+const validate = (data, { priceChanged, costChanged }) => {
+    const missing = REQUIRED_FIELDS.filter((k) => isBlank(data[k]));
+    if (missing.length) return "Please fill in all required fields.";
+    if (!isValidPositiveNumber(data.product_price)) return "Enter a valid selling price.";
+    if (!isValidPositiveNumber(data.product_cost)) return "Enter a valid cost price.";
+    if (priceChanged && isBlank(data.price_change_reason))
+        return "Please provide a reason for the selling price change.";
+    if (costChanged && isBlank(data.cost_change_reason))
+        return "Please provide a reason for the cost price change.";
+    if (data.status === "inactive" && isBlank(data.status_reason))
+        return "Please provide a reason for marking this product inactive.";
+    return null;
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const FieldLabel = memo(({ children, required, htmlFor }) => (
+    <label
+        htmlFor={htmlFor}
+        className="block text-xs font-semibold text-slate-500 mb-1.5 tracking-wide uppercase"
+    >
+        {children}
+        {required && (
+            <span className="text-rose-400 ml-0.5" aria-hidden="true">
+                *
+            </span>
+        )}
+    </label>
+));
+
+const inputBase =
+    "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 " +
+    "placeholder-slate-300 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 " +
+    "transition-all duration-150 disabled:opacity-40 disabled:bg-slate-50 disabled:cursor-not-allowed";
+
+const TextInput = memo(({ id, label, required, hint, ...props }) => (
+    <div>
+        <FieldLabel required={required} htmlFor={id}>
+            {label}
+        </FieldLabel>
+        <input id={id} className={inputBase} {...props} />
+        {hint && (
+            <p className="mt-1.5 text-xs text-slate-400 flex items-center gap-1">
+                <FiInfo size={11} aria-hidden />
+                {hint}
+            </p>
+        )}
+    </div>
+));
+
+const NumberInput = memo(({ id, label, required, hint, prefix, ...props }) => (
+    <div>
+        <FieldLabel required={required} htmlFor={id}>
+            {label}
+        </FieldLabel>
+        <div className="relative">
+            {prefix && (
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none select-none">
+                    {prefix}
+                </span>
+            )}
+            <input
+                id={id}
+                type="number"
+                className={cls(inputBase, prefix && "pl-7")}
+                {...props}
+            />
+        </div>
+        {hint && (
+            <p className="mt-1.5 text-xs text-slate-400 flex items-center gap-1">
+                <FiInfo size={11} aria-hidden />
+                {hint}
+            </p>
+        )}
+    </div>
+));
+
+const TextareaInput = memo(({ id, label, required, hint, rows = 2, ...props }) => (
+    <div>
+        <FieldLabel required={required} htmlFor={id}>
+            {label}
+        </FieldLabel>
+        <textarea
+            id={id}
+            rows={rows}
+            className={cls(inputBase, "resize-none")}
+            {...props}
+        />
+        {hint && (
+            <p className="mt-1.5 text-xs text-slate-400 flex items-center gap-1">
+                <FiInfo size={11} aria-hidden />
+                {hint}
+            </p>
+        )}
+    </div>
+));
+
+const ComboInput = memo(({ id, label, required, listId, options, hint, ...props }) => (
+    <div>
+        <FieldLabel required={required} htmlFor={id}>
+            {label}
+        </FieldLabel>
+        <input id={id} list={listId} className={inputBase} {...props} />
+        <datalist id={listId}>
+            {options.map((opt) => (
+                <option key={opt} value={opt} />
+            ))}
+        </datalist>
+        {hint && (
+            <p className="mt-1.5 text-xs text-slate-400 flex items-center gap-1">
+                <FiInfo size={11} aria-hidden />
+                {hint}
+            </p>
+        )}
+    </div>
+));
+
+const SelectField = memo(({ label, required, hint, ...props }) => (
+    <div>
+        <FieldLabel required={required}>{label}</FieldLabel>
+        <CustomSelect {...props} />
+        {hint && (
+            <p className="mt-1.5 text-xs text-slate-400 flex items-center gap-1">
+                <FiInfo size={11} aria-hidden />
+                {hint}
+            </p>
+        )}
+    </div>
+));
+
+const AlertBanner = memo(({ type, message }) => {
+    if (!message) return null;
+    const config = {
+        error: {
+            wrapper: "bg-rose-50 border-rose-200 text-rose-700",
+            icon: "text-rose-400",
+        },
+        success: {
+            wrapper: "bg-emerald-50 border-emerald-200 text-emerald-700",
+            icon: "text-emerald-400",
+        },
+        info: {
+            wrapper: "bg-blue-50 border-blue-200 text-blue-700",
+            icon: "text-blue-400",
+        },
+    };
+    const { wrapper, icon } = config[type] ?? config.info;
+    return (
+        <div
+            role="alert"
+            className={cls(
+                "flex items-start gap-2.5 px-4 py-3 rounded-xl border text-sm",
+                wrapper
+            )}
+        >
+            <FiAlertCircle size={15} className={cls("flex-shrink-0 mt-0.5", icon)} aria-hidden />
+            <span>{message}</span>
+        </div>
+    );
+});
+
+const SectionHeader = memo(({ icon: Icon, title, accentClass = "text-violet-500" }) => (
+    <div className="flex items-center gap-2 mb-4">
+        {Icon && (
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-50 border border-slate-100">
+                <Icon size={13} className={accentClass} aria-hidden />
+            </div>
+        )}
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">{title}</h3>
+    </div>
+));
+
+const Divider = () => <div className="border-t border-slate-100 my-6" />;
+
+const ChangeReasonBanner = memo(({ field, originalValue, currentValue, visible }) => {
+    if (!visible) return null;
+    return (
+        <div className="col-span-full flex items-start gap-2 px-3.5 py-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700">
+            <FiAlertCircle size={13} className="flex-shrink-0 mt-0.5 text-amber-500" aria-hidden />
+            <span>
+                {field} changed from{" "}
+                <strong className="font-semibold">₹{originalValue}</strong> to{" "}
+                <strong className="font-semibold">₹{currentValue}</strong>. A reason is required.
+            </span>
+        </div>
+    );
+});
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
+    const [formData, setFormData] = useState(INITIAL_FORM);
     const [brands, setBrands] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [availableModels, setAvailableModels] = useState([]);
-    const [productTypeOptions, setProductTypeOptions] = useState(baseProductTypes);
-
+    const [productTypeOptions, setProductTypeOptions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
 
-    /* ================= RESET FORM ================= */
+    // Tracks original prices to detect changes
+    const originalPricesRef = useRef({ product_price: "", product_cost: "" });
 
-    const resetForm = () => {
-        setFormData(initialFormState);
+    // ─── Derived state ─────────────────────────────────────────────────────
+
+    const priceChanged =
+        !isBlank(originalPricesRef.current.product_price) &&
+        !pricesEqual(formData.product_price, originalPricesRef.current.product_price);
+
+    const costChanged =
+        !isBlank(originalPricesRef.current.product_cost) &&
+        !pricesEqual(formData.product_cost, originalPricesRef.current.product_cost);
+
+    // ─── Reset ──────────────────────────────────────────────────────────────
+
+    const resetForm = useCallback(() => {
+        setFormData(INITIAL_FORM);
         setAvailableModels([]);
+        setProductTypeOptions([]);
         setError("");
-        setSuccess("");
-    };
+        originalPricesRef.current = { product_price: "", product_cost: "" };
+    }, []);
 
-    /* ================= UPDATE FORM FIELD ================= */
+    // ─── Field update ────────────────────────────────────────────────────────
 
-    const updateFormField = (name, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
+    const setField = useCallback((name, value) => {
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    }, []);
 
-    /* ================= LOAD PRODUCT DATA ================= */
+    // ─── Brand change ────────────────────────────────────────────────────────
+
+    const handleBrandChange = useCallback(
+        (brandName) => {
+            const selected = brands.find((b) => b.brand_name === brandName);
+            setAvailableModels(selected?.brand_models ?? []);
+            setFormData((prev) => ({ ...prev, brand: brandName, model: "" }));
+        },
+        [brands]
+    );
+
+    // ─── Generic input handler ───────────────────────────────────────────────
+
+    const handleChange = useCallback(
+        (e) => {
+            const { name, value } = e.target;
+            if (name === "brand") {
+                handleBrandChange(value);
+            } else {
+                setField(name, value);
+            }
+            // Clear change reasons when price is reverted to original
+            if (name === "product_price") {
+                if (pricesEqual(value, originalPricesRef.current.product_price)) {
+                    setField("price_change_reason", "");
+                }
+            }
+            if (name === "product_cost") {
+                if (pricesEqual(value, originalPricesRef.current.product_cost)) {
+                    setField("cost_change_reason", "");
+                }
+            }
+        },
+        [handleBrandChange, setField]
+    );
+
+    // ─── Product type blur ────────────────────────────────────────────────────
+
+    const handleProductTypeBlur = useCallback(() => {
+        const val = formData.product_type?.trim();
+        if (!val) return;
+        setProductTypeOptions((prev) => (prev.includes(val) ? prev : [...prev, val]));
+    }, [formData.product_type]);
+
+    // ─── Load data ───────────────────────────────────────────────────────────
 
     const loadProductData = useCallback(async () => {
-
         try {
-
             setError("");
-            setSuccess("");
 
-            /* ---------- Load Brands ---------- */
+            const [brandsRes, productRes] = await Promise.all([
+                getAllBrands("active"),
+                fetchProductById(productId),
+            ]);
 
-            const brandsResponse = await getAllBrands("active");
-
-            if (brandsResponse?.success && brandsResponse?.data) {
-                setBrands(brandsResponse.data);
+            if (brandsRes?.success && brandsRes?.data) {
+                setBrands(brandsRes.data);
             }
 
-            /* ---------- Load Product ---------- */
+            setCategories(PRODUCT_CATEGORIES);
 
-            const productResponse = await fetchProductById(productId);
-
-            if (!productResponse?.success || !productResponse?.data) {
-                setError("Failed to load product data");
+            if (!productRes?.success || !productRes?.data) {
+                setError("Failed to load product data.");
                 return;
             }
 
-            const product = productResponse.data;
-            const productType = product.product_type || "";
+            const p = productRes.data;
+            const productType = p.product_type ?? "";
+            const productPrice = normalizePrice(p.product_price ?? p.price ?? "");
+            const productCost = normalizePrice(p.product_cost ?? p.cost ?? "");
 
-            setFormData({
-                product_name: product.product_name || "",
-                model: product.model || "",
+            const populated = {
+                product_name: p.product_name ?? "",
+                model: p.model ?? "",
                 product_type: productType,
-                brand: product.brand || "",
-                product_price: product.product_price || product.price || "",
-                status: product.status || "active",
-                status_reason: ""
-            });
+                product_category: p.product_category ?? "",
+                brand: p.brand ?? "",
+                product_price: productPrice,
+                product_cost: productCost,
+                status: p.status ?? "active",
+                status_reason: "",
+                price_change_reason: "",
+                cost_change_reason: "",
+            };
 
-            /* ---------- Add Product Type Option ---------- */
+            setFormData(populated);
+            originalPricesRef.current = { product_price: productPrice, product_cost: productCost };
 
-            setProductTypeOptions(prev => {
-                if (!productType || prev.includes(productType)) return prev;
-                return [...prev, productType];
-            });
-
-            /* ---------- Load Brand Models ---------- */
-
-            if (product.brand && brandsResponse?.data) {
-
-                const selectedBrand = brandsResponse.data.find(
-                    b => b.brand_name === product.brand
+            if (productType) {
+                setProductTypeOptions((prev) =>
+                    prev.includes(productType) ? prev : [...prev, productType]
                 );
-
-                if (selectedBrand?.brand_models) {
-                    setAvailableModels(selectedBrand.brand_models);
-                }
-
             }
 
+            if (p.brand && brandsRes?.data) {
+                const sel = brandsRes.data.find((b) => b.brand_name === p.brand);
+                if (sel?.brand_models) setAvailableModels(sel.brand_models);
+            }
         } catch (err) {
             console.error("Error loading product:", err);
-            setError("Failed to load product data");
+            setError("Failed to load product data.");
         }
-
     }, [productId]);
 
-    /* ================= EFFECTS ================= */
+    // ─── Effects ─────────────────────────────────────────────────────────────
 
     useEffect(() => {
-        if (!isOpen || !productId) return;
-        loadProductData();
+        if (isOpen && productId) loadProductData();
     }, [isOpen, productId, loadProductData]);
 
     useEffect(() => {
         if (!isOpen) resetForm();
+    }, [isOpen, resetForm]);
+
+    // Lock body scroll when open
+    useEffect(() => {
+        if (isOpen) {
+            const prev = document.body.style.overflow;
+            document.body.style.overflow = "hidden";
+            return () => { document.body.style.overflow = prev; };
+        }
     }, [isOpen]);
 
-    /* ================= INPUT HANDLERS ================= */
-
-    const handleChange = (e) => {
-
-        const { name, value } = e.target;
-
-        updateFormField(name, value);
-
-        if (name === "brand") {
-
-            const selectedBrand = brands.find(
-                b => b.brand_name === value
-            );
-
-            if (selectedBrand?.brand_models) {
-                setAvailableModels(selectedBrand.brand_models);
-            } else {
-                setAvailableModels([]);
-            }
-
-            updateFormField("model", "");
-        }
-    };
-
-    const handleProductTypeChange = (e) => {
-        updateFormField("product_type", e.target.value);
-    };
-
-    const handleProductTypeBlur = () => {
-
-        const value = formData.product_type?.trim();
-
-        if (!value) return;
-
-        setProductTypeOptions(prev => {
-            if (prev.includes(value)) return prev;
-            return [...prev, value];
-        });
-    };
-
-    /* ================= SUBMIT ================= */
+    // ─── Submit ──────────────────────────────────────────────────────────────
 
     const handleSubmit = async (e) => {
-
         e.preventDefault();
+
+        const validationError = validate(formData, { priceChanged, costChanged });
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
 
         setLoading(true);
         setError("");
 
         try {
-
-            if (
-                !formData.product_name ||
-                !formData.model ||
-                !formData.product_type ||
-                !formData.brand ||
-                !formData.product_price
-            ) {
-                setError("Please fill in all required fields.");
-                return;
-            }
-
             const payload = {
-                product_name: formData.product_name,
+                product_name: formData.product_name.trim(),
                 model: formData.model,
-                product_type: formData.product_type,
+                product_type: formData.product_type.trim(),
+                product_category: formData.product_category,
                 brand: formData.brand,
-                product_price: parseFloat(formData.product_price),
-                status: formData.status
+                product_price: toFloat(formData.product_price),
+                product_cost: toFloat(formData.product_cost),
+                status: formData.status,
+                ...(formData.status === "inactive" && !isBlank(formData.status_reason)
+                    ? { status_reason: formData.status_reason.trim() }
+                    : {}),
+                ...(priceChanged && !isBlank(formData.price_change_reason)
+                    ? { price_change_reason: formData.price_change_reason.trim() }
+                    : {}),
+                ...(costChanged && !isBlank(formData.cost_change_reason)
+                    ? { cost_change_reason: formData.cost_change_reason.trim() }
+                    : {}),
             };
-
-            if (formData.status === "inactive" && formData.status_reason) {
-                payload.status_reason = formData.status_reason;
-            }
 
             const response = await updateProduct(productId, payload);
 
             if (!response?.success) {
-                setError(response?.message || "Failed to update product");
+                setError(response?.message || "Failed to update product.");
                 return;
             }
 
@@ -222,16 +455,13 @@ const EditProductModal = ({
             setTimeout(async () => {
                 await Swal.fire({
                     icon: "success",
-                    title: "Success",
-                    text: response.message || "Product updated successfully",
-                    confirmButtonText: "OK"
+                    title: "Updated",
+                    text: response.message || "Product updated successfully.",
+                    confirmButtonText: "OK",
                 });
             }, 100);
-
         } catch (err) {
-
             setError(err?.message || "Network error. Please try again.");
-
         } finally {
             setLoading(false);
         }
@@ -239,260 +469,300 @@ const EditProductModal = ({
 
     if (!isOpen) return null;
 
-    /* ================= UI ================= */
+    // ─── UI ──────────────────────────────────────────────────────────────────
 
     return (
         <>
-            {/* BACKDROP */}
+            {/* Backdrop */}
             <div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 animate-in fade-in duration-200"
                 onClick={onClose}
+                aria-hidden="true"
             />
 
-            {/* MODAL */}
-            <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
-
+            {/* Modal */}
+            <div
+                className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="edit-product-title"
+            >
                 <div
-                    className="bg-white rounded-xl shadow-sm w-full max-w-2xl"
+                    className="bg-white rounded-2xl shadow-2xl shadow-slate-200/80 w-full max-w-2xl border border-slate-100 flex flex-col max-h-[90vh]"
                     onClick={(e) => e.stopPropagation()}
                 >
-
-                    {/* HEADER */}
-
-                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
-
+                    {/* ── Header ── */}
+                    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0">
                         <div className="flex items-center gap-3">
-
-                            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-purple-50">
-                                <FiEdit3 className="text-purple-600" size={18} />
+                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-100">
+                                <FiEdit3 size={16} className="text-violet-600" aria-hidden />
                             </div>
-
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900">
+                                <h2
+                                    id="edit-product-title"
+                                    className="text-base font-bold text-slate-900 leading-tight"
+                                >
                                     Edit Product
                                 </h2>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    Update product information
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    Update product details below
                                 </p>
                             </div>
-
                         </div>
-
                         <button
+                            type="button"
                             onClick={onClose}
-                            className="p-2 hover:bg-gray-50 rounded-lg transition"
+                            aria-label="Close modal"
+                            disabled={loading}
+                            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all duration-150 disabled:opacity-40"
                         >
-                            <FiX className="text-gray-500" size={20} />
+                            <FiX size={18} />
                         </button>
-
                     </div>
 
-                    {/* FORM */}
-
+                    {/* ── Form ── */}
                     <form
+                        id="edit-product-form"
                         onSubmit={handleSubmit}
-                        className="p-6 max-h-[70vh] overflow-y-auto"
+                        noValidate
+                        className="flex flex-col flex-1 min-h-0"
                     >
+                        <div className="px-6 py-5 overflow-y-auto flex-1 space-y-6">
+                            {error && <AlertBanner type="error" message={error} />}
 
-                        {/* ERROR */}
-                        {error && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
-                                {error}
-                            </div>
-                        )}
+                            {/* ── Product Information ── */}
+                            <section aria-labelledby="section-product-info">
+                                <SectionHeader icon={FiBox} title="Product Information" />
 
-                        {/* SUCCESS */}
-                        {success && (
-                            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm mb-4">
-                                {success}
-                            </div>
-                        )}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <SelectField
+                                        label="Brand"
+                                        required
+                                        name="brand"
+                                        value={formData.brand}
+                                        onChange={handleChange}
+                                        options={["", ...brands.map((b) => b.brand_name)]}
+                                        placeholder="Select brand"
+                                    />
 
-                        {/* PRODUCT SECTION */}
+                                    <TextInput
+                                        id="edit-product-name"
+                                        label="Product Name"
+                                        required
+                                        name="product_name"
+                                        value={formData.product_name}
+                                        onChange={handleChange}
+                                        placeholder="e.g. OnePlus Super Save"
+                                        autoComplete="off"
+                                    />
 
-                        <div className="space-y-6">
+                                    <SelectField
+                                        label="Model"
+                                        required
+                                        name="model"
+                                        value={formData.model}
+                                        onChange={handleChange}
+                                        options={["", ...availableModels]}
+                                        placeholder={
+                                            formData.brand ? "Select model" : "Select brand first"
+                                        }
+                                        disabled={!formData.brand || availableModels.length === 0}
+                                    />
 
-                            <div>
+                                    <ComboInput
+                                        id="edit-product-type"
+                                        label="Product Type"
+                                        required
+                                        listId="edit-product-type-options"
+                                        name="product_type"
+                                        value={formData.product_type}
+                                        onChange={handleChange}
+                                        onBlur={handleProductTypeBlur}
+                                        placeholder="Select or type product type"
+                                        options={productTypeOptions}
+                                    />
 
-                                <h3 className="text-base font-medium text-gray-900 flex items-center gap-2">
-                                    <FiBox className="text-[#9333EA]" />
-                                    Product Information
-                                </h3>
+                                    <SelectField
+                                        label="Product Category"
+                                        required
+                                        name="product_category"
+                                        value={formData.product_category}
+                                        onChange={handleChange}
+                                        options={["", ...categories]}
+                                        placeholder="Select category"
+                                    />
+                                </div>
+                            </section>
 
-                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Divider />
 
-                                    {/* BRAND */}
+                            {/* ── Pricing ── */}
+                            <section aria-labelledby="section-pricing">
+                                <SectionHeader icon={FiTag} title="Pricing" />
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Brand <span className="text-red-500">*</span>
-                                        </label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {/* Selling Price */}
+                                    <NumberInput
+                                        id="edit-product-price"
+                                        label="Selling Price"
+                                        required
+                                        name="product_price"
+                                        value={formData.product_price}
+                                        onChange={handleChange}
+                                        placeholder="e.g. 17500"
+                                        prefix="₹"
+                                        min="0"
+                                        step="0.01"
+                                    />
 
-                                        <CustomSelect
-                                            name="brand"
-                                            value={formData.brand}
-                                            onChange={handleChange}
-                                            options={["", ...brands.map(b => b.brand_name)]}
-                                            placeholder="Select brand"
-                                            required
-                                        />
-                                    </div>
+                                    {/* Cost Price */}
+                                    <NumberInput
+                                        id="edit-product-cost"
+                                        label="Cost Price"
+                                        required
+                                        name="product_cost"
+                                        value={formData.product_cost}
+                                        onChange={handleChange}
+                                        placeholder="e.g. 5500"
+                                        prefix="₹"
+                                        min="0"
+                                        step="0.5"
+                                    />
 
-                                    {/* PRODUCT NAME */}
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Product Name <span className="text-red-500">*</span>
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            name="product_name"
-                                            value={formData.product_name}
-                                            onChange={handleChange}
-                                            placeholder="e.g. ONE PLUS Super Save"
-                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* MODEL */}
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Model <span className="text-red-500">*</span>
-                                        </label>
-
-                                        <CustomSelect
-                                            name="model"
-                                            value={formData.model}
-                                            onChange={handleChange}
-                                            options={["", ...availableModels]}
-                                            placeholder={formData.brand ? "Select model" : "Select brand first"}
-                                            disabled={!formData.brand || availableModels.length === 0}
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* PRODUCT TYPE */}
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Product Type <span className="text-red-500">*</span>
-                                        </label>
-
-                                        <input
-                                            list="edit-product-type-options"
-                                            name="product_type"
-                                            value={formData.product_type}
-                                            onChange={handleProductTypeChange}
-                                            onBlur={handleProductTypeBlur}
-                                            placeholder="Select or type product type"
-                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                                            required
-                                        />
-
-                                        <datalist id="edit-product-type-options">
-                                            {productTypeOptions.map((type, index) => (
-                                                <option key={index} value={type} />
-                                            ))}
-                                        </datalist>
-
-                                    </div>
-
-                                    {/* PRICE */}
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Price (₹ ) <span className="text-red-500">*</span>
-                                        </label>
-
-                                        <input
-                                            type="number"
-                                            name="product_price"
-                                            value={formData.product_price}
-                                            onChange={handleChange}
-                                            placeholder="e.g. 17500"
-                                            min="0"
-                                            step="0.01"
-                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                                            required
-                                        />
-
-                                    </div>
-
-                                    {/* STATUS */}
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Status <span className="text-red-500">*</span>
-                                        </label>
-
-                                        <CustomSelect
-                                            name="status"
-                                            value={formData.status}
-                                            onChange={handleChange}
-                                            options={["active", "inactive"]}
-                                            placeholder="Select status"
-                                            required
-                                        />
-
-                                    </div>
-
-                                    {/* STATUS REASON */}
-
-                                    {formData.status === "inactive" && (
-                                        <div className="sm:col-span-2">
-
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Status Reason
-                                            </label>
-
-                                            <input
-                                                type="text"
-                                                name="status_reason"
-                                                value={formData.status_reason}
+                                    {/* Price Change Notice + Reason */}
+                                    <ChangeReasonBanner
+                                        field="Selling price"
+                                        originalValue={originalPricesRef.current.product_price}
+                                        currentValue={formData.product_price}
+                                        visible={priceChanged}
+                                    />
+                                    {priceChanged && (
+                                        <div className="col-span-full">
+                                            <TextareaInput
+                                                id="edit-price-change-reason"
+                                                label="Reason for Selling Price Change"
+                                                required
+                                                name="price_change_reason"
+                                                value={formData.price_change_reason}
                                                 onChange={handleChange}
-                                                placeholder="e.g. Product discontinued"
-                                                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                                                placeholder="e.g. Seasonal discount, revised MRP, promotional pricing…"
+                                                hint="This will be recorded in the product's pricing history."
                                             />
-
                                         </div>
                                     )}
 
+                                    {/* Cost Change Notice + Reason */}
+                                    <ChangeReasonBanner
+                                        field="Cost price"
+                                        originalValue={originalPricesRef.current.product_cost}
+                                        currentValue={formData.product_cost}
+                                        visible={costChanged}
+                                    />
+                                    {costChanged && (
+                                        <div className="col-span-full">
+                                            <TextareaInput
+                                                id="edit-cost-change-reason"
+                                                label="Reason for Cost Price Change"
+                                                required
+                                                name="cost_change_reason"
+                                                value={formData.cost_change_reason}
+                                                onChange={handleChange}
+                                                placeholder="e.g. Supplier rate revision, bulk purchase discount…"
+                                                hint="This will be recorded in the product's cost history."
+                                            />
+                                        </div>
+                                    )}
                                 </div>
+                            </section>
 
+                            <Divider />
+
+                            {/* ── Status ── */}
+                            <section aria-labelledby="section-status">
+                                <SectionHeader icon={FiBox} title="Status" />
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <SelectField
+                                        label="Status"
+                                        required
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleChange}
+                                        options={STATUS_OPTIONS}
+                                        placeholder="Select status"
+                                    />
+
+                                    {formData.status === "inactive" && (
+                                        <div className="sm:col-span-2">
+                                            <TextareaInput
+                                                id="edit-status-reason"
+                                                label="Reason for Inactivation"
+                                                required
+                                                name="status_reason"
+                                                value={formData.status_reason}
+                                                onChange={handleChange}
+                                                placeholder="e.g. Product discontinued, replaced by newer model…"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* ── Footer ── */}
+                        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/60 rounded-b-2xl flex-shrink-0">
+                            <p className="text-xs text-slate-400">
+                                <span className="text-rose-400 mr-0.5">*</span>
+                                Required fields
+                            </p>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    disabled={loading}
+                                    className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-all duration-150 disabled:opacity-40"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    form="edit-product-form"
+                                    disabled={loading}
+                                    className="px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-sm shadow-violet-200 flex items-center gap-2"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <svg
+                                                className="animate-spin h-4 w-4 text-white"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                aria-hidden="true"
+                                            >
+                                                <circle
+                                                    className="opacity-25"
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="10"
+                                                    stroke="currentColor"
+                                                    strokeWidth="4"
+                                                />
+                                                <path
+                                                    className="opacity-75"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                                />
+                                            </svg>
+                                            Updating…
+                                        </>
+                                    ) : (
+                                        "Update Product"
+                                    )}
+                                </button>
                             </div>
-
                         </div>
-
-                        {/* FOOTER */}
-
-                        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                disabled={loading}
-                                className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50"
-                            >
-                                Cancel
-                            </button>
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="px-6 py-2.5 rounded-lg bg-[#9333EA] text-white hover:bg-[#8829DD] transition text-sm font-medium disabled:opacity-50"
-                            >
-                                {loading ? "Updating..." : "Update Product"}
-                            </button>
-
-                        </div>
-
                     </form>
-
                 </div>
-
             </div>
         </>
     );

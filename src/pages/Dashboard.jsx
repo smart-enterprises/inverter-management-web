@@ -185,6 +185,7 @@ const Dashboard = () => {
 
   const [monthlyOrders, setMonthlyOrders] = useState(0);
   const [todayOrders, setTodayOrders] = useState(0);
+  const [todayDeliveryCount, setTodayDeliveryCount] = useState(0);
 
   const [adminCount, setAdminCount] = useState(0);
   const [salesmanCount, setSalesmanCount] = useState(0);
@@ -221,6 +222,13 @@ const Dashboard = () => {
       startDate: today, endDate: today,
     });
     setTodayOrders(todayRes?.pagination?.total || 0);
+
+    const todayDeliveryOrdersResponse = await fetchOrders({
+      page: 1, limit: 1, includeRejected: false,
+      deliveryStartDate: today, deliveryEndDate: today,
+    });
+
+    setTodayDeliveryCount(todayDeliveryOrdersResponse?.pagination?.total || 0);
   };
 
   const loadUserCounts = async () => {
@@ -307,6 +315,24 @@ const Dashboard = () => {
               onClick={() => {
                 const today = new Date().toISOString().split("T")[0];
                 navigate("/orders", { state: { startDate: today, endDate: today } });
+              }}
+            />
+
+            <MetricCard
+              icon={<FiShoppingBag />}
+              title="Today's Deliveries"
+              value={todayDeliveryCount}
+              subValue="Scheduled for delivery today"
+              color="blue"
+              loading={loading}
+              onClick={() => {
+                const today = new Date().toISOString().split("T")[0];
+                navigate("/delivery", {
+                  state: {
+                    deliveryStartDate: today,
+                    deliveryEndDate: today,
+                  },
+                });
               }}
             />
 
