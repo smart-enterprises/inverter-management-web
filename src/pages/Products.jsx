@@ -1,4 +1,4 @@
-// src/pages/products.jsx
+// src/pages/Products.jsx
 import React, {
   useState,
   useEffect,
@@ -8,30 +8,20 @@ import React, {
   memo,
 } from "react";
 import {
-  FiPlus,
-  FiSearch,
-  FiBox,
-  FiX,
-  FiChevronLeft,
-  FiChevronRight,
-  FiEdit3,
-  FiPackage,
-  FiEye,
-  FiAlertCircle,
-  FiFilter,
-  FiRefreshCw,
-  FiTrendingUp,
-  FiLayers,
-  FiCheckCircle,
-  FiInfo,
-  FiZap,
-  FiBarChart2,
-  FiSliders,
-  FiArrowRight,
+  FiPlus, FiSearch, FiBox, FiX, FiChevronLeft, FiChevronRight,
+  FiEdit3, FiPackage, FiEye, FiAlertCircle, FiRefreshCw,
+  FiTrendingUp, FiLayers, FiCheckCircle, FiInfo,
+  FiSliders, FiArrowRight,
+  FiChevronDown,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
-import { fetchProducts, createProduct } from "../api/products";
+import {
+  fetchProducts,
+  createProduct,
+  getProductTypes,
+  getProductCategories,
+} from "../api/products";
 import { getAllBrands } from "../api/brands";
 import Swal from "sweetalert2";
 import { useAuth } from "../hooks/useAuth";
@@ -43,39 +33,24 @@ import {
   canUpdateProductStock,
   canViewProductPrice,
 } from "../utils/productPermissions";
-import { PRODUCT_CATEGORIES } from "../utils/constants";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const PRODUCT_TYPE_OPTIONS = [
-  "INV 12V", "INV 24V", "INV 48V", "INV 96V",
-  "SOLAR 12V", "SOLAR 24V", "SOLAR 48V", "SOLAR 96V",
-];
 
 const ALL_TYPES = "All Types";
 const ALL_CATEGORIES = "All Categories";
 const ALL_STATUS = "All Status";
 const ALL_BRANDS = "All Brands";
 const ALL_MODELS = "All Models";
-
-const TYPE_FILTER_OPTIONS = [ALL_TYPES, ...PRODUCT_TYPE_OPTIONS];
-const CATEGORY_FILTER_OPTIONS = [ALL_CATEGORIES, ...(PRODUCT_CATEGORIES ?? [])];
-const STATUS_FILTER_OPTIONS = [ALL_STATUS, "active", "inactive"];
-
 const PAGE_LIMIT = 10;
 
+const STATUS_FILTER_OPTIONS = [ALL_STATUS, "active", "inactive"];
+
 const INITIAL_FORM = {
-  brand: "",
-  product_name: "",
-  model: "",
-  product_type: "",
-  product_category: "",
-  product_price: "",
-  product_cost: "",
-  unpackedStock: 0,
-  packedStock: 0,
-  unpackedNotes: "",
-  packedNotes: "",
+  brand: "", product_name: "", model: "",
+  product_type: "", product_category: "",
+  product_price: "", product_cost: "",
+  unpackedStock: 0, packedStock: 0,
+  unpackedNotes: "", packedNotes: "",
 };
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -84,6 +59,13 @@ const isBlank = (v) => v === undefined || v === null || String(v).trim() === "";
 const toFloat = (v) => parseFloat(String(v).trim());
 const isValidPositiveNum = (v) => { const n = toFloat(v); return !isNaN(n) && n >= 0; };
 const fmtINR = (n) => n != null ? `₹\u202F${Number(n).toLocaleString("en-IN")}` : "—";
+
+/** Builds query string: spaces → %20, empty values omitted */
+const buildQueryString = (params) =>
+  Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== "")
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join("&");
 
 // ─── Status Config ────────────────────────────────────────────────────────────
 
@@ -105,9 +87,7 @@ const STATUS_CONFIG = {
 const StatusBadge = memo(({ status }) => {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.inactive;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 pl-2 pr-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wide ${cfg.badge}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 pl-2 pr-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wide ${cfg.badge}`}>
       <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
         {cfg.pulse && (
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
@@ -118,8 +98,9 @@ const StatusBadge = memo(({ status }) => {
     </span>
   );
 });
+StatusBadge.displayName = "StatusBadge";
 
-// ─── Stock Level Config ───────────────────────────────────────────────────────
+// ─── Stock Level ──────────────────────────────────────────────────────────────
 
 const stockLevelStyle = (qty) => {
   if (qty === 0) return "bg-rose-50 text-rose-600 border-rose-200 ring-1 ring-rose-100";
@@ -147,6 +128,7 @@ const Field = memo(({ label, required, hint, children, id }) => (
     )}
   </div>
 ));
+Field.displayName = "Field";
 
 const FormInput = React.forwardRef(({ prefix, className = "", ...props }, ref) => (
   <div className="relative">
@@ -187,6 +169,7 @@ const SectionHeading = memo(({ icon: Icon, children }) => (
     <div className="flex-1 h-px bg-gradient-to-r from-slate-200 to-transparent" />
   </div>
 ));
+SectionHeading.displayName = "SectionHeading";
 
 const Alert = memo(({ variant = "error", icon: Icon = FiAlertCircle, children, onDismiss }) => {
   const styles = {
@@ -196,10 +179,7 @@ const Alert = memo(({ variant = "error", icon: Icon = FiAlertCircle, children, o
   }[variant] ?? "bg-slate-50 border-slate-200 text-slate-700";
 
   return (
-    <div
-      role="alert"
-      className={`flex items-center gap-2.5 px-4 py-3 border rounded-xl text-sm font-semibold ${styles}`}
-    >
+    <div role="alert" className={`flex items-center gap-2.5 px-4 py-3 border rounded-xl text-sm font-semibold ${styles}`}>
       <Icon size={14} className="flex-shrink-0" aria-hidden />
       <span className="flex-1">{children}</span>
       {onDismiss && (
@@ -214,6 +194,7 @@ const Alert = memo(({ variant = "error", icon: Icon = FiAlertCircle, children, o
     </div>
   );
 });
+Alert.displayName = "Alert";
 
 const Spinner = memo(({ size = 14, className = "" }) => (
   <div
@@ -222,6 +203,7 @@ const Spinner = memo(({ size = 14, className = "" }) => (
     className={`border-2 border-current border-t-transparent rounded-full animate-spin opacity-60 ${className}`}
   />
 ));
+Spinner.displayName = "Spinner";
 
 // ─── Stock Row ────────────────────────────────────────────────────────────────
 
@@ -251,8 +233,9 @@ const StockRow = memo(({ type, qty, notes, onQtyChange, onNotesChange, qtyName, 
     )}
   </>
 ));
+StockRow.displayName = "StockRow";
 
-// ─── Create Product — validation & payload ────────────────────────────────────
+// ─── Validation & Payload ─────────────────────────────────────────────────────
 
 const REQUIRED_FIELDS = ["brand", "product_name", "model", "product_price", "product_cost"];
 
@@ -266,22 +249,16 @@ const validateCreateForm = (form) => {
 
 const buildCreatePayload = (form) => {
   const stocks = [];
-  if (Number(form.unpackedStock) > 0) {
+  if (Number(form.unpackedStock) > 0)
     stocks.push({
-      stock: parseInt(form.unpackedStock, 10),
-      stock_type: "UNPACKED",
-      type: "ADD",
+      stock: parseInt(form.unpackedStock, 10), stock_type: "UNPACKED", type: "ADD",
       stock_notes: form.unpackedNotes || `added stock ${form.unpackedStock} - unpacked`,
     });
-  }
-  if (Number(form.packedStock) > 0) {
+  if (Number(form.packedStock) > 0)
     stocks.push({
-      stock: parseInt(form.packedStock, 10),
-      stock_type: "PACKED",
-      type: "ADD",
+      stock: parseInt(form.packedStock, 10), stock_type: "PACKED", type: "ADD",
       stock_notes: form.packedNotes || `added stock ${form.packedStock} - packed`,
     });
-  }
   return {
     brand: form.brand,
     product_name: form.product_name.trim(),
@@ -296,7 +273,13 @@ const buildCreatePayload = (form) => {
 
 // ─── Create Product Modal ─────────────────────────────────────────────────────
 
-const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
+const CreateProductModal = ({
+  isOpen,
+  onClose,
+  onProductCreated,
+  productTypes = [],
+  productCategories = [],
+}) => {
   const [form, setForm] = useState(INITIAL_FORM);
   const [brands, setBrands] = useState([]);
   const [availableModels, setAvailableModels] = useState([]);
@@ -335,23 +318,26 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
     [],
   );
 
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    if (name === "brand") {
-      const match = brands.find((b) => b.brand_name === value);
-      setAvailableModels(match?.brand_models ?? []);
-      setForm((prev) => ({ ...prev, brand: value, model: "" }));
-      return;
-    }
-    setField(name, value);
-  }, [brands, setField]);
+  const handleChange = useCallback(
+    (e) => {
+      const { name, value } = e.target;
+      if (name === "brand") {
+        const match = brands.find((b) => b.brand_name === value);
+        setAvailableModels(match?.brand_models ?? []);
+        setForm((prev) => ({ ...prev, brand: value, model: "" }));
+        return;
+      }
+      setField(name, value);
+    },
+    [brands, setField],
+  );
 
   const handleTypeBlur = useCallback(() => {
     const v = form.product_type?.trim();
-    if (v && !PRODUCT_TYPE_OPTIONS.includes(v)) {
-      setCustomTypes((prev) => prev.includes(v) ? prev : [...prev, v]);
+    if (v && !productTypes.includes(v)) {
+      setCustomTypes((prev) => (prev.includes(v) ? prev : [...prev, v]));
     }
-  }, [form.product_type]);
+  }, [form.product_type, productTypes]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -365,7 +351,11 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
         onClose();
         onProductCreated?.();
         setTimeout(() =>
-          Swal.fire({ icon: "success", title: "Product Created", text: res.message || "Product created successfully" }),
+          Swal.fire({
+            icon: "success",
+            title: "Product Created",
+            text: res.message || "Product created successfully",
+          }),
           100,
         );
       } else {
@@ -382,27 +372,31 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
 
   const typeDatalistId = "create-product-type-opts";
   const modelDisabled = !form.brand || availableModels.length === 0;
+  const allTypeOptions = [...productTypes, ...customTypes];
 
   return (
     <>
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-40 transition-opacity"
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-40"
         onClick={onClose}
         aria-hidden
       />
+      {/* Centering wrapper — uses the viewport, not the page content */}
       <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-product-title"
-        className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6"
       >
+        {/* Panel */}
         <div
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200/80 flex flex-col"
-          style={{ maxHeight: "90dvh" }}
+          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200/80 flex flex-col overflow-hidden"
+          style={{ maxHeight: "min(90dvh, 90vh)" }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <header className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0 rounded-t-2xl bg-gradient-to-br from-slate-50 to-white">
+          <header className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0 bg-gradient-to-br from-slate-50 to-white">
             <div className="flex items-center gap-3.5">
               <div className="p-2.5 rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-200">
                 <FiBox size={14} aria-hidden />
@@ -425,7 +419,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
             </button>
           </header>
 
-          {/* Body */}
+          {/* Scrollable body */}
           <form
             id="create-product-form"
             onSubmit={handleSubmit}
@@ -437,7 +431,6 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
             <section className="space-y-4">
               <SectionHeading icon={FiBox}>Product Information</SectionHeading>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
                 <Field label="Brand" required id="cp-brand">
                   <CustomSelect
                     name="brand"
@@ -465,7 +458,11 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
                   label="Model"
                   required
                   id="cp-model"
-                  hint={form.brand && availableModels.length === 0 ? "No models available for this brand." : undefined}
+                  hint={
+                    form.brand && availableModels.length === 0
+                      ? "No models available for this brand."
+                      : undefined
+                  }
                 >
                   <CustomSelect
                     name="model"
@@ -489,9 +486,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
                     autoComplete="off"
                   />
                   <datalist id={typeDatalistId}>
-                    {[...PRODUCT_TYPE_OPTIONS, ...customTypes].map((t) => (
-                      <option key={t} value={t} />
-                    ))}
+                    {allTypeOptions.map((t) => <option key={t} value={t} />)}
                   </datalist>
                 </Field>
 
@@ -501,7 +496,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
                     value={form.product_category}
                     onChange={(e) => setField("product_category", e.target.value)}
                     placeholder="Select category"
-                    options={["", ...(PRODUCT_CATEGORIES ?? [])]}
+                    options={["", ...productCategories]}
                   />
                 </Field>
 
@@ -563,7 +558,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
           </form>
 
           {/* Footer */}
-          <footer className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0 rounded-b-2xl">
+          <footer className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -592,31 +587,28 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated }) => {
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
 const STAT_COLOR_MAP = {
-  indigo: { wrap: "bg-indigo-600", text: "text-white", ring: "" },
-  emerald: { wrap: "bg-emerald-500", text: "text-white", ring: "" },
-  rose: { wrap: "bg-rose-500", text: "text-white", ring: "" },
-  amber: { wrap: "bg-amber-400", text: "text-amber-900", ring: "" },
+  indigo: { wrap: "bg-indigo-600", text: "text-white" },
+  emerald: { wrap: "bg-emerald-500", text: "text-white" },
+  rose: { wrap: "bg-rose-500", text: "text-white" },
+  amber: { wrap: "bg-amber-400", text: "text-amber-900" },
 };
 
-const StatCard = memo(({ label, value, icon, color, trend }) => {
+const StatCard = memo(({ label, value, icon, color }) => {
   const cfg = STAT_COLOR_MAP[color] ?? STAT_COLOR_MAP.indigo;
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow duration-200 group">
-      <div className={`p-3 rounded-xl flex-shrink-0 ${cfg.wrap}`} aria-hidden>
-        {React.cloneElement(icon, { size: 15, className: cfg.text })}
+    /* min-w-0 prevents the card from ever making its parent overflow */
+    <div className="bg-white rounded-2xl border border-slate-200 px-4 py-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow duration-200 min-w-0">
+      <div className={`p-2.5 rounded-xl flex-shrink-0 ${cfg.wrap}`} aria-hidden>
+        {React.cloneElement(icon, { size: 14, className: cfg.text })}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 truncate">{label}</p>
-        <p className="text-2xl font-black tabular-nums text-slate-900 leading-tight mt-0.5">{value ?? "—"}</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 truncate">{label}</p>
+        <p className="text-xl font-black tabular-nums text-slate-900 leading-tight mt-0.5">{value ?? "—"}</p>
       </div>
-      {trend !== undefined && (
-        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full flex-shrink-0">
-          {trend}
-        </span>
-      )}
     </div>
   );
 });
+StatCard.displayName = "StatCard";
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
 
@@ -634,6 +626,7 @@ const PaginationBtn = memo(({ children, active, ...props }) => (
     {children}
   </button>
 ));
+PaginationBtn.displayName = "PaginationBtn";
 
 const Pagination = memo(({ page, totalPages, total, limit, onPageChange }) => {
   if (totalPages <= 1) return null;
@@ -645,21 +638,14 @@ const Pagination = memo(({ page, totalPages, total, limit, onPageChange }) => {
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-between px-5 py-4 border-t border-slate-100 bg-white rounded-b-2xl"
+      className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-slate-100 bg-white rounded-b-2xl"
     >
-      <p className="text-xs text-slate-400 font-medium hidden sm:block">
-        Showing{" "}
-        <span className="font-bold text-slate-600">{from}–{to}</span>{" "}
-        of{" "}
-        <span className="font-bold text-slate-600">{total}</span>{" "}
-        products
+      <p className="text-xs text-slate-400 font-medium">
+        Showing <span className="font-bold text-slate-600">{from}–{to}</span>{" "}
+        of <span className="font-bold text-slate-600">{total}</span> products
       </p>
-      <div className="flex items-center gap-1.5 ml-auto">
-        <PaginationBtn
-          onClick={() => onPageChange(page - 1)}
-          disabled={page === 1}
-          aria-label="Previous page"
-        >
+      <div className="flex items-center gap-1.5">
+        <PaginationBtn onClick={() => onPageChange(page - 1)} disabled={page === 1} aria-label="Previous page">
           <FiChevronLeft size={13} />
         </PaginationBtn>
         {visible.map((p, i) => (
@@ -677,17 +663,14 @@ const Pagination = memo(({ page, totalPages, total, limit, onPageChange }) => {
             </PaginationBtn>
           </React.Fragment>
         ))}
-        <PaginationBtn
-          onClick={() => onPageChange(page + 1)}
-          disabled={page === totalPages}
-          aria-label="Next page"
-        >
+        <PaginationBtn onClick={() => onPageChange(page + 1)} disabled={page === totalPages} aria-label="Next page">
           <FiChevronRight size={13} />
         </PaginationBtn>
       </div>
     </nav>
   );
 });
+Pagination.displayName = "Pagination";
 
 // ─── Stock Badge ──────────────────────────────────────────────────────────────
 
@@ -705,8 +688,7 @@ const StockBadge = memo(({ color, label, value }) => {
     </span>
   );
 });
-
-// ─── Action Button ────────────────────────────────────────────────────────────
+StockBadge.displayName = "StockBadge";
 
 const ActionBtn = memo(({ children, label, colorClass, onClick }) => (
   <button
@@ -718,14 +700,14 @@ const ActionBtn = memo(({ children, label, colorClass, onClick }) => (
     {children}
   </button>
 ));
-
-// ─── Type / Category Pill ─────────────────────────────────────────────────────
+ActionBtn.displayName = "ActionBtn";
 
 const Pill = memo(({ children }) => (
   <span className="inline-flex px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-[10px] font-semibold uppercase tracking-wide">
     {children || "—"}
   </span>
 ));
+Pill.displayName = "Pill";
 
 // ─── Product Row ──────────────────────────────────────────────────────────────
 
@@ -739,41 +721,30 @@ const ProductRow = memo(({
   onStock,
 }) => {
   const {
-    product_id,
-    product_name,
-    brand,
-    model,
-    product_type,
-    product_category,
-    price,
-    available_stock,
-    status,
-    stocks = [],
+    product_id, product_name, brand, model,
+    product_type, product_category, price,
+    available_stock, status, stocks = [],
   } = product;
 
   const unpackedStock =
     stocks.find((s) => s.stock_type === "UNPACKED")?.stock ??
-    stocks[0]?.unpacked_stock ??
-    0;
+    stocks[0]?.unpacked_stock ?? 0;
   const packedStock =
     stocks.find((s) => s.stock_type === "PACKED")?.stock ??
-    stocks[0]?.packed_stock ??
-    0;
-
+    stocks[0]?.packed_stock ?? 0;
   const qty = available_stock ?? 0;
   const stockStyle = stockLevelStyle(qty);
 
   return (
     <tr className="group border-b border-slate-100 hover:bg-indigo-50/20 transition-colors duration-100">
-
       {/* Product */}
-      <td className="px-5 py-3.5">
+      <td className="px-4 py-3.5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-50 to-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:border-indigo-200 transition-colors">
-            <FiBox size={13} className="text-indigo-400 group-hover:text-indigo-500 transition-colors" />
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-50 to-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:border-indigo-200 transition-colors">
+            <FiBox size={12} className="text-indigo-400 group-hover:text-indigo-500 transition-colors" />
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-slate-800 truncate max-w-[180px] xl:max-w-[220px] text-sm">
+            <p className="font-semibold text-slate-800 truncate max-w-[140px] xl:max-w-[180px] text-sm">
               {product_name}
             </p>
             <span className="inline-flex mt-0.5 px-1.5 py-0.5 text-[9px] font-mono rounded bg-slate-100 text-slate-400 border border-slate-200">
@@ -782,81 +753,39 @@ const ProductRow = memo(({
           </div>
         </div>
       </td>
-
-      {/* Brand */}
-      <td className="px-5 py-3.5 whitespace-nowrap text-sm font-semibold text-slate-700">
-        {brand}
-      </td>
-
-      {/* Model */}
-      <td className="px-5 py-3.5 whitespace-nowrap text-sm text-slate-500">
-        {model}
-      </td>
-
-      {/* Type */}
-      <td className="px-5 py-3.5">
-        <Pill>{product_type}</Pill>
-      </td>
-
-      {/* Category */}
-      <td className="px-5 py-3.5">
-        <Pill>{product_category}</Pill>
-      </td>
-
-      {/* Price */}
+      <td className="px-4 py-3.5 whitespace-nowrap text-sm font-semibold text-slate-700">{brand}</td>
+      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-slate-500">{model}</td>
+      <td className="px-4 py-3.5"><Pill>{product_type}</Pill></td>
+      <td className="px-4 py-3.5"><Pill>{product_category}</Pill></td>
       {userCanViewPrice && (
-        <td className="px-5 py-3.5 whitespace-nowrap text-sm font-bold text-slate-900 tabular-nums">
+        <td className="px-4 py-3.5 whitespace-nowrap text-sm font-bold text-slate-900 tabular-nums">
           {fmtINR(price)}
         </td>
       )}
-
-      {/* Available Stock */}
-      <td className="px-5 py-3.5">
+      <td className="px-4 py-3.5">
         <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px] font-black tabular-nums ${stockStyle}`}>
           {qty}
         </span>
       </td>
-
-      {/* Split Stock */}
-      <td className="px-5 py-3.5">
+      <td className="px-4 py-3.5">
         <div className="flex gap-1.5">
           <StockBadge color="blue" label="U" value={unpackedStock} />
           <StockBadge color="violet" label="P" value={packedStock} />
         </div>
       </td>
-
-      {/* Status */}
-      <td className="px-5 py-3.5">
-        <StatusBadge status={status} />
-      </td>
-
-      {/* Actions */}
-      <td className="px-5 py-3.5">
-        <div className="flex items-center justify-end gap-0.5 opacity-70 group-hover:opacity-100 transition-opacity">
-          <ActionBtn
-            onClick={onView}
-            label="View product"
-            colorClass="hover:text-indigo-600 hover:bg-indigo-50"
-          >
+      <td className="px-4 py-3.5"><StatusBadge status={status} /></td>
+      <td className="px-4 py-3.5">
+        <div className="flex items-center justify-end gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+          <ActionBtn onClick={onView} label="View product" colorClass="hover:text-indigo-600 hover:bg-indigo-50">
             <FiEye size={14} />
           </ActionBtn>
-
           {userCanEdit && (
-            <ActionBtn
-              onClick={onEdit}
-              label="Edit product"
-              colorClass="hover:text-sky-600 hover:bg-sky-50"
-            >
+            <ActionBtn onClick={onEdit} label="Edit product" colorClass="hover:text-sky-600 hover:bg-sky-50">
               <FiEdit3 size={14} />
             </ActionBtn>
           )}
-
           {userCanUpdateStock && status === "active" && (
-            <ActionBtn
-              onClick={onStock}
-              label="Update stock"
-              colorClass="hover:text-emerald-600 hover:bg-emerald-50"
-            >
+            <ActionBtn onClick={onStock} label="Update stock" colorClass="hover:text-emerald-600 hover:bg-emerald-50">
               <FiPackage size={14} />
             </ActionBtn>
           )}
@@ -865,109 +794,212 @@ const ProductRow = memo(({
     </tr>
   );
 });
+ProductRow.displayName = "ProductRow";
 
 // ─── Filter Bar ───────────────────────────────────────────────────────────────
+//
+// KEY FIX: Two-row layout.
+//   Row 1 → search input + "Filters" label + Clear button
+//   Row 2 → all dropdowns with flex-wrap so they break to new lines instead
+//            of pushing the page width beyond the viewport.
 
 const FilterBar = memo(({
-  searchInput, onSearchInput,
-  onSearchClear,
-  filterBrands, filterModels,
-  selectedBrand, selectedModel,
-  selectedType, selectedCategory, selectedStatus,
-  onBrandChange, onModelChange,
-  onTypeChange, onCategoryChange, onStatusChange,
+  searchInput, onSearchInput, onSearchClear,
+  filterBrands, filterModels, productTypes, productCategories,
+  selectedBrand, selectedModel, selectedType, selectedCategory, selectedStatus,
+  onBrandChange, onModelChange, onTypeChange, onCategoryChange, onStatusChange,
   hasActiveFilters, onClearFilters,
-}) => (
-  <div className="px-5 py-3.5 bg-white border-b border-slate-100">
-    <div className="flex flex-wrap items-center gap-3">
+  loadingMeta,
+}) => {
+  const typeOptions = [ALL_TYPES, ...productTypes];
+  const categoryOptions = [ALL_CATEGORIES, ...productCategories];
 
-      {/* Search */}
-      <div className="relative flex-1 min-w-[180px] sm:max-w-xs">
-        <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+  return (
+    <div className="
+      flex items-center gap-0 h-12
+      bg-white border border-slate-100 rounded-xl
+      overflow-x-auto scrollbar-none px-1
+    ">
+
+      {/* ── Search ── */}
+      <div className="relative flex-shrink-0 w-[294px] px-1.5">
+        <FiSearch
+          size={12}
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+        />
         <input
           type="search"
           placeholder="Search products…"
           value={searchInput}
           onChange={(e) => onSearchInput(e.target.value)}
-          className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
           aria-label="Search products"
+          className="
+            w-full h-8 pl-7 pr-6
+            text-[12.5px] text-slate-800 placeholder-slate-300
+            bg-slate-50 border border-slate-200 rounded-lg
+            focus:outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100
+            transition-all duration-150
+          "
         />
         {searchInput && (
           <button
             onClick={onSearchClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
             aria-label="Clear search"
-          >
-            <FiX size={13} />
-          </button>
+            className="
+              absolute right-3.5 top-1/2 -translate-y-1/2
+              flex items-center justify-center w-[15px] h-[15px]
+              rounded text-slate-400 hover:text-slate-600 hover:bg-slate-200
+              transition-all duration-100
+            "
+          />
         )}
       </div>
 
-      {/* Divider */}
-      <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-400 whitespace-nowrap">
-        <FiSliders size={12} />
-        Filters
+      {/* ── Spacer ── */}
+      <div className="w-8 flex-shrink-0" />
+
+      {/* ── Label ── */}
+      <div className="flex items-center gap-1.5 px-2.5 flex-shrink-0">
+        <FiSliders size={11} className="text-slate-400" />
+        <span className="text-[10px] font-semibold tracking-[.1em] uppercase text-slate-400 whitespace-nowrap">
+          FILTER
+        </span>
+        {loadingMeta && <Spinner size={10} className="text-indigo-400 ml-0.5" />}
       </div>
 
-      {[
-        {
-          key: "brand",
-          value: selectedBrand || ALL_BRANDS,
-          options: [ALL_BRANDS, ...filterBrands.map((b) => b.brand_name)],
-          onChange: (e) => onBrandChange(e.target.value),
-        },
-        {
-          key: "model",
-          value: selectedModel || ALL_MODELS,
-          options: [ALL_MODELS, ...filterModels],
-          onChange: (e) => onModelChange(e.target.value),
-          disabled: !selectedBrand || filterModels.length === 0,
-        },
-        {
-          key: "type",
-          value: selectedType || ALL_TYPES,
-          options: TYPE_FILTER_OPTIONS,
-          onChange: (e) => onTypeChange(e.target.value),
-        },
-        {
-          key: "category",
-          value: selectedCategory || ALL_CATEGORIES,
-          options: CATEGORY_FILTER_OPTIONS,
-          onChange: (e) => onCategoryChange(e.target.value),
-        },
-        {
-          key: "status",
-          value: selectedStatus || ALL_STATUS,
-          options: STATUS_FILTER_OPTIONS,
-          onChange: (e) => onStatusChange(e.target.value),
-        },
-      ].map((filter) => (
-        <div key={filter.key} className="w-36 flex-shrink-0">
-          <CustomSelect
-            name={filter.key}
-            value={filter.value}
-            options={filter.options}
-            onChange={filter.onChange}
-            disabled={filter.disabled}
-            className="text-sm rounded-xl border-slate-200 bg-slate-50"
-          />
-        </div>
-      ))}
+      {/* ── Divider ── */}
+      <div className="w-px h-5 bg-slate-200 flex-shrink-0 mx-0.5" />
 
+      {/* ── Select: Brand ── */}
+      <div className="relative flex-shrink-0 w-[116px] px-0.5">
+        <select
+          value={selectedBrand || ALL_BRANDS}
+          onChange={(e) => onBrandChange(e.target.value)}
+          className="
+            w-full h-8 appearance-none pl-2.5 pr-5
+            text-[12px] font-medium text-slate-600
+            bg-transparent border-none rounded-lg outline-none cursor-pointer
+            hover:bg-slate-50 focus:bg-slate-50 focus:ring-2 focus:ring-indigo-100
+            transition-all duration-150
+          "
+        >
+          {[ALL_BRANDS, ...filterBrands.map((b) => b.brand_name)].map((o) => (
+            <option key={o}>{o}</option>
+          ))}
+        </select>
+        <FiChevronDown size={9} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      </div>
+
+      {/* ── Select: Model ── */}
+      <div className="relative flex-shrink-0 w-[108px] px-0.5">
+        <select
+          value={selectedModel || ALL_MODELS}
+          onChange={(e) => onModelChange(e.target.value)}
+          disabled={!selectedBrand || filterModels.length === 0}
+          className="
+            w-full h-8 appearance-none pl-2.5 pr-5
+            text-[12px] font-medium text-slate-600
+            bg-transparent border-none rounded-lg outline-none cursor-pointer
+            hover:bg-slate-50 focus:bg-slate-50 focus:ring-2 focus:ring-indigo-100
+            disabled:opacity-35 disabled:cursor-not-allowed
+            transition-all duration-150
+          "
+        >
+          {[ALL_MODELS, ...filterModels].map((o) => (
+            <option key={o}>{o}</option>
+          ))}
+        </select>
+        <FiChevronDown size={9} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      </div>
+
+      {/* ── Select: Type ── */}
+      <div className="relative flex-shrink-0 w-[108px] px-0.5">
+        <select
+          value={selectedType || ALL_TYPES}
+          onChange={(e) => onTypeChange(e.target.value)}
+          disabled={loadingMeta}
+          className="
+            w-full h-8 appearance-none pl-2.5 pr-5
+            text-[12px] font-medium text-slate-600
+            bg-transparent border-none rounded-lg outline-none cursor-pointer
+            hover:bg-slate-50 focus:bg-slate-50 focus:ring-2 focus:ring-indigo-100
+            disabled:opacity-35 disabled:cursor-not-allowed
+            transition-all duration-150
+          "
+        >
+          {typeOptions.map((o) => (
+            <option key={o}>{o}</option>
+          ))}
+        </select>
+        <FiChevronDown size={9} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      </div>
+
+      {/* ── Select: Category ── */}
+      <div className="relative flex-shrink-0 w-[122px] px-0.5">
+        <select
+          value={selectedCategory || ALL_CATEGORIES}
+          onChange={(e) => onCategoryChange(e.target.value)}
+          disabled={loadingMeta}
+          className="
+            w-full h-8 appearance-none pl-2.5 pr-5
+            text-[12px] font-medium text-slate-600
+            bg-transparent border-none rounded-lg outline-none cursor-pointer
+            hover:bg-slate-50 focus:bg-slate-50 focus:ring-2 focus:ring-indigo-100
+            disabled:opacity-35 disabled:cursor-not-allowed
+            transition-all duration-150
+          "
+        >
+          {categoryOptions.map((o) => (
+            <option key={o}>{o}</option>
+          ))}
+        </select>
+        <FiChevronDown size={9} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      </div>
+
+      {/* ── Select: Status ── */}
+      <div className="relative flex-shrink-0 w-[100px] px-0.5">
+        <select
+          value={selectedStatus || ALL_STATUS}
+          onChange={(e) => onStatusChange(e.target.value)}
+          className="
+            w-full h-8 appearance-none pl-2.5 pr-5
+            text-[12px] font-medium text-slate-600
+            bg-transparent border-none rounded-lg outline-none cursor-pointer
+            hover:bg-slate-50 focus:bg-slate-50 focus:ring-2 focus:ring-indigo-100
+            transition-all duration-150
+          "
+        >
+          {STATUS_FILTER_OPTIONS.map((o) => (
+            <option key={o}>{o}</option>
+          ))}
+        </select>
+        <FiChevronDown size={9} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      </div>
+
+      {/* ── Clear all ── */}
       {hasActiveFilters && (
         <button
           onClick={onClearFilters}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold border border-rose-100 transition-all"
-          title="Clear all filters"
           aria-label="Clear all filters"
+          title="Clear all filters"
+          className="
+            ml-auto mr-1 flex-shrink-0
+            inline-flex items-center gap-1
+            h-7 px-2.5 rounded-lg
+            text-[11px] font-medium text-rose-500
+            bg-rose-50 hover:bg-rose-100
+            border border-rose-100 hover:border-rose-200
+            transition-all duration-150 whitespace-nowrap
+          "
         >
-          <FiX size={12} />
+          <FiX size={9} />
           Clear
         </button>
       )}
     </div>
-  </div>
-));
+  );
+});
+FilterBar.displayName = "FilterBar";
 
 // ─── Table Header ─────────────────────────────────────────────────────────────
 
@@ -977,7 +1009,7 @@ const TableHeader = memo(({ headers }) => (
       {headers.map((h, i) => (
         <th
           key={i}
-          className={`px-5 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 ${!h ? "text-right" : "text-left"}`}
+          className={`px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap ${!h ? "text-right" : "text-left"}`}
         >
           {h}
         </th>
@@ -985,17 +1017,16 @@ const TableHeader = memo(({ headers }) => (
     </tr>
   </thead>
 ));
+TableHeader.displayName = "TableHeader";
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
+// ─── Empty / Loading / Error States ──────────────────────────────────────────
 
 const EmptyState = memo(({ colSpan }) => (
   <tr>
     <td colSpan={colSpan} className="py-24 text-center">
       <div className="flex flex-col items-center gap-4">
-        <div className="relative">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-            <FiBox size={24} className="text-slate-400" />
-          </div>
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+          <FiBox size={24} className="text-slate-400" />
         </div>
         <div className="space-y-1">
           <p className="text-sm font-bold text-slate-600">No products found</p>
@@ -1005,8 +1036,7 @@ const EmptyState = memo(({ colSpan }) => (
     </td>
   </tr>
 ));
-
-// ─── Loading State ────────────────────────────────────────────────────────────
+EmptyState.displayName = "EmptyState";
 
 const LoadingState = memo(() => (
   <div className="flex flex-col items-center justify-center py-28 gap-5">
@@ -1017,8 +1047,7 @@ const LoadingState = memo(() => (
     <p className="text-sm text-slate-400 font-semibold tracking-wide">Loading products…</p>
   </div>
 ));
-
-// ─── Error State ──────────────────────────────────────────────────────────────
+LoadingState.displayName = "LoadingState";
 
 const ErrorState = memo(({ message, onRetry }) => (
   <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -1038,20 +1067,7 @@ const ErrorState = memo(({ message, onRetry }) => (
     </button>
   </div>
 ));
-
-// ─── Build query string without URLSearchParams (avoids + encoding) ───────────
-
-/**
- * Builds a query string manually so that spaces are encoded as %20
- * (not as + which URLSearchParams produces). This ensures the API
- * receives "SOLAR 12V" rather than "SOLAR+12V".
- */
-const buildQueryString = (params) => {
-  return Object.entries(params)
-    .filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== "")
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-    .join("&");
-};
+ErrorState.displayName = "ErrorState";
 
 // ─── Products Page ────────────────────────────────────────────────────────────
 
@@ -1065,7 +1081,7 @@ const Products = () => {
   const userCanUpdateStock = canUpdateProductStock(role);
   const userCanViewPrice = canViewProductPrice(role);
 
-  // ── Modal state ────────────────────────────────────────────────────────────
+  // ── Modals ─────────────────────────────────────────────────────────────────
   const [modal, setModal] = useState({ create: false, edit: false, stock: false });
   const [selectedProduct, setSelectedProduct] = useState({ id: null, name: "" });
 
@@ -1094,17 +1110,31 @@ const Products = () => {
   const [selectedModel, setSelectedModel] = useState("");
   const [page, setPage] = useState(1);
 
-  // ── Brand / Model data for filter bar ─────────────────────────────────────
+  // ── Meta (brands / types / categories) ────────────────────────────────────
   const [filterBrands, setFilterBrands] = useState([]);
   const [filterModels, setFilterModels] = useState([]);
+  const [productTypes, setProductTypes] = useState([]);
+  const [productCategories, setProductCategories] = useState([]);
+  const [loadingMeta, setLoadingMeta] = useState(true);
 
   useEffect(() => {
-    getAllBrands("active")
-      .then((res) => { if (res?.success && res.data) setFilterBrands(res.data); })
-      .catch(console.error);
+    setLoadingMeta(true);
+    Promise.all([
+      getAllBrands("active").catch(() => null),
+      getProductTypes().catch(() => null),
+      getProductCategories().catch(() => null),
+    ]).then(([brandsRes, typesRes, categoriesRes]) => {
+      console.log(brandsRes);
+      console.log(typesRes);
+      console.log(categoriesRes);
+
+      if (brandsRes?.success && brandsRes.data) setFilterBrands(brandsRes.data);
+      if (typesRes?.success && typesRes.data) setProductTypes(typesRes.data);
+      if (categoriesRes?.success && categoriesRes.data) setProductCategories(categoriesRes.data);
+    }).finally(() => setLoadingMeta(false));
   }, []);
 
-  // ── Data state ─────────────────────────────────────────────────────────────
+  // ── Products data ──────────────────────────────────────────────────────────
   const [products, setProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [pagination, setPagination] = useState({ totalPages: 1, total: 0 });
@@ -1121,58 +1151,35 @@ const Products = () => {
   const loadProducts = useCallback(async () => {
     setLoading(true);
     setError("");
-
     try {
-      // ── Build query params object (raw values, no pre-encoding) ────────────
-      const rawParams = {
-        page,
-        limit: PAGE_LIMIT,
+      const params = {
+        page, limit: PAGE_LIMIT,
         search: searchQuery,
-        type: selectedType,       // e.g. "SOLAR 12V" — space kept as-is here
+        type: selectedType,
         category: selectedCategory,
         status: selectedStatus,
         brand: selectedBrand,
         model: selectedModel,
       };
+      const allParams = { page: 1, limit: 10000 };
 
-      // ── Build a clean query string where spaces → %20, not + ──────────────
-      const qs = buildQueryString(rawParams);
-      const fullQs = buildQueryString({ page: 1, limit: 10000 });
-
-      const [paginatedResponse, completeProductsResponse] = await Promise.all([
-        fetchProducts(rawParams, qs),
-        fetchProducts({ page: 1, limit: 10000 }, fullQs),
+      const [pagedRes, allRes] = await Promise.all([
+        fetchProducts(params, buildQueryString(params)),
+        fetchProducts(allParams, buildQueryString(allParams)),
       ]);
 
-      if (!paginatedResponse?.success) {
-        throw new Error(paginatedResponse?.message || "Failed to fetch products");
-      }
+      if (!pagedRes?.success) throw new Error(pagedRes?.message || "Failed to fetch products");
 
-      const paginatedData = paginatedResponse?.data ?? [];
-      const paginatedPagination = paginatedResponse?.pagination;
+      setProducts(pagedRes.data ?? []);
 
-      const fallbackData = completeProductsResponse?.data ?? [];
-      const fallbackPagination = completeProductsResponse?.pagination;
+      const pp = pagedRes.pagination;
+      const ap = allRes?.pagination;
+      setPagination({
+        totalPages: pp?.totalPages || ap?.totalPages || 1,
+        total: pp?.total || ap?.total || (allRes?.data?.length ?? 0),
+      });
 
-      setProducts(paginatedData);
-
-      const totalPages =
-        paginatedPagination?.totalPages > 0
-          ? paginatedPagination.totalPages
-          : fallbackPagination?.totalPages ?? 1;
-
-      const total =
-        paginatedPagination?.total > 0
-          ? paginatedPagination.total
-          : fallbackPagination?.total ??
-          fallbackData.length ??
-          0;
-
-      setPagination({ totalPages, total });
-
-      if (completeProductsResponse?.success) {
-        setAllProducts(completeProductsResponse.data ?? []);
-      }
+      if (allRes?.success) setAllProducts(allRes.data ?? []);
     } catch (err) {
       setError(err.message || "Failed to load products. Please try again.");
     } finally {
@@ -1201,8 +1208,7 @@ const Products = () => {
   const clearFilters = useCallback(() => {
     setSearchInput(""); setSearchQuery("");
     setSelectedType(""); setSelectedCategory(""); setSelectedStatus("");
-    setSelectedBrand(""); setSelectedModel("");
-    setFilterModels([]);
+    setSelectedBrand(""); setSelectedModel(""); setFilterModels([]);
     setPage(1);
   }, []);
 
@@ -1213,8 +1219,6 @@ const Products = () => {
       status: ALL_STATUS,
       model: ALL_MODELS,
     };
-    // Keep the raw string value (with spaces) — do NOT encode here.
-    // Encoding happens only when building the URL query string.
     const apiValue = displayValue === sentinels[field] ? "" : displayValue;
     const setters = {
       type: setSelectedType,
@@ -1247,9 +1251,19 @@ const Products = () => {
   ], [userCanViewPrice, userCanEdit, userCanUpdateStock]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  //
+  // LAYOUT FIXES applied here:
+  // 1. Root: `w-full overflow-x-hidden` — the page container never exceeds the
+  //    viewport width. overflow-x-hidden is the final safety net.
+  // 2. No `min-h-screen` — the parent layout already owns viewport height; adding
+  //    it here caused the content area to expand beyond the layout's scroll container
+  //    on md/lg breakpoints, making sm:/lg: classes misbehave.
+  // 3. Padding `p-4 sm:p-6` without `lg:p-8` keeps content from being pushed
+  //    right on large sidebars.
+
   return (
-    <div className="min-h-screen bg-slate-50/70 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-screen-2xl mx-auto w-full space-y-5">
+    <div className="w-full overflow-x-hidden p-4 sm:p-6">
+      <div className="max-w-screen-2xl mx-auto space-y-5">
 
         {/* Success banner */}
         {success && (
@@ -1258,11 +1272,15 @@ const Products = () => {
           </Alert>
         )}
 
-        {/* Page header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
+        {/* ── Page header ─────────────────────────────────────────────────── */}
+        {/*
+          FIX: `flex-wrap` so action buttons drop below the title on narrow
+          viewports instead of overflowing right.
+        */}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
             <div className="flex items-center gap-2.5 mb-1">
-              <div className="p-1.5 rounded-lg bg-indigo-600 text-white">
+              <div className="p-1.5 rounded-lg bg-indigo-600 text-white flex-shrink-0">
                 <FiBox size={13} />
               </div>
               <h1 className="text-xl font-black text-slate-900 tracking-tight">Products</h1>
@@ -1274,7 +1292,8 @@ const Products = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          {/* flex-shrink-0 + whitespace-nowrap keep the button intact */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={loadProducts}
               disabled={loading}
@@ -1291,7 +1310,7 @@ const Products = () => {
             {userCanCreate && (
               <button
                 onClick={() => openModal("create")}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 whitespace-nowrap"
               >
                 <FiPlus size={14} aria-hidden />
                 Create Product
@@ -1301,44 +1320,31 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard
-            label="Total Products"
-            value={pagination.total.toLocaleString()}
-            icon={<FiBox />}
-            color="indigo"
-          />
-          <StatCard
-            label="Active"
-            value={stats.active}
-            icon={<FiTrendingUp />}
-            color="emerald"
-          />
-          <StatCard
-            label="Zero Stock"
-            value={stats.zeroStock}
-            icon={<FiAlertCircle />}
-            color="rose"
-          />
-          <StatCard
-            label="Showing"
-            value={products.length}
-            icon={<FiLayers />}
-            color="amber"
-          />
+        {/* ── Stat cards ──────────────────────────────────────────────────── */}
+        {/*
+          FIX: `grid-cols-2 xl:grid-cols-4` — on standard laptop screens
+          (where the sidebar takes ~250 px) there isn't enough room for 4 cards
+          in one row with `lg:grid-cols-4`. Shifting the breakpoint to xl
+          prevents the 4th card from overflowing.
+        */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          <StatCard label="Total Products" value={pagination.total.toLocaleString()} icon={<FiBox />} color="indigo" />
+          <StatCard label="Active" value={stats.active} icon={<FiTrendingUp />} color="emerald" />
+          <StatCard label="Zero Stock" value={stats.zeroStock} icon={<FiAlertCircle />} color="rose" />
+          <StatCard label="Showing" value={products.length} icon={<FiLayers />} color="amber" />
         </div>
 
-        {/* Main panel */}
+        {/* ── Main panel ──────────────────────────────────────────────────── */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
 
-          {/* Filter bar */}
           <FilterBar
             searchInput={searchInput}
-            onSearchInput={(v) => setSearchInput(v)}
+            onSearchInput={setSearchInput}
             onSearchClear={() => { setSearchInput(""); setSearchQuery(""); setPage(1); }}
             filterBrands={filterBrands}
             filterModels={filterModels}
+            productTypes={productTypes}
+            productCategories={productCategories}
             selectedBrand={selectedBrand}
             selectedModel={selectedModel}
             selectedType={selectedType}
@@ -1351,18 +1357,20 @@ const Products = () => {
             onStatusChange={(v) => handleFilterChange("status", v)}
             hasActiveFilters={hasActiveFilters}
             onClearFilters={clearFilters}
+            loadingMeta={loadingMeta}
           />
 
-          {/* Content area */}
           {loading ? (
             <LoadingState />
           ) : error ? (
             <ErrorState message={error} onRetry={loadProducts} />
           ) : (
-            <div className="w-full overflow-x-auto">
+            // overflow-x-auto scoped ONLY to the table wrapper — the page itself
+            // does NOT scroll horizontally; only the table does when needed.
+            <div className="overflow-x-auto">
               <table
                 className="w-full text-sm"
-                style={{ minWidth: "1100px" }}
+                style={{ minWidth: "860px" }}
                 aria-label="Products table"
               >
                 <TableHeader headers={colHeaders} />
@@ -1400,12 +1408,14 @@ const Products = () => {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ────────────────────────────────────────────────────────── */}
       {userCanCreate && (
         <CreateProductModal
           isOpen={modal.create}
           onClose={() => closeModal("create")}
           onProductCreated={loadProducts}
+          productTypes={productTypes}
+          productCategories={productCategories}
         />
       )}
       {userCanEdit && (
