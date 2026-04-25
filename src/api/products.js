@@ -74,7 +74,6 @@ export const fetchProductsByBrands = async (brands = []) =>
     });
 
 // 🔹 LOW STOCK PRODUCTS
-
 export const fetchLowStockProducts = ({
     page = 1,
     limit = 10,
@@ -83,6 +82,20 @@ export const fetchLowStockProducts = ({
     const query = buildQuery({ page, limit, threshold });
 
     return apiRequest(`/product-details/low-stock?${query}`, {
+        method: "GET",
+    });
+};
+
+// 🔹 Get Product Types
+export const getProductTypes = async () => {
+    return apiRequest("/product-details/types", {
+        method: "GET",
+    });
+};
+
+// 🔹 Get Product Categories
+export const getProductCategories = async () => {
+    return apiRequest("/product-details/categories", {
         method: "GET",
     });
 };
