@@ -1139,12 +1139,6 @@ const Products = () => {
       const qs = buildQueryString(rawParams);
       const fullQs = buildQueryString({ page: 1, limit: 10000 });
 
-      // ── Pass the pre-built query string to fetchProducts ──────────────────
-      // fetchProducts should accept either an object OR a raw query string.
-      // If your fetchProducts only accepts an object and uses URLSearchParams
-      // internally (which encodes spaces as +), pass the qs directly via a
-      // custom fetch call here instead, or patch fetchProducts to use the
-      // manual encoder shown above.
       const [paginatedResponse, completeProductsResponse] = await Promise.all([
         fetchProducts(rawParams, qs),
         fetchProducts({ page: 1, limit: 10000 }, fullQs),
