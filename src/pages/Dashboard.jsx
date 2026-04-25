@@ -1,9 +1,9 @@
-// dashboard.jsx — Role-aware version with dashboardPermissions
+// Dashboard.jsx — Role-aware version with dashboardPermissions + Completed Orders metrics
 import React, { useEffect, useState } from "react";
 import {
   FiUsers, FiShoppingBag, FiTruck, FiTrendingUp,
   FiAlertCircle, FiClock, FiArrowRight, FiPackage,
-  FiChevronRight, FiBox,
+  FiChevronRight, FiBox, FiCheckCircle,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { fetchUsers } from "../api/user";
@@ -18,7 +18,8 @@ import {
   DASHBOARD_SECTIONS,
 } from "../utils/dashboardPermissions";
 
-// STAT CARD
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
 const StatCard = ({ icon, title, value, color, loading, onClick }) => {
   const c = {
     indigo: { bg: "bg-indigo-50", border: "border-indigo-100", icon: "text-indigo-600", val: "text-indigo-700", ring: "hover:ring-indigo-200" },
@@ -52,13 +53,15 @@ const StatCard = ({ icon, title, value, color, loading, onClick }) => {
   );
 };
 
-//  METRIC CARD
+// ─── Metric Card ──────────────────────────────────────────────────────────────
+
 const MetricCard = ({ title, value, subValue, icon, color, loading, onClick }) => {
   const c = {
     emerald: { bg: "bg-emerald-50", border: "border-emerald-100", icon: "text-emerald-600", val: "text-emerald-700", ring: "hover:ring-emerald-200" },
     blue: { bg: "bg-blue-50", border: "border-blue-100", icon: "text-blue-600", val: "text-blue-700", ring: "hover:ring-blue-200" },
     amber: { bg: "bg-amber-50", border: "border-amber-100", icon: "text-amber-600", val: "text-amber-700", ring: "hover:ring-amber-200" },
     rose: { bg: "bg-rose-50", border: "border-rose-100", icon: "text-rose-600", val: "text-rose-700", ring: "hover:ring-rose-200" },
+    violet: { bg: "bg-violet-50", border: "border-violet-100", icon: "text-violet-600", val: "text-violet-700", ring: "hover:ring-violet-200" },
   }[color] || { bg: "bg-slate-50", border: "border-slate-200", icon: "text-slate-600", val: "text-slate-700", ring: "" };
 
   return (
@@ -85,26 +88,26 @@ const MetricCard = ({ title, value, subValue, icon, color, loading, onClick }) =
   );
 };
 
-// ORDER ROW — conditionally clickable based on role
+// ─── Order Row ────────────────────────────────────────────────────────────────
+
 const OrderRow = ({ order, canNavigate, onClick }) => {
   const priorityStyle = {
-    HIGH: "bg-rose-50 text-rose-700 border-rose-200",
-    MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
+    HIGH: "bg-rose-50    text-rose-700    border-rose-200",
+    MEDIUM: "bg-amber-50   text-amber-700   border-amber-200",
     LOW: "bg-emerald-50 text-emerald-700 border-emerald-200",
   }[order?.priority?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
 
   const statusStyle = {
-    PENDING: "bg-amber-50 text-amber-700 border-amber-200",
-    CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
-    PRODUCTION: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    PACKED: "bg-violet-50 text-violet-700 border-violet-200",
+    PENDING: "bg-amber-50   text-amber-700   border-amber-200",
+    CONFIRMED: "bg-blue-50    text-blue-700    border-blue-200",
+    PRODUCTION: "bg-indigo-50  text-indigo-700  border-indigo-200",
+    PACKED: "bg-violet-50  text-violet-700  border-violet-200",
     DELIVERED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
+    SHIPPED: "bg-orange-50  text-orange-700  border-orange-200",
     COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
+    CANCELLED: "bg-rose-50    text-rose-700    border-rose-200",
   }[order?.status?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
 
-  // Render as a plain div when the role cannot navigate to order details
   const Wrapper = canNavigate ? "button" : "div";
   const wrapperProps = canNavigate
     ? {
@@ -137,7 +140,6 @@ const OrderRow = ({ order, canNavigate, onClick }) => {
         <span className={`px-2.5 py-1 text-[10px] font-black rounded-full border uppercase tracking-wide ${statusStyle}`}>
           {order?.status}
         </span>
-        {/* Chevron only shown for roles that can navigate */}
         {canNavigate && (
           <FiChevronRight size={13} className="text-slate-300 group-hover:text-indigo-400 transition-colors ml-auto flex-shrink-0 hidden sm:block" />
         )}
@@ -146,7 +148,8 @@ const OrderRow = ({ order, canNavigate, onClick }) => {
   );
 };
 
-// SECTION HEADER
+// ─── Section Header ───────────────────────────────────────────────────────────
+
 const SectionHeader = ({ title, subtitle, action }) => (
   <div className="flex items-center justify-between mb-4">
     <div>
@@ -157,7 +160,8 @@ const SectionHeader = ({ title, subtitle, action }) => (
   </div>
 );
 
-// DASHBOARD
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -168,9 +172,8 @@ const Dashboard = () => {
   const canViewProductList = canAccess("/products");
   const canViewProductDetail = canAccess("/products/:id");
 
-  // Dashboard section visibility helpers
-  const showStatsRow = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_USERS)
-    || canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_ORDERS);
+  // Section visibility
+  const showStatsRow = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_USERS) || canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_ORDERS);
   const showBusinessMetrics = canViewDashboardSection(role, DASHBOARD_SECTIONS.BUSINESS_METRICS);
   const showRecentOrders = canViewDashboardSection(role, DASHBOARD_SECTIONS.RECENT_ORDERS);
   const showLowStockAlert = canViewDashboardSection(role, DASHBOARD_SECTIONS.LOW_STOCK_ALERT);
@@ -178,14 +181,18 @@ const Dashboard = () => {
   const showUserStats = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_USERS);
   const showDealerStats = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_DEALERS);
 
-  // ── State ─────────────────────────────────────────────────────────
+  // ── State ──────────────────────────────────────────────────────────────────
   const [totalOrders, setTotalOrders] = useState(0);
   const [recentOrders, setRecentOrders] = useState([]);
   const [ongoingOrders, setOngoingOrders] = useState(0);
-
   const [monthlyOrders, setMonthlyOrders] = useState(0);
   const [todayOrders, setTodayOrders] = useState(0);
   const [todayDeliveryCount, setTodayDeliveryCount] = useState(0);
+
+  // Completed orders metrics
+  const [totalCompletedOrders, setTotalCompletedOrders] = useState(0);
+  const [todayCompletedOrders, setTodayCompletedOrders] = useState(0);
+  const [monthlyCompletedOrders, setMonthlyCompletedOrders] = useState(0);
 
   const [adminCount, setAdminCount] = useState(0);
   const [salesmanCount, setSalesmanCount] = useState(0);
@@ -195,40 +202,50 @@ const Dashboard = () => {
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /* ── Data loaders ───────────────────────────────────────────────── */
+  // ── Data Loaders ───────────────────────────────────────────────────────────
+
   const loadOrderData = async () => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const firstDayOfMonth = `${year}-${String(month).padStart(2, "0")}-01`;
+
+    // All orders (recent list + total)
     const totalRes = await fetchOrders({ page: 1, limit: 6, includeRejected: false });
     setTotalOrders(totalRes?.pagination?.total || 0);
     setRecentOrders(totalRes?.data || []);
 
+    // Ongoing orders (active statuses)
     const ongoingStatuses = ["PENDING", "CONFIRMED", "PRODUCTION", "PACKED"];
     const ongoingResponses = await Promise.all(
       ongoingStatuses.map((s) => fetchOrders({ page: 1, limit: 1, status: s, includeRejected: false }))
     );
     setOngoingOrders(ongoingResponses.reduce((sum, res) => sum + (res?.pagination?.total || 0), 0));
 
-    const now = new Date();
-    const year = now.getFullYear(), month = now.getMonth() + 1;
-    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-    const endDate = now.toISOString().split("T")[0];
-    const monthlyRes = await fetchOrders({
-      page: 1, limit: 6, includeRejected: false, startDate, endDate,
-    });
+    // Orders this month
+    const monthlyRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, startDate: firstDayOfMonth, endDate: today });
     setMonthlyOrders(monthlyRes?.pagination?.total || 0);
 
-    const today = now.toISOString().split("T")[0];
-    const todayRes = await fetchOrders({
-      page: 1, limit: 1, includeRejected: false,
-      startDate: today, endDate: today,
-    });
+    // Orders today
+    const todayRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, startDate: today, endDate: today });
     setTodayOrders(todayRes?.pagination?.total || 0);
 
-    const todayDeliveryOrdersResponse = await fetchOrders({
-      page: 1, limit: 1, includeRejected: false,
-      deliveryStartDate: today, deliveryEndDate: today,
-    });
+    // Deliveries today
+    const todayDeliveryRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, deliveryStartDate: today, deliveryEndDate: today });
+    setTodayDeliveryCount(todayDeliveryRes?.pagination?.total || 0);
 
-    setTodayDeliveryCount(todayDeliveryOrdersResponse?.pagination?.total || 0);
+    // Total completed orders (all time)
+    const totalCompletedRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, status: "COMPLETED" });
+    setTotalCompletedOrders(totalCompletedRes?.pagination?.total || 0);
+
+    // Completed orders today
+    const todayCompletedRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, status: "COMPLETED", startDate: today, endDate: today });
+    setTodayCompletedOrders(todayCompletedRes?.pagination?.total || 0);
+
+    // Completed orders this month
+    const monthlyCompletedRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, status: "COMPLETED", startDate: firstDayOfMonth, endDate: today });
+    setMonthlyCompletedOrders(monthlyCompletedRes?.pagination?.total || 0);
   };
 
   const loadUserCounts = async () => {
@@ -246,10 +263,10 @@ const Dashboard = () => {
 
   const loadLowStockProducts = async () => {
     try {
-      const response = await fetchLowStockProducts({ page: 1, limit: 10, threshold: 5 });
-      if (!response?.success) throw new Error(response?.message || "Failed");
-      setLowStockProducts(response?.data || []);
-      setLowStockCount(response?.pagination?.total || 0);
+      const res = await fetchLowStockProducts({ page: 1, limit: 10, threshold: 5 });
+      if (!res?.success) throw new Error(res?.message || "Failed");
+      setLowStockProducts(res?.data || []);
+      setLowStockCount(res?.pagination?.total || 0);
     } catch {
       setLowStockProducts([]);
       setLowStockCount(0);
@@ -262,8 +279,8 @@ const Dashboard = () => {
       try {
         setLoading(true);
         await Promise.all([loadOrderData(), loadUserCounts(), loadLowStockProducts()]);
-      } catch (error) {
-        console.error("Dashboard load error:", error);
+      } catch (err) {
+        console.error("Dashboard load error:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -272,11 +289,45 @@ const Dashboard = () => {
     return () => { isMounted = false; };
   }, []);
 
-  // UI
+  // ── Navigate helpers ───────────────────────────────────────────────────────
+
+  const navigateToCompletedOrders = () => navigate("/orders", { state: { status: "COMPLETED" } });
+
+  const navigateToTodayOrders = () => {
+    const today = new Date().toISOString().split("T")[0];
+    navigate("/orders", { state: { startDate: today, endDate: today } });
+  };
+
+  const navigateToTodayDeliveries = () => {
+    const today = new Date().toISOString().split("T")[0];
+    navigate("/delivery", { state: { deliveryStartDate: today, deliveryEndDate: today } });
+  };
+
+  const navigateToMonthOrders = () => {
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    const today = now.toISOString().split("T")[0];
+    navigate("/orders", { state: { startDate: firstDayOfMonth, endDate: today } });
+  };
+
+  const navigateToTodayCompleted = () => {
+    const today = new Date().toISOString().split("T")[0];
+    navigate("/orders", { state: { status: "COMPLETED", startDate: today, endDate: today } });
+  };
+
+  const navigateToMonthCompleted = () => {
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    const today = now.toISOString().split("T")[0];
+    navigate("/orders", { state: { status: "COMPLETED", startDate: firstDayOfMonth, endDate: today } });
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-8">
 
-      {/* ── OVERVIEW STATS — only for roles that can see user/dealer stats */}
+      {/* ── OVERVIEW STATS ── */}
       {showStatsRow && (
         <div>
           <SectionHeader title="Overview" subtitle="System summary at a glance" />
@@ -287,7 +338,9 @@ const Dashboard = () => {
                 <StatCard icon={<FiUsers />} title="Total Salesmen" value={salesmanCount} color="violet" loading={loading} onClick={() => navigate("/users")} />
               </>
             )}
-            {showDealerStats && <StatCard icon={<FiUsers />} title="Total Dealers" value={dealerCount} color="blue" loading={loading} onClick={() => navigate("/dealers")} />}
+            {showDealerStats && (
+              <StatCard icon={<FiUsers />} title="Total Dealers" value={dealerCount} color="blue" loading={loading} onClick={() => navigate("/dealers")} />
+            )}
             {canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_ORDERS) && (
               <StatCard icon={<FiShoppingBag />} title="Total Orders" value={totalOrders} color="emerald" loading={loading} onClick={() => navigate("/orders")} />
             )}
@@ -295,68 +348,99 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* ── BUSINESS METRICS */}
+      {/* ── BUSINESS METRICS ── */}
       {showBusinessMetrics && (
         <div>
           <SectionHeader title="Business Metrics" subtitle="Performance insights" />
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            {/* not remove this (Monthly Sales Goal) any reason, because its want to future requirements */}
-            {/* <MetricCard icon={<FiTrendingUp />} title="Monthly Sales Goal" value="₹ 75,000" subValue="75% of ₹ 1,00,000 achieved" color="emerald" loading={loading} /> */}
 
-            <MetricCard icon={<FiTrendingUp />} title="Purchase Analytics" subValue="View Insights" color="blue" loading={loading} onClick={() => navigate("/purchase-analytics")} />
+            <MetricCard
+              icon={<FiTrendingUp />}
+              title="Purchase Analytics"
+              subValue="View detailed insights"
+              color="blue"
+              loading={loading}
+              onClick={() => navigate("/purchase-analytics")}
+            />
 
             <MetricCard
               icon={<FiShoppingBag />}
               title="Today's Orders"
               value={todayOrders}
-              subValue="Placed today"
+              subValue="New orders placed today"
               color="emerald"
               loading={loading}
-              onClick={() => {
-                const today = new Date().toISOString().split("T")[0];
-                navigate("/orders", { state: { startDate: today, endDate: today } });
-              }}
+              onClick={navigateToTodayOrders}
             />
 
             <MetricCard
-              icon={<FiShoppingBag />}
+              icon={<FiTruck />}
               title="Today's Deliveries"
               value={todayDeliveryCount}
               subValue="Scheduled for delivery today"
               color="blue"
               loading={loading}
-              onClick={() => {
-                const today = new Date().toISOString().split("T")[0];
-                navigate("/delivery", {
-                  state: {
-                    deliveryStartDate: today,
-                    deliveryEndDate: today,
-                  },
-                });
-              }}
+              onClick={navigateToTodayDeliveries}
             />
 
             <MetricCard
               icon={<FiShoppingBag />}
-              title="Orders This Month"
+              title="This Month's Orders"
               value={monthlyOrders}
+              subValue="Orders placed this month"
               color="blue"
               loading={loading}
-              onClick={() => {
-                const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
-                const today = new Date().toISOString().split("T")[0];
-                navigate("/orders", { state: { startDate: firstDayOfMonth, endDate: today } })
-              }}
+              onClick={navigateToMonthOrders}
             />
 
-            <MetricCard icon={<FiTruck />} title="Ongoing Orders" value={ongoingOrders} color="amber" loading={loading} onClick={() => navigate("/orders?status=PENDING")} />
+            <MetricCard
+              icon={<FiTruck />}
+              title="Active Orders"
+              value={ongoingOrders}
+              subValue="Pending · Confirmed · In progress"
+              color="amber"
+              loading={loading}
+              onClick={() => navigate("/orders?status=PENDING")}
+            />
 
-            {/* Low stock metric — only shown to roles that can see stock info */}
+            {/* ── COMPLETED ORDERS METRICS ── */}
+            <MetricCard
+              icon={<FiCheckCircle />}
+              title="Completed Today"
+              value={todayCompletedOrders}
+              subValue="Orders fulfilled today"
+              color="emerald"
+              loading={loading}
+              onClick={navigateToTodayCompleted}
+            />
+
+            <MetricCard
+              icon={<FiCheckCircle />}
+              title="Completed This Month"
+              value={monthlyCompletedOrders}
+              subValue="Fulfilled orders this month"
+              color="violet"
+              loading={loading}
+              onClick={navigateToMonthCompleted}
+            />
+
+            <MetricCard
+              icon={<FiCheckCircle />}
+              title="Total Completed"
+              value={totalCompletedOrders}
+              subValue="All-time completed orders"
+              color="emerald"
+              loading={loading}
+              onClick={navigateToCompletedOrders}
+            />
+
+            {/* Low stock — only for roles that can see stock info */}
             {showLowStockAlert && (
               <MetricCard
                 icon={<FiAlertCircle />}
                 title="Low Stock Products"
                 value={lowStockCount}
+                subValue="Below minimum threshold"
                 color="rose"
                 loading={loading}
                 onClick={canViewProductList ? () => navigate("/products") : undefined}
@@ -366,7 +450,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* ── RECENT ORDERS */}
+      {/* ── RECENT ORDERS ── */}
       {showRecentOrders && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 py-5 border-b border-slate-100 bg-slate-50/50">
@@ -381,10 +465,14 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-            <button onClick={() => navigate("/orders")} className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 cursor-pointer">
+            <button
+              onClick={() => navigate("/orders")}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 cursor-pointer"
+            >
               View All <FiArrowRight size={13} />
             </button>
           </div>
+
           <div className="p-5">
             {loading ? (
               <div className="space-y-2.5">
@@ -415,7 +503,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* ── LOW STOCK ALERT — Production/Packing can see, Salesman CANNOT */}
+      {/* ── LOW STOCK ALERT ── */}
       {showLowStockAlert && !loading && lowStockProducts.length > 0 && showLowStockProducts && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-rose-50/30">
@@ -431,17 +519,23 @@ const Dashboard = () => {
               </div>
             </div>
             {canViewProductList && (
-              <button onClick={() => navigate("/products")} className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 transition-colors cursor-pointer">
+              <button
+                onClick={() => navigate("/products")}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 transition-colors cursor-pointer"
+              >
                 View Products <FiArrowRight size={11} />
               </button>
             )}
           </div>
+
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
                   {["Product", "Brand", "Available", "Packed", "Unpacked"].map((h) => (
-                    <th key={h} className="px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 text-left whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 text-left whitespace-nowrap">
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -458,10 +552,16 @@ const Dashboard = () => {
                     </td>
                     <td className="px-5 py-3.5 text-slate-600 font-medium">{p.brand}</td>
                     <td className="px-5 py-3.5">
-                      <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black border bg-rose-50 text-rose-700 border-rose-200 tabular-nums">{p.available_stock ?? 0}</span>
+                      <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black border bg-rose-50 text-rose-700 border-rose-200 tabular-nums">
+                        {p.available_stock ?? 0}
+                      </span>
                     </td>
-                    <td className="px-5 py-3.5"><span className="text-xs font-semibold text-violet-600 tabular-nums">{p.stocks?.[0]?.packed_stock ?? 0}</span></td>
-                    <td className="px-5 py-3.5"><span className="text-xs font-semibold text-blue-600 tabular-nums">{p.stocks?.[0]?.unpacked_stock ?? 0}</span></td>
+                    <td className="px-5 py-3.5">
+                      <span className="text-xs font-semibold text-violet-600 tabular-nums">{p.stocks?.[0]?.packed_stock ?? 0}</span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="text-xs font-semibold text-blue-600 tabular-nums">{p.stocks?.[0]?.unpacked_stock ?? 0}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

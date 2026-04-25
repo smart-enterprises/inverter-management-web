@@ -186,10 +186,10 @@ const Orders = () => {
    *   searchInput  — bound directly to the <input>, never triggers a fetch
       *   searchQuery  — debounced value that actually drives the API call
       */
-  const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("ALL");
-  const [selectedPriority, setSelectedPriority] = useState("ALL");
+  const [searchInput, setSearchInput] = useState(routeState?.search || "");
+  const [searchQuery, setSearchQuery] = useState(routeState?.search || "");
+  const [selectedStatus, setSelectedStatus] = useState(routeState?.status || "ALL");
+  const [selectedPriority, setSelectedPriority] = useState(routeState?.priority || "ALL");
 
   /* ── Date range filter state ── */
   const [startDate, setStartDate] = useState(routeState?.startDate || "");

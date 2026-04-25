@@ -2,33 +2,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
-  FiArrowLeft,
-  FiUser,
-  FiMapPin,
-  FiPhone,
-  FiMail,
-  FiBox,
-  FiCalendar,
-  FiTruck,
-  FiCreditCard,
-  FiDollarSign,
-  FiEdit2,
-  FiSave,
-  FiX,
-  FiCheckCircle,
-  FiXCircle,
-  FiShoppingCart,
-  FiPackage,
-  FiAlertCircle,
-  FiTrendingUp,
-  FiActivity,
-  FiChevronRight,
-  FiZap,
-  FiLayers,
-  FiTrendingDown,
-  FiBarChart2,
-  FiDownload,
-  FiPrinter,
+  FiArrowLeft, FiUser, FiMapPin, FiPhone, FiMail, FiBox,
+  FiCalendar, FiTruck, FiCreditCard, FiDollarSign, FiEdit2,
+  FiSave, FiX, FiCheckCircle, FiXCircle, FiShoppingCart,
+  FiPackage, FiAlertCircle, FiTrendingUp, FiActivity,
+  FiChevronRight, FiZap, FiLayers, FiTrendingDown, FiBarChart2,
+  FiDownload, FiPrinter, FiTag, FiInfo, FiGrid,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { useAuth } from "../hooks/useAuth";
@@ -36,7 +15,11 @@ import CustomSelect from "../components/CustomSelect";
 import { fetchOrderById, updateOrderStatus } from "../api/orders";
 import { fetchUsers } from "../api/user";
 import { capitalizeFirstLetter } from "../utils/constants";
-import { formatDealerDiscountNotes, formatDeliveryNotes, formatStockNotes } from "../utils/notesUtils";
+import {
+  formatDealerDiscountNotes,
+  formatDeliveryNotes,
+  formatStockNotes,
+} from "../utils/notesUtils";
 import {
   getStatusStyle,
   ORDER_STATUS_LIST,
@@ -44,10 +27,9 @@ import {
   PRIORITY_OPTIONS,
 } from "../utils/status";
 import { useUpdateOrderPermissions } from "../hooks/useUpdateOrderPermissions";
-import { formatDateForInput } from "../utils/dateUtils";
+import { formatDateForInput, formatDeliveryDate } from "../utils/dateUtils";
 import { getAllowedNextStatuses } from "../utils/orderStatusHelper";
 import { fetchCompanyAddress } from "../api/companyAddress";
-
 import {
   canPrintOrder,
   canViewOrderPrice,
@@ -55,6 +37,8 @@ import {
 } from "../utils/orderPermissions";
 import DeliveryNotesCard from "../components/DeliveryNotesCard";
 import ProductionStatusBadge from "../components/ProductionStatusBadge";
+
+// ─── Formatters ───────────────────────────────────────────────────────────────
 
 const formatDate = (date) =>
   date
@@ -65,8 +49,16 @@ const formatDate = (date) =>
     })
     : "N/A";
 
-const formatCurrency = (amount) =>
-  `₹ ${Number(amount || 0).toLocaleString("en-IN")}`;
+const formatCurrency = (value) => {
+  if (!value || isNaN(value)) return "₹0";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value));
+};
+
+// ─── Normalize ────────────────────────────────────────────────────────────────
 
 const normalizeOrder = (order) => ({
   ...order,
@@ -85,6 +77,8 @@ const normalizeOrder = (order) => ({
   })),
 });
 
+// ─── Style Helpers ────────────────────────────────────────────────────────────
+
 const getPriorityStyle = (priority) => {
   const map = {
     HIGH: "bg-rose-50 text-rose-700 border-rose-200",
@@ -96,16 +90,16 @@ const getPriorityStyle = (priority) => {
 
 const getOrderStatusStyle = (status) => {
   const map = {
-    PENDING: "bg-amber-50  text-amber-700  border-amber-200",
-    CONFIRMED: "bg-blue-50   text-blue-700   border-blue-200",
+    PENDING: "bg-amber-50 text-amber-700 border-amber-200",
+    CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
     PRODUCTION: "bg-indigo-50 text-indigo-700 border-indigo-200",
     PACKED: "bg-violet-50 text-violet-700 border-violet-200",
-    INVOICE: "bg-cyan-50   text-cyan-700   border-cyan-200",
+    INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
     SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
-    DELIVERED: "bg-green-50  text-green-700  border-green-200",
+    DELIVERED: "bg-green-50 text-green-700 border-green-200",
     COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    CANCELLED: "bg-rose-50   text-rose-700   border-rose-200",
-    REJECTED: "bg-rose-50   text-rose-700   border-rose-200",
+    CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
+    REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
   };
   return map[status?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
 };
@@ -113,9 +107,9 @@ const getOrderStatusStyle = (status) => {
 const getPaymentStatusStyle = (status) => {
   const map = {
     PAID: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    UNPAID: "bg-rose-50    text-rose-700    border-rose-200",
-    PARTIAL: "bg-amber-50   text-amber-700   border-amber-200",
-    REFUNDED: "bg-blue-50    text-blue-700    border-blue-200",
+    UNPAID: "bg-rose-50 text-rose-700 border-rose-200",
+    PARTIAL: "bg-amber-50 text-amber-700 border-amber-200",
+    REFUNDED: "bg-blue-50 text-blue-700 border-blue-200",
   };
   return map[status?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
 };
@@ -123,32 +117,24 @@ const getPaymentStatusStyle = (status) => {
 const getPaymentTypeStyle = (type) => {
   const map = {
     CASH: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    BANK: "bg-blue-50    text-blue-700    border-blue-200",
-    CHEQUE: "bg-amber-50   text-amber-700   border-amber-200",
-    ONLINE: "bg-violet-50  text-violet-700  border-violet-200",
+    BANK: "bg-blue-50 text-blue-700 border-blue-200",
+    CHEQUE: "bg-amber-50 text-amber-700 border-amber-200",
+    ONLINE: "bg-violet-50 text-violet-700 border-violet-200",
   };
   return map[type?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
 };
 
 const STATUS_HEX = {
-  PENDING: "#d97706",
-  CONFIRMED: "#2563eb",
-  PRODUCTION: "#4f46e5",
-  PACKED: "#7c3aed",
-  INVOICE: "#0891b2",
-  SHIPPED: "#ea580c",
-  DELIVERED: "#16a34a",
-  COMPLETED: "#059669",
-  CANCELLED: "#e11d48",
-  REJECTED: "#e11d48",
+  PENDING: "#d97706", CONFIRMED: "#2563eb", PRODUCTION: "#4f46e5",
+  PACKED: "#7c3aed", INVOICE: "#0891b2", SHIPPED: "#ea580c",
+  DELIVERED: "#16a34a", COMPLETED: "#059669", CANCELLED: "#e11d48", REJECTED: "#e11d48",
 };
 
 const PAYMENT_HEX = {
-  PAID: "#059669",
-  UNPAID: "#e11d48",
-  PARTIAL: "#d97706",
-  REFUNDED: "#2563eb",
+  PAID: "#059669", UNPAID: "#e11d48", PARTIAL: "#d97706", REFUNDED: "#2563eb",
 };
+
+// ─── PDF Generator ────────────────────────────────────────────────────────────
 
 const generateOrderPDF = (order, companyInfo, userMap) => {
   const company = companyInfo || {};
@@ -173,7 +159,7 @@ const generateOrderPDF = (order, companyInfo, userMap) => {
           <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">
             <div style="font-weight:700;color:#0f172a;font-size:12px;">${capitalizeFirstLetter(d.product_name)}</div>
             <div style="font-size:10px;color:#94a3b8;margin-top:2px;">
-              ${capitalizeFirstLetter(d.product_brand || "")} · ${capitalizeFirstLetter(d.product_model || "")} ·
+              ${capitalizeFirstLetter(d.product_category || "")} · ${capitalizeFirstLetter(d.product_brand || "")} · ${capitalizeFirstLetter(d.product_model || "")} ·
               <span style="font-family:monospace;">${d.product_id}</span>
             </div>
             ${d.is_free ? `<span style="font-size:9px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:1px 6px;border-radius:20px;font-weight:700;">FREE ITEM</span>` : ""}
@@ -201,233 +187,186 @@ const generateOrderPDF = (order, companyInfo, userMap) => {
   ].filter(Boolean).join(", ");
 
   const html = `<!DOCTYPE html>
-        <html lang="en">
-        <head>
-        <meta charset="UTF-8"/>
-        <title>Order ${order?.order_number}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-          *{margin:0;padding:0;box-sizing:border-box;}
-          body{font-family:'Inter',-apple-system,sans-serif;background:#fff;color:#0f172a;font-size:13px;line-height:1.5;}
-          .page{max-width:820px;margin:0 auto;padding:32px;}
-          .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:24px;border-bottom:2px solid #e2e8f0;}
-          .company-name{font-size:20px;font-weight:900;color:#0f172a;letter-spacing:-0.02em;}
-          .company-gst{font-size:10px;color:#94a3b8;font-weight:600;margin-top:2px;letter-spacing:0.05em;text-transform:uppercase;}
-          .company-contact{margin-top:8px;font-size:11px;color:#64748b;line-height:1.6;}
-          .order-block{text-align:right;}
-          .order-number{font-size:22px;font-weight:900;color:#4f46e5;font-family:monospace;letter-spacing:-0.02em;}
-          .order-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#94a3b8;margin-bottom:4px;}
-          .order-date{font-size:11px;color:#64748b;margin-top:4px;}
-          .badges{display:flex;gap:8px;justify-content:flex-end;margin-top:8px;}
-          .badge{font-size:9px;font-weight:800;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.08em;border:1px solid;}
-          .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
-          .info-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;}
-          .info-card-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#94a3b8;margin-bottom:6px;}
-          .info-card-value{font-size:13px;font-weight:700;color:#0f172a;}
-          .info-card-sub{font-size:11px;color:#64748b;margin-top:2px;}
-          .items-table{width:100%;border-collapse:collapse;margin-bottom:24px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;}
-          .items-table thead tr{background:#f1f5f9;}
-          .items-table thead th{padding:10px 12px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0;}
-          .items-table thead th:nth-child(2),.items-table thead th:nth-child(3){text-align:center;}
-          .items-table thead th:nth-child(4),.items-table thead th:nth-child(5){text-align:right;}
-          .items-table thead th:nth-child(6){text-align:center;}
-          .financial-block{display:flex;justify-content:flex-end;margin-bottom:24px;}
-          .financial-card{width:320px;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;}
-          .financial-card-header{background:#f8fafc;padding:10px 16px;border-bottom:1px solid #e2e8f0;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#64748b;}
-          .financial-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 16px;border-bottom:1px solid #f1f5f9;}
-          .financial-row:last-child{border-bottom:none;}
-          .financial-label{font-size:12px;color:#64748b;font-weight:500;}
-          .financial-value{font-size:13px;font-weight:700;color:#0f172a;}
-          .financial-total-row{background:#f8fafc;padding:12px 16px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;align-items:baseline;}
-          .financial-total-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#0f172a;}
-          .financial-total-value{font-size:20px;font-weight:900;color:#0f172a;}
-          .balance-row{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
-          .footer{margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;}
-          .footer-note{font-size:10px;color:#94a3b8;font-weight:500;}
-          .footer-company{font-size:11px;font-weight:700;color:#64748b;}
-          @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.page{padding:20px;}}
-        </style>
-        </head>
-        <body>
-        <div class="page">
-          <div class="header">
-            <div class="company-block">
-              ${company.company_logo ? `<img src="${company.company_logo}" alt="Logo" style="height:40px;margin-bottom:8px;object-fit:contain;" onerror="this.style.display='none'"/>` : ""}
-              <div class="company-name">${company.company_name || "Company"}</div>
-              ${company.gst_number ? `<div class="company-gst">GST: ${company.gst_number}</div>` : ""}
-              <div class="company-contact">
-                ${companyAddress}
-                ${company.phone ? `<br/>📞 ${company.phone}` : ""}
-                ${company.email ? ` &nbsp;·&nbsp; ✉ ${company.email}` : ""}
-              </div>
-            </div>
-            <div class="order-block">
-              <div class="order-label">Order Invoice</div>
-              <div class="order-number">${order?.order_number}</div>
-              <div class="order-date">Created: ${formatDate(order?.created_at)}</div>
-              <div class="badges">
-                <span class="badge" style="background:${statusColor}18;color:${statusColor};border-color:${statusColor}40;">${order?.status}</span>
-                <span class="badge" style="background:${paymentColor}18;color:${paymentColor};border-color:${paymentColor}40;">${order?.payment_status}</span>
-                ${order?.priority ? `<span class="badge" style="background:#f1f5f9;color:#64748b;border-color:#e2e8f0;">${order.priority}</span>` : ""}
-              </div>
-            </div>
-          </div>
-
-          <div class="info-grid">
-            <div class="info-card">
-              <div class="info-card-label">Dealer</div>
-              <div class="info-card-value">${capitalizeFirstLetter(order?.dealer?.employee_name) || "—"}</div>
-              <div class="info-card-sub">${capitalizeFirstLetter(order?.dealer?.shop_name) || ""}</div>
-              <div class="info-card-sub" style="margin-top:4px;font-size:10px;color:#94a3b8;">
-                ${[order?.dealer?.employee_phone, order?.dealer?.employee_email].filter(Boolean).join("  ·  ")}
-              </div>
-              ${order?.dealer?.address ? `<div class="info-card-sub" style="margin-top:4px;font-size:10px;">${capitalizeFirstLetter(order.dealer.address)}</div>` : ""}
-            </div>
-            <div class="info-card">
-              <div class="info-card-label">Order Details</div>
-              <div class="info-card-sub" style="display:flex;flex-direction:column;gap:4px;">
-                <span><strong>Salesman:</strong> ${userMap[order?.salesman_id] || order?.salesman_id || "—"}</span>
-                <span><strong>Created by:</strong> ${userMap[order?.created_by] || order?.created_by || "—"}</span>
-                <span><strong>Delivery by:</strong> ${order?.promised_delivery_date ? formatDate(order.promised_delivery_date) : "N/A"}</span>
-                <span><strong>Payment type:</strong> ${order?.payment_type || "—"}</span>
-              </div>
-            </div>
-          </div>
-
-          ${order?.order_note ? `
-          <div style="margin-bottom:20px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;">
-            <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:#b45309;margin-bottom:8px;">Order Note</div>
-            <div style="font-size:12px;color:#78350f;">${order.order_note}</div>
-          </div>` : ""}
-
-          <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:#94a3b8;margin-bottom:10px;">Order Items</div>
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Delivered / Cancelled</th>
-                <th style="text-align:right;">Unit Price</th>
-                <th style="text-align:right;">Total</th>
-                <th style="text-align:center;">Status</th>
-              </tr>
-            </thead>
-            <tbody>${itemsHTML}</tbody>
-          </table>
-
-          <div class="financial-block">
-            <div class="financial-card">
-              <div class="financial-card-header">Financial Summary</div>
-              <div class="financial-row">
-                <span class="financial-label">Gross Total</span>
-                <span class="financial-value">₹${grossAmount.toLocaleString("en-IN")}</span>
-              </div>
-              ${discountAmount > 0 ? `
-              <div class="financial-row">
-                <span class="financial-label" style="color:#10b981;">Total Discount</span>
-                <span class="financial-value" style="color:#10b981;">− ₹${discountAmount.toLocaleString("en-IN")}</span>
-              </div>` : ""}
-              <div class="financial-total-row">
-                <span class="financial-total-label">Net Payable</span>
-                <span class="financial-total-value">₹${totalAmount.toLocaleString("en-IN")}</span>
-              </div>
-              ${amountDue > 0 ? `
-              <div class="balance-row" style="background:#fff1f2;">
-                <div>
-                  <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#e11d48;">Balance Due</div>
-                  <div style="font-size:10px;color:#94a3b8;margin-top:1px;">To be collected</div>
-                </div>
-                <span style="font-size:18px;font-weight:900;color:#e11d48;">₹${amountDue.toLocaleString("en-IN")}</span>
-              </div>` : `
-              <div class="balance-row" style="background:#f0fdf4;">
-                <div>
-                  <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#16a34a;">Fully Paid</div>
-                  <div style="font-size:10px;color:#94a3b8;margin-top:1px;">No dues remaining</div>
-                </div>
-                <span style="font-size:18px;font-weight:900;color:#16a34a;">₹0</span>
-              </div>`}
-            </div>
-          </div>
-
-          <div class="footer">
-            <div class="footer-note">
-              Generated on ${new Date().toLocaleString("en-IN", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-            </div>
-            <div class="footer-company">${company.company_name || ""}</div>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8"/>
+    <title>Order ${order?.order_number}</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{font-family:'Inter',-apple-system,sans-serif;background:#fff;color:#0f172a;font-size:13px;line-height:1.5;}
+      .page{max-width:820px;margin:0 auto;padding:32px;}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:24px;border-bottom:2px solid #e2e8f0;}
+      .company-name{font-size:20px;font-weight:900;color:#0f172a;letter-spacing:-0.02em;}
+      .company-gst{font-size:10px;color:#94a3b8;font-weight:600;margin-top:2px;letter-spacing:0.05em;text-transform:uppercase;}
+      .company-contact{margin-top:8px;font-size:11px;color:#64748b;line-height:1.6;}
+      .order-block{text-align:right;}
+      .order-number{font-size:22px;font-weight:900;color:#4f46e5;font-family:monospace;letter-spacing:-0.02em;}
+      .order-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#94a3b8;margin-bottom:4px;}
+      .order-date{font-size:11px;color:#64748b;margin-top:4px;}
+      .badges{display:flex;gap:8px;justify-content:flex-end;margin-top:8px;}
+      .badge{font-size:9px;font-weight:800;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.08em;border:1px solid;}
+      .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+      .info-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;}
+      .info-card-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#94a3b8;margin-bottom:6px;}
+      .info-card-value{font-size:13px;font-weight:700;color:#0f172a;}
+      .info-card-sub{font-size:11px;color:#64748b;margin-top:2px;}
+      .items-table{width:100%;border-collapse:collapse;margin-bottom:24px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;}
+      .items-table thead tr{background:#f1f5f9;}
+      .items-table thead th{padding:10px 12px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0;}
+      .financial-block{display:flex;justify-content:flex-end;margin-bottom:24px;}
+      .financial-card{width:320px;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;}
+      .financial-card-header{background:#f8fafc;padding:10px 16px;border-bottom:1px solid #e2e8f0;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#64748b;}
+      .financial-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 16px;border-bottom:1px solid #f1f5f9;}
+      .financial-row:last-child{border-bottom:none;}
+      .financial-label{font-size:12px;color:#64748b;font-weight:500;}
+      .financial-value{font-size:13px;font-weight:700;color:#0f172a;}
+      .financial-total-row{background:#f8fafc;padding:12px 16px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;align-items:baseline;}
+      .financial-total-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#0f172a;}
+      .financial-total-value{font-size:20px;font-weight:900;color:#0f172a;}
+      .balance-row{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
+      .footer{margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;}
+      .footer-note{font-size:10px;color:#94a3b8;font-weight:500;}
+      .footer-company{font-size:11px;font-weight:700;color:#64748b;}
+      @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.page{padding:20px;}}
+    </style>
+    </head>
+    <body>
+    <div class="page">
+      <div class="header">
+        <div class="company-block">
+          ${company.company_logo ? `<img src="${company.company_logo}" alt="Logo" style="height:40px;margin-bottom:8px;object-fit:contain;" onerror="this.style.display='none'"/>` : ""}
+          <div class="company-name">${company.company_name || "Company"}</div>
+          ${company.gst_number ? `<div class="company-gst">GST: ${company.gst_number}</div>` : ""}
+          <div class="company-contact">
+            ${companyAddress}
+            ${company.phone ? `<br/>📞 ${company.phone}` : ""}
+            ${company.email ? ` &nbsp;·&nbsp; ✉ ${company.email}` : ""}
           </div>
         </div>
-        </body>
-        </html>
-      `;
+        <div class="order-block">
+          <div class="order-label">Order Invoice</div>
+          <div class="order-number">${order?.order_number}</div>
+          <div class="order-date">Created: ${formatDate(order?.created_at)}</div>
+          <div class="badges">
+            <span class="badge" style="background:${statusColor}18;color:${statusColor};border-color:${statusColor}40;">${order?.status}</span>
+            <span class="badge" style="background:${paymentColor}18;color:${paymentColor};border-color:${paymentColor}40;">${order?.payment_status}</span>
+            ${order?.priority ? `<span class="badge" style="background:#f1f5f9;color:#64748b;border-color:#e2e8f0;">${order.priority}</span>` : ""}
+          </div>
+        </div>
+      </div>
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="info-card-label">Dealer</div>
+          <div class="info-card-value">${capitalizeFirstLetter(order?.dealer?.employee_name) || "—"}</div>
+          <div class="info-card-sub">${capitalizeFirstLetter(order?.dealer?.shop_name) || ""}</div>
+          <div class="info-card-sub" style="margin-top:4px;font-size:10px;color:#94a3b8;">
+            ${[order?.dealer?.employee_phone, order?.dealer?.employee_email].filter(Boolean).join("  ·  ")}
+          </div>
+          ${order?.dealer?.address ? `<div class="info-card-sub" style="margin-top:4px;font-size:10px;">${capitalizeFirstLetter(order.dealer.address)}</div>` : ""}
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Order Details</div>
+          <div class="info-card-sub" style="display:flex;flex-direction:column;gap:4px;">
+            <span><strong>Salesman:</strong> ${userMap[order?.salesman_id] || order?.salesman_id || "—"}</span>
+            <span><strong>Created by:</strong> ${userMap[order?.created_by] || order?.created_by || "—"}</span>
+            <span><strong>Delivery by:</strong> ${order?.promised_delivery_date ? formatDate(order.promised_delivery_date) : "N/A"}</span>
+            <span><strong>Payment type:</strong> ${order?.payment_type || "—"}</span>
+          </div>
+        </div>
+      </div>
+      ${order?.order_note ? `
+      <div style="margin-bottom:20px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;">
+        <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:#b45309;margin-bottom:8px;">Order Note</div>
+        <div style="font-size:12px;color:#78350f;">${order.order_note}</div>
+      </div>` : ""}
+      <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:#94a3b8;margin-bottom:10px;">Order Items</div>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Product</th><th>Qty</th><th>Delivered / Cancelled</th>
+            <th style="text-align:right;">Unit Price</th><th style="text-align:right;">Total</th>
+            <th style="text-align:center;">Status</th>
+          </tr>
+        </thead>
+        <tbody>${itemsHTML}</tbody>
+      </table>
+      <div class="financial-block">
+        <div class="financial-card">
+          <div class="financial-card-header">Financial Summary</div>
+          <div class="financial-row"><span class="financial-label">Gross Total</span><span class="financial-value">₹${grossAmount.toLocaleString("en-IN")}</span></div>
+          ${discountAmount > 0 ? `<div class="financial-row"><span class="financial-label" style="color:#10b981;">Total Discount</span><span class="financial-value" style="color:#10b981;">− ₹${discountAmount.toLocaleString("en-IN")}</span></div>` : ""}
+          <div class="financial-total-row"><span class="financial-total-label">Net Payable</span><span class="financial-total-value">₹${totalAmount.toLocaleString("en-IN")}</span></div>
+          ${amountDue > 0
+      ? `<div class="balance-row" style="background:#fff1f2;"><div><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#e11d48;">Balance Due</div><div style="font-size:10px;color:#94a3b8;margin-top:1px;">To be collected</div></div><span style="font-size:18px;font-weight:900;color:#e11d48;">₹${amountDue.toLocaleString("en-IN")}</span></div>`
+      : `<div class="balance-row" style="background:#f0fdf4;"><div><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#16a34a;">Fully Paid</div><div style="font-size:10px;color:#94a3b8;margin-top:1px;">No dues remaining</div></div><span style="font-size:18px;font-weight:900;color:#16a34a;">₹0</span></div>`}
+        </div>
+      </div>
+      <div class="footer">
+        <div class="footer-note">Generated on ${new Date().toLocaleString("en-IN", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+        <div class="footer-company">${company.company_name || ""}</div>
+      </div>
+    </div>
+    </body>
+    </html>`;
 
   const printWindow = window.open("", "_blank", "width=900,height=700");
   if (!printWindow) {
-    Swal.fire({
-      icon: "warning",
-      title: "Popup Blocked",
-      text: "Please allow popups for this site to download the PDF.",
-    });
+    Swal.fire({ icon: "warning", title: "Popup Blocked", text: "Please allow popups for this site to download the PDF." });
     return;
   }
   printWindow.document.write(html);
   printWindow.document.close();
-  printWindow.onload = () => {
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-    }, 400);
-  };
+  printWindow.onload = () => setTimeout(() => { printWindow.focus(); printWindow.print(); }, 400);
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SMALL REUSABLE UI ATOMS
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Primitive UI Atoms ───────────────────────────────────────────────────────
 
-const Info = ({ icon, label, children }) => (
-  <div className="flex items-start gap-3.5 px-5 py-4 rounded-xl hover:bg-slate-50/60 transition-colors group">
-    <div className="mt-0.5 p-2 rounded-lg bg-indigo-50 text-indigo-500 border border-indigo-100 group-hover:border-indigo-200 transition-colors flex-shrink-0">
-      {React.cloneElement(icon, { size: 13 })}
+/** Labelled info cell used in summary grids */
+const InfoCell = ({ icon, label, children }) => (
+  <div className="flex items-start gap-3 p-4 rounded-xl hover:bg-slate-50 transition-colors group">
+    <div className="mt-0.5 p-1.5 rounded-lg bg-indigo-50 text-indigo-500 border border-indigo-100 group-hover:border-indigo-200 transition-colors flex-shrink-0">
+      {React.cloneElement(icon, { size: 12 })}
     </div>
     <div className="flex-1 min-w-0">
-      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">{label}</p>
-      <div className="text-sm font-semibold text-slate-800 leading-relaxed">
-        {children || <span className="text-slate-300 font-normal">—</span>}
+      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-0.5">{label}</p>
+      <div className="text-sm font-semibold text-slate-800 leading-snug">
+        {children || <span className="text-slate-300 font-normal italic text-xs">N/A</span>}
       </div>
     </div>
   </div>
 );
 
-const NotesCard = ({ title, notes, color }) => (
-  <div
-    className={`mt-3 border rounded-xl p-3.5 ${color === "purple"
-      ? "bg-indigo-50/60 border-indigo-100 text-indigo-600"
-      : "bg-slate-50 border-slate-100 text-slate-500"
-      }`}
-  >
-    <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-2 opacity-70">{title}</p>
-    <ul className="space-y-1.5 text-xs text-slate-700">
-      {notes.map((note, idx) => (
-        <li key={idx} className="flex items-start gap-2">
-          <span className="mt-1.5 w-1 h-1 rounded-full bg-current opacity-50 flex-shrink-0" />
-          {note.replace(
-            /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z/,
-            (match) => formatDate(match)
-          )}
-        </li>
-      ))}
-    </ul>
-  </div>
-);
+/** Notes list rendered inside an item card */
+const NotesList = ({ title, notes, variant = "default" }) => {
+  if (!notes?.length) return null;
+  const styles = variant === "purple"
+    ? "bg-indigo-50/70 border-indigo-100 text-indigo-700"
+    : "bg-slate-50 border-slate-100 text-slate-600";
+  return (
+    <div className={`mt-2 border rounded-lg p-3 ${styles}`}>
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-1.5 opacity-60">{title}</p>
+      <ul className="space-y-1 text-xs text-slate-700">
+        {notes.map((note, idx) => (
+          <li key={idx} className="flex items-start gap-2">
+            <span className="mt-1.5 w-1 h-1 rounded-full bg-current opacity-40 flex-shrink-0" />
+            {note.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z/, (m) => formatDate(m))}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
+/** Form field wrapper with label */
 const FormField = ({ label, children }) => (
   <div className="space-y-1.5">
-    <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-      {label}
-    </label>
+    <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{label}</label>
     {children}
   </div>
 );
 
+/** Styled text / number input */
 const EditInput = ({ className = "", ...props }) => (
   <input
     {...props}
@@ -435,25 +374,19 @@ const EditInput = ({ className = "", ...props }) => (
   />
 );
 
+/** Checkbox field with visual toggle */
 const CheckboxField = ({ label, checked, onChange, disabled }) => (
   <label
-    className={`group flex items-center gap-3 text-sm cursor-pointer px-4 py-2.5 rounded-xl border transition-all ${checked
-      ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-      : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/30"
+    className={`group flex items-center gap-3 text-sm cursor-pointer px-4 py-2.5 rounded-xl border transition-all ${checked ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/30"
       } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
   >
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={onChange}
-      disabled={disabled}
-      className="accent-indigo-600 w-4 h-4"
-    />
+    <input type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="accent-indigo-600 w-4 h-4" />
     <span className="font-semibold">{label}</span>
-    {checked && <FiCheckCircle size={13} className="ml-auto text-indigo-500" />}
+    {checked && <FiCheckCircle size={12} className="ml-auto text-indigo-500" />}
   </label>
 );
 
+/** Generic card section with optional header */
 const SectionCard = ({ title, subtitle, action, children, className = "", editHighlight = false }) => (
   <section
     className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${editHighlight ? "border-indigo-200 ring-1 ring-indigo-100" : "border-slate-200"
@@ -463,11 +396,7 @@ const SectionCard = ({ title, subtitle, action, children, className = "", editHi
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
         <div>
           <h2 className="text-sm font-bold text-slate-800 tracking-tight">{title}</h2>
-          {subtitle && (
-            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">
-              {subtitle}
-            </p>
-          )}
+          {subtitle && <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">{subtitle}</p>}
         </div>
         {action}
       </div>
@@ -476,25 +405,54 @@ const SectionCard = ({ title, subtitle, action, children, className = "", editHi
   </section>
 );
 
+/** Stat pill used in quantity summary row */
 const StatPill = ({ label, value, color = "gray" }) => {
   const colorMap = {
-    gray: "text-slate-700",
-    emerald: "text-emerald-600",
-    rose: "text-rose-600",
-    amber: "text-amber-600",
-    indigo: "text-indigo-600",
+    gray: "text-slate-700", emerald: "text-emerald-600",
+    rose: "text-rose-600", amber: "text-amber-600", indigo: "text-indigo-600",
   };
   return (
-    <div className="flex-1 px-4 py-3 border-r last:border-0 border-slate-100">
-      <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black mb-1">{label}</p>
+    <div className="flex-1 px-4 py-3 border-r last:border-0 border-slate-100 text-center">
+      <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black mb-0.5">{label}</p>
       <p className={`text-lg font-black tabular-nums ${colorMap[color] || colorMap.gray}`}>{value}</p>
     </div>
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FINANCIAL SUMMARY (view mode)
-// ─────────────────────────────────────────────────────────────────────────────
+/** Quantity progress tracker */
+const QtyTracker = ({ ordered, delivered, cancelled }) => {
+  const balance = Math.max(ordered - delivered - cancelled, 0);
+  const pct = ordered > 0 ? Math.min(((delivered + cancelled) / ordered) * 100, 100) : 0;
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center justify-between text-xs font-semibold">
+        <span className="text-slate-500">Progress</span>
+        <span className={`font-bold ${balance === 0 ? "text-emerald-600" : "text-slate-700"}`}>{Math.round(pct)}%</span>
+      </div>
+      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${balance === 0 ? "bg-emerald-500" : "bg-indigo-500"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="grid grid-cols-4 gap-1 text-center">
+        {[
+          { label: "Ordered", value: ordered, cls: "text-slate-800" },
+          { label: "Delivered", value: delivered, cls: "text-emerald-600" },
+          { label: "Cancelled", value: cancelled, cls: "text-rose-600" },
+          { label: "Balance", value: balance, cls: balance === 0 ? "text-emerald-600" : "text-amber-600" },
+        ].map(({ label, value, cls }) => (
+          <div key={label} className="bg-slate-50 rounded-lg py-2 px-1">
+            <p className="text-[8px] uppercase tracking-[0.1em] text-slate-400 font-black">{label}</p>
+            <p className={`text-sm font-black tabular-nums mt-0.5 ${cls}`}>{value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Financial Summary ────────────────────────────────────────────────────────
 
 const FinancialSummary = ({ order }) => {
   const totalAmount = Number(order?.order_total_price ?? 0);
@@ -504,37 +462,31 @@ const FinancialSummary = ({ order }) => {
   const outstandingBalance = Number(order?.amount_due ?? totalAmount - amountReceived);
   const isPaid = outstandingBalance <= 0;
 
+  const paymentStatusStyle = {
+    PAID: "bg-emerald-50 text-emerald-600 border-emerald-200",
+    PARTIAL: "bg-amber-50 text-amber-600 border-amber-200",
+  }[order.payment_status] || "bg-rose-50 text-rose-600 border-rose-200";
+
+  const paymentDotStyle = {
+    PAID: "bg-emerald-500",
+    PARTIAL: "bg-amber-500",
+  }[order.payment_status] || "bg-rose-500";
+
   return (
     <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="h-0.5 bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400" />
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+          <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
             <FiBarChart2 size={14} />
           </div>
           <div>
             <h2 className="text-sm font-bold text-slate-800">Bill Breakdown</h2>
-            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">
-              Financial Overview
-            </p>
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">Financial Overview</p>
           </div>
         </div>
-        <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${order.payment_status === "PAID"
-            ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-            : order.payment_status === "PARTIAL"
-              ? "bg-amber-50 text-amber-600 border-amber-200"
-              : "bg-rose-50 text-rose-600 border-rose-200"
-            }`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${order.payment_status === "PAID"
-              ? "bg-emerald-500"
-              : order.payment_status === "PARTIAL"
-                ? "bg-amber-500"
-                : "bg-rose-500"
-              }`}
-          />
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${paymentStatusStyle}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${paymentDotStyle}`} />
           {order.payment_status}
         </span>
       </div>
@@ -543,9 +495,7 @@ const FinancialSummary = ({ order }) => {
         <div className="max-w-md ml-auto space-y-0 divide-y divide-slate-50">
           <div className="flex justify-between items-center py-3">
             <span className="flex items-center gap-2 text-sm text-slate-500 font-medium">
-              <span className="w-4 h-4 rounded-md bg-slate-100 flex items-center justify-center">
-                <FiLayers size={9} className="text-slate-400" />
-              </span>
+              <span className="w-4 h-4 rounded-md bg-slate-100 flex items-center justify-center"><FiLayers size={9} className="text-slate-400" /></span>
               Gross Total
             </span>
             <span className="text-sm font-bold text-slate-700">{formatCurrency(grossAmount)}</span>
@@ -554,9 +504,7 @@ const FinancialSummary = ({ order }) => {
           {discountAmount > 0 && (
             <div className="flex justify-between items-center py-3">
               <span className="flex items-center gap-2 text-sm text-slate-500 font-medium">
-                <span className="w-4 h-4 rounded-md bg-rose-50 flex items-center justify-center">
-                  <FiTrendingDown size={9} className="text-rose-400" />
-                </span>
+                <span className="w-4 h-4 rounded-md bg-rose-50 flex items-center justify-center"><FiTrendingDown size={9} className="text-rose-400" /></span>
                 Savings
               </span>
               <span className="text-sm font-bold text-rose-500">− {formatCurrency(discountAmount)}</span>
@@ -573,9 +521,7 @@ const FinancialSummary = ({ order }) => {
           {amountReceived > 0 && (
             <div className="flex justify-between items-center py-3">
               <span className="flex items-center gap-2 text-sm text-slate-500 font-medium">
-                <span className="w-4 h-4 rounded-md bg-indigo-50 flex items-center justify-center">
-                  <FiCreditCard size={9} className="text-indigo-400" />
-                </span>
+                <span className="w-4 h-4 rounded-md bg-indigo-50 flex items-center justify-center"><FiCreditCard size={9} className="text-indigo-400" /></span>
                 Paid Now
               </span>
               <span className="text-sm font-bold text-indigo-600">{formatCurrency(amountReceived)}</span>
@@ -583,17 +529,12 @@ const FinancialSummary = ({ order }) => {
           )}
 
           <div className="pt-3">
-            <div
-              className={`flex items-center justify-between px-4 py-3.5 rounded-xl border ${isPaid ? "bg-emerald-50/80 border-emerald-200" : "bg-rose-50/80 border-rose-200"
-                }`}
-            >
+            <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl border ${isPaid ? "bg-emerald-50/80 border-emerald-200" : "bg-rose-50/80 border-rose-200"}`}>
               <div>
                 <p className={`text-[10px] font-black uppercase tracking-[0.1em] ${isPaid ? "text-emerald-600" : "text-rose-500"}`}>
                   {isPaid ? "Fully Paid" : "Balance Due"}
                 </p>
-                <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                  {isPaid ? "No dues remaining" : "To be collected"}
-                </p>
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5">{isPaid ? "No dues remaining" : "To be collected"}</p>
               </div>
               <span className={`text-xl font-black tabular-nums ${isPaid ? "text-emerald-600" : "text-rose-600"}`}>
                 {formatCurrency(Math.abs(outstandingBalance))}
@@ -606,9 +547,430 @@ const FinancialSummary = ({ order }) => {
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN COMPONENT
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Order Item Card ──────────────────────────────────────────────────────────
+
+const OrderItemCard = ({
+  d, index, isEditMode, editDetail, originalOrder,
+  userCanViewPrice, permissions, isOrderLocked,
+  updateDetailField,
+}) => {
+  const stockNotes = formatStockNotes(d.notes);
+  const discountNotes = formatDealerDiscountNotes(d.notes);
+  const deliveryNotes = formatDeliveryNotes(d.delivery_notes);
+
+  const totalOrdered = Number(d.total_qty_ordered ?? d.qty_ordered ?? 0);
+  const delivered = Number(d.qty_delivered ?? 0);
+  const cancelled = Number(d.qty_cancelled ?? d.total_cancelled_qty ?? 0);
+  const balanceQty = Math.max(totalOrdered - delivered - cancelled, 0);
+
+  console.log("editDetail", d);
+  const hasDiscount = !d.is_free && Number(d.total_dealer_discount) > 0;
+
+  const isLocked = ["COMPLETED", "DELIVERED", "CANCELLED"].includes(d.status);
+  const { hasUnpacked, hasProduction } = d.stock_flags || {};
+  const showProduction = hasProduction || hasUnpacked;
+  const showCompletion = isEditMode && !isLocked && (hasUnpacked || hasProduction);
+
+  const isDeliveryDateChanged =
+    editDetail?.delivery_date &&
+    originalOrder?.order_details?.[index] &&
+    editDetail.delivery_date !== originalOrder.order_details[index].delivery_date;
+  const isCancelQtyChanged = Number(editDetail?.cancel_qty || 0) >= 1;
+
+  const detailStatusOptions = (() => {
+    const base = permissions.allowedStatuses ?? getAllowedNextStatuses(editDetail?.status);
+    return base.includes(editDetail?.status) ? base : [editDetail?.status, ...base];
+  })();
+
+  return (
+    <div className={`bg-white border rounded-2xl overflow-hidden shadow-sm transition-all duration-200 ${isEditMode ? "border-indigo-200 ring-1 ring-indigo-100/60" : "border-slate-200 hover:border-slate-300 hover:shadow-md"}`}>
+
+      {/* Card Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
+            <FiPackage size={14} className="text-indigo-500" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-bold text-slate-900 text-sm truncate">{capitalizeFirstLetter(d.product_name)}</p>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">
+              {[
+                d.product_category ? capitalizeFirstLetter(d.product_category) : null,
+                d.product_brand ? capitalizeFirstLetter(d.product_brand) : null,
+                d.product_model ? capitalizeFirstLetter(d.product_model) : null,
+              ].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+          {d.is_free && (
+            <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wide">
+              Free
+            </span>
+          )}
+          {showProduction ? (
+            <ProductionStatusBadge hasProduction={hasProduction} hasUnpacked={hasUnpacked} variant="detail" />
+          ) : (
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(d?.status)}`}>
+              {d?.status || "Unknown"}
+            </span>
+          )}
+          <span className="text-[9px] font-mono text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md hidden sm:inline">
+            {d.product_id}
+          </span>
+        </div>
+      </div>
+
+      {/* Card Body */}
+      <div className="p-5 space-y-5">
+
+        {/* Quantity Tracker */}
+        <QtyTracker ordered={totalOrdered} delivered={delivered} cancelled={cancelled} />
+
+        {userCanViewPrice && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+            {/* UNIT PRICE */}
+            {(d.is_free || Number(d.unit_product_price) > 0) && (
+              <div className={`relative overflow-hidden rounded-xl border p-4 transition-all ${d.is_free
+                ? "bg-blue-50 border-blue-200"
+                : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                }`}>
+                <div className={`absolute top-0 inset-x-0 h-0.5 rounded-t-xl ${d.is_free ? "bg-blue-500" : "bg-indigo-500"}`} />
+                <p className={`text-[10px] font-black uppercase tracking-[0.12em] mb-2.5 ${d.is_free ? "text-blue-700" : "text-slate-400"}`}>
+                  Unit Price
+                </p>
+                {d.is_free ? (
+                  <>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-100 border border-blue-200 text-sm font-black text-blue-700">
+                      FREE
+                    </span>
+                    <p className="text-[10px] text-blue-600 font-medium mt-2">Scheme item</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-black text-slate-900 tracking-tight tabular-nums">
+                      {formatCurrency(d.unit_product_price)}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-medium mt-1">per unit</p>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* TOTAL PRICE */}
+            {(d.is_free || Number(d.total_price) > 0) && (
+              <div className={`relative overflow-hidden rounded-xl border p-4 transition-all ${d.is_free
+                ? "bg-blue-50 border-blue-200"
+                : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                }`}>
+                <div className={`absolute top-0 inset-x-0 h-0.5 rounded-t-xl ${d.is_free ? "bg-blue-500" : "bg-indigo-500"}`} />
+                <p className={`text-[10px] font-black uppercase tracking-[0.12em] mb-2.5 ${d.is_free ? "text-blue-700" : "text-slate-400"}`}>
+                  Total Price
+                </p>
+                {d.is_free ? (
+                  <>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-100 border border-blue-200 text-sm font-black text-blue-700">
+                      FREE
+                    </span>
+                    <p className="text-[10px] text-blue-600 font-medium mt-2">No charge applied</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-lg font-black text-slate-900 tracking-tight tabular-nums">
+                        {formatCurrency(d.total_price)}
+                      </p>
+                      {hasDiscount && Number(d.total_product_price) > 0 && (
+                        <span className="text-xs text-slate-400 line-through tabular-nums">
+                          {formatCurrency(d.total_product_price)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-medium mt-1">
+                      {hasDiscount ? "after dealer discount" : "total amount"}
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* DISCOUNT */}
+            {hasDiscount && Number(d.total_dealer_discount) > 0 && (
+              <div className="relative overflow-hidden bg-emerald-50 border border-emerald-200 rounded-xl p-4 transition-all hover:border-emerald-300 hover:shadow-sm">
+                <div className="absolute top-0 inset-x-0 h-0.5 rounded-t-xl bg-emerald-500" />
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700 mb-2.5">
+                  Discount Saved
+                </p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-black text-emerald-600">−</span>
+                  <p className="text-lg font-black text-emerald-700 tracking-tight tabular-nums">
+                    {formatCurrency(d.total_dealer_discount)}
+                  </p>
+                </div>
+                <p className="text-[10px] text-emerald-600 font-medium mt-1">dealer discount applied</p>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {userCanViewPrice && d.delivery_date && (() => {
+          const parsed = formatDeliveryDate(d.delivery_date);
+          if (!parsed) return null;
+          return (
+            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5">
+              <FiCalendar size={11} className="text-slate-400" />
+              <span className="font-black text-slate-400 uppercase text-[9px] tracking-[0.1em]">Delivery Date</span>
+              <span className="ml-auto font-semibold text-slate-700">{parsed.date} <span className="w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" /> {parsed.time}</span>
+            </div>
+          );
+        })()}
+
+        {/* Notes */}
+        {stockNotes?.length > 0 && <NotesList title="Stock Notes" notes={stockNotes} variant="default" />}
+        {discountNotes?.length > 0 && <NotesList title="Dealer Discount Notes" notes={discountNotes} variant="purple" />}
+        {deliveryNotes?.length > 0 && <DeliveryNotesCard title="Delivery Notes" color="blue" notes={deliveryNotes} />}
+
+        {/* ── Edit Panel ── */}
+        {isEditMode && editDetail && (
+          <div className="pt-4 border-t border-indigo-100 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+              <p className="text-[9px] uppercase font-black tracking-[0.14em] text-indigo-500">Edit Item</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <FormField label="Status">
+                <CustomSelect
+                  value={editDetail.status}
+                  disabled={isLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("status"))}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (permissions.allowedStatuses && !permissions.allowedStatuses.includes(next)) return;
+                    updateDetailField(index, "status", next);
+                  }}
+                  options={detailStatusOptions}
+                />
+              </FormField>
+
+              <FormField label="Delivery Date">
+                <EditInput
+                  type="datetime-local"
+                  value={formatDateForInput(editDetail.delivery_date)}
+                  disabled={isLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("delivery_date"))}
+                  onChange={(e) => updateDetailField(index, "delivery_date", e.target.value)}
+                />
+              </FormField>
+
+              {isDeliveryDateChanged && (
+                <FormField label="Delivery Note">
+                  <EditInput
+                    type="text"
+                    value={editDetail.delivery_note || ""}
+                    disabled={isLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("delivery_note"))}
+                    onChange={(e) => updateDetailField(index, "delivery_note", e.target.value)}
+                    placeholder="Reason for delivery date change"
+                  />
+                </FormField>
+              )}
+
+              {!isLocked && (
+                <FormField label="Delivered Quantity">
+                  <EditInput
+                    type="number" min={0} max={balanceQty}
+                    disabled={!permissions.canEditAll && !permissions.editableDetailFields?.includes("delivered_qty")}
+                    onChange={(e) => {
+                      const val = Number(e.target.value || 0);
+                      if (val <= balanceQty) updateDetailField(index, "delivered_qty", val);
+                    }}
+                    placeholder={`Max ${balanceQty}`}
+                  />
+                </FormField>
+              )}
+
+              {!isLocked && (
+                <FormField label="Cancelled Quantity">
+                  <EditInput
+                    type="number" min={0} max={balanceQty}
+                    disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("cancel_qty"))}
+                    onChange={(e) => {
+                      const val = Number(e.target.value || 0);
+                      if (val <= balanceQty) updateDetailField(index, "cancel_qty", val);
+                    }}
+                    placeholder={`Max ${balanceQty}`}
+                  />
+                </FormField>
+              )}
+
+              {isCancelQtyChanged && (
+                <FormField label="Reason for Cancellation">
+                  <textarea
+                    disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("cancel_qty"))}
+                    onChange={(e) => updateDetailField(index, "reason_for_cancellation", e.target.value)}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all resize-none"
+                    rows={2}
+                    placeholder="Enter reason for cancellation"
+                  />
+                </FormField>
+              )}
+            </div>
+
+            {showCompletion && (
+              <div className="border-t border-indigo-100 pt-4 space-y-2">
+                <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black">Completion Status</p>
+                <div className="flex gap-3 flex-wrap">
+                  {hasUnpacked && (
+                    <CheckboxField
+                      label="Unpacked Completed"
+                      checked={editDetail.has_unPacked_completed}
+                      disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("has_unPacked_completed"))}
+                      onChange={(e) => updateDetailField(index, "has_unPacked_completed", e.target.checked)}
+                    />
+                  )}
+                  {hasProduction && (
+                    <CheckboxField
+                      label="Production Completed"
+                      checked={editDetail.has_production_completed}
+                      disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("has_production_completed"))}
+                      onChange={(e) => updateDetailField(index, "has_production_completed", e.target.checked)}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div >
+  );
+};
+
+// ─── Page Header ──────────────────────────────────────────────────────────────
+
+const PageHeader = ({
+  order, isEditMode, submitting, pdfLoading, isOrderLocked,
+  isPaymentFullyDone, userCanPrint, onEdit, onSave, onDiscard, onPrint,
+}) => (
+  <div className="flex items-start sm:items-center gap-4">
+    <button
+      type="button"
+      onClick={() => window.history.back()}
+      className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm group flex-shrink-0"
+    >
+      <FiArrowLeft size={15} className="text-slate-400 group-hover:text-slate-700 transition-colors" />
+    </button>
+
+    <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h1 className="text-lg font-black text-slate-900 tracking-tight">
+            Order <span className="text-indigo-600 font-mono">{order?.order_number}</span>
+          </h1>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getPriorityStyle(order?.priority)}`}>
+            {order?.priority || "Normal"}
+          </span>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(order?.status)}`}>
+            {order?.status || "Unknown"}
+          </span>
+        </div>
+        <p className="text-xs text-slate-400 mt-1 font-medium">
+          Created {order?.created_at ? formatDate(order.created_at) : "—"}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2.5 flex-wrap">
+        {userCanPrint && (
+          <button
+            type="button"
+            onClick={onPrint}
+            disabled={pdfLoading}
+            title="Download / Print PDF Invoice"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            {pdfLoading ? (
+              <><div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" /> Generating…</>
+            ) : (
+              <><FiPrinter size={13} /> Print / PDF</>
+            )}
+          </button>
+        )}
+
+        {!isEditMode ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={isOrderLocked && isPaymentFullyDone}
+            title={isOrderLocked && isPaymentFullyDone ? "Completed orders cannot be edited" : "Edit this order"}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
+          >
+            <FiEdit2 size={13} /> Edit Order
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={submitting || (isOrderLocked && isPaymentFullyDone)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
+            >
+              <FiSave size={13} /> {submitting ? "Saving…" : "Save Changes"}
+            </button>
+            <button
+              type="button"
+              onClick={onDiscard}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
+            >
+              <FiX size={13} /> Discard
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+// ─── Edit Mode Banner ─────────────────────────────────────────────────────────
+
+const EditModeBanner = () => (
+  <div className="flex items-center gap-3 px-4 py-3.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 text-sm font-semibold">
+    <div className="p-1.5 bg-indigo-100 rounded-lg flex-shrink-0">
+      <FiZap size={12} className="text-indigo-600" />
+    </div>
+    You're in <strong className="font-black mx-1">Edit Mode</strong> — make your changes and click{" "}
+    <strong className="font-black ml-1">Save Changes</strong> to apply.
+  </div>
+);
+
+// ─── Floating Save Bar ────────────────────────────────────────────────────────
+
+const FloatingSaveBar = ({ onSave, onDiscard, submitting, isOrderLocked, isPaymentFullyDone }) => (
+  <div className="sticky bottom-6 z-20 flex justify-center pointer-events-none">
+    <div className="pointer-events-auto flex items-center gap-3 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-lg px-5 py-3 ring-1 ring-slate-100">
+      <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+      <span className="text-sm text-slate-500 font-semibold hidden sm:block">Unsaved changes</span>
+      <div className="w-px h-4 bg-slate-200 mx-1 hidden sm:block" />
+      <button
+        type="button"
+        onClick={onDiscard}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-lg hover:bg-slate-50 active:scale-95 transition-all"
+      >
+        <FiX size={12} /> Discard
+      </button>
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={submitting || (isOrderLocked && isPaymentFullyDone)}
+        className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
+      >
+        <FiSave size={12} /> {submitting ? "Saving…" : "Save Changes"}
+      </button>
+    </div>
+  </div>
+);
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 const OrderDetails = () => {
   const { id } = useParams();
@@ -616,31 +978,27 @@ const OrderDetails = () => {
   const location = useLocation();
   const { user } = useAuth();
 
-  // ── Permission flags derived once from role ────────────────────────────────
   const userCanPrint = canPrintOrder(user?.role);
   const userCanViewPrice = canViewOrderPrice(user?.role);
   const userCanViewDealerInfo = canViewDealerInformation(user?.role);
-
   const permissions = useUpdateOrderPermissions();
 
-  // ── Core data state ────────────────────────────────────────────────────────
+  // ── State ──────────────────────────────────────────────────────────────────
   const [order, setOrder] = useState(null);
   const [userMap, setUserMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ── Edit mode state ────────────────────────────────────────────────────────
   const [isEditMode, setIsEditMode] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
   const [originalOrder, setOriginalOrder] = useState(null);
   const [amountPaid, setAmountPaid] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── PDF state ──────────────────────────────────────────────────────────────
   const [companyInfo, setCompanyInfo] = useState({});
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  // ── Open edit mode when navigated here with state ──────────────────────────
+  // Open edit mode when navigated with state flag
   useEffect(() => {
     if (location.state?.openEditMode) {
       setIsEditMode(true);
@@ -648,7 +1006,7 @@ const OrderDetails = () => {
     }
   }, [location.state]);
 
-  // ── Derived lock flags ─────────────────────────────────────────────────────
+  // ── Derived flags ──────────────────────────────────────────────────────────
   const isCompleted = editOrder?.status === "COMPLETED";
   const isDelivered = editOrder?.status === "DELIVERED";
   const isCancelled = editOrder?.status === "CANCELLED";
@@ -659,41 +1017,38 @@ const OrderDetails = () => {
     !!originalOrder &&
     editOrder.promised_delivery_date !== originalOrder.promised_delivery_date;
 
-  // ── Fetch all active users for name mapping ────────────────────────────────
-  const fetchUsersForCreatedByMap = useCallback(async () => {
+  // ── Data fetchers ──────────────────────────────────────────────────────────
+  const fetchUsersForMap = useCallback(async () => {
     try {
-      const response = await fetchUsers({
-        page: 1, limit: 500, status: "active",
-        includePassword: false, includeDealers: false,
-      });
-      if (response?.success && Array.isArray(response?.data?.employees)) {
-        const mapped = response.data.employees.reduce((acc, u) => {
-          if (u?.employee_id) acc[u.employee_id] = capitalizeFirstLetter(u.employee_name);
-          return acc;
-        }, {});
-        setUserMap(mapped);
+      const res = await fetchUsers({ page: 1, limit: 500, status: "active", includePassword: false, includeDealers: false });
+      if (res?.success && Array.isArray(res?.data?.employees)) {
+        setUserMap(
+          res.data.employees.reduce((acc, u) => {
+            if (u?.employee_id) acc[u.employee_id] = capitalizeFirstLetter(u.employee_name);
+            return acc;
+          }, {})
+        );
       }
     } catch (err) {
       console.error("Failed to fetch users:", err);
     }
   }, []);
 
-  // ── Fetch order by id ──────────────────────────────────────────────────────
   const loadOrder = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
       setError(null);
-      const response = await fetchOrderById(id);
-      if (response?.success && response?.data?.order) {
-        const fetched = response.data.order;
+      const res = await fetchOrderById(id);
+      if (res?.success && res?.data?.order) {
+        const fetched = res.data.order;
         const normalized = normalizeOrder(fetched);
         setOrder(fetched);
         setAmountPaid(fetched?.amount_paid ?? 0);
         setEditOrder(normalized);
         setOriginalOrder(normalized);
       } else {
-        setError(response?.message || "Failed to load order");
+        setError(res?.message || "Failed to load order");
       }
     } catch (err) {
       console.error("Order fetch error:", err);
@@ -705,19 +1060,15 @@ const OrderDetails = () => {
 
   useEffect(() => {
     loadOrder();
-    fetchUsersForCreatedByMap();
-  }, [loadOrder, fetchUsersForCreatedByMap]);
+    fetchUsersForMap();
+  }, [loadOrder, fetchUsersForMap]);
 
-  // ── Validate company object before using it for PDF ───────────────────────
+  // ── PDF ────────────────────────────────────────────────────────────────────
   const isValidCompany = (data) =>
-    data !== null &&
-    data !== undefined &&
-    typeof data === "object" &&
-    !Array.isArray(data) &&
-    Object.keys(data).length > 0;
+    data !== null && data !== undefined && typeof data === "object" &&
+    !Array.isArray(data) && Object.keys(data).length > 0;
 
-  // ── Lazy-load company info then trigger PDF ────────────────────────────────
-  const loadCompanyAndGeneratePDF = useCallback(async () => {
+  const handlePrint = useCallback(async () => {
     if (!order) return;
     setPdfLoading(true);
     try {
@@ -732,27 +1083,23 @@ const OrderDetails = () => {
       generateOrderPDF(order, company, userMap);
     } catch (err) {
       console.error("PDF generation error:", err);
-      Swal.fire({
-        icon: "error",
-        title: "PDF Generation Failed",
-        text: err.message || "Could not fetch company details. Please try again.",
-      });
+      Swal.fire({ icon: "error", title: "PDF Generation Failed", text: err.message || "Could not fetch company details." });
     } finally {
       setPdfLoading(false);
     }
   }, [order, companyInfo, userMap]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
-  const totalItems = useMemo(() => {
-    if (!Array.isArray(order?.order_details)) return 0;
-    return order.order_details.reduce(
-      (sum, item) => sum + Number(item?.total_qty_ordered ?? 0), 0
-    );
-  }, [order]);
+  const totalUnits = useMemo(
+    () => (order?.order_details || []).reduce((sum, item) => sum + Number(item?.total_qty_ordered ?? 0), 0),
+    [order]
+  );
 
-  // ── Field update handlers ──────────────────────────────────────────────────
-  const updateOrderField = useCallback((field, value) =>
-    setEditOrder((prev) => ({ ...prev, [field]: value })), []);
+  // ── Update handlers ────────────────────────────────────────────────────────
+  const updateOrderField = useCallback(
+    (field, value) => setEditOrder((prev) => ({ ...prev, [field]: value })),
+    []
+  );
 
   const updateDetailField = useCallback((index, field, value) => {
     setEditOrder((prev) => {
@@ -770,7 +1117,7 @@ const OrderDetails = () => {
     setIsEditMode(false);
   }, [order]);
 
-  // ── Build minimal diff payload ─────────────────────────────────────────────
+  // ── Build payload ──────────────────────────────────────────────────────────
   const buildPayload = useMemo(() => {
     if (!editOrder || !originalOrder) return null;
     const payload = { order_number: editOrder.order_number };
@@ -781,10 +1128,7 @@ const OrderDetails = () => {
 
     if (Number(editOrder.amount_paid) > 0) payload.amount_paid = Number(editOrder.amount_paid);
 
-    const isDateChanged =
-      editOrder.promised_delivery_date &&
-      editOrder.promised_delivery_date !== originalOrder.promised_delivery_date;
-    if (isDateChanged) {
+    if (editOrder.promised_delivery_date && editOrder.promised_delivery_date !== originalOrder.promised_delivery_date) {
       payload.delivery_date = new Date(editOrder.promised_delivery_date).toISOString();
       if (editOrder.delivery_note?.trim()) payload.delivery_note = editOrder.delivery_note.trim();
     }
@@ -807,20 +1151,14 @@ const OrderDetails = () => {
         const hasDateChanged = detail.delivery_date && detail.delivery_date !== orig.delivery_date;
 
         if (hasQtyChanged) { item.delivered_qty = deliveredQty; changed = true; }
-        if (hasQtyChanged || hasDateChanged) {
-          item.delivered_date = new Date(detail.delivery_date).toISOString(); changed = true;
-        }
-        if (hasDateChanged && detail.delivery_note?.trim()) {
-          item.delivery_note = detail.delivery_note.trim(); changed = true;
-        }
+        if (hasQtyChanged || hasDateChanged) { item.delivered_date = new Date(detail.delivery_date).toISOString(); changed = true; }
+        if (hasDateChanged && detail.delivery_note?.trim()) { item.delivery_note = detail.delivery_note.trim(); changed = true; }
 
         const cancelQty = Number(detail.cancel_qty);
         const origCancel = Number(orig.total_cancelled_qty || 0);
         const hasCancelChange = cancelQty > 0 && cancelQty !== origCancel;
         if (hasCancelChange) { item.cancel_qty = cancelQty; changed = true; }
-        if (hasCancelChange && detail.reason_for_cancellation?.trim()) {
-          item.reason_for_cancellation = detail.reason_for_cancellation.trim(); changed = true;
-        }
+        if (hasCancelChange && detail.reason_for_cancellation?.trim()) { item.reason_for_cancellation = detail.reason_for_cancellation.trim(); changed = true; }
 
         assignIfChanged("has_unPacked_completed", detail.has_unPacked_completed, orig.has_unPacked_completed);
         assignIfChanged("has_production_completed", detail.has_production_completed, orig.has_production_completed);
@@ -833,20 +1171,12 @@ const OrderDetails = () => {
     return payload;
   }, [editOrder, originalOrder]);
 
-  // ── Submit update ──────────────────────────────────────────────────────────
+  // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
     if (!buildPayload) return;
-    const hasChanges =
-      buildPayload.status ||
-      buildPayload.priority ||
-      buildPayload.delivery_date ||
-      buildPayload.amount_paid ||
-      buildPayload.payment_method ||
-      buildPayload.order_details;
-
-    if (!hasChanges) {
-      return Swal.fire({ icon: "info", title: "No Changes Detected" });
-    }
+    const hasChanges = buildPayload.status || buildPayload.priority || buildPayload.delivery_date ||
+      buildPayload.amount_paid || buildPayload.payment_method || buildPayload.order_details;
+    if (!hasChanges) return Swal.fire({ icon: "info", title: "No Changes Detected" });
 
     setSubmitting(true);
     try {
@@ -865,10 +1195,7 @@ const OrderDetails = () => {
     }
   }, [buildPayload, editOrder, loadOrder]);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // UI STATES
-  // ─────────────────────────────────────────────────────────────────────────
-
+  // ── Loading / Error States ─────────────────────────────────────────────────
   if (loading)
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
@@ -883,9 +1210,7 @@ const OrderDetails = () => {
   if (error)
     return (
       <div className="min-h-[40vh] flex flex-col items-center justify-center gap-3">
-        <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
-          <FiAlertCircle size={24} className="text-rose-500" />
-        </div>
+        <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100"><FiAlertCircle size={24} className="text-rose-500" /></div>
         <p className="text-sm font-semibold text-rose-600">{error}</p>
       </div>
     );
@@ -897,145 +1222,57 @@ const OrderDetails = () => {
       </div>
     );
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────────────────────────────────────
-
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-screen-xl mx-auto">
 
-      {/* ── HEADER ── */}
-      <div className="flex items-start sm:items-center gap-4">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm group flex-shrink-0"
-        >
-          <FiArrowLeft size={15} className="text-slate-400 group-hover:text-slate-700 transition-colors" />
-        </button>
+      {/* Header */}
+      <PageHeader
+        order={order}
+        isEditMode={isEditMode}
+        submitting={submitting}
+        pdfLoading={pdfLoading}
+        isOrderLocked={isOrderLocked}
+        isPaymentFullyDone={isPaymentFullyDone}
+        userCanPrint={userCanPrint}
+        onEdit={() => setIsEditMode(true)}
+        onSave={handleSubmit}
+        onDiscard={handleDiscardEdit}
+        onPrint={handlePrint}
+      />
 
-        <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-lg font-black text-slate-900 tracking-tight">
-                Order <span className="text-indigo-600 font-mono">{order?.order_number}</span>
-              </h1>
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getPriorityStyle(order?.priority)}`}>
-                {order?.priority || "Normal"}
-              </span>
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(order?.status)}`}>
-                {order?.status || "Unknown"}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1 font-medium">
-              Created {order?.created_at ? formatDate(order.created_at) : "—"}
-            </p>
-          </div>
+      {/* Edit banner */}
+      {isEditMode && <EditModeBanner />}
 
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* PDF / Print */}
-            {userCanPrint && (
-              <button
-                type="button"
-                onClick={loadCompanyAndGeneratePDF}
-                disabled={pdfLoading}
-                title="Download / Print PDF Invoice"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-              >
-                {pdfLoading ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-                    Generating…
-                  </>
-                ) : (
-                  <>
-                    <FiPrinter size={13} />
-                    Print / PDF
-                  </>
-                )}
-              </button>
-            )}
-
-            {!isEditMode ? (
-              <button
-                type="button"
-                onClick={() => setIsEditMode(true)}
-                disabled={isOrderLocked && isPaymentFullyDone}
-                title={isOrderLocked && isPaymentFullyDone ? "Completed orders cannot be edited" : "Edit this order"}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
-              >
-                <FiEdit2 size={13} />
-                Edit Order
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={submitting || (isOrderLocked && isPaymentFullyDone)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
-                >
-                  <FiSave size={13} />
-                  {submitting ? "Saving…" : "Save Changes"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDiscardEdit}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
-                >
-                  <FiX size={13} />
-                  Discard
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Edit mode banner */}
-      {isEditMode && (
-        <div className="flex items-center gap-3 px-4 py-3.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 text-sm font-semibold">
-          <div className="p-1.5 bg-indigo-100 rounded-lg flex-shrink-0">
-            <FiZap size={12} className="text-indigo-600" />
-          </div>
-          You're in <strong className="font-black mx-1">Edit Mode</strong> — make your changes and click{" "}
-          <strong className="font-black ml-1">Save Changes</strong> to apply.
-        </div>
-      )}
-
-      {/* ── ORDER SUMMARY ── */}
+      {/* Order Summary */}
       <SectionCard title="Order Summary" subtitle="Overview">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-1">
-          <Info icon={<FiCalendar />} label="Created">{formatDate(order?.created_at)}</Info>
-          <Info icon={<FiCalendar />} label="Updated">{formatDate(order?.updated_at)}</Info>
-          <Info icon={<FiTruck />} label="Promised Delivery">{formatDate(order?.promised_delivery_date)}</Info>
-          <Info icon={<FiCreditCard />} label="Payment Status">
+          <InfoCell icon={<FiCalendar />} label="Created">{formatDate(order?.created_at)}</InfoCell>
+          <InfoCell icon={<FiCalendar />} label="Updated">{formatDate(order?.updated_at)}</InfoCell>
+          <InfoCell icon={<FiTruck />} label="Promised Delivery">{formatDate(order?.promised_delivery_date)}</InfoCell>
+          <InfoCell icon={<FiCreditCard />} label="Payment Status">
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getPaymentStatusStyle(order?.payment_status)}`}>
               {order?.payment_status || "Unknown"}
             </span>
-          </Info>
-          <Info icon={<FiCreditCard />} label="Payment Type">
+          </InfoCell>
+          <InfoCell icon={<FiCreditCard />} label="Payment Type">
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getPaymentTypeStyle(order?.payment_type)}`}>
               {order?.payment_type || "Unknown"}
             </span>
-          </Info>
-          <Info icon={<FiCalendar />} label="Last Payment">{formatDate(order?.last_payment_date)}</Info>
-          <Info icon={<FiUser />} label="Salesman">
+          </InfoCell>
+          <InfoCell icon={<FiCalendar />} label="Last Payment">{formatDate(order?.last_payment_date)}</InfoCell>
+          <InfoCell icon={<FiUser />} label="Salesman">
             <div className="flex flex-col">
               <span>{userMap[order?.salesman_id] || "Unknown"}</span>
-              {order?.salesman_id && (
-                <span className="text-[9px] text-slate-400 font-mono font-normal mt-0.5">{order.salesman_id}</span>
-              )}
+              {order?.salesman_id && <span className="text-[9px] text-slate-400 font-mono font-normal mt-0.5">{order.salesman_id}</span>}
             </div>
-          </Info>
-          <Info icon={<FiUser />} label="Created By">
+          </InfoCell>
+          <InfoCell icon={<FiUser />} label="Created By">
             <div className="flex flex-col">
               <span>{userMap[order?.created_by] || "Unknown"}</span>
-              {order?.created_by && (
-                <span className="text-[9px] text-slate-400 font-mono font-normal mt-0.5">{order.created_by}</span>
-              )}
+              {order?.created_by && <span className="text-[9px] text-slate-400 font-mono font-normal mt-0.5">{order.created_by}</span>}
             </div>
-          </Info>
+          </InfoCell>
         </div>
         {order?.order_note && (
           <div className="mt-5 mx-2 pt-5 border-t border-slate-100">
@@ -1047,12 +1284,12 @@ const OrderDetails = () => {
         )}
       </SectionCard>
 
-      {/* ── EDIT MODE — ORDER-LEVEL FIELDS ── */}
+      {/* Edit Mode — Order-level fields */}
       {isEditMode && editOrder && (
         <section className="bg-white border border-indigo-200 rounded-2xl shadow-sm ring-1 ring-indigo-100 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-indigo-100 bg-indigo-50/40">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-indigo-500 mb-1">Editing</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-indigo-500 mb-1">Editing Order</p>
               <p className="text-sm font-black text-slate-900 font-mono">{editOrder.order_number}</p>
             </div>
             <span className="text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg font-black uppercase tracking-wide">
@@ -1061,7 +1298,6 @@ const OrderDetails = () => {
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-
               <FormField label="Order Status">
                 <CustomSelect
                   value={editOrder.status}
@@ -1072,8 +1308,7 @@ const OrderDetails = () => {
                     updateOrderField("status", e.target.value);
                   }}
                   options={
-                    permissions.restrictStatusToDelivered
-                      ? ["DELIVERED"]
+                    permissions.restrictStatusToDelivered ? ["DELIVERED"]
                       : permissions.allowedStatuses ?? getAllowedNextStatuses(editOrder.status)
                   }
                 />
@@ -1113,7 +1348,7 @@ const OrderDetails = () => {
                 />
               </FormField>
 
-              <FormField label="Delivered Date">
+              <FormField label="Promised Delivery Date">
                 <EditInput
                   type="datetime-local"
                   value={formatDateForInput(editOrder.promised_delivery_date)}
@@ -1137,472 +1372,57 @@ const OrderDetails = () => {
         </section>
       )}
 
-      {/* ── DEALER INFORMATION — role-gated ── */}
+      {/* Dealer Information */}
       {userCanViewDealerInfo && (
         <SectionCard title="Dealer Information" subtitle="Profile">
           <div className="grid sm:grid-cols-2 gap-1">
-            <Info icon={<FiUser />} label="Dealer Name">
+            <InfoCell icon={<FiUser />} label="Dealer Name">
               {order?.dealer?.employee_name ? capitalizeFirstLetter(order.dealer.employee_name) : null}
-            </Info>
-            <Info icon={<FiBox />} label="Shop Name">
+            </InfoCell>
+            <InfoCell icon={<FiBox />} label="Shop Name">
               {order?.dealer?.shop_name ? capitalizeFirstLetter(order.dealer.shop_name) : null}
-            </Info>
-            <Info icon={<FiMail />} label="Email">{order?.dealer?.employee_email}</Info>
-            <Info icon={<FiPhone />} label="Phone">{order?.dealer?.employee_phone}</Info>
-            <Info icon={<FiMapPin />} label="Address">
+            </InfoCell>
+            <InfoCell icon={<FiMail />} label="Email">{order?.dealer?.employee_email}</InfoCell>
+            <InfoCell icon={<FiPhone />} label="Phone">{order?.dealer?.employee_phone}</InfoCell>
+            <InfoCell icon={<FiMapPin />} label="Address">
               {order?.dealer?.address ? capitalizeFirstLetter(order.dealer.address) : null}
-            </Info>
+            </InfoCell>
           </div>
         </SectionCard>
       )}
 
-      {/* ── ORDER ITEMS ── */}
-      <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+      {/* Order Items */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-bold text-slate-800">Order Items</h2>
-            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">Products</p>
+            <h2 className="text-sm font-bold text-slate-800 tracking-tight">Order Items</h2>
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">Products &amp; Details</p>
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wide">
             <FiPackage size={10} />
-            {totalItems} {totalItems === 1 ? "Unit" : "Units"}
+            {totalUnits} {totalUnits === 1 ? "Unit" : "Units"}
           </span>
         </div>
 
-        {/* Desktop table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50/60 border-b border-slate-100">
-              <tr>
-                {["Product", "Quantity", "Unit Price", "Total", "Status", "Delivery Date",
-                  ...(isEditMode ? ["Edit"] : [])].map((h, i) => (
-                    <th
-                      key={i}
-                      className={`px-6 py-3.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 ${i === 0 ? "text-left" : i === 1 ? "text-center" : "text-right"
-                        } ${isEditMode && i === 5 ? "text-center text-indigo-400" : ""}`}
-                    >
-                      {h}
-                    </th>
-                  ))}
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-50">
-              {order.order_details?.map((d, index) => {
-                const stockNotes = formatStockNotes(d.notes);
-                const discountNotes = formatDealerDiscountNotes(d.notes);
-
-                const deliveryNotes = formatDeliveryNotes(d.delivery_notes);
-
-                const totalOrdered = Number(d.total_qty_ordered ?? d.qty_ordered ?? 0);
-                const delivered = Number(d.qty_delivered ?? 0);
-                const cancelled = Number(d.qty_cancelled ?? d.total_cancelled_qty ?? 0);
-                const balanceQty = Math.max(totalOrdered - delivered - cancelled, 0);
-                const hasDiscount = !d.is_free && d.total_dealer_discount && d.total_dealer_discount > 0;
-                const editDetail = editOrder?.order_details?.[index];
-                const isLocked = ["COMPLETED", "DELIVERED", "CANCELLED"].includes(d.status);
-                const progressPct = totalOrdered > 0
-                  ? Math.min(((delivered + cancelled) / totalOrdered) * 100, 100)
-                  : 0;
-                const isDeliveryDateChanged =
-                  editDetail?.delivery_date &&
-                  originalOrder?.order_details?.[index] &&
-                  editDetail.delivery_date !== originalOrder.order_details[index].delivery_date;
-                const isCancelQtyChanged = Number(editDetail?.cancel_qty || 0) >= 1;
-
-                const { hasUnpacked, hasProduction } = d.stock_flags || {};
-                const showProduction = hasProduction || hasUnpacked;
-
-                const showCompletion = isEditMode && !isLocked && (hasUnpacked || hasProduction);
-
-                const detailStatusOptions = (() => {
-                  const base = permissions.allowedStatuses
-                    ?? getAllowedNextStatuses(editDetail.status);
-
-                  return base.includes(editDetail.status)
-                    ? base
-                    : [editDetail.status, ...base];
-                })();
-
-                return (
-                  <React.Fragment key={d.order_details_number}>
-                    <tr className="hover:bg-slate-50/60 transition-colors">
-
-                      {/* Product */}
-                      <td className="px-6 py-5 align-top">
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-slate-900">{capitalizeFirstLetter(d.product_name)}</span>
-                            <span className="text-[9px] font-mono text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md">
-                              {d.product_id}
-                            </span>
-                          </div>
-                          <span className="text-xs text-slate-400 font-medium">
-                            {capitalizeFirstLetter(d.product_brand)} · {capitalizeFirstLetter(d.product_model)}
-                          </span>
-                          <div className="flex flex-wrap gap-1.5 mt-0.5">
-                            {d.is_free && (
-                              <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wide">
-                                Free Item
-                              </span>
-                            )}
-                            <span className={`px-2 py-0.5 text-[9px] font-black rounded-full border uppercase tracking-wide ${d.is_free
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                              : "bg-slate-100 text-slate-600 border-slate-200"
-                              }`}>
-                              {d.is_free ? "Scheme" : "Regular"}
-                            </span>
-                          </div>
-                          {stockNotes?.length > 0 && <NotesCard title="Stock Notes" color="gray" notes={stockNotes} />}
-                          {discountNotes?.length > 0 && <NotesCard title="Dealer Discount Notes" color="purple" notes={discountNotes} />}
-                        </div>
-                      </td>
-
-                      {/* Quantity */}
-                      <td className="px-6 py-5 align-middle">
-                        <div className="min-w-[190px] bg-white border border-slate-200 rounded-xl px-4 py-3.5 hover:border-slate-300 hover:shadow-sm transition-all">
-                          <div className="flex items-center justify-between mb-2.5">
-                            <div>
-                              <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black">Ordered</p>
-                              <p className="text-xl font-black text-slate-900 tabular-nums">{totalOrdered}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black">Balance</p>
-                              <p className={`text-xl font-black tabular-nums ${balanceQty === 0 ? "text-emerald-600" : "text-amber-600"}`}>
-                                {balanceQty}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-700 ${balanceQty === 0 ? "bg-emerald-500" : "bg-indigo-500"}`}
-                              style={{ width: `${progressPct}%` }}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between mt-2.5">
-                            <div>
-                              <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black">Delivered</p>
-                              <p className="text-sm font-bold text-emerald-600 tabular-nums">{delivered}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black">Cancelled</p>
-                              <p className="text-sm font-bold text-rose-600 tabular-nums">{cancelled}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Unit Price */}
-                      {userCanViewPrice && (
-                        <td className="px-6 py-5 text-right whitespace-nowrap align-middle">
-                          <span className="text-sm font-bold text-slate-700">{formatCurrency(d.unit_product_price)}</span>
-                        </td>
-                      )}
-
-                      {/* Total */}
-                      {userCanViewPrice && (
-                        <td className="px-6 py-5 text-right whitespace-nowrap align-middle">
-                          {d.is_free ? (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-100 uppercase">
-                              FREE
-                            </span>
-                          ) : (
-                            <div className="flex flex-col items-end gap-1">
-                              {hasDiscount && Number(d.total_product_price) > 0 && (
-                                <span className="text-xs text-slate-400 line-through tabular-nums">{formatCurrency(d.total_product_price)}</span>
-                              )}
-                              {Number(d.total_price) > 0 && (
-                                <span className="text-sm font-black text-slate-900 tabular-nums">{formatCurrency(d.total_price)}</span>
-                              )}
-                              {hasDiscount && Number(d.total_dealer_discount) > 0 && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
-                                  − {formatCurrency(d.total_dealer_discount)}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                      )}
-
-                      {/* Status */}
-                      <td className="px-6 py-5 text-center align-middle">
-                        {showProduction ? (
-                          <ProductionStatusBadge
-                            hasProduction={hasProduction}
-                            hasUnpacked={hasUnpacked}
-                            variant="detail"
-                          />
-                        ) : (
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(d?.status)}`}>
-                            {d?.status || "Unknown"}
-                          </span>
-                        )}
-
-                      </td>
-
-                      {userCanViewPrice && (
-                        <td className="px-6 py-5 text-right whitespace-nowrap align-middle">
-                          <span className="text-sm font-bold text-slate-700 tabular-nums">
-                            {formatDateForInput(d.delivery_date)}
-                          </span>
-
-                          {deliveryNotes?.length > 0 && (
-                            <DeliveryNotesCard
-                              title="Delivery Notes"
-                              color="blue"
-                              notes={deliveryNotes}
-                            />
-                          )}
-                        </td>
-                      )}
-
-                      {isEditMode && <td />}
-                    </tr>
-
-                    {/* Inline edit row */}
-                    {isEditMode && editDetail && (
-                      <tr className="bg-indigo-50/20">
-                        <td colSpan={6} className="px-6 py-5 border-t border-indigo-100">
-                          <div className="space-y-4">
-                            {/* Quick Stats */}
-                            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                              <div className="flex divide-x divide-slate-100">
-                                <StatPill label="Total Ordered" value={totalOrdered} color="gray" />
-                                <StatPill label="Delivered" value={delivered} color="emerald" />
-                                <StatPill label="Cancelled" value={cancelled} color="rose" />
-                                <StatPill label="Balance" value={balanceQty} color="amber" />
-                              </div>
-                              <div className="px-4 pb-3 pt-1">
-                                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-emerald-500 rounded-full transition-all duration-700"
-                                    style={{ width: `${progressPct}%` }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Editable fields */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                              <FormField label="Status">
-                                <CustomSelect
-                                  value={editDetail.status}
-                                  disabled={isLocked ||
-                                    (!permissions.canEditAll &&
-                                      !permissions.editableFields?.includes("status"))}
-                                  onChange={(e) => {
-                                    const next = e.target.value;
-                                    if (
-                                      permissions.allowedStatuses &&
-                                      !permissions.allowedStatuses.includes(next)
-                                    ) return;
-                                    updateDetailField(index, "status", next);
-                                  }}
-                                  options={detailStatusOptions}
-                                />
-                              </FormField>
-
-                              <FormField label="Delivery Date">
-                                <EditInput
-                                  type="datetime-local"
-                                  value={formatDateForInput(editDetail.delivery_date)}
-                                  disabled={isLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("delivery_date"))}
-                                  onChange={(e) => updateDetailField(index, "delivery_date", e.target.value)}
-                                />
-                              </FormField>
-
-                              {isDeliveryDateChanged && (
-                                <FormField label="Delivery Note">
-                                  <EditInput
-                                    type="text"
-                                    value={editDetail.delivery_note || ""}
-                                    disabled={isLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("delivery_note"))}
-                                    onChange={(e) => updateDetailField(index, "delivery_note", e.target.value)}
-                                    placeholder="Reason for delivery date change"
-                                  />
-                                </FormField>
-                              )}
-
-                              {!isLocked && (
-                                <FormField label="Delivered Quantity">
-                                  <EditInput
-                                    type="number"
-                                    min={0}
-                                    max={balanceQty}
-                                    disabled={!permissions.canEditAll && !permissions.editableDetailFields?.includes("delivered_qty")}
-                                    onChange={(e) => {
-                                      const val = Number(e.target.value || 0);
-                                      if (val <= balanceQty) updateDetailField(index, "delivered_qty", val);
-                                    }}
-                                    placeholder={`Max ${balanceQty}`}
-                                  />
-                                </FormField>
-                              )}
-
-                              {!isLocked && (
-                                <FormField label="Cancelled Quantity">
-                                  <EditInput
-                                    type="number"
-                                    min={0}
-                                    max={balanceQty}
-                                    disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("cancel_qty"))}
-                                    onChange={(e) => {
-                                      const val = Number(e.target.value || 0);
-                                      if (val <= balanceQty) updateDetailField(index, "cancel_qty", val);
-                                    }}
-                                    placeholder={`Max ${balanceQty}`}
-                                  />
-                                </FormField>
-                              )}
-
-                              {isCancelQtyChanged && (
-                                <FormField label="Reason for Cancellation">
-                                  <textarea
-                                    disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("cancel_qty"))}
-                                    onChange={(e) => updateDetailField(index, "reason_for_cancellation", e.target.value)}
-                                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all resize-none"
-                                    rows={1}
-                                    placeholder="Enter reason for cancellation"
-                                  />
-                                </FormField>
-                              )}
-                            </div>
-
-                            {/* Completion flags */}
-                            {showCompletion && (
-                              <div className="border-t border-indigo-100 pt-4 space-y-3">
-                                <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black">Completion Status</p>
-                                <div className="flex gap-3 flex-wrap">
-                                  {hasUnpacked && (
-                                    <CheckboxField
-                                      label="Unpacked Completed"
-                                      checked={editDetail.has_unPacked_completed}
-                                      disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("has_unPacked_completed"))}
-                                      onChange={(e) => updateDetailField(index, "has_unPacked_completed", e.target.checked)}
-                                    />
-                                  )}
-                                  {hasProduction && (
-                                    <CheckboxField
-                                      label="Production Completed"
-                                      checked={editDetail.has_production_completed}
-                                      disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("has_production_completed"))}
-                                      onChange={(e) => updateDetailField(index, "has_production_completed", e.target.checked)}
-                                    />
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile cards */}
-        <div className="md:hidden p-4 space-y-4">
-          {order.order_details?.map((d, index) => {
-            const editDetail = editOrder?.order_details?.[index];
-            const totalOrdered = Number(d.total_qty_ordered ?? d.qty_ordered ?? 0);
-            const delivered = Number(d.qty_delivered ?? 0);
-            const cancelled = Number(d.qty_cancelled ?? d.total_cancelled_qty ?? 0);
-            const balanceQty = Math.max(totalOrdered - delivered - cancelled, 0);
-            const isLocked = ["COMPLETED", "DELIVERED", "CANCELLED"].includes(d.status);
-            const isCancelQtyChanged = Number(editDetail?.cancel_qty || 0) >= 1;
-
-            return (
-              <div key={d.order_details_number} className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                <div className="px-4 py-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                  <span className="font-mono text-[10px] text-slate-400">{d.order_details_number}</span>
-                  <div className="flex items-center gap-2">
-                    {d.is_free && (
-                      <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wide">Free</span>
-                    )}
-                    <span className={`px-2.5 py-1 text-[10px] font-black rounded-full border uppercase tracking-wide ${getOrderStatusStyle(d?.status)}`}>
-                      {d?.status}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4 space-y-4">
-                  <div>
-                    <p className="font-bold text-slate-900">{capitalizeFirstLetter(d.product_name)}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {capitalizeFirstLetter(d.product_brand)} · {capitalizeFirstLetter(d.product_model)}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {[
-                      { label: "Ordered", value: totalOrdered, cls: "bg-slate-50 border-slate-100", valCls: "text-slate-900" },
-                      { label: "Total", value: d.is_free ? "FREE" : formatCurrency(d.total_price), cls: "bg-slate-50 border-slate-100", valCls: "text-slate-900" },
-                      { label: "Delivered", value: delivered, cls: "bg-emerald-50 border-emerald-100", valCls: "text-emerald-700" },
-                      { label: "Cancelled", value: cancelled, cls: "bg-rose-50 border-rose-100", valCls: "text-rose-700" },
-                    ].map(({ label, value, cls, valCls }) => (
-                      <div key={label} className={`rounded-xl px-3 py-2.5 border ${cls}`}>
-                        <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black">{label}</p>
-                        <p className={`text-lg font-black mt-0.5 ${valCls}`}>{value}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {isEditMode && editDetail && (
-                    <div className="pt-4 border-t border-indigo-100 space-y-4">
-                      <p className="text-[9px] uppercase font-black tracking-[0.12em] text-indigo-500">Edit Item</p>
-                      <FormField label="Status">
-                        <CustomSelect
-                          value={editDetail.status}
-                          disabled={isLocked}
-                          onChange={(e) => updateDetailField(index, "status", e.target.value)}
-                          options={getAllowedNextStatuses(editDetail.status)}
-                        />
-                      </FormField>
-                      {!isLocked && (
-                        <FormField label="Delivered Quantity">
-                          <EditInput
-                            type="number" min={0} max={balanceQty}
-                            onChange={(e) => {
-                              const val = Number(e.target.value || 0);
-                              if (val <= balanceQty) updateDetailField(index, "delivered_qty", val);
-                            }}
-                            placeholder={`Max ${balanceQty}`}
-                          />
-                        </FormField>
-                      )}
-                      {!isLocked && (
-                        <FormField label="Cancelled Quantity">
-                          <EditInput
-                            type="number" min={0} max={balanceQty}
-                            onChange={(e) => {
-                              const val = Number(e.target.value || 0);
-                              if (val <= balanceQty) updateDetailField(index, "cancel_qty", val);
-                            }}
-                            placeholder={`Max ${balanceQty}`}
-                          />
-                        </FormField>
-                      )}
-                      {isCancelQtyChanged && (
-                        <FormField label="Reason for Cancellation">
-                          <textarea
-                            onChange={(e) => updateDetailField(index, "reason_for_cancellation", e.target.value)}
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all resize-none"
-                            rows={2}
-                            placeholder="Enter reason for cancellation"
-                          />
-                        </FormField>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="space-y-4">
+          {order.order_details?.map((d, index) => (
+            <OrderItemCard
+              key={d.order_details_number}
+              d={d}
+              index={index}
+              isEditMode={isEditMode}
+              editDetail={editOrder?.order_details?.[index]}
+              originalOrder={originalOrder}
+              userCanViewPrice={userCanViewPrice}
+              permissions={permissions}
+              isOrderLocked={isOrderLocked}
+              updateDetailField={updateDetailField}
+            />
+          ))}
         </div>
       </section>
 
-      {/* ── DELIVERY NOTES ── */}
+      {/* Delivery Notes */}
       {order?.delivery_notes && (
         <SectionCard title="Delivery Notes" subtitle="Additional Info">
           <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-4">
@@ -1613,10 +1433,10 @@ const OrderDetails = () => {
         </SectionCard>
       )}
 
-      {/* ── FINANCIAL SUMMARY ── */}
+      {/* Financial Summary */}
       {userCanViewPrice && <FinancialSummary order={order} />}
 
-      {/* ── PAYMENT NOTES ── */}
+      {/* Payment Notes */}
       {userCanViewPrice && order?.payment_notes?.length > 0 && (
         <SectionCard title="Payment Notes" subtitle="Transaction History">
           <ul className="space-y-2">
@@ -1633,32 +1453,15 @@ const OrderDetails = () => {
         </SectionCard>
       )}
 
-      {/* ── FLOATING SAVE BAR ── */}
+      {/* Floating Save Bar */}
       {isEditMode && (
-        <div className="sticky bottom-6 z-20 flex justify-center pointer-events-none">
-          <div className="pointer-events-auto flex items-center gap-3 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-lg px-5 py-3 ring-1 ring-slate-100">
-            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-sm text-slate-500 font-semibold hidden sm:block">Unsaved changes</span>
-            <div className="w-px h-4 bg-slate-200 mx-1 hidden sm:block" />
-            <button
-              type="button"
-              onClick={handleDiscardEdit}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-lg hover:bg-slate-50 active:scale-95 transition-all"
-            >
-              <FiX size={12} />
-              Discard
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting || (isOrderLocked && isPaymentFullyDone)}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
-            >
-              <FiSave size={12} />
-              {submitting ? "Saving…" : "Save Changes"}
-            </button>
-          </div>
-        </div>
+        <FloatingSaveBar
+          onSave={handleSubmit}
+          onDiscard={handleDiscardEdit}
+          submitting={submitting}
+          isOrderLocked={isOrderLocked}
+          isPaymentFullyDone={isPaymentFullyDone}
+        />
       )}
     </div>
   );
