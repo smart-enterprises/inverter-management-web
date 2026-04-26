@@ -538,7 +538,6 @@ const Orders = () => {
                     );
 
                     const showProduction = hasProduction || hasUnpacked;
-                    console.log('order number', order.order_number, '-> ', 'showProduction', showProduction, 'hasProduction', hasProduction, 'hasUnpacked', hasUnpacked);
 
                     return (
                       <tr
