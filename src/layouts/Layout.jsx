@@ -2,6 +2,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 import { useState, useEffect } from "react";
+import NotificationToastStack from "../components/NotificationToast";
 
 export default function Layout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -19,7 +20,7 @@ export default function Layout() {
 
     window.addEventListener('resize', handleResize);
     handleResize(); // Check initial size
-    
+
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -27,16 +28,16 @@ export default function Layout() {
     <div className="flex bg-[#F9FAFB] h-screen overflow-hidden">
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
-      
+
       {/* Sidebar */}
       <div className={`fixed lg:relative ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} transition-transform duration-300 ease-in-out z-30`}>
-        <Sidebar 
-          isCollapsed={isCollapsed} 
+        <Sidebar
+          isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsed}
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
@@ -46,11 +47,11 @@ export default function Layout() {
       {/* Main Content Area */}
       <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed && !isMobileMenuOpen ? 'lg:ml-16' : 'lg:ml-64'} ${isMobileMenuOpen ? 'ml-64' : ''} lg:min-h-screen`}>
         {/* Navbar */}
-        <Navbar 
+        <Navbar
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
-        
+
         {/* Main Content */}
         <main className="flex-1 overflow-auto bg-[#F9FAFB]">
           <div className="p-4">
@@ -58,6 +59,9 @@ export default function Layout() {
           </div>
         </main>
       </div>
+
+      {/* ✅ GLOBAL TOAST (VERY IMPORTANT POSITION) */}
+      <NotificationToastStack />
     </div>
   );
 }
