@@ -1,5 +1,7 @@
 import { apiRequest } from "./apiClient.js";
 
+const SIGN_OUT_ENDPOINT = "/auth/logout"; // "/auth/signout";
+
 /* ========================= AUTH APIs ========================= */
 export const login = async (email, password) => {
   return apiRequest("/auth/signin", {
@@ -16,8 +18,8 @@ export const logout = async () => {
     const token = localStorage.getItem("token");
 
     if (token) {
-      await apiRequest("/auth/logout", {
-        method: "GET",
+      await apiRequest(SIGN_OUT_ENDPOINT, {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
         },

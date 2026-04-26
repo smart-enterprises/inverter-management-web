@@ -17,6 +17,7 @@ import { capitalizeFirstLetter } from "../utils/constants";
 import { getRoleLabel } from "../utils/roles";
 import { ROLES } from "../utils/roles";
 import ChangePasswordModal from "./Changepasswordmodal";
+import NotificationBell from "./NotificationBell";
 
 //  Role → accent color config
 const ROLE_ACCENTS = {
@@ -219,18 +220,7 @@ const Navbar = () => {
               </button>
             )}
 
-            {/* Bell */}
-            <button
-              type="button"
-              className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-400 hover:text-slate-600 transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 cursor-pointer"
-              aria-label="Notifications"
-            >
-              <FiBell size={15} />
-              <span
-                className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-rose-500 ring-[1.5px] ring-white"
-                aria-hidden="true"
-              />
-            </button>
+            <NotificationBell />
 
             {/* Divider */}
             <div className="w-px h-5 bg-slate-200 mx-1.5" aria-hidden="true" />
