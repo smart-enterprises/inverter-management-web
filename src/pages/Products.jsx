@@ -1124,10 +1124,6 @@ const Products = () => {
       getProductTypes().catch(() => null),
       getProductCategories().catch(() => null),
     ]).then(([brandsRes, typesRes, categoriesRes]) => {
-      console.log(brandsRes);
-      console.log(typesRes);
-      console.log(categoriesRes);
-
       if (brandsRes?.success && brandsRes.data) setFilterBrands(brandsRes.data);
       if (typesRes?.success && typesRes.data) setProductTypes(typesRes.data);
       if (categoriesRes?.success && categoriesRes.data) setProductCategories(categoriesRes.data);
