@@ -106,7 +106,6 @@ export const NotificationProvider = ({ children }) => {
                 audioUnlocked = true;
                 // Also ensure buffer is loaded if it wasn't ready yet
                 await loadAudioBuffer();
-                console.log("[Audio] Unlocked successfully");
             } catch (err) {
                 console.warn("[Audio] Unlock failed:", err);
             }
