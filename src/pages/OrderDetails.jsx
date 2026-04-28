@@ -563,7 +563,6 @@ const OrderItemCard = ({
   const cancelled = Number(d.qty_cancelled ?? d.total_cancelled_qty ?? 0);
   const balanceQty = Math.max(totalOrdered - delivered - cancelled, 0);
 
-  console.log("editDetail", d);
   const hasDiscount = !d.is_free && Number(d.total_dealer_discount) > 0;
 
   const isLocked = ["COMPLETED", "DELIVERED", "CANCELLED"].includes(d.status);
