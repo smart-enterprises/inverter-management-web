@@ -1,5 +1,5 @@
-// OrderDetails.jsx
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+// OrderDetails.jsx — Fully Optimized & Refactored
+import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   FiArrowLeft, FiUser, FiMapPin, FiPhone, FiMail, FiBox,
@@ -7,7 +7,9 @@ import {
   FiSave, FiX, FiCheckCircle, FiXCircle, FiShoppingCart,
   FiPackage, FiAlertCircle, FiTrendingUp, FiActivity,
   FiChevronRight, FiZap, FiLayers, FiTrendingDown, FiBarChart2,
-  FiDownload, FiPrinter, FiTag, FiInfo, FiGrid,
+  FiPrinter, FiTag, FiInfo, FiGrid, FiPlus, FiMinus,
+  FiRefreshCw, FiCheck, FiAlertTriangle, FiClock, FiFlag,
+  FiToggleRight, FiArrowRight, FiCircle,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { useAuth } from "../hooks/useAuth";
@@ -15,77 +17,78 @@ import CustomSelect from "../components/CustomSelect";
 import { fetchOrderById, updateOrderStatus } from "../api/orders";
 import { fetchUsers } from "../api/user";
 import { capitalizeFirstLetter } from "../utils/constants";
-import {
-  formatDealerDiscountNotes,
-  formatDeliveryNotes,
-  formatStockNotes,
-} from "../utils/notesUtils";
-import {
-  getStatusStyle,
-  ORDER_STATUS_LIST,
-  PAYMENT_METHOD_OPTIONS,
-  PRIORITY_OPTIONS,
-} from "../utils/status";
+import { formatDealerDiscountNotes, formatDeliveryNotes, formatStockNotes } from "../utils/notesUtils";
+import { getStatusStyle, ORDER_STATUS_LIST, PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
 import { useUpdateOrderPermissions } from "../hooks/useUpdateOrderPermissions";
 import { formatDateForInput, formatDeliveryDate } from "../utils/dateUtils";
 import { getAllowedNextStatuses } from "../utils/orderStatusHelper";
 import { fetchCompanyAddress } from "../api/companyAddress";
-import {
-  canPrintOrder,
-  canViewOrderPrice,
-  canViewDealerInformation,
-} from "../utils/orderPermissions";
+import { canPrintOrder, canViewOrderPrice, canViewDealerInformation } from "../utils/orderPermissions";
 import DeliveryNotesCard from "../components/DeliveryNotesCard";
 import ProductionStatusBadge from "../components/ProductionStatusBadge";
 
-// ─── Formatters ───────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * All possible item-level statuses the user can select.
+ * The modal filters this list based on `getAllowedNextStatuses(currentStatus)`.
+ */
+const ITEM_STATUS_OPTIONS = [
+  { value: "CONFIRMED", label: "Mark as Confirmed", color: "blue" },
+  { value: "REJECTED", label: "Mark as Rejected", color: "rose" },
+  { value: "INVOICE", label: "Mark as Invoiced", color: "cyan" },
+  { value: "CANCELLED", label: "Mark as Cancelled", color: "slate" },
+  { value: "SHIPPED", label: "Mark as Shipped", color: "orange" },
+  { value: "DELIVERED", label: "Mark as Delivered", color: "emerald" },
+];
+
+/** Color token map for status options */
+const STATUS_COLOR_MAP = {
+  blue: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", dot: "bg-blue-500", ring: "ring-blue-200" },
+  rose: { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-700", dot: "bg-rose-500", ring: "ring-rose-200" },
+  cyan: { bg: "bg-cyan-50", border: "border-cyan-200", text: "text-cyan-700", dot: "bg-cyan-500", ring: "ring-cyan-200" },
+  slate: { bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-600", dot: "bg-slate-400", ring: "ring-slate-200" },
+  orange: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700", dot: "bg-orange-500", ring: "ring-orange-200" },
+  emerald: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", dot: "bg-emerald-500", ring: "ring-emerald-200" },
+};
+
+/** Modal name enum — single source of truth for active modal */
+const MODAL = {
+  ITEM_STATUS: "itemStatus",
+  DELIVERY: "delivery",
+  CANCEL_ITEM: "cancelItem",
+  ORDER_STATUS: "orderStatus",
+  ORDER_DELIVERY: "orderDelivery",
+  PAYMENT: "payment",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FORMATTERS
+// ─────────────────────────────────────────────────────────────────────────────
 
 const formatDate = (date) =>
   date
-    ? new Date(date).toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    })
+    ? new Date(date).toLocaleString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
     : "N/A";
 
 const formatCurrency = (value) => {
   if (!value || isNaN(value)) return "₹0";
   return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
+    style: "currency", currency: "INR", maximumFractionDigits: 0,
   }).format(Number(value));
 };
 
-// ─── Normalize ────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// STYLE HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
 
-const normalizeOrder = (order) => ({
-  ...order,
-  payment_method: order.payment_type || "",
-  amount_paid: 0,
-  delivered_date: order.delivered_date || "",
-  delivery_note: order.delivery_note || "",
-  order_details: order.order_details.map((detail) => ({
-    ...detail,
-    delivered_qty: "",
-    cancel_qty: "",
-    delivery_note: "",
-    reason_for_cancellation: "",
-    has_unPacked_completed: false,
-    has_production_completed: false,
-  })),
-});
-
-// ─── Style Helpers ────────────────────────────────────────────────────────────
-
-const getPriorityStyle = (priority) => {
-  const map = {
-    HIGH: "bg-rose-50 text-rose-700 border-rose-200",
-    MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
-    LOW: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  };
-  return map[priority?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
+const STATUS_HEX = {
+  PENDING: "#d97706", CONFIRMED: "#2563eb", PRODUCTION: "#4f46e5",
+  PACKED: "#7c3aed", INVOICE: "#0891b2", SHIPPED: "#ea580c",
+  DELIVERED: "#16a34a", COMPLETED: "#059669", CANCELLED: "#e11d48",
+  REJECTED: "#e11d48",
 };
 
 const getOrderStatusStyle = (status) => {
@@ -104,37 +107,28 @@ const getOrderStatusStyle = (status) => {
   return map[status?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
 };
 
-const getPaymentStatusStyle = (status) => {
+const getPriorityStyle = (p) => {
+  const map = {
+    HIGH: "bg-rose-50 text-rose-700 border-rose-200",
+    MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
+    LOW: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  };
+  return map[p?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
+};
+
+const getPaymentStatusStyle = (s) => {
   const map = {
     PAID: "bg-emerald-50 text-emerald-700 border-emerald-200",
     UNPAID: "bg-rose-50 text-rose-700 border-rose-200",
     PARTIAL: "bg-amber-50 text-amber-700 border-amber-200",
     REFUNDED: "bg-blue-50 text-blue-700 border-blue-200",
   };
-  return map[status?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
+  return map[s?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
 };
 
-const getPaymentTypeStyle = (type) => {
-  const map = {
-    CASH: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    BANK: "bg-blue-50 text-blue-700 border-blue-200",
-    CHEQUE: "bg-amber-50 text-amber-700 border-amber-200",
-    ONLINE: "bg-violet-50 text-violet-700 border-violet-200",
-  };
-  return map[type?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
-};
-
-const STATUS_HEX = {
-  PENDING: "#d97706", CONFIRMED: "#2563eb", PRODUCTION: "#4f46e5",
-  PACKED: "#7c3aed", INVOICE: "#0891b2", SHIPPED: "#ea580c",
-  DELIVERED: "#16a34a", COMPLETED: "#059669", CANCELLED: "#e11d48", REJECTED: "#e11d48",
-};
-
-const PAYMENT_HEX = {
-  PAID: "#059669", UNPAID: "#e11d48", PARTIAL: "#d97706", REFUNDED: "#2563eb",
-};
-
-// ─── PDF Generator ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// PDF GENERATOR
+// ─────────────────────────────────────────────────────────────────────────────
 
 const generateOrderPDF = (order, companyInfo, userMap) => {
   const company = companyInfo || {};
@@ -143,7 +137,6 @@ const generateOrderPDF = (order, companyInfo, userMap) => {
   const grossAmount = totalAmount + discountAmount;
   const amountDue = Number(order?.amount_due ?? 0);
   const statusColor = STATUS_HEX[order?.status?.toUpperCase()] || "#64748b";
-  const paymentColor = PAYMENT_HEX[order?.payment_status?.toUpperCase()] || "#64748b";
 
   const itemsHTML = (order?.order_details || [])
     .map((d, i) => {
@@ -153,166 +146,46 @@ const generateOrderPDF = (order, companyInfo, userMap) => {
       const hasDiscount = !d.is_free && d.total_dealer_discount && d.total_dealer_discount > 0;
       const bg = i % 2 === 0 ? "#ffffff" : "#f8fafc";
       const sc = STATUS_HEX[d?.status?.toUpperCase()] || "#64748b";
-
       return `
         <tr style="background:${bg};">
           <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">
             <div style="font-weight:700;color:#0f172a;font-size:12px;">${capitalizeFirstLetter(d.product_name)}</div>
-            <div style="font-size:10px;color:#94a3b8;margin-top:2px;">
-              ${capitalizeFirstLetter(d.product_category || "")} · ${capitalizeFirstLetter(d.product_brand || "")} · ${capitalizeFirstLetter(d.product_model || "")} ·
-              <span style="font-family:monospace;">${d.product_id}</span>
-            </div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:2px;">${capitalizeFirstLetter(d.product_brand || "")} · ${capitalizeFirstLetter(d.product_model || "")}</div>
             ${d.is_free ? `<span style="font-size:9px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:1px 6px;border-radius:20px;font-weight:700;">FREE ITEM</span>` : ""}
           </td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:700;color:#0f172a;font-size:13px;">${totalOrdered}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:700;color:#0f172a;">${totalOrdered}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;font-size:11px;color:#94a3b8;">${delivered} / ${cancelled}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:right;font-size:12px;color:#334155;">₹${Number(d.unit_product_price || 0).toLocaleString("en-IN")}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:right;">
             ${d.is_free
           ? `<span style="font-size:11px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:2px 8px;border-radius:20px;font-weight:700;">FREE</span>`
-          : `<div style="font-weight:800;color:#0f172a;font-size:13px;">₹${Number(d.total_price || 0).toLocaleString("en-IN")}</div>
-                 ${hasDiscount ? `<div style="font-size:10px;color:#10b981;margin-top:2px;">− ₹${Number(d.total_dealer_discount).toLocaleString("en-IN")} disc.</div>` : ""}`
+          : `<div style="font-weight:800;color:#0f172a;font-size:13px;">₹${Number(d.total_price || 0).toLocaleString("en-IN")}</div>${hasDiscount ? `<div style="font-size:10px;color:#10b981;margin-top:2px;">− ₹${Number(d.total_dealer_discount).toLocaleString("en-IN")} disc.</div>` : ""}`
         }
           </td>
           <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">
-            <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:${sc}20;color:${sc};border:1px solid ${sc}40;text-transform:uppercase;letter-spacing:0.05em;">${d.status || "—"}</span>
+            <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:${sc}20;color:${sc};border:1px solid ${sc}40;text-transform:uppercase;">${d.status || "—"}</span>
           </td>
         </tr>`;
-    })
-    .join("");
+    }).join("");
 
   const companyAddress = [
     company.address_line_1, company.address_line_2, company.city,
     company.state, company.pincode, company.country,
   ].filter(Boolean).join(", ");
 
-  const html = `<!DOCTYPE html>
-    <html lang="en">
-    <head>
-    <meta charset="UTF-8"/>
-    <title>Order ${order?.order_number}</title>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-      *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:'Inter',-apple-system,sans-serif;background:#fff;color:#0f172a;font-size:13px;line-height:1.5;}
-      .page{max-width:820px;margin:0 auto;padding:32px;}
-      .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:24px;border-bottom:2px solid #e2e8f0;}
-      .company-name{font-size:20px;font-weight:900;color:#0f172a;letter-spacing:-0.02em;}
-      .company-gst{font-size:10px;color:#94a3b8;font-weight:600;margin-top:2px;letter-spacing:0.05em;text-transform:uppercase;}
-      .company-contact{margin-top:8px;font-size:11px;color:#64748b;line-height:1.6;}
-      .order-block{text-align:right;}
-      .order-number{font-size:22px;font-weight:900;color:#4f46e5;font-family:monospace;letter-spacing:-0.02em;}
-      .order-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#94a3b8;margin-bottom:4px;}
-      .order-date{font-size:11px;color:#64748b;margin-top:4px;}
-      .badges{display:flex;gap:8px;justify-content:flex-end;margin-top:8px;}
-      .badge{font-size:9px;font-weight:800;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.08em;border:1px solid;}
-      .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
-      .info-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;}
-      .info-card-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#94a3b8;margin-bottom:6px;}
-      .info-card-value{font-size:13px;font-weight:700;color:#0f172a;}
-      .info-card-sub{font-size:11px;color:#64748b;margin-top:2px;}
-      .items-table{width:100%;border-collapse:collapse;margin-bottom:24px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;}
-      .items-table thead tr{background:#f1f5f9;}
-      .items-table thead th{padding:10px 12px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0;}
-      .financial-block{display:flex;justify-content:flex-end;margin-bottom:24px;}
-      .financial-card{width:320px;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;}
-      .financial-card-header{background:#f8fafc;padding:10px 16px;border-bottom:1px solid #e2e8f0;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#64748b;}
-      .financial-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 16px;border-bottom:1px solid #f1f5f9;}
-      .financial-row:last-child{border-bottom:none;}
-      .financial-label{font-size:12px;color:#64748b;font-weight:500;}
-      .financial-value{font-size:13px;font-weight:700;color:#0f172a;}
-      .financial-total-row{background:#f8fafc;padding:12px 16px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;align-items:baseline;}
-      .financial-total-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#0f172a;}
-      .financial-total-value{font-size:20px;font-weight:900;color:#0f172a;}
-      .balance-row{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
-      .footer{margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;}
-      .footer-note{font-size:10px;color:#94a3b8;font-weight:500;}
-      .footer-company{font-size:11px;font-weight:700;color:#64748b;}
-      @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.page{padding:20px;}}
-    </style>
-    </head>
-    <body>
-    <div class="page">
-      <div class="header">
-        <div class="company-block">
-          ${company.company_logo ? `<img src="${company.company_logo}" alt="Logo" style="height:40px;margin-bottom:8px;object-fit:contain;" onerror="this.style.display='none'"/>` : ""}
-          <div class="company-name">${company.company_name || "Company"}</div>
-          ${company.gst_number ? `<div class="company-gst">GST: ${company.gst_number}</div>` : ""}
-          <div class="company-contact">
-            ${companyAddress}
-            ${company.phone ? `<br/>📞 ${company.phone}` : ""}
-            ${company.email ? ` &nbsp;·&nbsp; ✉ ${company.email}` : ""}
-          </div>
-        </div>
-        <div class="order-block">
-          <div class="order-label">Order Invoice</div>
-          <div class="order-number">${order?.order_number}</div>
-          <div class="order-date">Created: ${formatDate(order?.created_at)}</div>
-          <div class="badges">
-            <span class="badge" style="background:${statusColor}18;color:${statusColor};border-color:${statusColor}40;">${order?.status}</span>
-            <span class="badge" style="background:${paymentColor}18;color:${paymentColor};border-color:${paymentColor}40;">${order?.payment_status}</span>
-            ${order?.priority ? `<span class="badge" style="background:#f1f5f9;color:#64748b;border-color:#e2e8f0;">${order.priority}</span>` : ""}
-          </div>
-        </div>
-      </div>
-      <div class="info-grid">
-        <div class="info-card">
-          <div class="info-card-label">Dealer</div>
-          <div class="info-card-value">${capitalizeFirstLetter(order?.dealer?.employee_name) || "—"}</div>
-          <div class="info-card-sub">${capitalizeFirstLetter(order?.dealer?.shop_name) || ""}</div>
-          <div class="info-card-sub" style="margin-top:4px;font-size:10px;color:#94a3b8;">
-            ${[order?.dealer?.employee_phone, order?.dealer?.employee_email].filter(Boolean).join("  ·  ")}
-          </div>
-          ${order?.dealer?.address ? `<div class="info-card-sub" style="margin-top:4px;font-size:10px;">${capitalizeFirstLetter(order.dealer.address)}</div>` : ""}
-        </div>
-        <div class="info-card">
-          <div class="info-card-label">Order Details</div>
-          <div class="info-card-sub" style="display:flex;flex-direction:column;gap:4px;">
-            <span><strong>Salesman:</strong> ${userMap[order?.salesman_id] || order?.salesman_id || "—"}</span>
-            <span><strong>Created by:</strong> ${userMap[order?.created_by] || order?.created_by || "—"}</span>
-            <span><strong>Delivery by:</strong> ${order?.promised_delivery_date ? formatDate(order.promised_delivery_date) : "N/A"}</span>
-            <span><strong>Payment type:</strong> ${order?.payment_type || "—"}</span>
-          </div>
-        </div>
-      </div>
-      ${order?.order_note ? `
-      <div style="margin-bottom:20px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;">
-        <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:#b45309;margin-bottom:8px;">Order Note</div>
-        <div style="font-size:12px;color:#78350f;">${order.order_note}</div>
-      </div>` : ""}
-      <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:#94a3b8;margin-bottom:10px;">Order Items</div>
-      <table class="items-table">
-        <thead>
-          <tr>
-            <th>Product</th><th>Qty</th><th>Delivered / Cancelled</th>
-            <th style="text-align:right;">Unit Price</th><th style="text-align:right;">Total</th>
-            <th style="text-align:center;">Status</th>
-          </tr>
-        </thead>
-        <tbody>${itemsHTML}</tbody>
-      </table>
-      <div class="financial-block">
-        <div class="financial-card">
-          <div class="financial-card-header">Financial Summary</div>
-          <div class="financial-row"><span class="financial-label">Gross Total</span><span class="financial-value">₹${grossAmount.toLocaleString("en-IN")}</span></div>
-          ${discountAmount > 0 ? `<div class="financial-row"><span class="financial-label" style="color:#10b981;">Total Discount</span><span class="financial-value" style="color:#10b981;">− ₹${discountAmount.toLocaleString("en-IN")}</span></div>` : ""}
-          <div class="financial-total-row"><span class="financial-total-label">Net Payable</span><span class="financial-total-value">₹${totalAmount.toLocaleString("en-IN")}</span></div>
-          ${amountDue > 0
-      ? `<div class="balance-row" style="background:#fff1f2;"><div><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#e11d48;">Balance Due</div><div style="font-size:10px;color:#94a3b8;margin-top:1px;">To be collected</div></div><span style="font-size:18px;font-weight:900;color:#e11d48;">₹${amountDue.toLocaleString("en-IN")}</span></div>`
-      : `<div class="balance-row" style="background:#f0fdf4;"><div><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#16a34a;">Fully Paid</div><div style="font-size:10px;color:#94a3b8;margin-top:1px;">No dues remaining</div></div><span style="font-size:18px;font-weight:900;color:#16a34a;">₹0</span></div>`}
-        </div>
-      </div>
-      <div class="footer">
-        <div class="footer-note">Generated on ${new Date().toLocaleString("en-IN", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
-        <div class="footer-company">${company.company_name || ""}</div>
-      </div>
-    </div>
-    </body>
-    </html>`;
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Order ${order?.order_number}</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Inter',-apple-system,sans-serif;background:#fff;color:#0f172a;font-size:13px;line-height:1.5;}.page{max-width:820px;margin:0 auto;padding:32px;}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:24px;border-bottom:2px solid #e2e8f0;}.order-number{font-size:22px;font-weight:900;color:#4f46e5;font-family:monospace;}.badges{display:flex;gap:8px;justify-content:flex-end;margin-top:8px;}.badge{font-size:9px;font-weight:800;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.08em;border:1px solid;}.items-table{width:100%;border-collapse:collapse;margin-bottom:24px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;}.items-table thead tr{background:#f1f5f9;}.items-table thead th{padding:10px 12px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.1em;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0;}.financial-block{display:flex;justify-content:flex-end;margin-bottom:24px;}.financial-card{width:320px;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;}.financial-card-header{background:#f8fafc;padding:10px 16px;border-bottom:1px solid #e2e8f0;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:#64748b;}.financial-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 16px;border-bottom:1px solid #f1f5f9;}.financial-label{font-size:12px;color:#64748b;font-weight:500;}.financial-value{font-size:13px;font-weight:700;color:#0f172a;}.financial-total-row{background:#f8fafc;padding:12px 16px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;align-items:baseline;}.financial-total-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#0f172a;}.financial-total-value{font-size:20px;font-weight:900;color:#0f172a;}.footer{margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>
+  </head><body><div class="page">
+  <div class="header"><div><div style="font-size:20px;font-weight:900;color:#0f172a;">${company.company_name || "Company"}</div>${company.gst_number ? `<div style="font-size:10px;color:#94a3b8;font-weight:600;margin-top:2px;">GST: ${company.gst_number}</div>` : ""}<div style="margin-top:8px;font-size:11px;color:#64748b;line-height:1.6;">${companyAddress}${company.phone ? `<br/>📞 ${company.phone}` : ""}${company.email ? ` · ✉ ${company.email}` : ""}</div></div><div style="text-align:right;"><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#94a3b8;margin-bottom:4px;">Order Invoice</div><div class="order-number">${order?.order_number}</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Created: ${formatDate(order?.created_at)}</div><div class="badges"><span class="badge" style="background:${statusColor}18;color:${statusColor};border-color:${statusColor}40;">${order?.status}</span>${order?.priority ? `<span class="badge" style="background:#f1f5f9;color:#64748b;border-color:#e2e8f0;">${order.priority}</span>` : ""}</div></div></div>
+  <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:#94a3b8;margin-bottom:10px;">Order Items</div>
+  <table class="items-table"><thead><tr><th>Product</th><th>Qty</th><th>Del / Can</th><th style="text-align:right;">Unit Price</th><th style="text-align:right;">Total</th><th style="text-align:center;">Status</th></tr></thead><tbody>${itemsHTML}</tbody></table>
+  <div class="financial-block"><div class="financial-card"><div class="financial-card-header">Financial Summary</div><div class="financial-row"><span class="financial-label">Gross Total</span><span class="financial-value">₹${grossAmount.toLocaleString("en-IN")}</span></div>${discountAmount > 0 ? `<div class="financial-row"><span class="financial-label" style="color:#10b981;">Total Discount</span><span class="financial-value" style="color:#10b981;">− ₹${discountAmount.toLocaleString("en-IN")}</span></div>` : ""}<div class="financial-total-row"><span class="financial-total-label">Net Payable</span><span class="financial-total-value">₹${totalAmount.toLocaleString("en-IN")}</span></div>${amountDue > 0 ? `<div style="padding:12px 16px;background:#fff1f2;display:flex;justify-content:space-between;"><div><div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#e11d48;">Balance Due</div></div><span style="font-size:18px;font-weight:900;color:#e11d48;">₹${amountDue.toLocaleString("en-IN")}</span></div>` : `<div style="padding:12px 16px;background:#f0fdf4;display:flex;justify-content:space-between;"><div><div style="font-size:9px;font-weight:800;text-transform:uppercase;color:#16a34a;">Fully Paid</div></div><span style="font-size:18px;font-weight:900;color:#16a34a;">₹0</span></div>`}</div></div>
+  <div class="footer"><div style="font-size:10px;color:#94a3b8;font-weight:500;">Generated on ${new Date().toLocaleString("en-IN")}</div><div style="font-size:11px;font-weight:700;color:#64748b;">${company.company_name || ""}</div></div>
+  </div></body></html>`;
 
   const printWindow = window.open("", "_blank", "width=900,height=700");
   if (!printWindow) {
-    Swal.fire({ icon: "warning", title: "Popup Blocked", text: "Please allow popups for this site to download the PDF." });
+    Swal.fire({ icon: "warning", title: "Popup Blocked", text: "Please allow popups to download the PDF." });
     return;
   }
   printWindow.document.write(html);
@@ -320,10 +193,35 @@ const generateOrderPDF = (order, companyInfo, userMap) => {
   printWindow.onload = () => setTimeout(() => { printWindow.focus(); printWindow.print(); }, 400);
 };
 
-// ─── Primitive UI Atoms ───────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// PRIMITIVE UI ATOMS
+// ═════════════════════════════════════════════════════════════════════════════
 
-/** Labelled info cell used in summary grids */
-const InfoCell = ({ icon, label, children }) => (
+/** Generic labelled form field wrapper */
+const FormField = memo(({ label, required, children, hint }) => (
+  <div className="space-y-1.5">
+    <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+      {label}{required && <span className="text-rose-400 ml-0.5">*</span>}
+    </label>
+    {children}
+    {hint && (
+      <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+        <FiInfo size={10} />{hint}
+      </p>
+    )}
+  </div>
+));
+
+/** Controlled text/number/date input */
+const EditInput = memo(({ className = "", ...props }) => (
+  <input
+    {...props}
+    className={`w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${className}`}
+  />
+));
+
+/** Info row with icon inside a card */
+const InfoCell = memo(({ icon, label, children }) => (
   <div className="flex items-start gap-3 p-4 rounded-xl hover:bg-slate-50 transition-colors group">
     <div className="mt-0.5 p-1.5 rounded-lg bg-indigo-50 text-indigo-500 border border-indigo-100 group-hover:border-indigo-200 transition-colors flex-shrink-0">
       {React.cloneElement(icon, { size: 12 })}
@@ -335,92 +233,27 @@ const InfoCell = ({ icon, label, children }) => (
       </div>
     </div>
   </div>
-);
+));
 
-/** Notes list rendered inside an item card */
-const NotesList = ({ title, notes, variant = "default" }) => {
-  if (!notes?.length) return null;
-  const styles = variant === "purple"
-    ? "bg-indigo-50/70 border-indigo-100 text-indigo-700"
-    : "bg-slate-50 border-slate-100 text-slate-600";
-  return (
-    <div className={`mt-2 border rounded-lg p-3 ${styles}`}>
-      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-1.5 opacity-60">{title}</p>
-      <ul className="space-y-1 text-xs text-slate-700">
-        {notes.map((note, idx) => (
-          <li key={idx} className="flex items-start gap-2">
-            <span className="mt-1.5 w-1 h-1 rounded-full bg-current opacity-40 flex-shrink-0" />
-            {note.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z/, (m) => formatDate(m))}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
-
-/** Form field wrapper with label */
-const FormField = ({ label, children }) => (
-  <div className="space-y-1.5">
-    <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{label}</label>
-    {children}
-  </div>
-);
-
-/** Styled text / number input */
-const EditInput = ({ className = "", ...props }) => (
-  <input
-    {...props}
-    className={`w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${className}`}
-  />
-);
-
-/** Checkbox field with visual toggle */
-const CheckboxField = ({ label, checked, onChange, disabled }) => (
-  <label
-    className={`group flex items-center gap-3 text-sm cursor-pointer px-4 py-2.5 rounded-xl border transition-all ${checked ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/30"
-      } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-  >
-    <input type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="accent-indigo-600 w-4 h-4" />
-    <span className="font-semibold">{label}</span>
-    {checked && <FiCheckCircle size={12} className="ml-auto text-indigo-500" />}
-  </label>
-);
-
-/** Generic card section with optional header */
-const SectionCard = ({ title, subtitle, action, children, className = "", editHighlight = false }) => (
-  <section
-    className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${editHighlight ? "border-indigo-200 ring-1 ring-indigo-100" : "border-slate-200"
-      } ${className}`}
-  >
+/** Card section with optional header and action slot */
+const SectionCard = memo(({ title, subtitle, action, children, className = "", editHighlight = false, headerExtra }) => (
+  <section className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${editHighlight ? "border-indigo-200 ring-1 ring-indigo-100" : "border-slate-200"} ${className}`}>
     {(title || action) && (
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-        <div>
+        <div className="flex-1 min-w-0">
           <h2 className="text-sm font-bold text-slate-800 tracking-tight">{title}</h2>
           {subtitle && <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">{subtitle}</p>}
+          {headerExtra}
         </div>
         {action}
       </div>
     )}
     <div className="p-6">{children}</div>
   </section>
-);
+));
 
-/** Stat pill used in quantity summary row */
-const StatPill = ({ label, value, color = "gray" }) => {
-  const colorMap = {
-    gray: "text-slate-700", emerald: "text-emerald-600",
-    rose: "text-rose-600", amber: "text-amber-600", indigo: "text-indigo-600",
-  };
-  return (
-    <div className="flex-1 px-4 py-3 border-r last:border-0 border-slate-100 text-center">
-      <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black mb-0.5">{label}</p>
-      <p className={`text-lg font-black tabular-nums ${colorMap[color] || colorMap.gray}`}>{value}</p>
-    </div>
-  );
-};
-
-/** Quantity progress tracker */
-const QtyTracker = ({ ordered, delivered, cancelled }) => {
+/** Progress tracker for ordered/delivered/cancelled quantities */
+const QtyTracker = memo(({ ordered, delivered, cancelled }) => {
   const balance = Math.max(ordered - delivered - cancelled, 0);
   const pct = ordered > 0 ? Math.min(((delivered + cancelled) / ordered) * 100, 100) : 0;
   return (
@@ -450,11 +283,964 @@ const QtyTracker = ({ ordered, delivered, cancelled }) => {
       </div>
     </div>
   );
-};
+});
 
-// ─── Financial Summary ────────────────────────────────────────────────────────
+/** Inline list of formatted notes */
+const NotesList = memo(({ title, notes, variant = "default" }) => {
+  if (!notes?.length) return null;
+  const styles = variant === "purple"
+    ? "bg-indigo-50/70 border-indigo-100 text-indigo-700"
+    : "bg-slate-50 border-slate-100 text-slate-600";
+  return (
+    <div className={`mt-2 border rounded-lg p-3 ${styles}`}>
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-1.5 opacity-60">{title}</p>
+      <ul className="space-y-1 text-xs text-slate-700">
+        {notes.map((note, idx) => (
+          <li key={idx} className="flex items-start gap-2">
+            <span className="mt-1.5 w-1 h-1 rounded-full bg-current opacity-40 flex-shrink-0" />
+            {note.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z/, (m) => formatDate(m))}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+});
 
-const FinancialSummary = ({ order }) => {
+/** Inline field-level validation error */
+const FieldError = ({ msg }) => (
+  <p className="text-[11px] text-rose-500 font-semibold mt-1 flex items-center gap-1">
+    <FiAlertCircle size={10} />{msg}
+  </p>
+);
+
+/** Divider with optional centred label — used inside modals */
+const ModalDivider = ({ label }) => (
+  <div className="flex items-center gap-3 my-1">
+    <div className="flex-1 h-px bg-slate-100" />
+    {label && <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 flex-shrink-0">{label}</span>}
+    <div className="flex-1 h-px bg-slate-100" />
+  </div>
+);
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MODAL SHELL — reusable base for all modals
+// ═════════════════════════════════════════════════════════════════════════════
+
+const ModalShell = memo(({
+  isOpen, onClose, title, subtitle, icon,
+  accentClass = "bg-indigo-600", children, footer, width = "max-w-lg",
+}) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", handler);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-50" onClick={onClose} aria-hidden />
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6" role="dialog" aria-modal="true">
+        <div
+          className={`bg-white rounded-2xl shadow-2xl w-full ${width} border border-slate-200 flex flex-col`}
+          style={{ maxHeight: "90vh" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+            <div className="flex items-center gap-3.5">
+              <div className={`p-2.5 rounded-xl ${accentClass} text-white shadow-sm flex-shrink-0`}>
+                {icon}
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 leading-tight">{title}</h2>
+                {subtitle && (
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.12em] mt-0.5">{subtitle}</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
+            >
+              <FiX size={16} />
+            </button>
+          </div>
+
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+
+          {/* Sticky footer */}
+          {footer && (
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex gap-3 flex-shrink-0">
+              {footer}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED: CHECKBOX-STYLE RADIO ROW
+// Used in both ItemStatusModal and OrderStatusModal for single-select status.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const StatusRadioRow = memo(({ option, isSelected, isDisabled, onChange }) => {
+  const colors = STATUS_COLOR_MAP[option.color] || STATUS_COLOR_MAP.slate;
+  return (
+    <label
+      className={`
+        group flex items-center gap-3.5 px-4 py-3.5 rounded-xl border cursor-pointer transition-all select-none
+        ${isSelected
+          ? `${colors.bg} ${colors.border} ring-1 ${colors.ring}`
+          : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
+        }
+        ${isDisabled ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}
+      `}
+    >
+      {/* Custom radio indicator */}
+      <div className={`relative w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? `border-current ${colors.text}` : "border-slate-300"}`}>
+        {isSelected && <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />}
+        <input
+          type="radio"
+          name="item_status"
+          value={option.value}
+          checked={isSelected}
+          disabled={isDisabled}
+          onChange={() => onChange(option.value)}
+          className="sr-only"
+        />
+      </div>
+      <span className={`text-sm font-semibold transition-colors ${isSelected ? colors.text : "text-slate-700"}`}>
+        {option.label}
+      </span>
+      {isSelected && <FiCheckCircle size={14} className={`ml-auto flex-shrink-0 ${colors.text}`} />}
+    </label>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED: TOGGLE CHECKBOX ROW
+// Used for production milestone flags.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CheckboxToggleRow = memo(({ label, description, checked, onChange }) => (
+  <label
+    className={`
+      group flex items-start gap-3 px-4 py-3.5 rounded-xl border cursor-pointer transition-all select-none
+      ${checked
+        ? "bg-violet-50 border-violet-200 ring-1 ring-violet-100"
+        : "bg-white border-slate-200 hover:border-violet-200 hover:bg-violet-50/30"
+      }
+    `}
+  >
+    <div className={`relative mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? "bg-violet-600 border-violet-600" : "border-slate-300 bg-white"}`}>
+      {checked && <FiCheck size={11} className="text-white" strokeWidth={3} />}
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <span className={`text-sm font-semibold block ${checked ? "text-violet-700" : "text-slate-700"}`}>{label}</span>
+      {description && <span className="text-[10px] text-slate-400 font-medium block mt-0.5">{description}</span>}
+    </div>
+    {checked && <FiCheckCircle size={14} className="text-violet-500 mt-0.5 flex-shrink-0" />}
+  </label>
+));
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MODAL: ITEM STATUS — merged status selector + production milestones
+//
+// Logic:
+//   • When currentStatus === "PRODUCTION":
+//       - Hide the status-change radio list
+//       - Show only production milestone checkboxes
+//   • Otherwise:
+//       - Show radio list filtered by getAllowedNextStatuses()
+//       - If item has production flags AND status isn't PRODUCTION, still show them below the divider
+// ═════════════════════════════════════════════════════════════════════════════
+
+const ItemStatusModal = memo(({ isOpen, onClose, detail, onSubmit, submitting }) => {
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [hasUnpackedDone, setHasUnpackedDone] = useState(false);
+  const [hasProdDone, setHasProdDone] = useState(false);
+
+  const currentStatus = detail?.status || "";
+  const isProduction = currentStatus === "PRODUCTION";
+  const { hasUnpacked, hasProduction } = detail?.stock_flags || {};
+  const hasProductionFlags = hasUnpacked || hasProduction;
+
+  // Reset local state whenever the modal opens for a (possibly different) item
+  useEffect(() => {
+    if (isOpen && detail) {
+      setSelectedStatus(currentStatus);
+      setHasUnpackedDone(detail.has_unPacked_completed || false);
+      setHasProdDone(detail.has_production_completed || false);
+    }
+  }, [isOpen, detail]);
+
+  const allowedStatuses = getAllowedNextStatuses(currentStatus);
+  const isStatusChanged = selectedStatus && selectedStatus !== currentStatus;
+
+  const hasChanges =
+    isStatusChanged ||
+    (hasUnpacked && hasUnpackedDone !== (detail?.has_unPacked_completed || false)) ||
+    (hasProduction && hasProdDone !== (detail?.has_production_completed || false));
+
+  const handleSubmit = () => {
+    const payload = {};
+    if (!isProduction && isStatusChanged) payload.status = selectedStatus;
+    if (hasUnpacked) payload.has_unPacked_completed = hasUnpackedDone;
+    if (hasProduction) payload.has_production_completed = hasProdDone;
+    if (Object.keys(payload).length === 0) { onClose(); return; }
+    onSubmit(payload);
+  };
+
+  return (
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Update Item Status"
+      subtitle={isProduction ? "Production milestones" : "Status · Production milestones"}
+      icon={<FiFlag size={14} />}
+      accentClass="bg-blue-600"
+      footer={
+        <>
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !hasChanges}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+          >
+            {submitting
+              ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</>
+              : <><FiSave size={13} />Apply Changes</>
+            }
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-5">
+
+        {/* ── Current / new status pill row ── */}
+        <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">Current Status</p>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(currentStatus)}`}>
+              {currentStatus || "—"}
+            </span>
+          </div>
+          {!isProduction && isStatusChanged && (
+            <>
+              <FiArrowRight size={14} className="text-slate-300 mx-1" />
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">New Status</p>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(selectedStatus)}`}>
+                  {selectedStatus}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* ── Status radio list — hidden while in PRODUCTION mode ── */}
+        {!isProduction && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Select New Status</p>
+            {(() => {
+              const visibleOptions = ITEM_STATUS_OPTIONS.filter((opt) =>
+                allowedStatuses.includes(opt.value)
+              );
+              return visibleOptions.length > 0 ? (
+                <div className="space-y-2">
+                  {visibleOptions.map((opt) => (
+                    <StatusRadioRow
+                      key={opt.value}
+                      option={opt}
+                      isSelected={selectedStatus === opt.value}
+                      isDisabled={false}
+                      onChange={setSelectedStatus}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 font-medium italic px-1">
+                  No status transitions available for this item.
+                </p>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ── Production milestone checkboxes ── */}
+        {hasProductionFlags && (
+          <>
+            <ModalDivider label="Production Milestones" />
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                Mark stages for{" "}
+                <span className="text-slate-600 normal-case font-bold">{capitalizeFirstLetter(detail?.product_name)}</span>
+              </p>
+              <div className="space-y-2">
+                {hasUnpacked && (
+                  <CheckboxToggleRow
+                    label="Unpacked Completed"
+                    description="All unpacked items have been processed"
+                    checked={hasUnpackedDone}
+                    onChange={setHasUnpackedDone}
+                  />
+                )}
+                {hasProduction && (
+                  <CheckboxToggleRow
+                    label="Production Completed"
+                    description="Manufacturing / production is complete"
+                    checked={hasProdDone}
+                    onChange={setHasProdDone}
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </ModalShell>
+  );
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MODAL: DELIVERY UPDATE — date, note, delivered qty
+// ═════════════════════════════════════════════════════════════════════════════
+
+const DeliveryUpdateModal = memo(({ isOpen, onClose, detail, onSubmit, submitting }) => {
+  const [form, setForm] = useState({ delivery_date: "", delivery_note: "", delivered_qty: "" });
+  const [errors, setErrors] = useState({});
+
+  const totalOrdered = Number(detail?.total_qty_ordered ?? detail?.qty_ordered ?? 0);
+  const alreadyDelivered = Number(detail?.qty_delivered ?? 0);
+  const cancelled = Number(detail?.qty_cancelled ?? detail?.total_cancelled_qty ?? 0);
+  const maxDeliverable = Math.max(totalOrdered - alreadyDelivered - cancelled, 0);
+  const originalDate = detail?.delivery_date || "";
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm({ delivery_date: originalDate ? formatDateForInput(originalDate) : "", delivery_note: "", delivered_qty: "" });
+      setErrors({});
+    }
+  }, [isOpen, detail]);
+
+  const isDateChanged = form.delivery_date && form.delivery_date !== formatDateForInput(originalDate);
+
+  const setField = (key, val) => {
+    setForm((p) => ({ ...p, [key]: val }));
+    setErrors((p) => ({ ...p, [key]: undefined }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.delivery_date) e.delivery_date = "Delivery date is required";
+    if (isDateChanged && !form.delivery_note?.trim()) e.delivery_note = "Note required when changing delivery date";
+    if (form.delivered_qty !== "" && (isNaN(Number(form.delivered_qty)) || Number(form.delivered_qty) < 0))
+      e.delivered_qty = "Invalid quantity";
+    if (form.delivered_qty !== "" && Number(form.delivered_qty) > maxDeliverable)
+      e.delivered_qty = `Max deliverable: ${maxDeliverable}`;
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+    const payload = {};
+    if (form.delivery_date) payload.delivery_date = form.delivery_date;
+    if (form.delivery_note?.trim()) payload.delivery_note = form.delivery_note.trim();
+    if (form.delivered_qty !== "" && Number(form.delivered_qty) > 0) payload.delivered_qty = Number(form.delivered_qty);
+    onSubmit(payload);
+  };
+
+  return (
+    <ModalShell
+      isOpen={isOpen} onClose={onClose}
+      title="Update Delivery Details"
+      subtitle="Schedule & delivery quantity"
+      icon={<FiTruck size={14} />}
+      accentClass="bg-emerald-600"
+      footer={
+        <>
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+          >
+            {submitting
+              ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</>
+              : <><FiSave size={13} />Save Delivery</>
+            }
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {/* Qty summary grid */}
+        <div className="grid grid-cols-2 gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs">
+          {[
+            { label: "Ordered", value: totalOrdered, cls: "text-slate-800" },
+            { label: "Already Delivered", value: alreadyDelivered, cls: "text-emerald-600" },
+            { label: "Cancelled", value: cancelled, cls: "text-rose-600" },
+            { label: "Max Deliverable", value: maxDeliverable, cls: "text-amber-600" },
+          ].map(({ label, value, cls }) => (
+            <div key={label}>
+              <span className="text-slate-400 font-semibold block mb-0.5">{label}</span>
+              <span className={`font-black ${cls}`}>{value}</span>
+            </div>
+          ))}
+        </div>
+
+        <FormField label="Delivery Date" required>
+          <EditInput
+            type="datetime-local"
+            value={form.delivery_date}
+            onChange={(e) => setField("delivery_date", e.target.value)}
+          />
+          {errors.delivery_date && <FieldError msg={errors.delivery_date} />}
+        </FormField>
+
+        {isDateChanged && (
+          <FormField label="Delivery Note" required hint="Required when updating delivery date">
+            <textarea
+              rows={2}
+              value={form.delivery_note}
+              onChange={(e) => setField("delivery_note", e.target.value)}
+              placeholder="Reason for delivery date change…"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all resize-none"
+            />
+            {errors.delivery_note && <FieldError msg={errors.delivery_note} />}
+          </FormField>
+        )}
+
+        <FormField label={`Delivered Quantity (Max: ${maxDeliverable})`} hint="Leave empty to skip quantity update">
+          <EditInput
+            type="number" min={0} max={maxDeliverable}
+            value={form.delivered_qty}
+            onChange={(e) => setField("delivered_qty", e.target.value)}
+            placeholder={`0 – ${maxDeliverable}`}
+          />
+          {errors.delivered_qty && <FieldError msg={errors.delivered_qty} />}
+        </FormField>
+      </div>
+    </ModalShell>
+  );
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MODAL: CANCEL ITEM — partial or full item cancellation
+// ═════════════════════════════════════════════════════════════════════════════
+
+const CancelItemModal = memo(({ isOpen, onClose, detail, onSubmit, submitting }) => {
+  const [cancelAll, setCancelAll] = useState(false);
+  const [cancelQty, setCancelQty] = useState("");
+  const [reason, setReason] = useState("");
+  const [errors, setErrors] = useState({});
+
+  const totalOrdered = Number(detail?.total_qty_ordered ?? detail?.qty_ordered ?? 0);
+  const delivered = Number(detail?.qty_delivered ?? 0);
+  const alreadyCancelled = Number(detail?.qty_cancelled ?? detail?.total_cancelled_qty ?? 0);
+  const maxCancellable = Math.max(totalOrdered - delivered - alreadyCancelled, 0);
+
+  // Auto-fill qty when "Cancel All" is toggled
+  useEffect(() => {
+    setCancelQty(cancelAll ? String(maxCancellable) : "");
+  }, [cancelAll, maxCancellable]);
+
+  useEffect(() => {
+    if (isOpen) { setCancelAll(false); setCancelQty(""); setReason(""); setErrors({}); }
+  }, [isOpen]);
+
+  const validate = () => {
+    const e = {};
+    const qty = Number(cancelQty);
+    if (!cancelQty || isNaN(qty) || qty <= 0) e.cancelQty = "Enter a valid quantity";
+    else if (qty > maxCancellable) e.cancelQty = `Max cancellable: ${maxCancellable}`;
+    if (!reason.trim()) e.reason = "Cancellation reason is required";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    const qty = Number(cancelQty);
+    const isFullCancellation = qty === maxCancellable && maxCancellable > 0;
+
+    const { isConfirmed } = await Swal.fire({
+      title: isFullCancellation ? "Cancel All Remaining Items?" : "Confirm Cancellation",
+      html: isFullCancellation
+        ? `<p class="text-sm text-slate-600 leading-relaxed">This will cancel the <strong>remaining ${maxCancellable} unit(s)</strong>.<br/><strong class="text-rose-600">This action cannot be undone.</strong></p>`
+        : `<p class="text-sm text-slate-600">Cancel <strong>${qty} unit(s)</strong> of this item?</p>`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: isFullCancellation ? "Yes, Cancel All" : "Confirm",
+      cancelButtonText: "Go Back",
+      confirmButtonColor: "#e11d48",
+      customClass: { popup: "rounded-2xl" },
+    });
+    if (!isConfirmed) return;
+
+    onSubmit({ cancel_qty: qty, reason_for_cancellation: reason.trim() });
+  };
+
+  return (
+    <ModalShell
+      isOpen={isOpen} onClose={onClose}
+      title="Cancel Order Item"
+      subtitle="Partial or full item cancellation"
+      icon={<FiXCircle size={14} />}
+      accentClass="bg-rose-600"
+      footer={
+        <>
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Go Back</button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || maxCancellable === 0}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-bold hover:bg-rose-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+          >
+            {submitting
+              ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Cancelling…</>
+              : <><FiXCircle size={13} />Cancel Items</>
+            }
+          </button>
+        </>
+      }
+    >
+      {maxCancellable === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-slate-400">
+          <FiCheckCircle size={24} className="text-emerald-500" />
+          <p className="text-sm font-semibold text-slate-600">No units available for cancellation</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Qty summary */}
+          <div className="grid grid-cols-2 gap-3 px-4 py-3 bg-rose-50 border border-rose-100 rounded-xl text-xs">
+            {[
+              { label: "Ordered", value: totalOrdered, cls: "text-slate-800" },
+              { label: "Delivered", value: delivered, cls: "text-emerald-600" },
+              { label: "Already Cancelled", value: alreadyCancelled, cls: "text-rose-600" },
+              { label: "Max Cancellable", value: maxCancellable, cls: "text-amber-700" },
+            ].map(({ label, value, cls }) => (
+              <div key={label}>
+                <span className="text-slate-400 font-semibold block mb-0.5">{label}</span>
+                <span className={`font-black ${cls}`}>{value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Cancel All checkbox */}
+          <label className={`flex items-start gap-3 px-4 py-3.5 rounded-xl border cursor-pointer transition-all select-none ${cancelAll ? "bg-rose-50 border-rose-200 ring-1 ring-rose-100" : "bg-white border-slate-200 hover:border-rose-200 hover:bg-rose-50/30"}`}>
+            <div className={`relative mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${cancelAll ? "bg-rose-600 border-rose-600" : "border-slate-300 bg-white"}`}>
+              {cancelAll && <FiCheck size={11} className="text-white" strokeWidth={3} />}
+              <input type="checkbox" checked={cancelAll} onChange={(e) => setCancelAll(e.target.checked)} className="sr-only" />
+            </div>
+            <div className="flex-1">
+              <span className={`text-sm font-bold block ${cancelAll ? "text-rose-700" : "text-slate-700"}`}>Cancel All Items</span>
+              <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
+                Auto-set quantity to remaining balance ({maxCancellable})
+              </span>
+            </div>
+            {cancelAll && <FiAlertTriangle size={14} className="text-rose-500 mt-0.5 flex-shrink-0" />}
+          </label>
+
+          {/* Quantity input — disabled when Cancel All is on */}
+          <FormField label={`Cancelled Quantity (Max: ${maxCancellable})`} required>
+            <EditInput
+              type="number"
+              min={1}
+              max={maxCancellable}
+              value={cancelQty}
+              disabled={cancelAll}
+              onChange={(e) => { setCancelQty(e.target.value); setErrors((p) => ({ ...p, cancelQty: undefined })); }}
+              placeholder={cancelAll ? `${maxCancellable} (auto-filled)` : `1 – ${maxCancellable}`}
+            />
+            {!cancelAll && (
+              <button
+                type="button"
+                onClick={() => setCancelQty(String(maxCancellable))}
+                className="text-[10px] font-bold text-rose-600 hover:text-rose-800 transition-colors mt-1"
+              >
+                Set to max ({maxCancellable})
+              </button>
+            )}
+            {errors.cancelQty && <FieldError msg={errors.cancelQty} />}
+          </FormField>
+
+          {/* Full cancellation warning banner */}
+          {Number(cancelQty) === maxCancellable && maxCancellable > 0 && (
+            <div className="flex items-start gap-2.5 px-3 py-3 bg-rose-50 border border-rose-200 rounded-xl">
+              <FiAlertTriangle size={14} className="text-rose-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs font-semibold text-rose-700">
+                This will fully cancel the remaining balance for this item.
+              </p>
+            </div>
+          )}
+
+          <FormField label="Reason for Cancellation" required>
+            <textarea
+              rows={3}
+              value={reason}
+              onChange={(e) => { setReason(e.target.value); setErrors((p) => ({ ...p, reason: undefined })); }}
+              placeholder="Explain the reason for cancellation…"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 transition-all resize-none"
+            />
+            {errors.reason && <FieldError msg={errors.reason} />}
+          </FormField>
+        </div>
+      )}
+    </ModalShell>
+  );
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MODAL: ORDER STATUS & PRIORITY
+// Uses the same StatusRadioRow for single-select status, plus a priority dropdown.
+// ═════════════════════════════════════════════════════════════════════════════
+
+const OrderStatusModal = memo(({ isOpen, onClose, order, onSubmit, submitting }) => {
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [priority, setPriority] = useState("LOW");
+
+  useEffect(() => {
+    if (isOpen && order) {
+      setSelectedStatus(order.status || "");
+      setPriority(order.priority || "LOW");
+    }
+  }, [isOpen, order]);
+
+  const allowedStatuses = getAllowedNextStatuses(order?.status);
+  const isStatusChanged = selectedStatus && selectedStatus !== order?.status;
+  const isPriorityChanged = priority !== order?.priority;
+
+  /**
+   * Build ORDER_STATUS_LIST-style options restricted to allowedStatuses.
+   * We map each allowed value to a StatusRadioRow-compatible option object.
+   */
+  const ORDER_STATUS_COLOR_MAP = {
+    PENDING: { value: "PENDING", label: "Mark as Pending", color: "slate" },
+    CONFIRMED: { value: "CONFIRMED", label: "Mark as Confirmed", color: "blue" },
+    PRODUCTION: { value: "PRODUCTION", label: "Mark as Production", color: "blue" },
+    PACKED: { value: "PACKED", label: "Mark as Packed", color: "blue" },
+    INVOICE: { value: "INVOICE", label: "Mark as Invoiced", color: "cyan" },
+    SHIPPED: { value: "SHIPPED", label: "Mark as Shipped", color: "orange" },
+    DELIVERED: { value: "DELIVERED", label: "Mark as Delivered", color: "emerald" },
+    COMPLETED: { value: "COMPLETED", label: "Mark as Completed", color: "emerald" },
+    CANCELLED: { value: "CANCELLED", label: "Mark as Cancelled", color: "rose" },
+    REJECTED: { value: "REJECTED", label: "Mark as Rejected", color: "rose" },
+  };
+
+  const statusOptions = allowedStatuses
+    .map((s) => ORDER_STATUS_COLOR_MAP[s])
+    .filter(Boolean);
+
+  const handleSubmit = () => {
+    const payload = {};
+    if (isStatusChanged) payload.status = selectedStatus;
+    if (isPriorityChanged) payload.priority = priority;
+    if (Object.keys(payload).length === 0) { onClose(); return; }
+    onSubmit(payload);
+  };
+
+  const hasChanges = isStatusChanged || isPriorityChanged;
+
+  return (
+    <ModalShell
+      isOpen={isOpen} onClose={onClose}
+      title="Update Order Status & Priority"
+      subtitle="Change workflow state and urgency"
+      icon={<FiActivity size={14} />}
+      accentClass="bg-indigo-600"
+      footer={
+        <>
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !hasChanges}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+          >
+            {submitting
+              ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</>
+              : <><FiSave size={13} />Apply Changes</>
+            }
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        {/* Current status indicator */}
+        <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">Current Status</p>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(order?.status)}`}>
+              {order?.status || "—"}
+            </span>
+          </div>
+          {isStatusChanged && (
+            <>
+              <FiArrowRight size={14} className="text-slate-300 mx-1" />
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">New Status</p>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(selectedStatus)}`}>
+                  {selectedStatus}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Status radio list */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Order Status</p>
+          {statusOptions.length > 0 ? (
+            <div className="space-y-2">
+              {statusOptions.map((opt) => (
+                <StatusRadioRow
+                  key={opt.value}
+                  option={opt}
+                  isSelected={selectedStatus === opt.value}
+                  isDisabled={false}
+                  onChange={setSelectedStatus}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400 font-medium italic px-1">No further status transitions available.</p>
+          )}
+        </div>
+
+        <ModalDivider label="Priority" />
+
+        {/* Priority dropdown */}
+        <FormField label="Priority" required>
+          <CustomSelect
+            name="priority"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+            options={["LOW", "MEDIUM", "HIGH"]}
+          />
+        </FormField>
+      </div>
+    </ModalShell>
+  );
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MODAL: ORDER DELIVERY SCHEDULE
+// ═════════════════════════════════════════════════════════════════════════════
+
+const OrderDeliveryModal = memo(({ isOpen, onClose, order, onSubmit, submitting }) => {
+  const [form, setForm] = useState({ promised_delivery_date: "", delivery_note: "" });
+  const [errors, setErrors] = useState({});
+  const originalDate = order?.promised_delivery_date || "";
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm({ promised_delivery_date: originalDate ? formatDateForInput(originalDate) : "", delivery_note: "" });
+      setErrors({});
+    }
+  }, [isOpen, order]);
+
+  const isDateChanged = form.promised_delivery_date && form.promised_delivery_date !== formatDateForInput(originalDate);
+
+  const setField = (key, val) => {
+    setForm((p) => ({ ...p, [key]: val }));
+    setErrors((p) => ({ ...p, [key]: undefined }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.promised_delivery_date) e.promised_delivery_date = "Delivery date is required";
+    if (isDateChanged && !form.delivery_note?.trim()) e.delivery_note = "Note required when changing delivery date";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  return (
+    <ModalShell
+      isOpen={isOpen} onClose={onClose}
+      title="Update Delivery Schedule"
+      subtitle="Promised delivery date and notes"
+      icon={<FiCalendar size={14} />}
+      accentClass="bg-teal-600"
+      footer={
+        <>
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
+          <button
+            onClick={() => validate() && onSubmit(form)}
+            disabled={submitting}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold hover:bg-teal-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+          >
+            {submitting
+              ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</>
+              : <><FiSave size={13} />Update Schedule</>
+            }
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <FormField label="Promised Delivery Date" required>
+          <EditInput
+            type="datetime-local"
+            value={form.promised_delivery_date}
+            onChange={(e) => setField("promised_delivery_date", e.target.value)}
+          />
+          {errors.promised_delivery_date && <FieldError msg={errors.promised_delivery_date} />}
+        </FormField>
+        <FormField
+          label="Delivery Note"
+          required={isDateChanged}
+          hint={isDateChanged ? "Required when changing delivery date" : "Optional"}
+        >
+          <textarea
+            rows={3}
+            value={form.delivery_note}
+            onChange={(e) => setField("delivery_note", e.target.value)}
+            placeholder="Notes about delivery schedule change…"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-400 transition-all resize-none"
+          />
+          {errors.delivery_note && <FieldError msg={errors.delivery_note} />}
+        </FormField>
+      </div>
+    </ModalShell>
+  );
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MODAL: ADD PAYMENT
+// ═════════════════════════════════════════════════════════════════════════════
+
+const AddPaymentModal = memo(({ isOpen, onClose, order, onSubmit, submitting }) => {
+  const [form, setForm] = useState({ amount_paid: "", payment_method: "CASH" });
+  const [errors, setErrors] = useState({});
+
+  const totalAmount = Number(order?.order_total_price ?? 0);
+  const amountAlreadyPaid = Number(order?.amount_paid ?? 0);
+  const maxPayable = Math.max(totalAmount - amountAlreadyPaid, 0);
+
+  useEffect(() => {
+    if (isOpen) { setForm({ amount_paid: "", payment_method: "CASH" }); setErrors({}); }
+  }, [isOpen]);
+
+  const setField = (key, val) => {
+    setForm((p) => ({ ...p, [key]: val }));
+    setErrors((p) => ({ ...p, [key]: undefined }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.amount_paid || isNaN(Number(form.amount_paid)) || Number(form.amount_paid) <= 0)
+      e.amount_paid = "Enter a valid amount";
+    else if (Number(form.amount_paid) > maxPayable)
+      e.amount_paid = `Maximum payable: ${formatCurrency(maxPayable)}`;
+    if (!form.payment_method) e.payment_method = "Select payment method";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  return (
+    <ModalShell
+      isOpen={isOpen} onClose={onClose}
+      title="Add Payment"
+      subtitle="Record a payment against this order"
+      icon={<FiCreditCard size={14} />}
+      accentClass="bg-emerald-600"
+      footer={
+        <>
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
+          <button
+            onClick={() => validate() && onSubmit(form)}
+            disabled={submitting || maxPayable === 0}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+          >
+            {submitting
+              ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Recording…</>
+              : <><FiPlus size={13} />Add Payment</>
+            }
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-3 px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-xl text-xs">
+          {[
+            { label: "Order Total", value: formatCurrency(totalAmount), cls: "text-slate-800" },
+            { label: "Paid", value: formatCurrency(amountAlreadyPaid), cls: "text-emerald-600" },
+            { label: "Balance", value: formatCurrency(maxPayable), cls: "text-rose-600" },
+          ].map(({ label, value, cls }) => (
+            <div key={label}>
+              <span className="text-slate-400 font-semibold block mb-0.5">{label}</span>
+              <span className={`font-black ${cls}`}>{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {maxPayable === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-6 text-slate-400">
+            <FiCheckCircle size={24} className="text-emerald-500" />
+            <p className="text-sm font-semibold text-slate-600">Order is fully paid</p>
+          </div>
+        ) : (
+          <>
+            <FormField label="Payment Method" required>
+              <CustomSelect
+                name="payment_method"
+                value={form.payment_method}
+                onChange={(e) => setField("payment_method", e.target.value)}
+                options={PAYMENT_METHOD_OPTIONS}
+              />
+              {errors.payment_method && <FieldError msg={errors.payment_method} />}
+            </FormField>
+
+            <FormField label="Amount" required hint={`Max: ${formatCurrency(maxPayable)}`}>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">₹</span>
+                <EditInput
+                  type="number" min={1} max={maxPayable}
+                  value={form.amount_paid}
+                  onChange={(e) => setField("amount_paid", e.target.value)}
+                  className="pl-7"
+                  placeholder="0.00"
+                />
+              </div>
+              {errors.amount_paid && <FieldError msg={errors.amount_paid} />}
+              <button
+                type="button"
+                onClick={() => setForm((p) => ({ ...p, amount_paid: String(maxPayable) }))}
+                className="text-[10px] font-bold text-emerald-600 hover:text-emerald-800 transition-colors mt-1"
+              >
+                Pay full balance ({formatCurrency(maxPayable)})
+              </button>
+            </FormField>
+          </>
+        )}
+      </div>
+    </ModalShell>
+  );
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// FINANCIAL SUMMARY SECTION
+// ═════════════════════════════════════════════════════════════════════════════
+
+const FinancialSummary = memo(({ order, onAddPayment, canViewPrice, submitting }) => {
   const totalAmount = Number(order?.order_total_price ?? 0);
   const discountAmount = Number(order?.order_total_discount ?? 0);
   const grossAmount = totalAmount + discountAmount;
@@ -462,15 +1248,12 @@ const FinancialSummary = ({ order }) => {
   const outstandingBalance = Number(order?.amount_due ?? totalAmount - amountReceived);
   const isPaid = outstandingBalance <= 0;
 
+  if (!canViewPrice) return null;
+
   const paymentStatusStyle = {
     PAID: "bg-emerald-50 text-emerald-600 border-emerald-200",
     PARTIAL: "bg-amber-50 text-amber-600 border-amber-200",
-  }[order.payment_status] || "bg-rose-50 text-rose-600 border-rose-200";
-
-  const paymentDotStyle = {
-    PAID: "bg-emerald-500",
-    PARTIAL: "bg-amber-500",
-  }[order.payment_status] || "bg-rose-500";
+  }[order?.payment_status] || "bg-rose-50 text-rose-600 border-rose-200";
 
   return (
     <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -485,10 +1268,21 @@ const FinancialSummary = ({ order }) => {
             <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">Financial Overview</p>
           </div>
         </div>
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${paymentStatusStyle}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${paymentDotStyle}`} />
-          {order.payment_status}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${paymentStatusStyle}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${order?.payment_status === "PAID" ? "bg-emerald-500" : order?.payment_status === "PARTIAL" ? "bg-amber-500" : "bg-rose-500"}`} />
+            {order?.payment_status}
+          </span>
+          {!isPaid && (
+            <button
+              onClick={onAddPayment}
+              disabled={submitting}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-sm shadow-emerald-200 disabled:opacity-50"
+            >
+              <FiPlus size={12} />Add Payment
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="px-6 py-5">
@@ -500,7 +1294,6 @@ const FinancialSummary = ({ order }) => {
             </span>
             <span className="text-sm font-bold text-slate-700">{formatCurrency(grossAmount)}</span>
           </div>
-
           {discountAmount > 0 && (
             <div className="flex justify-between items-center py-3">
               <span className="flex items-center gap-2 text-sm text-slate-500 font-medium">
@@ -510,24 +1303,21 @@ const FinancialSummary = ({ order }) => {
               <span className="text-sm font-bold text-rose-500">− {formatCurrency(discountAmount)}</span>
             </div>
           )}
-
           <div className="py-3">
             <div className="flex justify-between items-baseline">
               <span className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">You Pay</span>
               <span className="text-2xl font-black text-slate-900 tabular-nums">{formatCurrency(totalAmount)}</span>
             </div>
           </div>
-
           {amountReceived > 0 && (
             <div className="flex justify-between items-center py-3">
               <span className="flex items-center gap-2 text-sm text-slate-500 font-medium">
                 <span className="w-4 h-4 rounded-md bg-indigo-50 flex items-center justify-center"><FiCreditCard size={9} className="text-indigo-400" /></span>
-                Paid Now
+                Total Paid
               </span>
               <span className="text-sm font-bold text-indigo-600">{formatCurrency(amountReceived)}</span>
             </div>
           )}
-
           <div className="pt-3">
             <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl border ${isPaid ? "bg-emerald-50/80 border-emerald-200" : "bg-rose-50/80 border-rose-200"}`}>
               <div>
@@ -545,14 +1335,20 @@ const FinancialSummary = ({ order }) => {
       </div>
     </section>
   );
-};
+});
 
-// ─── Order Item Card ──────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// ORDER ITEM CARD
+// ═════════════════════════════════════════════════════════════════════════════
 
-const OrderItemCard = ({
-  d, index, isEditMode, editDetail, originalOrder,
-  userCanViewPrice, permissions, isOrderLocked,
-  updateDetailField,
+/**
+ * Single product card inside the order.
+ * Action buttons: Update Item Status | Update Delivery | Cancel Item
+ * (Production Status is merged into Update Item Status — no separate button)
+ */
+const OrderItemCard = memo(({
+  d, index, userCanViewPrice,
+  onDeliveryUpdate, onCancelItem, onItemStatusUpdate,
 }) => {
   const stockNotes = formatStockNotes(d.notes);
   const discountNotes = formatDealerDiscountNotes(d.notes);
@@ -562,29 +1358,47 @@ const OrderItemCard = ({
   const delivered = Number(d.qty_delivered ?? 0);
   const cancelled = Number(d.qty_cancelled ?? d.total_cancelled_qty ?? 0);
   const balanceQty = Math.max(totalOrdered - delivered - cancelled, 0);
-
   const hasDiscount = !d.is_free && Number(d.total_dealer_discount) > 0;
 
   const isLocked = ["COMPLETED", "DELIVERED", "CANCELLED"].includes(d.status);
+  const canCancelItem = !isLocked && balanceQty > 0;
+  const parsedDelivery = d.delivery_date ? formatDeliveryDate(d.delivery_date) : null;
+
   const { hasUnpacked, hasProduction } = d.stock_flags || {};
-  const showProduction = hasProduction || hasUnpacked;
-  const showCompletion = isEditMode && !isLocked && (hasUnpacked || hasProduction);
+  const showProductionBadge = hasProduction || hasUnpacked;
 
-  const isDeliveryDateChanged =
-    editDetail?.delivery_date &&
-    originalOrder?.order_details?.[index] &&
-    editDetail.delivery_date !== originalOrder.order_details[index].delivery_date;
-  const isCancelQtyChanged = Number(editDetail?.cancel_qty || 0) >= 1;
-
-  const detailStatusOptions = (() => {
-    const base = permissions.allowedStatuses ?? getAllowedNextStatuses(editDetail?.status);
-    return base.includes(editDetail?.status) ? base : [editDetail?.status, ...base];
-  })();
+  /** Three action buttons — only rendered when item is not locked */
+  const actionBtns = [
+    {
+      key: "status",
+      label: "Update Item Status",
+      icon: <FiFlag size={11} />,
+      colorClass: "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100",
+      onClick: () => onItemStatusUpdate(index, d),
+      disabled: isLocked,
+    },
+    {
+      key: "delivery",
+      label: "Update Delivery",
+      icon: <FiTruck size={11} />,
+      colorClass: "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100",
+      onClick: () => onDeliveryUpdate(index, d),
+      disabled: isLocked,
+    },
+    {
+      key: "cancel",
+      label: "Cancel Item",
+      icon: <FiXCircle size={11} />,
+      colorClass: "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100",
+      onClick: () => onCancelItem(index, d),
+      disabled: !canCancelItem,
+    },
+  ];
 
   return (
-    <div className={`bg-white border rounded-2xl overflow-hidden shadow-sm transition-all duration-200 ${isEditMode ? "border-indigo-200 ring-1 ring-indigo-100/60" : "border-slate-200 hover:border-slate-300 hover:shadow-md"}`}>
+    <div className={`bg-white border rounded-2xl overflow-hidden shadow-sm transition-all duration-200 ${isLocked ? "border-slate-200 opacity-80" : "border-slate-200 hover:border-indigo-200 hover:shadow-md"}`}>
 
-      {/* Card Header */}
+      {/* ── Card Header ── */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
@@ -593,22 +1407,15 @@ const OrderItemCard = ({
           <div className="min-w-0">
             <p className="font-bold text-slate-900 text-sm truncate">{capitalizeFirstLetter(d.product_name)}</p>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              {[
-                d.product_category ? capitalizeFirstLetter(d.product_category) : null,
-                d.product_brand ? capitalizeFirstLetter(d.product_brand) : null,
-                d.product_model ? capitalizeFirstLetter(d.product_model) : null,
-              ].filter(Boolean).join(" · ")}
+              {[d.product_category, d.product_brand, d.product_model].filter(Boolean).map(capitalizeFirstLetter).join(" · ")}
             </p>
           </div>
         </div>
-
         <div className="flex items-center gap-2 flex-shrink-0 ml-3">
           {d.is_free && (
-            <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wide">
-              Free
-            </span>
+            <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-blue-50 text-blue-700 border border-blue-100 uppercase">Free</span>
           )}
-          {showProduction ? (
+          {showProductionBadge ? (
             <ProductionStatusBadge hasProduction={hasProduction} hasUnpacked={hasUnpacked} variant="detail" />
           ) : (
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(d?.status)}`}>
@@ -621,355 +1428,190 @@ const OrderItemCard = ({
         </div>
       </div>
 
-      {/* Card Body */}
-      <div className="p-5 space-y-5">
-
-        {/* Quantity Tracker */}
+      {/* ── Card Body ── */}
+      <div className="p-5 space-y-4">
         <QtyTracker ordered={totalOrdered} delivered={delivered} cancelled={cancelled} />
 
+        {/* Price cards */}
         {userCanViewPrice && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-
-            {/* UNIT PRICE */}
-            {(d.is_free || Number(d.unit_product_price) > 0) && (
-              <div className={`relative overflow-hidden rounded-xl border p-4 transition-all ${d.is_free
-                ? "bg-blue-50 border-blue-200"
-                : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm"
-                }`}>
-                <div className={`absolute top-0 inset-x-0 h-0.5 rounded-t-xl ${d.is_free ? "bg-blue-500" : "bg-indigo-500"}`} />
-                <p className={`text-[10px] font-black uppercase tracking-[0.12em] mb-2.5 ${d.is_free ? "text-blue-700" : "text-slate-400"}`}>
-                  Unit Price
-                </p>
-                {d.is_free ? (
-                  <>
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-100 border border-blue-200 text-sm font-black text-blue-700">
-                      FREE
-                    </span>
-                    <p className="text-[10px] text-blue-600 font-medium mt-2">Scheme item</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-lg font-black text-slate-900 tracking-tight tabular-nums">
-                      {formatCurrency(d.unit_product_price)}
-                    </p>
-                    <p className="text-[10px] text-slate-400 font-medium mt-1">per unit</p>
-                  </>
-                )}
-              </div>
+            {!d.is_free && Number(d.unit_product_price) > 0 && (
+              <PriceCard label="Unit Price" value={formatCurrency(d.unit_product_price)} note="per unit" />
             )}
-
-            {/* TOTAL PRICE */}
-            {(d.is_free || Number(d.total_price) > 0) && (
-              <div className={`relative overflow-hidden rounded-xl border p-4 transition-all ${d.is_free
-                ? "bg-blue-50 border-blue-200"
-                : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm"
-                }`}>
-                <div className={`absolute top-0 inset-x-0 h-0.5 rounded-t-xl ${d.is_free ? "bg-blue-500" : "bg-indigo-500"}`} />
-                <p className={`text-[10px] font-black uppercase tracking-[0.12em] mb-2.5 ${d.is_free ? "text-blue-700" : "text-slate-400"}`}>
-                  Total Price
-                </p>
-                {d.is_free ? (
-                  <>
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-100 border border-blue-200 text-sm font-black text-blue-700">
-                      FREE
-                    </span>
-                    <p className="text-[10px] text-blue-600 font-medium mt-2">No charge applied</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-baseline gap-2">
-                      <p className="text-lg font-black text-slate-900 tracking-tight tabular-nums">
-                        {formatCurrency(d.total_price)}
-                      </p>
-                      {hasDiscount && Number(d.total_product_price) > 0 && (
-                        <span className="text-xs text-slate-400 line-through tabular-nums">
-                          {formatCurrency(d.total_product_price)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-slate-400 font-medium mt-1">
-                      {hasDiscount ? "after dealer discount" : "total amount"}
-                    </p>
-                  </>
-                )}
-              </div>
+            {!d.is_free && Number(d.total_price) > 0 && (
+              <PriceCard
+                label="Total Price"
+                value={formatCurrency(d.total_price)}
+                strikethrough={hasDiscount && Number(d.total_product_price) > 0 ? formatCurrency(d.total_product_price) : null}
+                note={hasDiscount ? "after dealer discount" : "total amount"}
+              />
             )}
-
-            {/* DISCOUNT */}
             {hasDiscount && Number(d.total_dealer_discount) > 0 && (
-              <div className="relative overflow-hidden bg-emerald-50 border border-emerald-200 rounded-xl p-4 transition-all hover:border-emerald-300 hover:shadow-sm">
-                <div className="absolute top-0 inset-x-0 h-0.5 rounded-t-xl bg-emerald-500" />
-                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700 mb-2.5">
-                  Discount Saved
-                </p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-sm font-black text-emerald-600">−</span>
-                  <p className="text-lg font-black text-emerald-700 tracking-tight tabular-nums">
-                    {formatCurrency(d.total_dealer_discount)}
-                  </p>
-                </div>
-                <p className="text-[10px] text-emerald-600 font-medium mt-1">dealer discount applied</p>
-              </div>
+              <PriceCard
+                label="Discount Saved"
+                value={`− ${formatCurrency(d.total_dealer_discount)}`}
+                note="dealer discount applied"
+                variant="success"
+              />
             )}
-
           </div>
         )}
 
-        {userCanViewPrice && d.delivery_date && (() => {
-          const parsed = formatDeliveryDate(d.delivery_date);
-          if (!parsed) return null;
-          return (
-            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5">
-              <FiCalendar size={11} className="text-slate-400" />
-              <span className="font-black text-slate-400 uppercase text-[9px] tracking-[0.1em]">Delivery Date</span>
-              <span className="ml-auto font-semibold text-slate-700">{parsed.date} <span className="w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" /> {parsed.time}</span>
-            </div>
-          );
-        })()}
+        {/* Delivery date pill */}
+        {parsedDelivery && (
+          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5">
+            <FiCalendar size={11} className="text-slate-400" />
+            <span className="font-black text-slate-400 uppercase text-[9px] tracking-[0.1em]">Delivery Date</span>
+            <span className="ml-auto font-semibold text-slate-700">{parsedDelivery.date} · {parsedDelivery.time}</span>
+          </div>
+        )}
 
         {/* Notes */}
-        {stockNotes?.length > 0 && <NotesList title="Stock Notes" notes={stockNotes} variant="default" />}
+        {stockNotes?.length > 0 && <NotesList title="Stock Notes" notes={stockNotes} />}
         {discountNotes?.length > 0 && <NotesList title="Dealer Discount Notes" notes={discountNotes} variant="purple" />}
         {deliveryNotes?.length > 0 && <DeliveryNotesCard title="Delivery Notes" color="blue" notes={deliveryNotes} />}
 
-        {/* ── Edit Panel ── */}
-        {isEditMode && editDetail && (
-          <div className="pt-4 border-t border-indigo-100 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-              <p className="text-[9px] uppercase font-black tracking-[0.14em] text-indigo-500">Edit Item</p>
+        {/* Action buttons — hidden when item is locked */}
+        {!isLocked && (
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-3">Item Actions</p>
+            <div className="flex flex-wrap gap-2">
+              {actionBtns.map((btn) => (
+                <button
+                  key={btn.key}
+                  onClick={btn.onClick}
+                  disabled={btn.disabled}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-bold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${btn.colorClass}`}
+                >
+                  {btn.icon}
+                  {btn.label}
+                </button>
+              ))}
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              <FormField label="Status">
-                <CustomSelect
-                  value={editDetail.status}
-                  disabled={isLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("status"))}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    if (permissions.allowedStatuses && !permissions.allowedStatuses.includes(next)) return;
-                    updateDetailField(index, "status", next);
-                  }}
-                  options={detailStatusOptions}
-                />
-              </FormField>
-
-              <FormField label="Delivery Date">
-                <EditInput
-                  type="datetime-local"
-                  value={formatDateForInput(editDetail.delivery_date)}
-                  disabled={isLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("delivery_date"))}
-                  onChange={(e) => updateDetailField(index, "delivery_date", e.target.value)}
-                />
-              </FormField>
-
-              {isDeliveryDateChanged && (
-                <FormField label="Delivery Note">
-                  <EditInput
-                    type="text"
-                    value={editDetail.delivery_note || ""}
-                    disabled={isLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("delivery_note"))}
-                    onChange={(e) => updateDetailField(index, "delivery_note", e.target.value)}
-                    placeholder="Reason for delivery date change"
-                  />
-                </FormField>
-              )}
-
-              {!isLocked && (
-                <FormField label="Delivered Quantity">
-                  <EditInput
-                    type="number" min={0} max={balanceQty}
-                    disabled={!permissions.canEditAll && !permissions.editableDetailFields?.includes("delivered_qty")}
-                    onChange={(e) => {
-                      const val = Number(e.target.value || 0);
-                      if (val <= balanceQty) updateDetailField(index, "delivered_qty", val);
-                    }}
-                    placeholder={`Max ${balanceQty}`}
-                  />
-                </FormField>
-              )}
-
-              {!isLocked && (
-                <FormField label="Cancelled Quantity">
-                  <EditInput
-                    type="number" min={0} max={balanceQty}
-                    disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("cancel_qty"))}
-                    onChange={(e) => {
-                      const val = Number(e.target.value || 0);
-                      if (val <= balanceQty) updateDetailField(index, "cancel_qty", val);
-                    }}
-                    placeholder={`Max ${balanceQty}`}
-                  />
-                </FormField>
-              )}
-
-              {isCancelQtyChanged && (
-                <FormField label="Reason for Cancellation">
-                  <textarea
-                    disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("cancel_qty"))}
-                    onChange={(e) => updateDetailField(index, "reason_for_cancellation", e.target.value)}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all resize-none"
-                    rows={2}
-                    placeholder="Enter reason for cancellation"
-                  />
-                </FormField>
-              )}
-            </div>
-
-            {showCompletion && (
-              <div className="border-t border-indigo-100 pt-4 space-y-2">
-                <p className="text-[9px] uppercase tracking-[0.12em] text-slate-400 font-black">Completion Status</p>
-                <div className="flex gap-3 flex-wrap">
-                  {hasUnpacked && (
-                    <CheckboxField
-                      label="Unpacked Completed"
-                      checked={editDetail.has_unPacked_completed}
-                      disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("has_unPacked_completed"))}
-                      onChange={(e) => updateDetailField(index, "has_unPacked_completed", e.target.checked)}
-                    />
-                  )}
-                  {hasProduction && (
-                    <CheckboxField
-                      label="Production Completed"
-                      checked={editDetail.has_production_completed}
-                      disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableDetailFields?.includes("has_production_completed"))}
-                      onChange={(e) => updateDetailField(index, "has_production_completed", e.target.checked)}
-                    />
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
-    </div >
+    </div>
   );
+});
+
+/** Small pricing card used inside an order item */
+const PriceCard = memo(({ label, value, note, strikethrough, variant = "default" }) => {
+  const isSuccess = variant === "success";
+  return (
+    <div className={`relative overflow-hidden rounded-xl border p-4 hover:shadow-sm transition-all ${isSuccess ? "bg-emerald-50 border-emerald-200 hover:border-emerald-300" : "bg-white border-slate-200 hover:border-slate-300"}`}>
+      <div className={`absolute top-0 inset-x-0 h-0.5 rounded-t-xl ${isSuccess ? "bg-emerald-500" : "bg-indigo-500"}`} />
+      <p className={`text-[10px] font-black uppercase tracking-[0.12em] mb-2 ${isSuccess ? "text-emerald-700" : "text-slate-400"}`}>{label}</p>
+      <div className="flex items-baseline gap-2">
+        <p className={`text-lg font-black tabular-nums ${isSuccess ? "text-emerald-700" : "text-slate-900"}`}>{value}</p>
+        {strikethrough && <span className="text-xs text-slate-400 line-through tabular-nums">{strikethrough}</span>}
+      </div>
+      {note && <p className={`text-[10px] font-medium mt-1 ${isSuccess ? "text-emerald-600" : "text-slate-400"}`}>{note}</p>}
+    </div>
+  );
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PAGE HEADER
+// ═════════════════════════════════════════════════════════════════════════════
+
+const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusModal, openDelivery, openCancelOrder, submitting }) => {
+  const isTerminal = ["COMPLETED", "CANCELLED", "REJECTED"].includes(order?.status);
+  return (
+    <div className="flex items-start sm:items-center gap-4 flex-wrap">
+      <button
+        type="button"
+        onClick={() => window.history.back()}
+        className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm group flex-shrink-0"
+      >
+        <FiArrowLeft size={15} className="text-slate-400 group-hover:text-slate-700 transition-colors" />
+      </button>
+
+      <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-lg font-black text-slate-900 tracking-tight">
+              Order <span className="text-indigo-600 font-mono">{order?.order_number}</span>
+            </h1>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getPriorityStyle(order?.priority)}`}>
+              {order?.priority || "Normal"}
+            </span>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(order?.status)}`}>
+              {order?.status || "Unknown"}
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-1 font-medium">
+            Created {order?.created_at ? formatDate(order.created_at) : "—"}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {userCanPrint && (
+            <button
+              type="button"
+              onClick={onPrint}
+              disabled={pdfLoading}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+            >
+              {pdfLoading
+                ? <><div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />Generating…</>
+                : <><FiPrinter size={13} />Print / PDF</>
+              }
+            </button>
+          )}
+
+          {!isTerminal && (
+            <>
+              <button
+                onClick={openStatusModal}
+                disabled={submitting}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 disabled:opacity-50"
+              >
+                <FiActivity size={13} />Status & Priority
+              </button>
+              <button
+                onClick={openDelivery}
+                disabled={submitting}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 text-white text-sm font-bold rounded-xl hover:bg-teal-700 active:scale-95 transition-all shadow-sm shadow-teal-200 disabled:opacity-50"
+              >
+                <FiCalendar size={13} />Delivery Schedule
+              </button>
+              <button
+                onClick={openCancelOrder}
+                disabled={submitting}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-600 text-white text-sm font-bold rounded-xl hover:bg-rose-700 active:scale-95 transition-all shadow-sm shadow-rose-200 disabled:opacity-50"
+              >
+                <FiXCircle size={13} />Cancel Order
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SWAL HELPERS (non-component confirmations)
+// ═════════════════════════════════════════════════════════════════════════════
+
+const confirmCancelOrder = async () => {
+  const { isConfirmed } = await Swal.fire({
+    title: "Cancel Order",
+    html: `<p class="text-sm text-slate-600 leading-relaxed">Are you sure you want to cancel this entire order?<br/><strong class="text-rose-600">This action cannot be undone.</strong></p>`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, Cancel Order",
+    cancelButtonText: "Go Back",
+    confirmButtonColor: "#e11d48",
+    customClass: { popup: "rounded-2xl" },
+  });
+  return isConfirmed;
 };
 
-// ─── Page Header ──────────────────────────────────────────────────────────────
-
-const PageHeader = ({
-  order, isEditMode, submitting, pdfLoading, isOrderLocked,
-  isPaymentFullyDone, userCanPrint, onEdit, onSave, onDiscard, onPrint,
-}) => (
-  <div className="flex items-start sm:items-center gap-4">
-    <button
-      type="button"
-      onClick={() => window.history.back()}
-      className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm group flex-shrink-0"
-    >
-      <FiArrowLeft size={15} className="text-slate-400 group-hover:text-slate-700 transition-colors" />
-    </button>
-
-    <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <h1 className="text-lg font-black text-slate-900 tracking-tight">
-            Order <span className="text-indigo-600 font-mono">{order?.order_number}</span>
-          </h1>
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getPriorityStyle(order?.priority)}`}>
-            {order?.priority || "Normal"}
-          </span>
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(order?.status)}`}>
-            {order?.status || "Unknown"}
-          </span>
-        </div>
-        <p className="text-xs text-slate-400 mt-1 font-medium">
-          Created {order?.created_at ? formatDate(order.created_at) : "—"}
-        </p>
-      </div>
-
-      <div className="flex items-center gap-2.5 flex-wrap">
-        {userCanPrint && (
-          <button
-            type="button"
-            onClick={onPrint}
-            disabled={pdfLoading}
-            title="Download / Print PDF Invoice"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-          >
-            {pdfLoading ? (
-              <><div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" /> Generating…</>
-            ) : (
-              <><FiPrinter size={13} /> Print / PDF</>
-            )}
-          </button>
-        )}
-
-        {!isEditMode ? (
-          <button
-            type="button"
-            onClick={onEdit}
-            disabled={isOrderLocked && isPaymentFullyDone}
-            title={isOrderLocked && isPaymentFullyDone ? "Completed orders cannot be edited" : "Edit this order"}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
-          >
-            <FiEdit2 size={13} /> Edit Order
-          </button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={submitting || (isOrderLocked && isPaymentFullyDone)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
-            >
-              <FiSave size={13} /> {submitting ? "Saving…" : "Save Changes"}
-            </button>
-            <button
-              type="button"
-              onClick={onDiscard}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
-            >
-              <FiX size={13} /> Discard
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-);
-
-// ─── Edit Mode Banner ─────────────────────────────────────────────────────────
-
-const EditModeBanner = () => (
-  <div className="flex items-center gap-3 px-4 py-3.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 text-sm font-semibold">
-    <div className="p-1.5 bg-indigo-100 rounded-lg flex-shrink-0">
-      <FiZap size={12} className="text-indigo-600" />
-    </div>
-    You're in <strong className="font-black mx-1">Edit Mode</strong> — make your changes and click{" "}
-    <strong className="font-black ml-1">Save Changes</strong> to apply.
-  </div>
-);
-
-// ─── Floating Save Bar ────────────────────────────────────────────────────────
-
-const FloatingSaveBar = ({ onSave, onDiscard, submitting, isOrderLocked, isPaymentFullyDone }) => (
-  <div className="sticky bottom-6 z-20 flex justify-center pointer-events-none">
-    <div className="pointer-events-auto flex items-center gap-3 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-lg px-5 py-3 ring-1 ring-slate-100">
-      <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-      <span className="text-sm text-slate-500 font-semibold hidden sm:block">Unsaved changes</span>
-      <div className="w-px h-4 bg-slate-200 mx-1 hidden sm:block" />
-      <button
-        type="button"
-        onClick={onDiscard}
-        className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-lg hover:bg-slate-50 active:scale-95 transition-all"
-      >
-        <FiX size={12} /> Discard
-      </button>
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={submitting || (isOrderLocked && isPaymentFullyDone)}
-        className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-200"
-      >
-        <FiSave size={12} /> {submitting ? "Saving…" : "Save Changes"}
-      </button>
-    </div>
-  </div>
-);
-
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE COMPONENT
+// ═════════════════════════════════════════════════════════════════════════════
 
 const OrderDetails = () => {
   const { id } = useParams();
@@ -982,41 +1624,47 @@ const OrderDetails = () => {
   const userCanViewDealerInfo = canViewDealerInformation(user?.role);
   const permissions = useUpdateOrderPermissions();
 
-  // ── State ──────────────────────────────────────────────────────────────────
+  // ── Core state ────────────────────────────────────────────────────────────
   const [order, setOrder] = useState(null);
   const [userMap, setUserMap] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editOrder, setEditOrder] = useState(null);
-  const [originalOrder, setOriginalOrder] = useState(null);
-  const [amountPaid, setAmountPaid] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-
+  const [error, setError] = useState(null);
   const [companyInfo, setCompanyInfo] = useState({});
   const [pdfLoading, setPdfLoading] = useState(false);
 
-  // Open edit mode when navigated with state flag
-  useEffect(() => {
-    if (location.state?.openEditMode) {
-      setIsEditMode(true);
-      window.history.replaceState({}, document.title);
+  /**
+   * Single modal controller: { name, itemIndex, itemData }
+   * name    → one of MODAL.* constants; null = no modal open
+   * itemIndex → index within order.order_details (item-level modals only)
+   * itemData  → the full item object (item-level modals only)
+   */
+  const [modal, setModal] = useState({ name: null, itemIndex: null, itemData: null });
+
+  const openItemModal = useCallback((name, index, data) => setModal({ name, itemIndex: index, itemData: data }), []);
+  const openOrderModal = useCallback((name) => setModal({ name, itemIndex: null, itemData: null }), []);
+  const closeModal = useCallback(() => setModal({ name: null, itemIndex: null, itemData: null }), []);
+
+  // ── Data loading ──────────────────────────────────────────────────────────
+
+  const loadOrder = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetchOrderById(id);
+      if (res?.success && res?.data?.order) {
+        setOrder(res.data.order);
+      } else {
+        setError(res?.message || "Failed to load order");
+      }
+    } catch {
+      setError("Failed to load order");
+    } finally {
+      setLoading(false);
     }
-  }, [location.state]);
+  }, [id]);
 
-  // ── Derived flags ──────────────────────────────────────────────────────────
-  const isCompleted = editOrder?.status === "COMPLETED";
-  const isDelivered = editOrder?.status === "DELIVERED";
-  const isCancelled = editOrder?.status === "CANCELLED";
-  const isOrderLocked = isCompleted || isDelivered || isCancelled;
-  const isPaymentFullyDone = Number(editOrder?.order_total_price || 0) === Number(amountPaid || 0);
-  const isOrderDeliveryDateChanged =
-    !!editOrder?.promised_delivery_date &&
-    !!originalOrder &&
-    editOrder.promised_delivery_date !== originalOrder.promised_delivery_date;
-
-  // ── Data fetchers ──────────────────────────────────────────────────────────
   const fetchUsersForMap = useCallback(async () => {
     try {
       const res = await fetchUsers({ page: 1, limit: 500, status: "active", includePassword: false, includeDealers: false });
@@ -1028,51 +1676,19 @@ const OrderDetails = () => {
           }, {})
         );
       }
-    } catch (err) {
-      console.error("Failed to fetch users:", err);
-    }
+    } catch { /* silent */ }
   }, []);
 
-  const loadOrder = useCallback(async () => {
-    if (!id) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetchOrderById(id);
-      if (res?.success && res?.data?.order) {
-        const fetched = res.data.order;
-        const normalized = normalizeOrder(fetched);
-        setOrder(fetched);
-        setAmountPaid(fetched?.amount_paid ?? 0);
-        setEditOrder(normalized);
-        setOriginalOrder(normalized);
-      } else {
-        setError(res?.message || "Failed to load order");
-      }
-    } catch (err) {
-      console.error("Order fetch error:", err);
-      setError("Failed to load order");
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  useEffect(() => { loadOrder(); fetchUsersForMap(); }, [loadOrder, fetchUsersForMap]);
 
-  useEffect(() => {
-    loadOrder();
-    fetchUsersForMap();
-  }, [loadOrder, fetchUsersForMap]);
-
-  // ── PDF ────────────────────────────────────────────────────────────────────
-  const isValidCompany = (data) =>
-    data !== null && data !== undefined && typeof data === "object" &&
-    !Array.isArray(data) && Object.keys(data).length > 0;
+  // ── PDF handler ───────────────────────────────────────────────────────────
 
   const handlePrint = useCallback(async () => {
     if (!order) return;
     setPdfLoading(true);
     try {
       let company = companyInfo;
-      if (!isValidCompany(company)) {
+      if (!company || Object.keys(company).length === 0) {
         const res = await fetchCompanyAddress();
         if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
           company = res.data[0];
@@ -1081,169 +1697,144 @@ const OrderDetails = () => {
       }
       generateOrderPDF(order, company, userMap);
     } catch (err) {
-      console.error("PDF generation error:", err);
-      Swal.fire({ icon: "error", title: "PDF Generation Failed", text: err.message || "Could not fetch company details." });
+      Swal.fire({ icon: "error", title: "PDF Generation Failed", text: err.message || "Could not generate PDF." });
     } finally {
       setPdfLoading(false);
     }
   }, [order, companyInfo, userMap]);
 
-  // ── Derived stats ──────────────────────────────────────────────────────────
+  // ── Shared API submit wrapper ─────────────────────────────────────────────
+
+  const submitUpdate = useCallback(async (payload) => {
+    setSubmitting(true);
+    try {
+      const res = await updateOrderStatus(order.order_number, { order_number: order.order_number, ...payload });
+      if (res?.success) {
+        closeModal();
+        await Swal.fire({ icon: "success", title: "Updated Successfully", timer: 1800, showConfirmButton: false });
+        await loadOrder();
+      } else {
+        Swal.fire({ icon: "error", title: "Update Failed", text: res?.message || "Something went wrong." });
+      }
+    } catch {
+      Swal.fire({ icon: "error", title: "Network Error", text: "Please try again." });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [order, closeModal, loadOrder]);
+
+  // ── Item-level submit handlers ────────────────────────────────────────────
+
+  /**
+   * Handles the merged "Update Item Status" modal.
+   * Payload may include: status, has_unPacked_completed, has_production_completed
+   */
+  const handleItemStatusSubmit = useCallback((payload) => {
+    const detailNumber = modal.itemData?.order_details_number;
+    if (!detailNumber) return;
+    submitUpdate({ order_details: [{ order_details_number: detailNumber, ...payload }] });
+  }, [modal.itemData, submitUpdate]);
+
+  const handleDeliveryUpdateSubmit = useCallback((payload) => {
+    const detailNumber = modal.itemData?.order_details_number;
+    if (!detailNumber) return;
+    const detail = { order_details_number: detailNumber };
+    if (payload.delivery_date) detail.delivered_date = new Date(payload.delivery_date).toISOString();
+    if (payload.delivery_note) detail.delivery_note = payload.delivery_note;
+    if (payload.delivered_qty) detail.delivered_qty = payload.delivered_qty;
+    submitUpdate({ order_details: [detail] });
+  }, [modal.itemData, submitUpdate]);
+
+  const handleCancelItemSubmit = useCallback((payload) => {
+    const detailNumber = modal.itemData?.order_details_number;
+    if (!detailNumber) return;
+    submitUpdate({
+      order_details: [{
+        order_details_number: detailNumber,
+        cancel_qty: payload.cancel_qty,
+        reason_for_cancellation: payload.reason_for_cancellation,
+      }],
+    });
+  }, [modal.itemData, submitUpdate]);
+
+  // ── Order-level submit handlers ───────────────────────────────────────────
+
+  const handleOrderStatusSubmit = useCallback((payload) => {
+    if (Object.keys(payload).length === 0) { closeModal(); return; }
+    submitUpdate(payload);
+  }, [submitUpdate, closeModal]);
+
+  const handleOrderDeliverySubmit = useCallback((form) => {
+    const payload = {};
+    if (form.promised_delivery_date) payload.delivery_date = new Date(form.promised_delivery_date).toISOString();
+    if (form.delivery_note?.trim()) payload.delivery_note = form.delivery_note.trim();
+    submitUpdate(payload);
+  }, [submitUpdate]);
+
+  const handleAddPaymentSubmit = useCallback((form) => {
+    submitUpdate({ amount_paid: Number(form.amount_paid), payment_method: form.payment_method });
+  }, [submitUpdate]);
+
+  const handleCancelOrder = useCallback(async () => {
+    const confirmed = await confirmCancelOrder();
+    if (!confirmed) return;
+    submitUpdate({ status: "CANCELLED" });
+  }, [submitUpdate]);
+
+  // ── Derived data ──────────────────────────────────────────────────────────
+
   const totalUnits = useMemo(
     () => (order?.order_details || []).reduce((sum, item) => sum + Number(item?.total_qty_ordered ?? 0), 0),
     [order]
   );
 
-  // ── Update handlers ────────────────────────────────────────────────────────
-  const updateOrderField = useCallback(
-    (field, value) => setEditOrder((prev) => ({ ...prev, [field]: value })),
-    []
+  // ── Loading / error / empty states ───────────────────────────────────────
+
+  if (loading) return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+      <div className="relative w-10 h-10">
+        <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
+        <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+      <p className="text-sm text-slate-400 font-medium">Loading order details…</p>
+    </div>
   );
 
-  const updateDetailField = useCallback((index, field, value) => {
-    setEditOrder((prev) => {
-      const updated = [...prev.order_details];
-      const updatedDetail = { ...updated[index], [field]: value, __isModified: true };
-      if (field === "has_unPacked_completed" && value) updatedDetail.has_production_completed = false;
-      if (field === "has_production_completed" && value) updatedDetail.has_unPacked_completed = false;
-      updated[index] = updatedDetail;
-      return { ...prev, order_details: updated };
-    });
-  }, []);
-
-  const handleDiscardEdit = useCallback(() => {
-    if (order) setEditOrder(normalizeOrder(order));
-    setIsEditMode(false);
-  }, [order]);
-
-  // ── Build payload ──────────────────────────────────────────────────────────
-  const buildPayload = useMemo(() => {
-    if (!editOrder || !originalOrder) return null;
-    const payload = { order_number: editOrder.order_number };
-
-    ["status", "priority", "payment_method"].forEach((field) => {
-      if (editOrder[field] !== originalOrder[field]) payload[field] = editOrder[field];
-    });
-
-    if (Number(editOrder.amount_paid) > 0) payload.amount_paid = Number(editOrder.amount_paid);
-
-    if (editOrder.promised_delivery_date && editOrder.promised_delivery_date !== originalOrder.promised_delivery_date) {
-      payload.delivery_date = new Date(editOrder.promised_delivery_date).toISOString();
-      if (editOrder.delivery_note?.trim()) payload.delivery_note = editOrder.delivery_note.trim();
-    }
-
-    const updatedDetails = editOrder.order_details
-      .map((detail, index) => {
-        const orig = originalOrder.order_details[index];
-        const item = { order_details_number: detail.order_details_number };
-        let changed = false;
-
-        const assignIfChanged = (key, cur, prev) => {
-          if (cur !== prev) { item[key] = cur; changed = true; }
-        };
-
-        assignIfChanged("status", detail.status, orig.status);
-
-        const deliveredQty = Number(detail.delivered_qty);
-        const origDelivered = Number(orig.qty_delivered || 0);
-        const hasQtyChanged = deliveredQty > 0 && deliveredQty !== origDelivered;
-        const hasDateChanged = detail.delivery_date && detail.delivery_date !== orig.delivery_date;
-
-        if (hasQtyChanged) { item.delivered_qty = deliveredQty; changed = true; }
-        if (hasQtyChanged || hasDateChanged) { item.delivered_date = new Date(detail.delivery_date).toISOString(); changed = true; }
-        if (hasDateChanged && detail.delivery_note?.trim()) { item.delivery_note = detail.delivery_note.trim(); changed = true; }
-
-        const cancelQty = Number(detail.cancel_qty);
-        const origCancel = Number(orig.total_cancelled_qty || 0);
-        const hasCancelChange = cancelQty > 0 && cancelQty !== origCancel;
-        if (hasCancelChange) { item.cancel_qty = cancelQty; changed = true; }
-        if (hasCancelChange && detail.reason_for_cancellation?.trim()) { item.reason_for_cancellation = detail.reason_for_cancellation.trim(); changed = true; }
-
-        assignIfChanged("has_unPacked_completed", detail.has_unPacked_completed, orig.has_unPacked_completed);
-        assignIfChanged("has_production_completed", detail.has_production_completed, orig.has_production_completed);
-
-        return changed ? item : null;
-      })
-      .filter(Boolean);
-
-    if (updatedDetails.length > 0) payload.order_details = updatedDetails;
-    return payload;
-  }, [editOrder, originalOrder]);
-
-  // ── Submit ─────────────────────────────────────────────────────────────────
-  const handleSubmit = useCallback(async () => {
-    if (!buildPayload) return;
-    const hasChanges = buildPayload.status || buildPayload.priority || buildPayload.delivery_date ||
-      buildPayload.amount_paid || buildPayload.payment_method || buildPayload.order_details;
-    if (!hasChanges) return Swal.fire({ icon: "info", title: "No Changes Detected" });
-
-    setSubmitting(true);
-    try {
-      const res = await updateOrderStatus(editOrder.order_number, buildPayload);
-      if (res?.success) {
-        await Swal.fire({ icon: "success", title: "Order Updated Successfully" });
-        await loadOrder();
-        setIsEditMode(false);
-      } else {
-        setError(res?.message || "Update failed");
-      }
-    } catch {
-      setError("Update failed");
-    } finally {
-      setSubmitting(false);
-    }
-  }, [buildPayload, editOrder, loadOrder]);
-
-  // ── Loading / Error States ─────────────────────────────────────────────────
-  if (loading)
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-        <div className="relative w-10 h-10">
-          <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-          <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-        </div>
-        <p className="text-sm text-slate-400 font-medium">Loading order details…</p>
+  if (error) return (
+    <div className="min-h-[40vh] flex flex-col items-center justify-center gap-3">
+      <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
+        <FiAlertCircle size={24} className="text-rose-500" />
       </div>
-    );
+      <p className="text-sm font-semibold text-rose-600">{error}</p>
+    </div>
+  );
 
-  if (error)
-    return (
-      <div className="min-h-[40vh] flex flex-col items-center justify-center gap-3">
-        <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100"><FiAlertCircle size={24} className="text-rose-500" /></div>
-        <p className="text-sm font-semibold text-rose-600">{error}</p>
-      </div>
-    );
+  if (!order) return (
+    <div className="min-h-[40vh] flex items-center justify-center">
+      <p className="text-sm text-slate-400">Order not found</p>
+    </div>
+  );
 
-  if (!order)
-    return (
-      <div className="min-h-[40vh] flex items-center justify-center">
-        <p className="text-sm text-slate-400">Order not found</p>
-      </div>
-    );
+  // ═════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═════════════════════════════════════════════════════════════════════════
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-screen-xl mx-auto">
 
-      {/* Header */}
+      {/* ── Page Header ─────────────────────────────────────────────── */}
       <PageHeader
         order={order}
-        isEditMode={isEditMode}
-        submitting={submitting}
-        pdfLoading={pdfLoading}
-        isOrderLocked={isOrderLocked}
-        isPaymentFullyDone={isPaymentFullyDone}
         userCanPrint={userCanPrint}
-        onEdit={() => setIsEditMode(true)}
-        onSave={handleSubmit}
-        onDiscard={handleDiscardEdit}
+        pdfLoading={pdfLoading}
+        submitting={submitting}
         onPrint={handlePrint}
+        openStatusModal={() => openOrderModal(MODAL.ORDER_STATUS)}
+        openDelivery={() => openOrderModal(MODAL.ORDER_DELIVERY)}
+        openCancelOrder={handleCancelOrder}
       />
 
-      {/* Edit banner */}
-      {isEditMode && <EditModeBanner />}
-
-      {/* Order Summary */}
+      {/* ── Order Summary ────────────────────────────────────────────── */}
       <SectionCard title="Order Summary" subtitle="Overview">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-1">
           <InfoCell icon={<FiCalendar />} label="Created">{formatDate(order?.created_at)}</InfoCell>
@@ -1255,11 +1846,10 @@ const OrderDetails = () => {
             </span>
           </InfoCell>
           <InfoCell icon={<FiCreditCard />} label="Payment Type">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getPaymentTypeStyle(order?.payment_type)}`}>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide bg-slate-50 text-slate-600 border-slate-200">
               {order?.payment_type || "Unknown"}
             </span>
           </InfoCell>
-          <InfoCell icon={<FiCalendar />} label="Last Payment">{formatDate(order?.last_payment_date)}</InfoCell>
           <InfoCell icon={<FiUser />} label="Salesman">
             <div className="flex flex-col">
               <span>{userMap[order?.salesman_id] || "Unknown"}</span>
@@ -1283,114 +1873,20 @@ const OrderDetails = () => {
         )}
       </SectionCard>
 
-      {/* Edit Mode — Order-level fields */}
-      {isEditMode && editOrder && (
-        <section className="bg-white border border-indigo-200 rounded-2xl shadow-sm ring-1 ring-indigo-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-indigo-100 bg-indigo-50/40">
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-indigo-500 mb-1">Editing Order</p>
-              <p className="text-sm font-black text-slate-900 font-mono">{editOrder.order_number}</p>
-            </div>
-            <span className="text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg font-black uppercase tracking-wide">
-              ✏ Edit Mode Active
-            </span>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-              <FormField label="Order Status">
-                <CustomSelect
-                  value={editOrder.status}
-                  disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("status"))}
-                  onChange={(e) => {
-                    if (permissions.allowedStatuses && !permissions.allowedStatuses.includes(e.target.value)) return;
-                    if (permissions.restrictStatusToDelivered && e.target.value !== "DELIVERED") return;
-                    updateOrderField("status", e.target.value);
-                  }}
-                  options={
-                    permissions.restrictStatusToDelivered ? ["DELIVERED"]
-                      : permissions.allowedStatuses ?? getAllowedNextStatuses(editOrder.status)
-                  }
-                />
-              </FormField>
-
-              <FormField label="Priority">
-                <CustomSelect
-                  value={editOrder.priority}
-                  disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("priority"))}
-                  onChange={(e) => updateOrderField("priority", e.target.value)}
-                  options={PRIORITY_OPTIONS}
-                />
-              </FormField>
-
-              <FormField label="Payment Method">
-                <CustomSelect
-                  value={editOrder.payment_method}
-                  disabled={isPaymentFullyDone || (!permissions.canEditAll && !permissions.editableFields?.includes("payment_method"))}
-                  onChange={(e) => updateOrderField("payment_method", e.target.value)}
-                  options={PAYMENT_METHOD_OPTIONS}
-                />
-              </FormField>
-
-              <FormField label="Amount Paid">
-                <EditInput
-                  type="number"
-                  disabled={isPaymentFullyDone || (!permissions.canEditAll && !permissions.editableFields?.includes("amount_paid"))}
-                  min={0}
-                  max={Number(editOrder?.order_total_price || 0) - amountPaid}
-                  value={editOrder.amount_paid === 0 ? "" : editOrder.amount_paid}
-                  onChange={(e) => {
-                    const value = e.target.value === "" ? 0 : Number(e.target.value);
-                    if (value <= Number(editOrder?.order_total_price || 0) - amountPaid)
-                      updateOrderField("amount_paid", value);
-                  }}
-                  placeholder="Enter paid amount"
-                />
-              </FormField>
-
-              <FormField label="Promised Delivery Date">
-                <EditInput
-                  type="datetime-local"
-                  value={formatDateForInput(editOrder.promised_delivery_date)}
-                  disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("promised_delivery_date"))}
-                  onChange={(e) => updateOrderField("promised_delivery_date", e.target.value)}
-                />
-              </FormField>
-
-              {isOrderDeliveryDateChanged && (
-                <FormField label="Delivery Note">
-                  <EditInput
-                    type="text"
-                    disabled={isOrderLocked || (!permissions.canEditAll && !permissions.editableFields?.includes("delivery_note"))}
-                    onChange={(e) => updateOrderField("delivery_note", e.target.value)}
-                    placeholder="Reason for delivery update"
-                  />
-                </FormField>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Dealer Information */}
+      {/* ── Dealer Information ───────────────────────────────────────── */}
       {userCanViewDealerInfo && (
         <SectionCard title="Dealer Information" subtitle="Profile">
           <div className="grid sm:grid-cols-2 gap-1">
-            <InfoCell icon={<FiUser />} label="Dealer Name">
-              {order?.dealer?.employee_name ? capitalizeFirstLetter(order.dealer.employee_name) : null}
-            </InfoCell>
-            <InfoCell icon={<FiBox />} label="Shop Name">
-              {order?.dealer?.shop_name ? capitalizeFirstLetter(order.dealer.shop_name) : null}
-            </InfoCell>
+            <InfoCell icon={<FiUser />} label="Dealer Name">{order?.dealer?.employee_name ? capitalizeFirstLetter(order.dealer.employee_name) : null}</InfoCell>
+            <InfoCell icon={<FiBox />} label="Shop Name">{order?.dealer?.shop_name ? capitalizeFirstLetter(order.dealer.shop_name) : null}</InfoCell>
             <InfoCell icon={<FiMail />} label="Email">{order?.dealer?.employee_email}</InfoCell>
             <InfoCell icon={<FiPhone />} label="Phone">{order?.dealer?.employee_phone}</InfoCell>
-            <InfoCell icon={<FiMapPin />} label="Address">
-              {order?.dealer?.address ? capitalizeFirstLetter(order.dealer.address) : null}
-            </InfoCell>
+            <InfoCell icon={<FiMapPin />} label="Address">{order?.dealer?.address ? capitalizeFirstLetter(order.dealer.address) : null}</InfoCell>
           </div>
         </SectionCard>
       )}
 
-      {/* Order Items */}
+      {/* ── Order Items ──────────────────────────────────────────────── */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -1398,8 +1894,7 @@ const OrderDetails = () => {
             <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">Products &amp; Details</p>
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wide">
-            <FiPackage size={10} />
-            {totalUnits} {totalUnits === 1 ? "Unit" : "Units"}
+            <FiPackage size={10} />{totalUnits} {totalUnits === 1 ? "Unit" : "Units"}
           </span>
         </div>
 
@@ -1409,41 +1904,30 @@ const OrderDetails = () => {
               key={d.order_details_number}
               d={d}
               index={index}
-              isEditMode={isEditMode}
-              editDetail={editOrder?.order_details?.[index]}
-              originalOrder={originalOrder}
               userCanViewPrice={userCanViewPrice}
               permissions={permissions}
-              isOrderLocked={isOrderLocked}
-              updateDetailField={updateDetailField}
+              onItemStatusUpdate={(i, data) => openItemModal(MODAL.ITEM_STATUS, i, data)}
+              onDeliveryUpdate={(i, data) => openItemModal(MODAL.DELIVERY, i, data)}
+              onCancelItem={(i, data) => openItemModal(MODAL.CANCEL_ITEM, i, data)}
             />
           ))}
         </div>
       </section>
 
-      {/* Delivery Notes */}
-      {order?.delivery_notes && (
-        <SectionCard title="Delivery Notes" subtitle="Additional Info">
-          <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-4">
-            <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-              {capitalizeFirstLetter(order.delivery_notes)}
-            </p>
-          </div>
-        </SectionCard>
-      )}
+      {/* ── Financial Summary ────────────────────────────────────────── */}
+      <FinancialSummary
+        order={order}
+        canViewPrice={userCanViewPrice}
+        submitting={submitting}
+        onAddPayment={() => openOrderModal(MODAL.PAYMENT)}
+      />
 
-      {/* Financial Summary */}
-      {userCanViewPrice && <FinancialSummary order={order} />}
-
-      {/* Payment Notes */}
+      {/* ── Payment Notes ────────────────────────────────────────────── */}
       {userCanViewPrice && order?.payment_notes?.length > 0 && (
         <SectionCard title="Payment Notes" subtitle="Transaction History">
           <ul className="space-y-2">
             {order.payment_notes.map((note, index) => (
-              <li
-                key={index}
-                className="flex items-start gap-3 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm text-slate-700 hover:bg-slate-100/60 hover:border-slate-200 transition-all"
-              >
+              <li key={index} className="flex items-start gap-3 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm text-slate-700 hover:bg-slate-100/60 hover:border-slate-200 transition-all">
                 <FiChevronRight size={13} className="text-slate-400 mt-0.5 flex-shrink-0" />
                 {capitalizeFirstLetter(note)}
               </li>
@@ -1452,16 +1936,64 @@ const OrderDetails = () => {
         </SectionCard>
       )}
 
-      {/* Floating Save Bar */}
-      {isEditMode && (
-        <FloatingSaveBar
-          onSave={handleSubmit}
-          onDiscard={handleDiscardEdit}
-          submitting={submitting}
-          isOrderLocked={isOrderLocked}
-          isPaymentFullyDone={isPaymentFullyDone}
-        />
-      )}
+      {/* ══════════════════════════════════════════════════════════════
+          MODALS — all driven by the single `modal` state object.
+          Unmounted when not active (name === null).
+          ════════════════════════════════════════════════════════════ */}
+
+      {/* Item: merged status + production milestones */}
+      <ItemStatusModal
+        isOpen={modal.name === MODAL.ITEM_STATUS}
+        onClose={closeModal}
+        detail={modal.itemData}
+        onSubmit={handleItemStatusSubmit}
+        submitting={submitting}
+      />
+
+      {/* Item: delivery date / qty update */}
+      <DeliveryUpdateModal
+        isOpen={modal.name === MODAL.DELIVERY}
+        onClose={closeModal}
+        detail={modal.itemData}
+        onSubmit={handleDeliveryUpdateSubmit}
+        submitting={submitting}
+      />
+
+      {/* Item: partial / full cancellation */}
+      <CancelItemModal
+        isOpen={modal.name === MODAL.CANCEL_ITEM}
+        onClose={closeModal}
+        detail={modal.itemData}
+        onSubmit={handleCancelItemSubmit}
+        submitting={submitting}
+      />
+
+      {/* Order: status (checkbox-radio) + priority dropdown */}
+      <OrderStatusModal
+        isOpen={modal.name === MODAL.ORDER_STATUS}
+        onClose={closeModal}
+        order={order}
+        onSubmit={handleOrderStatusSubmit}
+        submitting={submitting}
+      />
+
+      {/* Order: promised delivery schedule */}
+      <OrderDeliveryModal
+        isOpen={modal.name === MODAL.ORDER_DELIVERY}
+        onClose={closeModal}
+        order={order}
+        onSubmit={handleOrderDeliverySubmit}
+        submitting={submitting}
+      />
+
+      {/* Order: add payment */}
+      <AddPaymentModal
+        isOpen={modal.name === MODAL.PAYMENT}
+        onClose={closeModal}
+        order={order}
+        onSubmit={handleAddPaymentSubmit}
+        submitting={submitting}
+      />
     </div>
   );
 };
