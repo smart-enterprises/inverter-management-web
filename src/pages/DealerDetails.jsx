@@ -990,7 +990,7 @@ const BrandsModelsSection = ({ dealer, allBrands, brandToModels, onAddBrand }) =
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
           >
             <FiPlus size={13} />
-            Add Brand & Models
+            Add Brands
           </button>
         </div>
       </div>
