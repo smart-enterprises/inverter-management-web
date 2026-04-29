@@ -1,8 +1,7 @@
-// AppRoutes.jsx Code
+// src/routes/AppRoutes.jsx
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// Pages
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import NotFound from "../pages/NotFound";
@@ -20,33 +19,29 @@ import Billing from "../pages/Billing";
 import Delivery from "../pages/Delivery";
 import UpdateOrder from "../pages/UpdateOrder";
 import UserDetails from "../pages/UserDetails";
-
-import ProtectedRoute from "../components/ProtectedRoute";
-import { useAuth } from "../hooks/useAuth";
 import CompanyDetails from "../pages/CompanyDetails";
 import DataUpload from "../pages/DataUpload";
 import PurchaseAnalytics from "../pages/Purchaseanalytics";
+
+import ProtectedRoute from "../components/ProtectedRoute";
+import { useAuth } from "../hooks/useAuth";
 
 export default function AppRoutes() {
   const { isAuthenticated } = useAuth();
 
   return (
     <Routes>
-      {/* ── Public ─────────────────────────────────────────────────────── */}
+      {/* ── Public ── */}
       <Route
         path="/login"
         element={
-          isAuthenticated() ? (
-            <Navigate to="/dashboard" replace />
-          ) : (
-            <Login />
-          )
+          isAuthenticated()
+            ? <Navigate to="/dashboard" replace />
+            : <Login />
         }
       />
 
-      {/* ── Protected — ProtectedRoute handles auth + role checks ────── */}
-      {/*   If the user's role isn't allowed on a route, ProtectedRoute   */}
-      {/*   renders <AccessDenied /> automatically — no extra wiring.     */}
+      {/* ── Protected ── */}
       <Route
         element={
           <ProtectedRoute>
@@ -55,7 +50,6 @@ export default function AppRoutes() {
         }
       >
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
         <Route path="/dashboard" element={<Dashboard />} />
 
         <Route path="/users" element={<Users />} />
@@ -72,18 +66,16 @@ export default function AppRoutes() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/create" element={<CreateOrder />} />
         <Route path="/orders/:id" element={<OrderDetails />} />
-        {/* <Route path="/orders/update/:id" element={<UpdateOrder />} /> */}
 
         <Route path="/delivery" element={<Delivery />} />
         <Route path="/billing" element={<Billing />} />
 
         <Route path="/company-details" element={<CompanyDetails />} />
         <Route path="/data-upload" element={<DataUpload />} />
-
         <Route path="/purchase-analytics" element={<PurchaseAnalytics />} />
       </Route>
 
-      {/* ── 404 ──────────────────────────────────────────────────────── */}
+      {/* ── 404 ── */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

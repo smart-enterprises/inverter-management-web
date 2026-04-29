@@ -116,17 +116,17 @@ export const getRoleBasedStatusOptions = (role) => {
 
     switch (role) {
 
-        case ROLES.PRODUCTION:
-            return [
-                ORDER_STATUSES.PRODUCTION,
-                ORDER_STATUSES.PACKED
-            ];
+        // case ROLES.PRODUCTION:
+        //     return [
+        //         ORDER_STATUSES.PRODUCTION,
+        //         ORDER_STATUSES.PACKED
+        //     ];
 
-        case ROLES.PACKING:
-            return [
-                ORDER_STATUSES.PRODUCTION,
-                ORDER_STATUSES.PACKED
-            ];
+        // case ROLES.PACKING:
+        //     return [
+        //         ORDER_STATUSES.PRODUCTION,
+        //         ORDER_STATUSES.PACKED
+        //     ];
 
         default:
             return ORDER_STATUS_LIST;
