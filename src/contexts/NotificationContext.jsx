@@ -15,11 +15,18 @@ import {
     markNotificationRead,
     markAllNotificationsRead,
 } from "../api/notifications";
+import {
+    NOTIFICATION_TYPES,
+    NOTIFICATION_CONFIG,
+    loadAudioBuffer,
+    unlockAudio,
+    startAlertLoop,
+    stopAlertLoop,
+    requestSystemNotifPermission,
+    showSystemNotificationFromPayload,
+} from "../services/notificationService";
 
-const NotificationContext = createContext(null);
-
-// Roles that receive order notifications (mirror backend constant)
-const ORDER_NOTIFICATION_ROLES = new Set([
+const NOTIFICATION_ELIGIBLE_ROLES = new Set([
     "ROLE_SUPER_ADMIN",
     "ROLE_ADMIN",
     "ROLE_MANAGER",
@@ -27,144 +34,91 @@ const ORDER_NOTIFICATION_ROLES = new Set([
     "ROLE_PACKING",
     "ROLE_ACCOUNTS",
     "ROLE_DELIVERY",
+    "ROLE_SALESMAN",
 ]);
 
-// ┬─┬ ノ( ゜-゜ノ)  AUDIO SYSTEM
-let audioCtx = null;
-let audioBuffer = null;
-let soundIntervalId = null;
-let audioUnlocked = false;
+const SSE_EVENTS = Object.values(NOTIFICATION_TYPES);
 
-// load audio buffer
-async function loadAudioBuffer() {
-    if (audioBuffer) return audioBuffer; // already loaded
-    try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const response = await fetch("/notification-alert.mp3");
-        if (!response.ok) {
-            console.error("[Audio] File not found: /public/notification-alert.mp3 — add this file!");
-            return null;
-        }
-        const arrayBuffer = await response.arrayBuffer();
-        audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        return audioBuffer;
-    } catch (err) {
-        console.error("[Audio] Failed to load audio buffer:", err);
-        return null;
-    }
-}
-
-// Plays the loaded buffer once. Safe to call from anywhere.
-function playOnce() {
-    if (!audioCtx || !audioBuffer || !audioUnlocked) return;
-    try {
-        // AudioContext may be suspended after page idle — resume it
-        if (audioCtx.state === "suspended") audioCtx.resume();
-        const source = audioCtx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioCtx.destination);
-        source.start(0);
-    } catch (err) {
-        console.warn("[Audio] playOnce failed:", err);
-    }
-}
-
-function startSoundLoop() {
-    stopSoundLoop(); // clear any existing interval first
-    playOnce();
-    soundIntervalId = setInterval(playOnce, 2500);
-}
-
-function stopSoundLoop() {
-    clearInterval(soundIntervalId);
-    soundIntervalId = null;
-}
+const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
     const { user, isAuthenticated } = useAuth();
 
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [toasts, setToasts] = useState([]); // active popup toasts
+    const [toasts, setToasts] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
     const toastTimers = useRef({});
 
-    const shouldReceiveNotifications =
-        isAuthenticated() && ORDER_NOTIFICATION_ROLES.has(user?.role);
+    const shouldReceive =
+        isAuthenticated() && NOTIFICATION_ELIGIBLE_ROLES.has(user?.role);
 
-    /* ── Audio helpers ─────────────────────────────────── */
+    // ── Audio + System Notification bootstrap ──────────────────────────────
     useEffect(() => {
-        // Pre-fetch and decode the audio file so it's ready instantly
+        // Pre-load audio so it plays instantly
         loadAudioBuffer();
 
-        const unlock = async () => {
-            if (audioUnlocked) return;
-            try {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                await audioCtx.resume(); // This MUST happen inside a user gesture
-                audioUnlocked = true;
-                // Also ensure buffer is loaded if it wasn't ready yet
-                await loadAudioBuffer();
-            } catch (err) {
-                console.warn("[Audio] Unlock failed:", err);
-            }
+        // Request system notification permission on first user gesture
+        requestSystemNotifPermission();
+
+        // Unlock Web Audio API (must happen inside a user gesture)
+        const unlockOnInteraction = async () => {
+            await unlockAudio();
+            await requestSystemNotifPermission();
         };
 
-        window.addEventListener("click", unlock, { once: true });
-        window.addEventListener("keydown", unlock, { once: true });
-        window.addEventListener("touchstart", unlock, { once: true });
+        window.addEventListener("click", unlockOnInteraction, { once: true });
+        window.addEventListener("keydown", unlockOnInteraction, { once: true });
+        window.addEventListener("touchstart", unlockOnInteraction, { once: true });
 
         return () => {
-            window.removeEventListener("click", unlock);
-            window.removeEventListener("keydown", unlock);
-            window.removeEventListener("touchstart", unlock);
+            window.removeEventListener("click", unlockOnInteraction);
+            window.removeEventListener("keydown", unlockOnInteraction);
+            window.removeEventListener("touchstart", unlockOnInteraction);
         };
     }, []);
 
+    // ── Toast management ───────────────────────────────────────────────────
     const dismissToast = useCallback((notificationId) => {
-        // Clear this toast's auto-dismiss timer
         clearTimeout(toastTimers.current[notificationId]);
         delete toastTimers.current[notificationId];
 
         setToasts((prev) => {
             const remaining = prev.filter((t) => t.notification_id !== notificationId);
-            // ─── CHANGE 5 ──────────────────────────────────────────────────────
-            // Only stop sound when there are NO more active toasts.
-            // Previously stopSound() was called on every dismiss, killing audio
-            // even if other toasts were still active.
-            // ───────────────────────────────────────────────────────────────────
-            if (remaining.length === 0) {
-                stopSoundLoop();
-            }
+            if (remaining.length === 0) stopAlertLoop();
             return remaining;
         });
     }, []);
 
     const addToast = useCallback((notification) => {
         setToasts((prev) => {
-            if (prev.some((t) => t.notification_id === notification.notification_id)) {
+            if (prev.some((t) => t.notification_id === notification.notification_id))
                 return prev;
-            }
             return [...prev, { ...notification, addedAt: Date.now() }];
         });
 
-        startSoundLoop();
+        // Sound alert — only for types that require it
+        const config = NOTIFICATION_CONFIG[notification.type];
+        if (config?.soundAlert) startAlertLoop();
 
-        // ─── CHANGE 6 ──────────────────────────────────────────────────────────
-        // Store timer in ref so dismissToast always cancels the right one,
-        // even if the component re-renders between addToast and the timeout.
-        // ───────────────────────────────────────────────────────────────────────
+        // Browser system notification
+        showSystemNotificationFromPayload(notification, (payload) => {
+            if (payload?.order_number) {
+                window.location.href = `/orders/${payload.order_number}`;
+            }
+        });
+
+        // Auto-dismiss after 5 s
         const timer = setTimeout(() => {
             dismissToast(notification.notification_id);
-        }, 5000);
+        }, 5_000);
         toastTimers.current[notification.notification_id] = timer;
     }, [dismissToast]);
 
-    /* ── Load initial data ──────────────────────────────── */
-
+    // ── Initial data load ──────────────────────────────────────────────────
     const loadNotifications = useCallback(async () => {
-        if (!shouldReceiveNotifications) return;
+        if (!shouldReceive) return;
         try {
             setIsLoading(true);
             const [notifRes, countRes] = await Promise.all([
@@ -178,39 +132,57 @@ export const NotificationProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [shouldReceiveNotifications]);
+    }, [shouldReceive]);
 
     useEffect(() => {
         loadNotifications();
     }, [loadNotifications]);
 
-    /* ── SSE event handlers ──────────────────────────────── */
-
+    // ── SSE event handlers ─────────────────────────────────────────────────
     const handleConnected = useCallback(({ unread_count }) => {
         setUnreadCount(unread_count || 0);
     }, []);
 
-    const handleOrderCreated = useCallback((data) => {
+    /**
+     * Generic handler for all incoming notification SSE events.
+     * The event name is the notification type (e.g. ORDER_CREATED_PENDING).
+     */
+    const handleIncomingNotification = useCallback((data) => {
         const newNotif = { ...data, is_read: false };
+
         setNotifications((prev) => {
-            if (prev.some((n) => n.notification_id === data.notification_id)) return prev;
+            if (prev.some((n) => n.notification_id === data.notification_id))
+                return prev;
             return [newNotif, ...prev];
         });
+
         setUnreadCount((c) => c + 1);
         addToast(newNotif);
     }, [addToast]);
 
-    useSSE(
-        "/notifications/stream",
-        { connected: handleConnected, ORDER_CREATED: handleOrderCreated },
-        shouldReceiveNotifications
-    );
+    // Build handlers map: one handler for each SSE event type
+    const sseHandlers = useCallback(() => {
+        const handlers = { connected: handleConnected };
+        SSE_EVENTS.forEach((eventType) => {
+            handlers[eventType] = handleIncomingNotification;
+        });
+        return handlers;
+    }, [handleConnected, handleIncomingNotification]);
 
-    /* ── Mark as read ──────────────────────────────────── */
+    // Memoize so useSSE doesn't reconnect on every render
+    const stableHandlers = useRef(sseHandlers());
+    useEffect(() => {
+        stableHandlers.current = sseHandlers();
+    }, [sseHandlers]);
 
+    useSSE("/notifications/stream", stableHandlers.current, shouldReceive);
+
+    // ── Mark as read ───────────────────────────────────────────────────────
     const handleMarkAsRead = useCallback(async (notificationId) => {
         setNotifications((prev) =>
-            prev.map((n) => n.notification_id === notificationId ? { ...n, is_read: true } : n)
+            prev.map((n) =>
+                n.notification_id === notificationId ? { ...n, is_read: true } : n
+            )
         );
         setUnreadCount((c) => Math.max(0, c - 1));
         dismissToast(notificationId);
@@ -219,8 +191,11 @@ export const NotificationProvider = ({ children }) => {
             await markNotificationRead(notificationId);
         } catch (err) {
             console.error("[Notifications] Failed to mark as read:", err);
+            // Optimistic rollback
             setNotifications((prev) =>
-                prev.map((n) => n.notification_id === notificationId ? { ...n, is_read: false } : n)
+                prev.map((n) =>
+                    n.notification_id === notificationId ? { ...n, is_read: false } : n
+                )
             );
             setUnreadCount((c) => c + 1);
         }
@@ -229,8 +204,9 @@ export const NotificationProvider = ({ children }) => {
     const handleMarkAllRead = useCallback(async () => {
         setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
         setUnreadCount(0);
-        stopSoundLoop();
-        // Clear all pending timers
+        stopAlertLoop();
+
+        // Clear all pending auto-dismiss timers
         Object.values(toastTimers.current).forEach(clearTimeout);
         toastTimers.current = {};
         setToasts([]);
@@ -239,14 +215,14 @@ export const NotificationProvider = ({ children }) => {
             await markAllNotificationsRead();
         } catch (err) {
             console.error("[Notifications] Failed to mark all as read:", err);
-            loadNotifications();
+            loadNotifications(); // revert via fresh fetch
         }
     }, [loadNotifications]);
 
-    /* ── Cleanup on unmount ──────────────────────────────── */
+    // ── Cleanup ────────────────────────────────────────────────────────────
     useEffect(() => {
         return () => {
-            stopSoundLoop();
+            stopAlertLoop();
             Object.values(toastTimers.current).forEach(clearTimeout);
         };
     }, []);
@@ -271,6 +247,6 @@ export const NotificationProvider = ({ children }) => {
 
 export const useNotifications = () => {
     const ctx = useContext(NotificationContext);
-    if (!ctx) throw new Error("useNotifications must be inside NotificationProvider");
+    if (!ctx) throw new Error("useNotifications must be used inside <NotificationProvider>");
     return ctx;
 };

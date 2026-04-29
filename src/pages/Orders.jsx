@@ -10,7 +10,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrders } from "../api/orders";
-import { getRoleBasedStatusOptions, PRIORITY_OPTIONS } from "../utils/status";
+import { getRoleBasedStatusOptions, ORDER_STATUSES, PRIORITY_OPTIONS } from "../utils/status";
 import { capitalizeFirstLetter } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
@@ -530,6 +530,9 @@ const Orders = () => {
                       ? new Date(order.promised_delivery_date)
                       : maxDetailDate;
 
+                    const status = order.status.toUpperCase();
+                    const isProductionStatus = status === ORDER_STATUSES.PRODUCTION;
+
                     const hasProduction = orderDetails?.some(
                       (d) => d.stock_flags?.hasProduction === true
                     );
@@ -537,7 +540,7 @@ const Orders = () => {
                       (d) => d.stock_flags?.hasUnpacked === true
                     );
 
-                    const showProduction = hasProduction || hasUnpacked;
+                    const showProduction = isProductionStatus && (hasProduction || hasUnpacked);
 
                     return (
                       <tr
