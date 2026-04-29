@@ -10,16 +10,11 @@ const LogoutListener = ({ children }) => {
 
   useEffect(() => {
     const handleStorage = (event) => {
-      if (event.key === "logout-event") {
-        navigate("/login");
-      }
+      if (event.key === "logout-event") navigate("/login");
     };
 
     window.addEventListener("storage", handleStorage);
-
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
+    return () => window.removeEventListener("storage", handleStorage);
   }, [navigate]);
 
   return children;
