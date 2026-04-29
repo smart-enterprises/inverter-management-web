@@ -18,7 +18,7 @@ import { fetchOrderById, updateOrderStatus } from "../api/orders";
 import { fetchUsers } from "../api/user";
 import { capitalizeFirstLetter } from "../utils/constants";
 import { formatDealerDiscountNotes, formatDeliveryNotes, formatStockNotes } from "../utils/notesUtils";
-import { getStatusStyle, ORDER_STATUS_LIST, PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
+import { getStatusStyle, ORDER_STATUS_LIST, ORDER_STATUSES, PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
 import { useUpdateOrderPermissions } from "../hooks/useUpdateOrderPermissions";
 import { formatDateForInput, formatDeliveryDate } from "../utils/dateUtils";
 import { getAllowedNextStatuses } from "../utils/orderStatusHelper";
@@ -1364,8 +1364,11 @@ const OrderItemCard = memo(({
   const canCancelItem = !isLocked && balanceQty > 0;
   const parsedDelivery = d.delivery_date ? formatDeliveryDate(d.delivery_date) : null;
 
+  const currentStatus = d.status.toUpperCase();
+  const isProductionStatus = currentStatus === ORDER_STATUSES.PRODUCTION;
+
   const { hasUnpacked, hasProduction } = d.stock_flags || {};
-  const showProductionBadge = hasProduction || hasUnpacked;
+  const showProductionBadge = isProductionStatus && (hasProduction || hasUnpacked);
 
   /** Three action buttons — only rendered when item is not locked */
   const actionBtns = [
@@ -1517,6 +1520,22 @@ const PriceCard = memo(({ label, value, note, strikethrough, variant = "default"
 
 const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusModal, openDelivery, openCancelOrder, submitting }) => {
   const isTerminal = ["COMPLETED", "CANCELLED", "REJECTED"].includes(order?.status);
+
+  const currentStatus = order?.status?.toUpperCase();
+  const isProductionStatus = currentStatus === ORDER_STATUSES.PRODUCTION;
+
+  // Handle array of order_details properly
+  const hasProduction = order?.order_details?.some(
+    (d) => d?.stock_flags?.hasProduction === true
+  );
+
+  const hasUnpacked = order?.order_details?.some(
+    (d) => d?.stock_flags?.hasUnpacked === true
+  );
+
+  const showProductionBadge =
+    isProductionStatus && (hasProduction || hasUnpacked);
+
   return (
     <div className="flex items-start sm:items-center gap-4 flex-wrap">
       <button
@@ -1562,13 +1581,16 @@ const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusM
 
           {!isTerminal && (
             <>
-              <button
-                onClick={openStatusModal}
-                disabled={submitting}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 disabled:opacity-50"
-              >
-                <FiActivity size={13} />Status & Priority
-              </button>
+              {!showProductionBadge && (
+                <button
+                  onClick={openStatusModal}
+                  disabled={submitting}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 disabled:opacity-50"
+                >
+                  <FiActivity size={13} />Status & Priority
+                </button>
+              )}
+
               <button
                 onClick={openDelivery}
                 disabled={submitting}
