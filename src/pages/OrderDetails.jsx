@@ -18,7 +18,7 @@ import { fetchOrderById, updateOrderStatus } from "../api/orders";
 import { fetchUsers } from "../api/user";
 import { capitalizeFirstLetter } from "../utils/constants";
 import { formatDealerDiscountNotes, formatDeliveryNotes, formatStockNotes } from "../utils/notesUtils";
-import { getStatusStyle, ORDER_STATUS_LIST, PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
+import { getStatusStyle, ORDER_STATUS_LIST, ORDER_STATUSES, PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
 import { useUpdateOrderPermissions } from "../hooks/useUpdateOrderPermissions";
 import { formatDateForInput, formatDeliveryDate } from "../utils/dateUtils";
 import { getAllowedNextStatuses } from "../utils/orderStatusHelper";
@@ -1364,8 +1364,11 @@ const OrderItemCard = memo(({
   const canCancelItem = !isLocked && balanceQty > 0;
   const parsedDelivery = d.delivery_date ? formatDeliveryDate(d.delivery_date) : null;
 
+  const currentStatus = d.status.toUpperCase();
+  const isProductionStatus = currentStatus === ORDER_STATUSES.PRODUCTION;
+
   const { hasUnpacked, hasProduction } = d.stock_flags || {};
-  const showProductionBadge = hasProduction || hasUnpacked;
+  const showProductionBadge = isProductionStatus && (hasProduction || hasUnpacked);
 
   /** Three action buttons — only rendered when item is not locked */
   const actionBtns = [
