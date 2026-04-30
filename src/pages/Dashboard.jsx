@@ -191,6 +191,7 @@ const Dashboard = () => {
   const showLowStockAlert = canViewDashboardSection(role, DASHBOARD_SECTIONS.LOW_STOCK_ALERT);
   const showLowStockProducts = canViewDashboardSection(role, DASHBOARD_SECTIONS.LOW_STOCK_PRODUCTS);
   const showUserStats = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_USERS);
+  const showAdminStats = role == ROLES.SUPER_ADMIN || role == ROLES.ADMIN
   const showDealerStats = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_DEALERS);
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -252,16 +253,41 @@ const Dashboard = () => {
   };
 
   const loadUserCounts = async () => {
-    const rolesToFetch = [
-      { role: ROLES.ADMIN, setter: setAdminCount },
-      { role: ROLES.SUPER_ADMIN, setter: setAdminCount },
-      { role: ROLES.SALESMAN, setter: setSalesmanCount },
-      { role: ROLES.DEALER, setter: setDealerCount },
-    ];
-    const responses = await Promise.all(
-      rolesToFetch.map(({ role }) => fetchUsers({ page: 1, limit: 1, role, status: "active" }))
-    );
-    responses.forEach((res, i) => rolesToFetch[i].setter(res?.data?.total || 0));
+    try {
+      const res = await fetchUsers({
+        page: 1,
+        limit: 5000,
+        status: "active",
+        includeDealers: true,
+      });
+
+      const employees = res?.data?.employees ?? [];
+
+      const counts = employees.reduce(
+        (acc, { role }) => {
+          if (role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN) {
+            acc.admin++;
+          } else if (role === ROLES.SALESMAN) {
+            acc.salesman++;
+          } else if (role === ROLES.DEALER) {
+            acc.dealer++;
+          }
+          return acc;
+        },
+        {
+          admin: 0,
+          salesman: 0,
+          dealer: 0,
+        }
+      );
+
+      setAdminCount(counts.admin);
+      setSalesmanCount(counts.salesman);
+      setDealerCount(counts.dealer);
+
+    } catch (error) {
+      console.error("Failed to load user counts:", error);
+    }
   };
 
   const loadLowStockProducts = async () => {
@@ -335,11 +361,11 @@ const Dashboard = () => {
         <div>
           <SectionHeader title="Overview" subtitle="System summary at a glance" />
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {showAdminStats && (
+              <StatCard icon={<FiUsers />} title="Total Admins" value={adminCount} color="indigo" loading={loading} onClick={() => navigate("/users")} />
+            )}
             {showUserStats && (
-              <>
-                <StatCard icon={<FiUsers />} title="Total Admins" value={adminCount} color="indigo" loading={loading} onClick={() => navigate("/users")} />
-                <StatCard icon={<FiUsers />} title="Total Salesmen" value={salesmanCount} color="violet" loading={loading} onClick={() => navigate("/users")} />
-              </>
+              <StatCard icon={<FiUsers />} title="Total Salesmen" value={salesmanCount} color="violet" loading={loading} onClick={() => navigate("/users")} />
             )}
             {showDealerStats && (
               <StatCard icon={<FiUsers />} title="Total Dealers" value={dealerCount} color="blue" loading={loading} onClick={() => navigate("/dealers")} />
