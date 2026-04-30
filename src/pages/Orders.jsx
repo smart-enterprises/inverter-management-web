@@ -191,32 +191,28 @@ const Orders = () => {
     [user?.role]
   );
 
+  const deriveStatus = () => {
+    if (routeState?.status) return routeState.status;
+    if (isProduction || isPacking) return "PRODUCTION";
+    if (isDelivery) return "SHIPPED";
+    return "ALL";
+  };
+
   /* ── State ── */
   const [orders, setOrders] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 10 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+
   const [searchInput, setSearchInput] = useState(routeState?.search || "");
   const [searchQuery, setSearchQuery] = useState(routeState?.search || "");
-  const [selectedStatus, setSelectedStatus] = useState(routeState?.status || "ALL");
+
+  const [selectedStatus, setSelectedStatus] = useState(deriveStatus);
   const [selectedPriority, setSelectedPriority] = useState(routeState?.priority || "ALL");
 
   const [startDate, setStartDate] = useState(routeState?.startDate || "");
   const [endDate, setEndDate] = useState(routeState?.endDate || "");
-
-  /*
-   * Role-based default status:
-   * - PRODUCTION → show PRODUCTION orders
-   * - PACKING    → show PRODUCTION orders (items in packing stage still show as PRODUCTION)
-   * - DELIVERY   → show SHIPPED orders
-   */
-  useEffect(() => {
-    if (routeState?.status) return; // respect explicit route state
-    if (isProduction) setSelectedStatus("PRODUCTION");
-    else if (isPacking) setSelectedStatus("PRODUCTION");
-    else if (isDelivery) setSelectedStatus("SHIPPED");
-  }, [isProduction, isPacking, isDelivery, routeState?.status]);
 
   /* Debounce: push searchInput → searchQuery after 400 ms */
   useEffect(() => {

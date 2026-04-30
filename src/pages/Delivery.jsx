@@ -192,6 +192,13 @@ const Delivery = () => {
     [user?.role]
   );
 
+  const deriveStatus = () => {
+    if (routeState?.status) return routeState.status;
+    if (isProduction || isPacking) return "PRODUCTION";
+    if (isDelivery) return "SHIPPED";
+    return "ALL";
+  };
+
   /* ── State ── */
   const [orders, setOrders] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 10 });
@@ -200,7 +207,8 @@ const Delivery = () => {
 
   const [searchInput, setSearchInput] = useState(routeState?.search || "");
   const [searchQuery, setSearchQuery] = useState(routeState?.search || "");
-  const [selectedStatus, setSelectedStatus] = useState(routeState?.status || "ALL");
+
+  const [selectedStatus, setSelectedStatus] = useState(deriveStatus);
   const [selectedPriority, setSelectedPriority] = useState(routeState?.priority || "ALL");
 
   const [deliveryStartDate, setDeliveryStartDate] = useState(routeState?.deliveryStartDate || "");
