@@ -569,17 +569,6 @@ const Orders = () => {
                             >
                               <FiEye size={14} />
                             </button>
-                            <button
-                              onClick={() =>
-                                navigate(`/orders/${order.order_number}`, {
-                                  state: { openEditMode: true },
-                                })
-                              }
-                              title="Edit Order"
-                              className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all"
-                            >
-                              <FiEdit2 size={14} />
-                            </button>
                           </div>
                         </td>
                       </tr>
