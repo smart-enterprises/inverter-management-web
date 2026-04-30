@@ -132,3 +132,9 @@ export const getRoleBasedStatusOptions = (role) => {
             return ORDER_STATUS_LIST;
     }
 };
+
+export const getFilteredStatusOptions = (role) => {
+    const raw = getRoleBasedStatusOptions(role);
+    // Remove "CONFIRM" if present (it's not a valid status)
+    return raw.filter((s) => s !== ORDER_STATUSES.CONFIRMED);
+};

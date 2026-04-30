@@ -32,6 +32,7 @@ export const COST_HIDDEN_ROLES = Object.freeze([
     ROLES.PRODUCTION,
     ROLES.PACKING,
     ROLES.DELIVERY,
+    ROLES.MANAGER,
 ]);
 
 export const canCreateProduct = (role) => PRODUCT_CREATE_ROLES.includes(role);
