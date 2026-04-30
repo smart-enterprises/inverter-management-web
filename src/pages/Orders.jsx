@@ -10,11 +10,28 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrders } from "../api/orders";
-import { getRoleBasedStatusOptions, ORDER_STATUSES, PRIORITY_OPTIONS } from "../utils/status";
+import { getFilteredStatusOptions, getRoleBasedStatusOptions, ORDER_STATUSES, PRIORITY_OPTIONS } from "../utils/status";
 import { capitalizeFirstLetter } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
 import ProductionStatusBadge from "../components/ProductionStatusBadge";
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+
+/**
+ * Fixed getTotalItems: uses total_qty_ordered (not qty_ordered) to be
+ * consistent with what the API actually returns post-delivery/cancel.
+ */
+const getTotalItems = (details) =>
+  details?.reduce((sum, d) => {
+    const total = Number(d.total_qty_ordered ?? d.qty_ordered ?? 0);
+    return sum + total;
+  }, 0) || 0;
+
+const formatDate = (date) =>
+  date ? new Date(date).toLocaleDateString("en-IN") : "N/A";
 
 /* ================================================================
    PAGINATION
@@ -112,7 +129,7 @@ const StatusBadge = ({ status }) => {
 };
 
 /* ================================================================
-   DATE INPUT — styled consistently with the rest of the filter bar
+   DATE INPUT
    ================================================================ */
 const DateInput = ({ value, onChange, placeholder, max }) => (
   <div className="flex flex-col gap-1">
@@ -121,7 +138,6 @@ const DateInput = ({ value, onChange, placeholder, max }) => (
         {placeholder}
       </span>
     )}
-
     <div className="relative">
       <FiCalendar
         size={12}
@@ -181,28 +197,28 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  /*
-   * FIX: Split search into two separate states:
-   *   searchInput  — bound directly to the <input>, never triggers a fetch
-      *   searchQuery  — debounced value that actually drives the API call
-      */
   const [searchInput, setSearchInput] = useState(routeState?.search || "");
   const [searchQuery, setSearchQuery] = useState(routeState?.search || "");
   const [selectedStatus, setSelectedStatus] = useState(routeState?.status || "ALL");
   const [selectedPriority, setSelectedPriority] = useState(routeState?.priority || "ALL");
 
-  /* ── Date range filter state ── */
   const [startDate, setStartDate] = useState(routeState?.startDate || "");
   const [endDate, setEndDate] = useState(routeState?.endDate || "");
 
-  /* Role-based default status */
+  /*
+   * Role-based default status:
+   * - PRODUCTION → show PRODUCTION orders
+   * - PACKING    → show PRODUCTION orders (items in packing stage still show as PRODUCTION)
+   * - DELIVERY   → show SHIPPED orders
+   */
   useEffect(() => {
+    if (routeState?.status) return; // respect explicit route state
     if (isProduction) setSelectedStatus("PRODUCTION");
-    else if (isPacking) setSelectedStatus("PACKED");
+    else if (isPacking) setSelectedStatus("PRODUCTION");
     else if (isDelivery) setSelectedStatus("SHIPPED");
-  }, [isProduction, isPacking, isDelivery]);
+  }, [isProduction, isPacking, isDelivery, routeState?.status]);
 
-  /* Debounce: push searchInput → searchQuery after 400 ms of inactivity */
+  /* Debounce: push searchInput → searchQuery after 400 ms */
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchQuery(searchInput);
@@ -211,7 +227,6 @@ const Orders = () => {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  /* Query params — only depends on debounced searchQuery, not searchInput */
   const queryParams = useMemo(
     () => ({
       page: pagination.page,
@@ -229,9 +244,7 @@ const Orders = () => {
     try {
       setLoading(true);
       setError(null);
-
       const response = await fetchOrders(queryParams);
-
       if (response.success) {
         setOrders(response.data || []);
         setPagination((prev) => ({
@@ -250,24 +263,8 @@ const Orders = () => {
   }, [queryParams]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const safeLoad = async () => {
-      await loadOrders();
-    };
-
-    safeLoad();
-
-    return () => {
-      isMounted = false;
-    };
+    loadOrders();
   }, [loadOrders]);
-
-  const formatDate = (date) =>
-    date ? new Date(date).toLocaleDateString("en-IN") : "N/A";
-
-  const getTotalItems = (details) =>
-    details?.reduce((sum, item) => sum + (item.qty_ordered || 0), 0) || 0;
 
   const hasActiveFilters =
     searchQuery ||
@@ -285,6 +282,8 @@ const Orders = () => {
     setEndDate("");
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
+
+  const statusOptions = useMemo(() => getFilteredStatusOptions(role), [role]);
 
   /* ── Loading / error states ── */
   if (loading && orders.length === 0) {
@@ -343,10 +342,7 @@ const Orders = () => {
             {canCreateOrder && (
               <button
                 onClick={() => navigate("/orders/create")}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white 
-                text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all 
-                shadow-sm shadow-indigo-200 cursor-pointer
-              "
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 cursor-pointer"
               >
                 <FiPlus size={14} /> Create Order
               </button>
@@ -361,13 +357,9 @@ const Orders = () => {
           <div className="px-5 py-3 border-b border-slate-200 bg-white">
             <div className="flex items-center justify-between gap-4 flex-wrap">
 
-              {/* LEFT: Search */}
+              {/* Search */}
               <div className="relative flex-1 min-w-[220px] max-w-sm sm:max-w-xs">
-                <FiSearch
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
+                <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search orders, dealers, shops..."
@@ -375,14 +367,9 @@ const Orders = () => {
                   onChange={(e) => setSearchInput(e.target.value)}
                   className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition"
                 />
-
                 {searchInput && (
                   <button
-                    onClick={() => {
-                      setSearchInput("");
-                      setSearchQuery("");
-                      setPagination((p) => ({ ...p, page: 1 }));
-                    }}
+                    onClick={() => { setSearchInput(""); setSearchQuery(""); setPagination((p) => ({ ...p, page: 1 })); }}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     <FiX size={13} />
@@ -390,14 +377,12 @@ const Orders = () => {
                 )}
               </div>
 
-              {/* RIGHT: Filters */}
+              {/* Filters */}
               <div className="flex items-center gap-2 flex-wrap">
-
                 <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                   <FiFilter size={10} />Filter
                 </span>
 
-                {/* Status */}
                 <div className="w-36">
                   <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Status</span>
                   <CustomSelect
@@ -407,11 +392,10 @@ const Orders = () => {
                       setSelectedStatus(e.target.value);
                       setPagination((prev) => ({ ...prev, page: 1 }));
                     }}
-                    options={getRoleBasedStatusOptions(role)}
+                    options={statusOptions}
                   />
                 </div>
 
-                {/* Priority */}
                 <div className="w-36">
                   <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Priority</span>
                   <CustomSelect
@@ -427,8 +411,7 @@ const Orders = () => {
 
                 {/* Date Range */}
                 <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
-                  <FiCalendar size={12} className="text-slate-400" title="Date Filter" />
-
+                  <FiCalendar size={12} className="text-slate-400" />
                   <DateInput
                     placeholder="From"
                     value={startDate}
@@ -437,13 +420,10 @@ const Orders = () => {
                       if (endDate && e.target.value > endDate) setEndDate("");
                       setPagination((prev) => ({ ...prev, page: 1 }));
                     }}
-                    className="bg-transparent text-xs focus:outline-none"
                   />
-
                   <div className="flex items-center pb-2 text-slate-400">
                     <FiArrowRight size={12} />
                   </div>
-
                   <DateInput
                     placeholder="To"
                     value={endDate}
@@ -451,10 +431,7 @@ const Orders = () => {
                       setEndDate(e.target.value);
                       setPagination((prev) => ({ ...prev, page: 1 }));
                     }}
-                    className="bg-transparent text-xs focus:outline-none"
                   />
-
-                  {/* Active indicator */}
                   {(startDate || endDate) && (
                     <span className="ml-1 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full">
                       Active
@@ -462,21 +439,19 @@ const Orders = () => {
                   )}
                 </div>
 
-                {/* Clear */}
                 {!cannotRemoveClear && hasActiveFilters && (
                   <button
                     onClick={clearFilters}
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-md hover:bg-rose-100 transition"
                   >
-                    <FiX size={12} />
-                    Clear
+                    <FiX size={12} />Clear
                   </button>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Inline loading indicator (shows while refetching with existing results) */}
+          {/* Inline loading indicator */}
           {loading && orders.length > 0 && (
             <div className="px-5 py-2 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
               <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
@@ -547,48 +522,33 @@ const Orders = () => {
                         key={order.order_number}
                         className="hover:bg-slate-50/60 transition-colors duration-100"
                       >
-                        {/* Dealer + Order */}
                         <td className="px-5 py-4">
                           <p className="font-bold text-slate-900">{capitalizeFirstLetter(order.dealer?.employee_name)}</p>
                           <p className="text-[10px] font-mono text-slate-400 mt-0.5">{order.order_number}</p>
                         </td>
-
-                        {/* Shop */}
                         <td className="px-5 py-4 text-slate-600 font-medium">
                           {capitalizeFirstLetter(order.dealer?.shop_name)}
                         </td>
-
-                        {/* Created */}
                         <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
                           {formatDate(order.created_at)}
                         </td>
-
-                        {/* Delivery */}
                         <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
                           {formatDate(finalDeliveryDate)}
                         </td>
-
-                        {/* Items */}
                         <td className="px-5 py-4">
                           <span className="inline-flex px-2 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
                             {getTotalItems(order.order_details)}
                           </span>
                         </td>
-
-                        {/* Total */}
                         <td className="px-5 py-4 whitespace-nowrap">
                           {canViewOrderPrice
                             ? <span className="text-sm font-bold text-slate-900">{order.order_total_price ? `₹ ${order.order_total_price.toLocaleString("en-IN")}` : "—"}</span>
                             : <span className="text-sm text-slate-300">—</span>
                           }
                         </td>
-
-                        {/* Priority */}
                         <td className="px-5 py-4">
                           <PriorityBadge priority={order.priority} />
                         </td>
-
-                        {/* Status */}
                         <td className="px-5 py-4">
                           {showProduction ? (
                             <ProductionStatusBadge
@@ -600,8 +560,6 @@ const Orders = () => {
                             <StatusBadge status={order.status} />
                           )}
                         </td>
-
-                        {/* Actions */}
                         <td className="px-5 py-4">
                           <div className="flex items-center justify-end gap-1">
                             <button

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import {
   FiUsers, FiShoppingBag, FiTruck, FiTrendingUp,
   FiAlertCircle, FiClock, FiArrowRight, FiPackage,
-  FiChevronRight, FiBox, FiCheckCircle,
+  FiChevronRight, FiBox, FiCheckCircle, FiBarChart2,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { fetchUsers } from "../api/user";
@@ -17,6 +17,14 @@ import {
   canViewDashboardSection,
   DASHBOARD_SECTIONS,
 } from "../utils/dashboardPermissions";
+
+// ─── Roles allowed to see Purchase Analytics ──────────────────────────────────
+const PURCHASE_ANALYTICS_ROLES = [
+  ROLES.SUPER_ADMIN,
+  ROLES.ADMIN,
+  ROLES.MANAGER,
+  ROLES.ACCOUNTS,
+];
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
@@ -62,6 +70,7 @@ const MetricCard = ({ title, value, subValue, icon, color, loading, onClick }) =
     amber: { bg: "bg-amber-50", border: "border-amber-100", icon: "text-amber-600", val: "text-amber-700", ring: "hover:ring-amber-200" },
     rose: { bg: "bg-rose-50", border: "border-rose-100", icon: "text-rose-600", val: "text-rose-700", ring: "hover:ring-rose-200" },
     violet: { bg: "bg-violet-50", border: "border-violet-100", icon: "text-violet-600", val: "text-violet-700", ring: "hover:ring-violet-200" },
+    indigo: { bg: "bg-indigo-50", border: "border-indigo-100", icon: "text-indigo-600", val: "text-indigo-700", ring: "hover:ring-indigo-200" },
   }[color] || { bg: "bg-slate-50", border: "border-slate-200", icon: "text-slate-600", val: "text-slate-700", ring: "" };
 
   return (
@@ -172,6 +181,9 @@ const Dashboard = () => {
   const canViewProductList = canAccess("/products");
   const canViewProductDetail = canAccess("/products/:id");
 
+  // ── Purchase Analytics RBAC ───────────────────────────────────────────────
+  const canViewPurchaseAnalytics = PURCHASE_ANALYTICS_ROLES.includes(role);
+
   // Section visibility
   const showStatsRow = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_USERS) || canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_ORDERS);
   const showBusinessMetrics = canViewDashboardSection(role, DASHBOARD_SECTIONS.BUSINESS_METRICS);
@@ -189,7 +201,6 @@ const Dashboard = () => {
   const [todayOrders, setTodayOrders] = useState(0);
   const [todayDeliveryCount, setTodayDeliveryCount] = useState(0);
 
-  // Completed orders metrics
   const [totalCompletedOrders, setTotalCompletedOrders] = useState(0);
   const [todayCompletedOrders, setTodayCompletedOrders] = useState(0);
   const [monthlyCompletedOrders, setMonthlyCompletedOrders] = useState(0);
@@ -211,39 +222,31 @@ const Dashboard = () => {
     const month = now.getMonth() + 1;
     const firstDayOfMonth = `${year}-${String(month).padStart(2, "0")}-01`;
 
-    // All orders (recent list + total)
     const totalRes = await fetchOrders({ page: 1, limit: 6, includeRejected: false });
     setTotalOrders(totalRes?.pagination?.total || 0);
     setRecentOrders(totalRes?.data || []);
 
-    // Ongoing orders (active statuses)
     const ongoingStatuses = ["PENDING", "CONFIRMED", "PRODUCTION", "PACKED"];
     const ongoingResponses = await Promise.all(
       ongoingStatuses.map((s) => fetchOrders({ page: 1, limit: 1, status: s, includeRejected: false }))
     );
     setOngoingOrders(ongoingResponses.reduce((sum, res) => sum + (res?.pagination?.total || 0), 0));
 
-    // Orders this month
     const monthlyRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, startDate: firstDayOfMonth, endDate: today });
     setMonthlyOrders(monthlyRes?.pagination?.total || 0);
 
-    // Orders today
     const todayRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, startDate: today, endDate: today });
     setTodayOrders(todayRes?.pagination?.total || 0);
 
-    // Deliveries today
     const todayDeliveryRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, deliveryStartDate: today, deliveryEndDate: today });
     setTodayDeliveryCount(todayDeliveryRes?.pagination?.total || 0);
 
-    // Total completed orders (all time)
     const totalCompletedRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, status: "COMPLETED" });
     setTotalCompletedOrders(totalCompletedRes?.pagination?.total || 0);
 
-    // Completed orders today
     const todayCompletedRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, status: "COMPLETED", startDate: today, endDate: today });
     setTodayCompletedOrders(todayCompletedRes?.pagination?.total || 0);
 
-    // Completed orders this month
     const monthlyCompletedRes = await fetchOrders({ page: 1, limit: 1, includeRejected: false, status: "COMPLETED", startDate: firstDayOfMonth, endDate: today });
     setMonthlyCompletedOrders(monthlyCompletedRes?.pagination?.total || 0);
   };
@@ -354,14 +357,17 @@ const Dashboard = () => {
           <SectionHeader title="Business Metrics" subtitle="Performance insights" />
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
-            <MetricCard
-              icon={<FiTrendingUp />}
-              title="Purchase Analytics"
-              subValue="View detailed insights"
-              color="blue"
-              loading={loading}
-              onClick={() => navigate("/purchase-analytics")}
-            />
+            {/* ── Purchase Analytics Card — RBAC gated ── */}
+            {canViewPurchaseAnalytics && (
+              <MetricCard
+                icon={<FiTrendingUp />}
+                title="Purchase Analytics"
+                subValue="View detailed insights"
+                color="blue"
+                loading={loading}
+                onClick={() => navigate("/purchase-analytics")}
+              />
+            )}
 
             <MetricCard
               icon={<FiShoppingBag />}
@@ -403,7 +409,6 @@ const Dashboard = () => {
               onClick={() => navigate("/orders?status=PENDING")}
             />
 
-            {/* ── COMPLETED ORDERS METRICS ── */}
             <MetricCard
               icon={<FiCheckCircle />}
               title="Completed Today"
@@ -434,7 +439,6 @@ const Dashboard = () => {
               onClick={navigateToCompletedOrders}
             />
 
-            {/* Low stock — only for roles that can see stock info */}
             {showLowStockAlert && (
               <MetricCard
                 icon={<FiAlertCircle />}
