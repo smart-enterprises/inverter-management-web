@@ -45,7 +45,7 @@ export const fetchOrders = async ({
     // Search filter (order number / dealer etc.)
     const trimmedSearch = search?.trim();
     if (trimmedSearch) {
-        params.append("search", trimmedSearch);
+        queryParams.append("search", trimmedSearch);
     }
 
     // Dealer filter
