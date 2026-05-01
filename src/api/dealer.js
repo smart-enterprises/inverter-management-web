@@ -8,7 +8,7 @@ export const fetchDealers = ({
   search = "",
   status = "",
   includePassword = false,
-  includeDealers = false,
+  includeDealers = true,
 } = {}) => {
   const query = new URLSearchParams();
 
