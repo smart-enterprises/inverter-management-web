@@ -27,3 +27,11 @@ export const formatDateForAPI = (value) => {
 
     return new Date(value).toISOString();
 };
+
+// Get today and first day of month in YYYY-MM-DD format
+export const getDateRange = () => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const firstDayOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    return { today, firstDayOfMonth };
+};
