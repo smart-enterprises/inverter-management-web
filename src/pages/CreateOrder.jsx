@@ -1059,7 +1059,7 @@ const CreateOrder = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const requests = [fetchDealers({ limit: 5000 }), ...(canSelectSalesmanPermission ? [fetchUserByRole(ROLES.SALESMAN)] : [])];
+        const requests = [fetchDealers({ limit: 5000, includeDealers: true }), ...(canSelectSalesmanPermission ? [fetchUserByRole(ROLES.SALESMAN)] : [])];
         const [dealerRes, salesRes] = await Promise.all(requests);
         if (dealerRes?.success && dealerRes?.data?.employees)
           setDealers(dealerRes.data.employees.filter((e) => e.role === ROLES.DEALER));

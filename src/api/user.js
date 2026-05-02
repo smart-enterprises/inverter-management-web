@@ -24,8 +24,9 @@ export const fetchUsers = async ({
   status,
   includePassword = false,
   includeDealers = false,
+  scope = "ALL",
 } = {}) => {
-  const query = buildQuery({ page, limit, role, search, status, includePassword, includeDealers });
+  const query = buildQuery({ page, limit, role, search, status, includePassword, includeDealers, scope });
 
   return apiRequest(`/employees?${query}`, {
     method: "GET",

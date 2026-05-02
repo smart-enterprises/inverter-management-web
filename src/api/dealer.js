@@ -8,7 +8,8 @@ export const fetchDealers = ({
   search = "",
   status = "",
   includePassword = false,
-  includeDealers = false,
+  includeDealers = true,
+  scope = "ASSIGNED_ONLY",
 } = {}) => {
   const query = new URLSearchParams();
 
@@ -26,6 +27,7 @@ export const fetchDealers = ({
 
   query.set("includePassword", String(Boolean(includePassword)));
   query.set("includeDealers", String(Boolean(includeDealers)));
+  query.set("scope", scope);
 
   return apiRequest(`/employees?${query.toString()}`, {
     method: "GET",
