@@ -64,15 +64,13 @@ const getAvatarColors = (letter) =>
 
 const DealerCard = ({ dealer, userMap }) => {
   const dealerDetails = userMap[dealer];
-  const name =
-    typeof dealerDetails === "string"
-      ? dealerDetails
-      : dealerDetails?.dealer_name || dealerDetails?.dealer_id;
-  const shopName = typeof dealerDetails === "object" ? dealerDetails?.shop_name : null;
-  const dealerId =
-    typeof dealerDetails === "object" ? dealerDetails?.dealer_id : dealer;
-  const createdBy =
-    typeof dealerDetails === "object" ? dealerDetails?.created_by : null;
+  const createdByRecord = userMap[dealerDetails?.created_by];
+
+  const name = dealerDetails?.employee_name ?? dealerDetails?.dealer_id ?? dealerDetails;
+
+  const shopName = dealerDetails?.shop_name ?? null;
+  const dealerId = dealerDetails?.employee_id ?? dealer;
+  const createdBy = createdByRecord?.employee_name ?? dealerDetails?.created_by;
 
   const letter = (name || "?")[0]?.toUpperCase();
   const [from, to] = getAvatarColors(letter);
@@ -115,7 +113,7 @@ const DealerCard = ({ dealer, userMap }) => {
           {createdBy && (
             <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400">
               <FiUserCheck size={9} />
-              {userMap[createdBy] || createdBy}
+              {createdBy}
             </span>
           )}
         </div>
@@ -299,13 +297,17 @@ const UserDetails = () => {
         includePassword: false,
         includeDealers: true,
       });
-      if (res?.success && res?.data?.employees) {
-        const map = {};
-        res.data.employees.forEach((u) => {
-          map[u.employee_id] = u.employee_name;
-        });
-        setUserMap(map);
-      }
+
+      const employees = res?.data?.employees;
+      if (!res?.success || !Array.isArray(employees)) return;
+
+      const map = Object.fromEntries(
+        employees
+          .filter((u) => u?.employee_id != null)
+          .map((u) => [u.employee_id, u])
+      );
+
+      setUserMap(map);
     } catch {
       // silent
     }
@@ -411,9 +413,9 @@ const UserDetails = () => {
               icon={<FiUserCheck size={14} />}
               label="Created By"
               value={
-                userData?.created_by
-                  ? userMap[userData.created_by] || userData.created_by
-                  : "N/A"
+                userMap[userData?.created_by]?.employee_name
+                ?? userData?.created_by
+                ?? "N/A"
               }
             />
             <Info
