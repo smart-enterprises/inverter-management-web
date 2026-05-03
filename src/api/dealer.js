@@ -10,28 +10,30 @@ export const fetchDealers = ({
   includePassword = false,
   includeDealers = true,
   scope = "ASSIGNED_ONLY",
+  salesmanIds = [],
 } = {}) => {
   const query = new URLSearchParams();
 
   query.set("page", String(page));
   query.set("limit", String(limit));
 
-  if (role) query.append("role", role);
-  if (search.trim()) {
-    query.set("search", search.trim());
-  }
-
-  if (status) {
-    query.set("status", status);
-  }
+  if (role) query.set("role", role);
+  if (search.trim()) query.set("search", search.trim());
+  if (status) query.set("status", status);
 
   query.set("includePassword", String(Boolean(includePassword)));
   query.set("includeDealers", String(Boolean(includeDealers)));
   query.set("scope", scope);
 
-  return apiRequest(`/employees?${query.toString()}`, {
-    method: "GET",
-  });
+  if (salesmanIds?.length > 0) {
+    const cleanedIds = salesmanIds
+      .filter((id) => typeof id === "string" && id.trim())
+      .map((id) => id.trim());
+
+    query.set("salesmanIds", cleanedIds.join(","));
+  }
+
+  return apiRequest(`/employees?${query.toString()}`, { method: "GET" });
 };
 
 export const fetchDealerById = (id) =>
