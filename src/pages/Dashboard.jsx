@@ -19,6 +19,7 @@ import {
   DASHBOARD_SECTIONS,
 } from "../utils/dashboardPermissions";
 import { getDateRange } from "../utils/dateUtils";
+import { COLOR_MAP } from "../utils/colorUtils";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -46,18 +47,6 @@ const formatRelativeTime = (dateStr) => {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
-};
-
-// ─── Color Config ──────────────────────────────────────────────────────────────
-
-const COLOR_MAP = {
-  indigo: { bg: "bg-indigo-50", border: "border-indigo-100", icon: "text-indigo-600", val: "text-indigo-700", ring: "hover:ring-indigo-200" },
-  violet: { bg: "bg-violet-50", border: "border-violet-100", icon: "text-violet-600", val: "text-violet-700", ring: "hover:ring-violet-200" },
-  blue: { bg: "bg-blue-50", border: "border-blue-100", icon: "text-blue-600", val: "text-blue-700", ring: "hover:ring-blue-200" },
-  emerald: { bg: "bg-emerald-50", border: "border-emerald-100", icon: "text-emerald-600", val: "text-emerald-700", ring: "hover:ring-emerald-200" },
-  amber: { bg: "bg-amber-50", border: "border-amber-100", icon: "text-amber-600", val: "text-amber-700", ring: "hover:ring-amber-200" },
-  rose: { bg: "bg-rose-50", border: "border-rose-100", icon: "text-rose-600", val: "text-rose-700", ring: "hover:ring-rose-200" },
-  _default: { bg: "bg-slate-50", border: "border-slate-200", icon: "text-slate-600", val: "text-slate-700", ring: "hover:ring-slate-200" },
 };
 
 const getColor = (color) => COLOR_MAP[color] ?? COLOR_MAP._default;
@@ -328,7 +317,7 @@ const Dashboard = () => {
     totalOrders: 0, recentOrders: [], ongoingOrders: 0,
     monthlyOrders: 0, todayOrders: 0, todayDeliveryCount: 0,
     totalCompletedOrders: 0, todayCompletedOrders: 0, monthlyCompletedOrders: 0,
-    adminCount: 0, salesmanCount: 0, dealerCount: 0, assignedDealerCount: 0,
+    superAdminCount: 0, adminCount: 0, salesmanCount: 0, dealerCount: 0, assignedDealerCount: 0,
     lowStockCount: 0, lowStockProducts: [],
   });
 
@@ -384,12 +373,15 @@ const Dashboard = () => {
 
     const counts = employees.reduce(
       (acc, { role: r }) => {
-        if (r === ROLES.ADMIN || r === ROLES.SUPER_ADMIN) acc.admin++;
+        if (r === ROLES.SUPER_ADMIN) acc.superAdmin++;
+        else if (r === ROLES.ADMIN) acc.admin++;
         else if (r === ROLES.SALESMAN) acc.salesman++;
         else if (r === ROLES.DEALER) acc.dealer++;
+
+        if (r !== ROLES.DEALER) acc.employee++;
         return acc;
       },
-      { admin: 0, salesman: 0, dealer: 0 }
+      { superAdmin: 0, admin: 0, salesman: 0, dealer: 0, employee: 0 }
     );
 
     const assignedRes = await fetchUsers({
@@ -398,10 +390,12 @@ const Dashboard = () => {
     });
 
     return {
+      superAdminCount: counts.superAdmin,
       adminCount: counts.admin,
       salesmanCount: counts.salesman,
       dealerCount: counts.dealer,
       assignedDealerCount: assignedRes?.data?.employees?.length ?? 0,
+      employeeCount: counts.employee,
     };
   }, []);
 
@@ -473,8 +467,11 @@ const Dashboard = () => {
     monthOrders: () => navigate("/orders", { state: { startDate: firstDayOfMonth, endDate: today } }),
     todayCompleted: () => navigate("/orders", { state: { status: "COMPLETED", startDate: today, endDate: today } }),
     monthCompleted: () => navigate("/orders", { state: { status: "COMPLETED", startDate: firstDayOfMonth, endDate: today } }),
-    users: () => navigate("/users"),
-    dealers: () => navigate("/dealers"),
+    users: () => navigate("/users", { state: { status: "active" } }),
+    superAdmins: () => navigate("/users", { state: { status: "active", role: ROLES.SUPER_ADMIN } }),
+    admins: () => navigate("/users", { state: { status: "active", role: ROLES.ADMIN } }),
+    salesmen: () => navigate("/users", { state: { status: "active", role: ROLES.SALESMAN } }),
+    dealers: () => navigate("/dealers", { state: { status: "active" } }),
     products: () => navigate("/products"),
     activeOrders: () => navigate("/orders?status=PENDING"),
     purchaseAnalytics: () => navigate("/purchase-analytics"),
@@ -486,7 +483,7 @@ const Dashboard = () => {
     totalOrders, recentOrders, ongoingOrders, monthlyOrders,
     todayOrders, todayDeliveryCount, totalCompletedOrders,
     todayCompletedOrders, monthlyCompletedOrders,
-    adminCount, salesmanCount, dealerCount, assignedDealerCount,
+    superAdminCount, adminCount, salesmanCount, dealerCount, assignedDealerCount, employeeCount,
     lowStockCount, lowStockProducts,
   } = state;
 
@@ -512,23 +509,89 @@ const Dashboard = () => {
       {/* ── OVERVIEW STATS ── */}
       {showStatsRow && (
         <div>
-          <SectionHeader title="Overview" subtitle="System summary at a glance" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <SectionHeader
+            title="Overview"
+            subtitle="System summary at a glance"
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+
             {showAdminStats && (
-              <StatCard icon={<FiUsers />} title="Total Admins" value={adminCount} color="indigo" loading={loading} onClick={nav.users} />
+              <>
+                <StatCard
+                  icon={<FiUsers />}
+                  title="Super Admins"
+                  value={superAdminCount}
+                  color="slate"
+                  loading={loading}
+                  onClick={nav.superAdmins}
+                />
+                <StatCard
+                  icon={<FiUsers />}
+                  title="Admins"
+                  value={adminCount}
+                  color="indigo"
+                  loading={loading}
+                  onClick={nav.admins}
+                />
+              </>
             )}
+
             {showUserStats && (
-              <StatCard icon={<FiUsers />} title="Total Salesmen" value={salesmanCount} color="violet" loading={loading} onClick={nav.users} />
+              <StatCard
+                icon={<FiUsers />}
+                title="Salesmen"
+                value={salesmanCount}
+                color="violet"
+                loading={loading}
+                onClick={nav.salesmen}
+              />
             )}
+
             {showDealerStats && (
-              <StatCard icon={<FiUsers />} title="Total Dealers" value={dealerCount} color="blue" loading={loading} onClick={nav.dealers} />
+              <StatCard
+                icon={<FiUsers />}
+                title="Dealers"
+                value={dealerCount}
+                color="blue"
+                loading={loading}
+                onClick={nav.dealers}
+              />
             )}
+
             {showAssignedDealerStats && (
-              <StatCard icon={<FiUsers />} title="Assigned Dealers" value={assignedDealerCount} color="indigo" loading={loading} onClick={nav.dealers} />
+              <StatCard
+                icon={<FiUsers />}
+                title="Assigned Dealers"
+                value={assignedDealerCount}
+                color="cyan"
+                loading={loading}
+                onClick={nav.dealers}
+              />
             )}
-            {canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_ORDERS) && (
-              <StatCard icon={<FiShoppingBag />} title="Total Orders" value={totalOrders} color="emerald" loading={loading} onClick={nav.allOrders} />
+
+            {showUserStats && (
+              <StatCard
+                icon={<FiUsers />}
+                title="Employees"
+                value={employeeCount}
+                color="emerald"
+                loading={loading}
+                onClick={nav.users}
+              />
             )}
+
+            {showStatsRow && (
+              <StatCard
+                icon={<FiShoppingBag />}
+                title="Orders"
+                value={totalOrders}
+                color="amber"
+                loading={loading}
+                onClick={nav.allOrders}
+              />
+            )}
+
           </div>
         </div>
       )}
@@ -536,21 +599,108 @@ const Dashboard = () => {
       {/* ── BUSINESS METRICS ── */}
       {showBusinessMetrics && (
         <div>
-          <SectionHeader title="Business Metrics" subtitle="Performance insights" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <SectionHeader
+            title="Business Metrics"
+            subtitle="Performance insights"
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+
             {canViewPurchaseAnalytics && (
-              <MetricCard icon={<FiTrendingUp />} title="Purchase Analytics" subValue="View detailed insights" color="blue" loading={loading} onClick={nav.purchaseAnalytics} />
+              <MetricCard
+                icon={<FiTrendingUp />}
+                title="Purchase Analytics"
+                subValue="View detailed insights"
+                color="indigo"
+                loading={loading}
+                onClick={nav.purchaseAnalytics}
+              />
             )}
-            <MetricCard icon={<FiShoppingBag />} title="Today's Orders" value={todayOrders} subValue="New orders placed today" color="emerald" loading={loading} onClick={nav.todayOrders} />
-            <MetricCard icon={<FiTruck />} title="Today's Deliveries" value={todayDeliveryCount} subValue="Scheduled for delivery today" color="blue" loading={loading} onClick={nav.todayDeliveries} />
-            <MetricCard icon={<FiShoppingBag />} title="This Month's Orders" value={monthlyOrders} subValue={`Orders in ${formatMonthLabel()}`} color="blue" loading={loading} onClick={nav.monthOrders} />
-            <MetricCard icon={<FiTruck />} title="Active Orders" value={ongoingOrders} subValue="Pending · Confirmed · In progress" color="amber" loading={loading} onClick={nav.activeOrders} badge={ongoingOrders > 0 ? "Live" : undefined} />
-            <MetricCard icon={<FiCheckCircle />} title="Completed Today" value={todayCompletedOrders} subValue="Orders fulfilled today" color="emerald" loading={loading} onClick={nav.todayCompleted} />
-            <MetricCard icon={<FiCheckCircle />} title="Completed This Month" value={monthlyCompletedOrders} subValue="Fulfilled orders this month" color="violet" loading={loading} onClick={nav.monthCompleted} />
-            <MetricCard icon={<FiCheckCircle />} title="Total Completed" value={totalCompletedOrders} subValue="All-time completed orders" color="emerald" loading={loading} onClick={nav.completedOrders} />
+
+            <MetricCard
+              icon={<FiShoppingBag />}
+              title="Today's Orders"
+              value={todayOrders}
+              subValue="New orders placed today"
+              color="blue"
+              loading={loading}
+              onClick={nav.todayOrders}
+            />
+
+            <MetricCard
+              icon={<FiTruck />}
+              title="Today's Deliveries"
+              value={todayDeliveryCount}
+              subValue="Scheduled for delivery today"
+              color="cyan"
+              loading={loading}
+              onClick={nav.todayDeliveries}
+            />
+
+            <MetricCard
+              icon={<FiShoppingBag />}
+              title="Monthly Orders"
+              value={monthlyOrders}
+              subValue={`Orders in ${formatMonthLabel()}`}
+              color="sky"
+              loading={loading}
+              onClick={nav.monthOrders}
+            />
+
+            <MetricCard
+              icon={<FiTruck />}
+              title="Active Orders"
+              value={ongoingOrders}
+              subValue="Pending · Confirmed · In progress"
+              color="amber"
+              loading={loading}
+              onClick={nav.activeOrders}
+              badge={ongoingOrders > 0 ? "Live" : undefined}
+            />
+
+            <MetricCard
+              icon={<FiCheckCircle />}
+              title="Completed Today"
+              value={todayCompletedOrders}
+              subValue="Orders fulfilled today"
+              color="emerald"
+              loading={loading}
+              onClick={nav.todayCompleted}
+            />
+
+            <MetricCard
+              icon={<FiCheckCircle />}
+              title="Completed This Month"
+              value={monthlyCompletedOrders}
+              subValue="Fulfilled orders this month"
+              color="violet"
+              loading={loading}
+              onClick={nav.monthCompleted}
+            />
+
+            <MetricCard
+              icon={<FiCheckCircle />}
+              title="Total Completed"
+              value={totalCompletedOrders}
+              subValue="All-time completed orders"
+              color="green"
+              loading={loading}
+              onClick={nav.completedOrders}
+            />
+
             {showLowStockAlert && (
-              <MetricCard icon={<FiAlertCircle />} title="Low Stock Products" value={lowStockCount} subValue="Below minimum threshold" color="rose" loading={loading} onClick={canViewProductList ? nav.products : undefined} badge={lowStockCount > 0 ? "Alert" : undefined} />
+              <MetricCard
+                icon={<FiAlertCircle />}
+                title="Low Stock Products"
+                value={lowStockCount}
+                subValue="Below minimum threshold"
+                color="rose"
+                loading={loading}
+                onClick={canViewProductList ? nav.products : undefined}
+                badge={lowStockCount > 0 ? "Alert" : undefined}
+              />
             )}
+
           </div>
         </div>
       )}
