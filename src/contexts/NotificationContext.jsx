@@ -8,7 +8,7 @@ import React, {
     useRef,
 } from "react";
 import { useAuth } from "../hooks/useAuth";
-import useSSE from "../hooks/useSSE";
+import useFCM from "../hooks/useFCM";
 import {
     fetchNotifications,
     fetchUnreadCount,
@@ -16,7 +16,6 @@ import {
     markAllNotificationsRead,
 } from "../api/notifications";
 import {
-    NOTIFICATION_TYPES,
     NOTIFICATION_CONFIG,
     loadAudioBuffer,
     unlockAudio,
@@ -37,8 +36,6 @@ const NOTIFICATION_ELIGIBLE_ROLES = new Set([
     "ROLE_SALESMAN",
 ]);
 
-const SSE_EVENTS = Object.values(NOTIFICATION_TYPES);
-
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
@@ -54,15 +51,10 @@ export const NotificationProvider = ({ children }) => {
     const shouldReceive =
         isAuthenticated() && NOTIFICATION_ELIGIBLE_ROLES.has(user?.role);
 
-    // ── Audio + System Notification bootstrap ──────────────────────────────
     useEffect(() => {
-        // Pre-load audio so it plays instantly
         loadAudioBuffer();
-
-        // Request system notification permission on first user gesture
         requestSystemNotifPermission();
 
-        // Unlock Web Audio API (must happen inside a user gesture)
         const unlockOnInteraction = async () => {
             await unlockAudio();
             await requestSystemNotifPermission();
@@ -79,7 +71,6 @@ export const NotificationProvider = ({ children }) => {
         };
     }, []);
 
-    // ── Toast management ───────────────────────────────────────────────────
     const dismissToast = useCallback((notificationId) => {
         clearTimeout(toastTimers.current[notificationId]);
         delete toastTimers.current[notificationId];
@@ -98,25 +89,21 @@ export const NotificationProvider = ({ children }) => {
             return [...prev, { ...notification, addedAt: Date.now() }];
         });
 
-        // Sound alert — only for types that require it
         const config = NOTIFICATION_CONFIG[notification.type];
         if (config?.soundAlert) startAlertLoop();
 
-        // Browser system notification
         showSystemNotificationFromPayload(notification, (payload) => {
             if (payload?.order_number) {
                 window.location.href = `/orders/${payload.order_number}`;
             }
         });
 
-        // Auto-dismiss after 5 s
         const timer = setTimeout(() => {
             dismissToast(notification.notification_id);
         }, 5_000);
         toastTimers.current[notification.notification_id] = timer;
     }, [dismissToast]);
 
-    // ── Initial data load ──────────────────────────────────────────────────
     const loadNotifications = useCallback(async () => {
         if (!shouldReceive) return;
         try {
@@ -138,46 +125,19 @@ export const NotificationProvider = ({ children }) => {
         loadNotifications();
     }, [loadNotifications]);
 
-    // ── SSE event handlers ─────────────────────────────────────────────────
-    const handleConnected = useCallback(({ unread_count }) => {
-        setUnreadCount(unread_count || 0);
-    }, []);
-
-    /**
-     * Generic handler for all incoming notification SSE events.
-     * The event name is the notification type (e.g. ORDER_CREATED_PENDING).
-     */
-    const handleIncomingNotification = useCallback((data) => {
-        const newNotif = { ...data, is_read: false };
-
+    const handleFcmMessage = useCallback((normalized) => {
         setNotifications((prev) => {
-            if (prev.some((n) => n.notification_id === data.notification_id))
+            if (prev.some((n) => n.notification_id === normalized.notification_id))
                 return prev;
-            return [newNotif, ...prev];
+            return [normalized, ...prev];
         });
 
         setUnreadCount((c) => c + 1);
-        addToast(newNotif);
+        addToast(normalized);
     }, [addToast]);
 
-    // Build handlers map: one handler for each SSE event type
-    const sseHandlers = useCallback(() => {
-        const handlers = { connected: handleConnected };
-        SSE_EVENTS.forEach((eventType) => {
-            handlers[eventType] = handleIncomingNotification;
-        });
-        return handlers;
-    }, [handleConnected, handleIncomingNotification]);
+    useFCM(handleFcmMessage, shouldReceive);
 
-    // Memoize so useSSE doesn't reconnect on every render
-    const stableHandlers = useRef(sseHandlers());
-    useEffect(() => {
-        stableHandlers.current = sseHandlers();
-    }, [sseHandlers]);
-
-    useSSE("/notifications/stream", stableHandlers.current, shouldReceive);
-
-    // ── Mark as read ───────────────────────────────────────────────────────
     const handleMarkAsRead = useCallback(async (notificationId) => {
         setNotifications((prev) =>
             prev.map((n) =>
@@ -191,7 +151,6 @@ export const NotificationProvider = ({ children }) => {
             await markNotificationRead(notificationId);
         } catch (err) {
             console.error("[Notifications] Failed to mark as read:", err);
-            // Optimistic rollback
             setNotifications((prev) =>
                 prev.map((n) =>
                     n.notification_id === notificationId ? { ...n, is_read: false } : n
@@ -206,7 +165,6 @@ export const NotificationProvider = ({ children }) => {
         setUnreadCount(0);
         stopAlertLoop();
 
-        // Clear all pending auto-dismiss timers
         Object.values(toastTimers.current).forEach(clearTimeout);
         toastTimers.current = {};
         setToasts([]);
@@ -215,11 +173,10 @@ export const NotificationProvider = ({ children }) => {
             await markAllNotificationsRead();
         } catch (err) {
             console.error("[Notifications] Failed to mark all as read:", err);
-            loadNotifications(); // revert via fresh fetch
+            loadNotifications();
         }
     }, [loadNotifications]);
 
-    // ── Cleanup ────────────────────────────────────────────────────────────
     useEffect(() => {
         return () => {
             stopAlertLoop();
