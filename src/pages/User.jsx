@@ -6,7 +6,7 @@ import {
 } from "react-icons/fi";
 import { TbBuildingStore } from "react-icons/tb";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { createUser, fetchUsers, fetchUserById, updateUser, deleteUser } from "../api/user";
 import { useAuth } from "../hooks/useAuth";
@@ -297,6 +297,8 @@ const DealerCountBadge = ({ count }) => {
 const User = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { state: routeState } = useLocation();
+
   const viewerRole = (user?.role || "").toUpperCase();
   const viewerEmployeeId = user?.employee_id;
 
@@ -317,9 +319,9 @@ const User = () => {
 
   const [users, setUsers] = useState([]);
   const [userMap, setUserMap] = useState({});
-  const [selectedRole, setSelectedRole] = useState("ALL");
-  const [status, setStatus] = useState("ALL");
-  const [search, setSearch] = useState("");
+  const [selectedRole, setSelectedRole] = useState(routeState?.role || "ALL");
+  const [status, setStatus] = useState(routeState?.status || "ALL");
+  const [search, setSearch] = useState(routeState?.search || "");
   const [includePassword, setIncludePassword] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [page, setPage] = useState(1);
