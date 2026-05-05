@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useEffect } from "react";
 import { BrowserRouter, useNavigate } from "react-router-dom";
 import AppRoutes from "./routes/AppRoutes";
@@ -22,15 +23,15 @@ const LogoutListener = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <NotificationProvider>
           <LogoutListener>
             <AppRoutes />
           </LogoutListener>
         </NotificationProvider>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

@@ -1,6 +1,5 @@
 // src/services/notificationService.js
 
-// notification type → display config (single source of truth with backend)
 export const NOTIFICATION_TYPES = Object.freeze({
     ORDER_CREATED_PENDING: "ORDER_CREATED_PENDING",
     ORDER_CREATED_PRODUCTION: "ORDER_CREATED_PRODUCTION",
@@ -49,7 +48,6 @@ export const NOTIFICATION_CONFIG = Object.freeze({
     },
 });
 
-// Audio subsystem
 const AudioState = {
     ctx: null,
     buffer: null,
@@ -73,8 +71,9 @@ export const loadAudioBuffer = async () => {
         const response = await fetch("/notification-alert.mp3");
 
         if (!response.ok) {
-            console.error(
-                "[Audio] /public/notification-alert.mp3 not found — add this file."
+            console.warn(
+                "[Audio] /public/notification-alert.mp3 not found. " +
+                "Add the file to /public to enable sound alerts."
             );
             return null;
         }
@@ -127,18 +126,12 @@ export const stopAlertLoop = () => {
     AudioState.intervalId = null;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Browser System Notifications (Notification API)
-// ─────────────────────────────────────────────────────────────────────────────
-let systemNotifPermission = Notification?.permission ?? "default";
-
 export const requestSystemNotifPermission = async () => {
     if (!("Notification" in window)) return "unsupported";
-    if (systemNotifPermission === "granted") return "granted";
+    if (Notification.permission === "granted") return "granted";
 
     try {
         const result = await Notification.requestPermission();
-        systemNotifPermission = result;
         return result;
     } catch (err) {
         console.warn("[SystemNotif] Permission request failed:", err);
@@ -151,19 +144,14 @@ export const getSystemNotifPermission = () => {
     return Notification.permission;
 };
 
-/**
- * Fires a browser system notification (if permitted).
- *
- * @param {object} params
- * @param {string} params.title
- * @param {string} params.body
- * @param {string} [params.icon]   - URL to notification icon
- * @param {string} [params.tag]    - Deduplicate identical notifications
- * @param {object} [params.data]   - Arbitrary data passed to the notification
- * @param {function} [params.onClick] - Handler called when the notification is clicked
- * @returns {Notification|null}
- */
-export const showSystemNotification = ({ title, body, icon, tag, data, onClick }) => {
+export const showSystemNotification = ({
+    title,
+    body,
+    icon,
+    tag,
+    data,
+    onClick,
+}) => {
     if (!("Notification" in window)) return null;
     if (Notification.permission !== "granted") return null;
 
@@ -192,20 +180,12 @@ export const showSystemNotification = ({ title, body, icon, tag, data, onClick }
     }
 };
 
-/**
- * Convenience: fires a system notification from a notification payload object.
- *
- * @param {object} notification  - notification record from the server
- * @param {function} [onClick]   - called with notification.payload on click
- */
 export const showSystemNotificationFromPayload = (notification, onClick) => {
     const config = NOTIFICATION_CONFIG[notification.type];
     if (!config?.systemNotif) return null;
 
-    const icon = config.icon ?? "🔔";
-
     return showSystemNotification({
-        title: `${icon} ${notification.title}`,
+        title: `${config.icon ?? "🔔"} ${notification.title}`,
         body: notification.message,
         tag: notification.notification_id,
         data: notification.payload,
