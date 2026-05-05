@@ -1,4 +1,4 @@
-// firebase-messaging-sw.js
+// public/firebase-messaging-sw.js
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
@@ -16,16 +16,17 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log("[SW] Background FCM message received:", payload);
 
-    const { title, body } = payload.notification ?? {};
+    const notificationTitle = payload.notification?.title ?? "New Notification";
+    const notificationBody = payload.notification?.body ?? "";
     const data = payload.data ?? {};
 
     let parsedPayload = {};
     try {
         parsedPayload = JSON.parse(data.payload || "{}");
-    } catch (_) { }
+    } catch (_) { /* ignore JSON parse errors */ }
 
-    self.registration.showNotification(title ?? "New Notification", {
-        body: body ?? "",
+    self.registration.showNotification(notificationTitle, {
+        body: notificationBody,
         icon: "/logo192.png",
         badge: "/logo192.png",
         tag: data.notification_id ?? `notif-${Date.now()}`,

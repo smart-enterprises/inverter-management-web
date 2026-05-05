@@ -76,33 +76,39 @@ export const NotificationProvider = ({ children }) => {
         delete toastTimers.current[notificationId];
 
         setToasts((prev) => {
-            const remaining = prev.filter((t) => t.notification_id !== notificationId);
+            const remaining = prev.filter(
+                (t) => t.notification_id !== notificationId
+            );
             if (remaining.length === 0) stopAlertLoop();
             return remaining;
         });
     }, []);
 
-    const addToast = useCallback((notification) => {
-        setToasts((prev) => {
-            if (prev.some((t) => t.notification_id === notification.notification_id))
-                return prev;
-            return [...prev, { ...notification, addedAt: Date.now() }];
-        });
+    const addToast = useCallback(
+        (notification) => {
+            setToasts((prev) => {
+                if (prev.some((t) => t.notification_id === notification.notification_id))
+                    return prev;
+                return [...prev, { ...notification, addedAt: Date.now() }];
+            });
 
-        const config = NOTIFICATION_CONFIG[notification.type];
-        if (config?.soundAlert) startAlertLoop();
+            const config = NOTIFICATION_CONFIG[notification.type];
+            if (config?.soundAlert) startAlertLoop();
 
-        showSystemNotificationFromPayload(notification, (payload) => {
-            if (payload?.order_number) {
-                window.location.href = `/orders/${payload.order_number}`;
-            }
-        });
+            showSystemNotificationFromPayload(notification, (payload) => {
+                if (payload?.order_number) {
+                    window.location.href = `/orders/${payload.order_number}`;
+                }
+            });
 
-        const timer = setTimeout(() => {
-            dismissToast(notification.notification_id);
-        }, 5_000);
-        toastTimers.current[notification.notification_id] = timer;
-    }, [dismissToast]);
+            const timer = setTimeout(
+                () => dismissToast(notification.notification_id),
+                5_000
+            );
+            toastTimers.current[notification.notification_id] = timer;
+        },
+        [dismissToast]
+    );
 
     const loadNotifications = useCallback(async () => {
         if (!shouldReceive) return;
@@ -112,8 +118,10 @@ export const NotificationProvider = ({ children }) => {
                 fetchNotifications({ page: 1, limit: 20 }),
                 fetchUnreadCount(),
             ]);
-            if (notifRes?.success) setNotifications(notifRes.data.notifications || []);
-            if (countRes?.success) setUnreadCount(countRes.data.count || 0);
+            if (notifRes?.success)
+                setNotifications(notifRes.data.notifications ?? []);
+            if (countRes?.success)
+                setUnreadCount(countRes.data.count ?? 0);
         } catch (err) {
             console.error("[Notifications] Failed to load:", err);
         } finally {
@@ -125,40 +133,49 @@ export const NotificationProvider = ({ children }) => {
         loadNotifications();
     }, [loadNotifications]);
 
-    const handleFcmMessage = useCallback((normalized) => {
-        setNotifications((prev) => {
-            if (prev.some((n) => n.notification_id === normalized.notification_id))
-                return prev;
-            return [normalized, ...prev];
-        });
+    const handleFcmMessage = useCallback(
+        (normalized) => {
+            setNotifications((prev) => {
+                if (prev.some((n) => n.notification_id === normalized.notification_id))
+                    return prev;
+                return [normalized, ...prev];
+            });
 
-        setUnreadCount((c) => c + 1);
-        addToast(normalized);
-    }, [addToast]);
+            setUnreadCount((c) => c + 1);
+            addToast(normalized);
+        },
+        [addToast]
+    );
 
     useFCM(handleFcmMessage, shouldReceive);
 
-    const handleMarkAsRead = useCallback(async (notificationId) => {
-        setNotifications((prev) =>
-            prev.map((n) =>
-                n.notification_id === notificationId ? { ...n, is_read: true } : n
-            )
-        );
-        setUnreadCount((c) => Math.max(0, c - 1));
-        dismissToast(notificationId);
-
-        try {
-            await markNotificationRead(notificationId);
-        } catch (err) {
-            console.error("[Notifications] Failed to mark as read:", err);
+    const handleMarkAsRead = useCallback(
+        async (notificationId) => {
             setNotifications((prev) =>
                 prev.map((n) =>
-                    n.notification_id === notificationId ? { ...n, is_read: false } : n
+                    n.notification_id === notificationId ? { ...n, is_read: true } : n
                 )
             );
-            setUnreadCount((c) => c + 1);
-        }
-    }, [dismissToast]);
+            setUnreadCount((c) => Math.max(0, c - 1));
+            dismissToast(notificationId);
+
+            try {
+                await markNotificationRead(notificationId);
+            } catch (err) {
+                console.error("[Notifications] Failed to mark as read:", err);
+
+                setNotifications((prev) =>
+                    prev.map((n) =>
+                        n.notification_id === notificationId
+                            ? { ...n, is_read: false }
+                            : n
+                    )
+                );
+                setUnreadCount((c) => c + 1);
+            }
+        },
+        [dismissToast]
+    );
 
     const handleMarkAllRead = useCallback(async () => {
         setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
@@ -204,6 +221,7 @@ export const NotificationProvider = ({ children }) => {
 
 export const useNotifications = () => {
     const ctx = useContext(NotificationContext);
-    if (!ctx) throw new Error("useNotifications must be used inside <NotificationProvider>");
+    if (!ctx)
+        throw new Error("useNotifications must be used inside <NotificationProvider>");
     return ctx;
 };

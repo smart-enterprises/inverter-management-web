@@ -1,4 +1,4 @@
-// notifications apis
+// notifications.js
 import { apiRequest } from "./apiClient.js";
 
 export const fetchNotifications = ({ page = 1, limit = 20 } = {}) =>
@@ -21,6 +21,6 @@ export const registerFcmToken = (token, platform = "web") =>
 
 export const deregisterFcmToken = (token) =>
     apiRequest("/notifications/deregister-token", {
-        method: "DELETE",
+        method: "PUT",
         body: JSON.stringify({ token }),
     });

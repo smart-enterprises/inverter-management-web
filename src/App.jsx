@@ -23,15 +23,15 @@ const LogoutListener = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <NotificationProvider>
           <LogoutListener>
             <AppRoutes />
           </LogoutListener>
         </NotificationProvider>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

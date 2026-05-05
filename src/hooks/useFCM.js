@@ -9,7 +9,6 @@ const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 const useFCM = (onForegroundMessage, enabled = true) => {
     const tokenRef = useRef(null);
     const unsubscribeRef = useRef(null);
-    const messagingRef = useRef(null);
     const onMessageRef = useRef(onForegroundMessage);
 
     useEffect(() => {
@@ -31,7 +30,7 @@ const useFCM = (onForegroundMessage, enabled = true) => {
 
             const messaging = await getMessagingInstance();
             if (!messaging) return;
-            messagingRef.current = messaging;
+
             const permission = await Notification.requestPermission();
             if (permission !== "granted") {
                 console.warn("[FCM] Notification permission denied");
@@ -48,20 +47,26 @@ const useFCM = (onForegroundMessage, enabled = true) => {
                 return;
             }
 
-            tokenRef.current = token;
+            if (token !== tokenRef.current) {
+                tokenRef.current = token;
+                await registerFcmToken(token, "web");
+                console.info("[FCM] Token registered with backend");
+            }
 
-            await registerFcmToken(token);
-            console.info("[FCM] Token registered with backend");
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current();
+            }
 
             unsubscribeRef.current = onMessage(messaging, (remoteMessage) => {
-                console.log("[FCM] Foreground message:", remoteMessage);
+                console.log("[FCM] Foreground message received:", remoteMessage);
                 const normalized = normalizeFcmPayload(remoteMessage);
                 if (normalized) {
                     onMessageRef.current?.(normalized);
                 }
             });
+
         } catch (err) {
-            console.error("[FCM] Initialization failed:", err);
+            console.error("[FCM] Initialisation failed:", err);
         }
     }, [enabled]);
 
@@ -85,10 +90,15 @@ const useFCM = (onForegroundMessage, enabled = true) => {
     useEffect(() => {
         if (enabled) {
             initFCM();
+        } else {
+            teardownFCM();
         }
 
         return () => {
-            teardownFCM();
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current();
+                unsubscribeRef.current = null;
+            }
         };
     }, [enabled]);
 
@@ -99,7 +109,10 @@ const normalizeFcmPayload = (remoteMessage) => {
     try {
         const data = remoteMessage.data ?? {};
 
-        if (!data.notification_id || !data.type) return null;
+        if (!data.notification_id || !data.type) {
+            console.warn("[FCM] Message missing notification_id or type — ignored");
+            return null;
+        }
 
         let parsedPayload = {};
         try {

@@ -1,4 +1,5 @@
-import { initializeApp, getApps } from "firebase/app";
+// firebaseConfig.js
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
@@ -10,16 +11,21 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+let _messagingInstance = null;
 
 export const getMessagingInstance = async () => {
+    if (_messagingInstance) return _messagingInstance;
+
     try {
         const supported = await isSupported();
         if (!supported) {
             console.warn("[FCM] Firebase Messaging is not supported in this browser.");
             return null;
         }
-        return getMessaging(app);
+        _messagingInstance = getMessaging(app);
+        return _messagingInstance;
     } catch (err) {
         console.error("[FCM] Failed to get messaging instance:", err);
         return null;
