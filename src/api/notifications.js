@@ -1,4 +1,4 @@
-// Notifications API
+// notifications.js
 import { apiRequest } from "./apiClient.js";
 
 export const fetchNotifications = ({ page = 1, limit = 20 } = {}) =>
@@ -12,3 +12,15 @@ export const markNotificationRead = (notificationId) =>
 
 export const markAllNotificationsRead = () =>
     apiRequest("/notifications/mark-all-read", { method: "PUT" });
+
+export const registerFcmToken = (token, platform = "web") =>
+    apiRequest("/notifications/register-token", {
+        method: "POST",
+        body: JSON.stringify({ token, platform }),
+    });
+
+export const deregisterFcmToken = (token) =>
+    apiRequest("/notifications/deregister-token", {
+        method: "PUT",
+        body: JSON.stringify({ token }),
+    });
