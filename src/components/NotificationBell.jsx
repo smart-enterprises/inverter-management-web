@@ -23,7 +23,6 @@ const timeAgo = (dateStr) => {
     return `${Math.floor(hrs / 24)}d ago`;
 };
 
-// Map notification type → icon + color scheme
 const TYPE_STYLE = {
     [NOTIFICATION_TYPES.ORDER_CREATED_PENDING]: {
         Icon: FiShoppingBag,
@@ -64,7 +63,6 @@ const getTypeStyle = (type) =>
         iconText: "text-slate-500",
     };
 
-// NotificationItem
 const NotificationItem = React.memo(({ notif, onNotifClick }) => {
     const { Icon, iconBg, iconText } = getTypeStyle(notif.type);
 
@@ -114,7 +112,6 @@ const NotificationItem = React.memo(({ notif, onNotifClick }) => {
 
 NotificationItem.displayName = "NotificationItem";
 
-// NotificationBell
 const NotificationBell = () => {
     const {
         notifications,
@@ -129,7 +126,6 @@ const NotificationBell = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Close on outside click
     useEffect(() => {
         if (!isOpen) return;
         const handler = (e) => {
@@ -140,20 +136,21 @@ const NotificationBell = () => {
         return () => document.removeEventListener("mousedown", handler);
     }, [isOpen]);
 
-    // Close on route change
     useEffect(() => { setIsOpen(false); }, [location.pathname]);
 
-    const handleNotifClick = useCallback((notif) => {
-        if (!notif.is_read) markAsRead(notif.notification_id);
-        setIsOpen(false);
-        if (notif.payload?.order_number) {
-            navigate(`/orders/${notif.payload.order_number}`);
-        }
-    }, [markAsRead, navigate]);
+    const handleNotifClick = useCallback(
+        (notif) => {
+            if (!notif.is_read) markAsRead(notif.notification_id);
+            setIsOpen(false);
+            if (notif.payload?.order_number) {
+                navigate(`/orders/${notif.payload.order_number}`);
+            }
+        },
+        [markAsRead, navigate]
+    );
 
     return (
         <div className="relative" ref={dropdownRef}>
-            {/* ── Bell Button ── */}
             <button
                 type="button"
                 onClick={() => setIsOpen((p) => !p)}
@@ -180,7 +177,6 @@ const NotificationBell = () => {
                 )}
             </button>
 
-            {/* ── Dropdown ── */}
             {isOpen && (
                 <div
                     role="dialog"

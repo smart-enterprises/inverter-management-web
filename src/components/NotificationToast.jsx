@@ -98,13 +98,15 @@ const SingleToast = ({ toast }) => {
     const config = TYPE_CONFIG[toast.type] ?? getFallbackConfig();
     const { Icon } = config;
 
-    // Countdown progress bar
     useEffect(() => {
         if (isPaused) return;
 
         const interval = setInterval(() => {
             setProgress((p) => {
-                if (p <= 0) { clearInterval(interval); return 0; }
+                if (p <= 0) {
+                    clearInterval(interval);
+                    return 0;
+                }
                 return p - (100 / (TOAST_DURATION_MS / 100));
             });
         }, 100);
@@ -134,7 +136,6 @@ const SingleToast = ({ toast }) => {
             role="alert"
             aria-live="polite"
         >
-            {/* Progress bar */}
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-slate-100">
                 <div
                     className={`h-full ${config.progressColor} transition-all duration-100`}
@@ -143,14 +144,12 @@ const SingleToast = ({ toast }) => {
             </div>
 
             <div className="flex items-start gap-3 p-4 pt-5">
-                {/* Icon */}
                 <div
                     className={`w-9 h-9 rounded-xl ${config.iconBg} flex items-center justify-center flex-shrink-0`}
                 >
                     <Icon size={16} className={config.iconColor} />
                 </div>
 
-                {/* Content */}
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-900 leading-tight">
                         {toast.title}
@@ -189,7 +188,6 @@ const SingleToast = ({ toast }) => {
                     </p>
                 </div>
 
-                {/* Dismiss */}
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -202,7 +200,6 @@ const SingleToast = ({ toast }) => {
                 </button>
             </div>
 
-            {/* Pulse ring */}
             <div className="absolute top-3 right-3 pointer-events-none">
                 <span className="flex h-2.5 w-2.5">
                     <span
@@ -217,7 +214,6 @@ const SingleToast = ({ toast }) => {
     );
 };
 
-// NotificationToastStack — fixed portal rendering all active toasts
 const NotificationToastStack = () => {
     const { toasts } = useNotifications();
 

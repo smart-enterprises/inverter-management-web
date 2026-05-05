@@ -1,4 +1,4 @@
-// Navbar.jsx
+// src/components/Navbar.jsx
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   FiBell,
@@ -14,81 +14,24 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { capitalizeFirstLetter } from "../utils/constants";
-import { getRoleLabel } from "../utils/roles";
-import { ROLES } from "../utils/roles";
+import { getRoleLabel, ROLES } from "../utils/roles";
 import ChangePasswordModal from "./Changepasswordmodal";
 import NotificationBell from "./NotificationBell";
 
-//  Role → accent color config
 const ROLE_ACCENTS = {
-  [ROLES.SUPER_ADMIN]: {
-    badge: "bg-violet-50 text-violet-700 border-violet-200",
-    dot: "bg-violet-500",
-    avatarFrom: "#8b5cf6",
-    avatarTo: "#7c3aed",
-    glow: "rgba(139,92,246,0.35)",
-  },
-  [ROLES.ADMIN]: {
-    badge: "bg-blue-50 text-blue-700 border-blue-200",
-    dot: "bg-blue-500",
-    avatarFrom: "#3b82f6",
-    avatarTo: "#4f46e5",
-    glow: "rgba(59,130,246,0.35)",
-  },
-  [ROLES.MANAGER]: {
-    badge: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    dot: "bg-indigo-500",
-    avatarFrom: "#6366f1",
-    avatarTo: "#4f46e5",
-    glow: "rgba(99,102,241,0.35)",
-  },
-  [ROLES.SALESMAN]: {
-    badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    dot: "bg-emerald-500",
-    avatarFrom: "#10b981",
-    avatarTo: "#059669",
-    glow: "rgba(16,185,129,0.35)",
-  },
-  [ROLES.PRODUCTION]: {
-    badge: "bg-orange-50 text-orange-700 border-orange-200",
-    dot: "bg-orange-500",
-    avatarFrom: "#f97316",
-    avatarTo: "#ea580c",
-    glow: "rgba(249,115,22,0.35)",
-  },
-  [ROLES.PACKING]: {
-    badge: "bg-pink-50 text-pink-700 border-pink-200",
-    dot: "bg-pink-500",
-    avatarFrom: "#ec4899",
-    avatarTo: "#db2777",
-    glow: "rgba(236,72,153,0.35)",
-  },
-  [ROLES.ACCOUNTS]: {
-    badge: "bg-cyan-50 text-cyan-700 border-cyan-200",
-    dot: "bg-cyan-500",
-    avatarFrom: "#06b6d4",
-    avatarTo: "#0891b2",
-    glow: "rgba(6,182,212,0.35)",
-  },
-  [ROLES.DELIVERY]: {
-    badge: "bg-teal-50 text-teal-700 border-teal-200",
-    dot: "bg-teal-500",
-    avatarFrom: "#14b8a6",
-    avatarTo: "#0d9488",
-    glow: "rgba(20,184,166,0.35)",
-  },
+  [ROLES.SUPER_ADMIN]: { badge: "bg-violet-50 text-violet-700 border-violet-200", dot: "bg-violet-500", avatarFrom: "#8b5cf6", avatarTo: "#7c3aed", glow: "rgba(139,92,246,0.35)" },
+  [ROLES.ADMIN]: { badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", avatarFrom: "#3b82f6", avatarTo: "#4f46e5", glow: "rgba(59,130,246,0.35)" },
+  [ROLES.MANAGER]: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200", dot: "bg-indigo-500", avatarFrom: "#6366f1", avatarTo: "#4f46e5", glow: "rgba(99,102,241,0.35)" },
+  [ROLES.SALESMAN]: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", avatarFrom: "#10b981", avatarTo: "#059669", glow: "rgba(16,185,129,0.35)" },
+  [ROLES.PRODUCTION]: { badge: "bg-orange-50 text-orange-700 border-orange-200", dot: "bg-orange-500", avatarFrom: "#f97316", avatarTo: "#ea580c", glow: "rgba(249,115,22,0.35)" },
+  [ROLES.PACKING]: { badge: "bg-pink-50 text-pink-700 border-pink-200", dot: "bg-pink-500", avatarFrom: "#ec4899", avatarTo: "#db2777", glow: "rgba(236,72,153,0.35)" },
+  [ROLES.ACCOUNTS]: { badge: "bg-cyan-50 text-cyan-700 border-cyan-200", dot: "bg-cyan-500", avatarFrom: "#06b6d4", avatarTo: "#0891b2", glow: "rgba(6,182,212,0.35)" },
+  [ROLES.DELIVERY]: { badge: "bg-teal-50 text-teal-700 border-teal-200", dot: "bg-teal-500", avatarFrom: "#14b8a6", avatarTo: "#0d9488", glow: "rgba(20,184,166,0.35)" },
 };
 
 const getAccent = (role) =>
-  ROLE_ACCENTS[role] ?? {
-    badge: "bg-slate-50 text-slate-600 border-slate-200",
-    dot: "bg-slate-400",
-    avatarFrom: "#64748b",
-    avatarTo: "#475569",
-    glow: "rgba(100,116,139,0.25)",
-  };
+  ROLE_ACCENTS[role] ?? { badge: "bg-slate-50 text-slate-600 border-slate-200", dot: "bg-slate-400", avatarFrom: "#64748b", avatarTo: "#475569", glow: "rgba(100,116,139,0.25)" };
 
-//  Avatar
 const Avatar = ({ initials, role, size = "sm" }) => {
   const accent = getAccent(role);
   const dims = { sm: 32, md: 40, lg: 48 };
@@ -97,25 +40,7 @@ const Avatar = ({ initials, role, size = "sm" }) => {
 
   return (
     <div
-      style={{
-        width: d,
-        height: d,
-        minWidth: d,
-        background: `linear-gradient(135deg, ${accent.avatarFrom}, ${accent.avatarTo})`,
-        boxShadow: `0 3px 10px ${accent.glow}`,
-        borderRadius: 10,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#fff",
-        fontWeight: 900,
-        fontSize: fonts[size],
-        letterSpacing: "0.02em",
-        flexShrink: 0,
-        outline: "2px solid rgba(255,255,255,0.9)",
-        outlineOffset: "-1px",
-        userSelect: "none",
-      }}
+      style={{ width: d, height: d, minWidth: d, background: `linear-gradient(135deg, ${accent.avatarFrom}, ${accent.avatarTo})`, boxShadow: `0 3px 10px ${accent.glow}`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: fonts[size], letterSpacing: "0.02em", flexShrink: 0, outline: "2px solid rgba(255,255,255,0.9)", outlineOffset: "-1px", userSelect: "none" }}
       aria-hidden="true"
     >
       {initials}
@@ -123,7 +48,6 @@ const Avatar = ({ initials, role, size = "sm" }) => {
   );
 };
 
-//  Navbar
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -132,19 +56,13 @@ const Navbar = () => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const dropdownRef = useRef(null);
 
-  /* Close on outside click */
   useEffect(() => {
     if (!showMenu) return;
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setShowMenu(false);
-      }
-    };
+    const handler = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowMenu(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showMenu]);
 
-  /* Close on route change */
   useEffect(() => { setShowMenu(false); }, [location.pathname]);
 
   const handleLogout = useCallback(async () => {
@@ -153,10 +71,7 @@ const Navbar = () => {
     navigate("/login");
   }, [logout, navigate]);
 
-  const handleNavigate = useCallback((path) => {
-    setShowMenu(false);
-    navigate(path);
-  }, [navigate]);
+  const handleNavigate = useCallback((path) => { setShowMenu(false); navigate(path); }, [navigate]);
 
   const handleBrandClick = useCallback(() => {
     const el = document.getElementById("nb-brand-el");
@@ -166,12 +81,7 @@ const Navbar = () => {
   }, []);
 
   const initials = user?.employee_name
-    ? user.employee_name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase()
+    ? user.employee_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : "U";
 
   const accent = getAccent(user?.role);
@@ -182,14 +92,8 @@ const Navbar = () => {
     <>
       <header className="nb-header">
         <div className="nb-bar">
-
-          {/* ── Left: brand + breadcrumb ── */}
           <div className="nb-bar__left">
-            <span
-              className="nb-brand"
-              id="nb-brand-el"
-              onClick={handleBrandClick}
-            >
+            <span className="nb-brand" id="nb-brand-el" onClick={handleBrandClick}>
               <span className="nb-brand__text">Smart Enterprises</span>
               <span className="nb-brand__tiger" />
               <span className="nb-brand__stripes">
@@ -201,91 +105,44 @@ const Navbar = () => {
             </span>
           </div>
 
-          {/* ── Right: actions + profile ── */}
           <div className="nb-bar__right">
-
-            {/* Bulk upload quick-access (privileged) */}
             {canAccessDataUpload && (
-              <button
-                type="button"
-                onClick={() => navigate("/data-upload")}
-                className="nb-quick-btn"
-                title="Data Upload"
-                aria-label="Go to Data Upload"
-              >
+              <button type="button" onClick={() => navigate("/data-upload")} className="nb-quick-btn" title="Data Upload" aria-label="Go to Data Upload">
                 <FiUploadCloud size={14} />
-                <span className="hidden sm:inline-block text-xs font-semibold">
-                  Data Upload
-                </span>
+                <span className="hidden sm:inline-block text-xs font-semibold">Data Upload</span>
               </button>
             )}
 
             <NotificationBell />
 
-            {/* Divider */}
             <div className="w-px h-5 bg-slate-200 mx-1.5" aria-hidden="true" />
 
-            {/* Profile dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setShowMenu((p) => !p)}
                 aria-haspopup="true"
                 aria-expanded={showMenu}
-                className={`
-                flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl border
-                transition-all duration-200
-                focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300
-                ${showMenu
-                    ? "bg-slate-100 border-slate-300"
-                    : "bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300 hover:shadow-sm cursor-pointer"
-                  }
-              `}
+                className={`flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 ${showMenu ? "bg-slate-100 border-slate-300" : "bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300 hover:shadow-sm cursor-pointer"}`}
               >
                 <Avatar initials={initials} role={user?.role} size="sm" />
-
                 <div className="hidden sm:flex flex-col items-start">
-                  <span className="text-[13px] font-bold text-slate-800 leading-tight whitespace-nowrap">
-                    {capitalizeFirstLetter(user?.employee_name) || "User"}
-                  </span>
-                  <span className="text-[10px] font-semibold text-slate-400 leading-tight mt-[1px]">
-                    {getRoleLabel(user?.role)}
-                  </span>
+                  <span className="text-[13px] font-bold text-slate-800 leading-tight whitespace-nowrap">{capitalizeFirstLetter(user?.employee_name) || "User"}</span>
+                  <span className="text-[10px] font-semibold text-slate-400 leading-tight mt-[1px]">{getRoleLabel(user?.role)}</span>
                 </div>
-
-                <FiChevronDown
-                  size={12}
-                  className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${showMenu ? "rotate-180" : ""}`}
-                  aria-hidden="true"
-                />
+                <FiChevronDown size={12} className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${showMenu ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
 
-              {/* ── Dropdown ── */}
               {showMenu && (
-                <div
-                  role="menu"
-                  aria-label="Profile menu"
-                  className="absolute right-0 top-[calc(100%+8px)] w-[272px] bg-white rounded-2xl border border-slate-200/80 z-50 overflow-hidden"
-                  style={{
-                    boxShadow: "0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
-                    animation: "nb-dropdown-in 160ms cubic-bezier(0.4,0,0.2,1) forwards",
-                  }}
-                >
-                  {/* Hero */}
+                <div role="menu" aria-label="Profile menu" className="absolute right-0 top-[calc(100%+8px)] w-[272px] bg-white rounded-2xl border border-slate-200/80 z-50 overflow-hidden" style={{ boxShadow: "0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)", animation: "nb-dropdown-in 160ms cubic-bezier(0.4,0,0.2,1) forwards" }}>
                   <div className="p-4 pb-3">
                     <div className="flex items-center gap-3">
                       <Avatar initials={initials} role={user?.role} size="md" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900 truncate">
-                          {capitalizeFirstLetter(user?.employee_name)}
-                        </p>
-                        <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                          {user?.employee_email}
-                        </p>
+                        <p className="text-sm font-bold text-slate-900 truncate">{capitalizeFirstLetter(user?.employee_name)}</p>
+                        <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">{user?.employee_email}</p>
                       </div>
                     </div>
-
-                    {/* Badges */}
                     <div className="flex flex-wrap items-center gap-1.5 mt-3">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-[0.07em] ${accent.badge}`}>
                         <FiShield size={9} aria-hidden="true" />
@@ -302,60 +159,27 @@ const Navbar = () => {
 
                   <div className="h-px bg-slate-100 mx-3" />
 
-                  {/* Menu items */}
                   <div className="p-2 space-y-0.5">
-                    <button
-                      type="button"
-                      onClick={() => handleNavigate(`/users/${user?.employee_id}`)}
-                      role="menuitem"
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
-                    >
-                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
-                        <FiUser size={13} />
-                      </div>
+                    <button type="button" onClick={() => handleNavigate(`/users/${user?.employee_id}`)} role="menuitem" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer">
+                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0"><FiUser size={13} /></div>
                       My Profile
                     </button>
 
-                    {/* ── CHANGE PASSWORD ── */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowMenu(false);
-                        setShowChangePassword(true);
-                      }}
-                      role="menuitem"
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
-                    >
-                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
-                        <FiLock size={13} />
-                      </div>
+                    <button type="button" onClick={() => { setShowMenu(false); setShowChangePassword(true); }} role="menuitem" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer">
+                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0"><FiLock size={13} /></div>
                       Change Password
                     </button>
 
                     {canAccessDataUpload && (
-                      <button
-                        type="button"
-                        onClick={() => handleNavigate("/data-upload")}
-                        role="menuitem"
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
-                      >
-                        <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
-                          <FiUploadCloud size={13} />
-                        </div>
+                      <button type="button" onClick={() => handleNavigate("/data-upload")} role="menuitem" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer">
+                        <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0"><FiUploadCloud size={13} /></div>
                         Data Upload
                       </button>
                     )}
 
                     {canAccessSettings && (
-                      <button
-                        type="button"
-                        onClick={() => handleNavigate("/company-details")}
-                        role="menuitem"
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer"
-                      >
-                        <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0">
-                          <FiSettings size={13} />
-                        </div>
+                      <button type="button" onClick={() => handleNavigate("/company-details")} role="menuitem" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer">
+                        <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0"><FiSettings size={13} /></div>
                         Company Settings
                       </button>
                     )}
@@ -363,26 +187,15 @@ const Navbar = () => {
 
                   <div className="h-px bg-slate-100 mx-3" />
 
-                  {/* Sign out */}
                   <div className="p-2">
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      role="menuitem"
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-all duration-150 cursor-pointer"
-                    >
-                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-500 flex-shrink-0">
-                        <FiLogOut size={13} />
-                      </div>
+                    <button type="button" onClick={handleLogout} role="menuitem" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-all duration-150 cursor-pointer">
+                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-500 flex-shrink-0"><FiLogOut size={13} /></div>
                       Sign Out
                     </button>
                   </div>
 
-                  {/* Footer */}
                   <div className="px-4 py-2 bg-slate-50 border-t border-slate-100">
-                    <p className="text-[10px] text-slate-400 font-medium text-center tracking-wide">
-                      Smart Enterprises · v1.0
-                    </p>
+                    <p className="text-[10px] text-slate-400 font-medium text-center tracking-wide">Smart Enterprises · v1.0</p>
                   </div>
                 </div>
               )}
@@ -391,10 +204,7 @@ const Navbar = () => {
         </div>
       </header>
 
-      <ChangePasswordModal
-        isOpen={showChangePassword}
-        onClose={() => setShowChangePassword(false)}
-      />
+      <ChangePasswordModal isOpen={showChangePassword} onClose={() => setShowChangePassword(false)} />
     </>
   );
 };
