@@ -1,5 +1,6 @@
 // dataUpload.js
-import { API_BASE_URL, apiRequest, getAuthHeaders } from "./apiClient";
+import { apiRequest, getAuthHeaders } from "./apiClient";
+import { API_BASE_URL } from "../utils/constants.js";
 
 /* ================= CONFIG ================= */
 const ENDPOINTS = Object.freeze({

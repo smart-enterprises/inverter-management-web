@@ -3,8 +3,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { getToken, onMessage } from "firebase/messaging";
 import { getMessagingInstance } from "../config/firebaseConfig";
 import { registerFcmToken, deregisterFcmToken } from "../api/notifications";
-
-const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+import { FIREBASE_VAPID_KEY } from "../utils/constants";
 
 const useFCM = (onForegroundMessage, enabled = true) => {
     const tokenRef = useRef(null);
@@ -19,27 +18,47 @@ const useFCM = (onForegroundMessage, enabled = true) => {
         if (!enabled) return;
 
         try {
-            let swReg = null;
-            if ("serviceWorker" in navigator) {
-                swReg = await navigator.serviceWorker.register(
-                    "/firebase-messaging-sw.js",
-                    { scope: "/" }
-                );
-                await navigator.serviceWorker.ready;
+            if (Notification.permission === "denied") {
+                console.warn("[FCM] Notifications are blocked. Please enable them in your browser settings.");
+                return;
             }
 
-            const messaging = await getMessagingInstance();
-            if (!messaging) return;
+            const permission =
+                Notification.permission === "granted"
+                    ? "granted"
+                    : await Notification.requestPermission();
 
-            const permission = await Notification.requestPermission();
-            if (permission !== "granted") {
-                console.warn("[FCM] Notification permission denied");
+            if (permission === "denied") {
+                console.warn("[FCM] Notifications blocked by user.");
+                return;
+            }
+
+            if (permission === "default") {
+                console.warn("[FCM] Notification prompt dismissed by user.");
+                return;
+            }
+
+            if (!("serviceWorker" in navigator)) {
+                console.warn("[FCM] Service workers not supported in this browser");
+                return;
+            }
+
+            await navigator.serviceWorker.register(
+                "/firebase-messaging-sw.js",
+                { scope: "/" }
+            );
+
+            const activeReg = await navigator.serviceWorker.ready;
+
+            const messaging = await getMessagingInstance();
+            if (!messaging) {
+                console.warn("[FCM] Messaging instance unavailable");
                 return;
             }
 
             const token = await getToken(messaging, {
-                vapidKey: VAPID_KEY,
-                serviceWorkerRegistration: swReg ?? undefined,
+                vapidKey: FIREBASE_VAPID_KEY,
+                serviceWorkerRegistration: activeReg,
             });
 
             if (!token) {
@@ -59,12 +78,12 @@ const useFCM = (onForegroundMessage, enabled = true) => {
 
             unsubscribeRef.current = onMessage(messaging, (remoteMessage) => {
                 console.log("[FCM] Foreground message received:", remoteMessage);
+
                 const normalized = normalizeFcmPayload(remoteMessage);
                 if (normalized) {
                     onMessageRef.current?.(normalized);
                 }
             });
-
         } catch (err) {
             console.error("[FCM] Initialisation failed:", err);
         }
@@ -102,7 +121,7 @@ const useFCM = (onForegroundMessage, enabled = true) => {
         };
     }, [enabled]);
 
-    return { teardownFCM };
+    return { initFCM, teardownFCM };
 };
 
 const normalizeFcmPayload = (remoteMessage) => {

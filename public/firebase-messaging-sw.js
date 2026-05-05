@@ -2,14 +2,24 @@
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
-firebase.initializeApp({
-    apiKey: self.VITE_FIREBASE_API_KEY || "YOUR_API_KEY",
-    authDomain: self.VITE_FIREBASE_AUTH_DOMAIN || "YOUR_AUTH_DOMAIN",
-    projectId: self.VITE_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
-    storageBucket: self.VITE_FIREBASE_STORAGE_BUCKET || "YOUR_STORAGE_BUCKET",
-    messagingSenderId: self.VITE_FIREBASE_MESSAGING_SENDER_ID || "YOUR_SENDER_ID",
-    appId: self.VITE_FIREBASE_APP_ID || "YOUR_APP_ID",
+self.addEventListener("install", (event) => {
+    self.skipWaiting();
 });
+
+self.addEventListener("activate", (event) => {
+    event.waitUntil(clients.claim());
+});
+
+const firebaseConfig = {
+    apiKey: "AIzaSyB25-Oiu7Gomu5AGvMXnV0sFw7G0Urxon8",
+    authDomain: "smart-enterprises-d444b.firebaseapp.com",
+    projectId: "smart-enterprises-d444b",
+    storageBucket: "smart-enterprises-d444b.firebasestorage.app",
+    messagingSenderId: "818545460753",
+    appId: "1:818545460753:web:83237346fa2e84b93693b0",
+};
+
+firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging();
 

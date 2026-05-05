@@ -45,6 +45,9 @@ export const NotificationProvider = ({ children }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [toasts, setToasts] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [notifPermission, setNotifPermission] = useState(
+        typeof Notification !== "undefined" ? Notification.permission : "default"
+    );
 
     const toastTimers = useRef({});
 
@@ -53,11 +56,16 @@ export const NotificationProvider = ({ children }) => {
 
     useEffect(() => {
         loadAudioBuffer();
-        requestSystemNotifPermission();
 
         const unlockOnInteraction = async () => {
             await unlockAudio();
-            await requestSystemNotifPermission();
+
+            if (Notification.permission === "default") {
+                const permission = await Notification.requestPermission();
+                setNotifPermission(permission);
+            } else {
+                setNotifPermission(Notification.permission);
+            }
         };
 
         window.addEventListener("click", unlockOnInteraction, { once: true });
@@ -147,7 +155,25 @@ export const NotificationProvider = ({ children }) => {
         [addToast]
     );
 
-    useFCM(handleFcmMessage, shouldReceive);
+    const { initFCM } = useFCM(handleFcmMessage, shouldReceive);
+
+    const requestNotificationPermission = useCallback(async () => {
+        if (Notification.permission === "denied") {
+            console.warn("[Notifications] Permission blocked — user must enable in browser settings.");
+            setNotifPermission("denied");
+            return false;
+        }
+
+        const permission = await Notification.requestPermission();
+        setNotifPermission(permission);
+
+        if (permission === "granted") {
+            await initFCM();
+            return true;
+        }
+
+        return false;
+    }, [initFCM]);
 
     const handleMarkAsRead = useCallback(
         async (notificationId) => {
@@ -163,7 +189,6 @@ export const NotificationProvider = ({ children }) => {
                 await markNotificationRead(notificationId);
             } catch (err) {
                 console.error("[Notifications] Failed to mark as read:", err);
-
                 setNotifications((prev) =>
                     prev.map((n) =>
                         n.notification_id === notificationId
@@ -208,6 +233,8 @@ export const NotificationProvider = ({ children }) => {
                 unreadCount,
                 toasts,
                 isLoading,
+                notifPermission,
+                requestNotificationPermission,
                 markAsRead: handleMarkAsRead,
                 markAllAsRead: handleMarkAllRead,
                 dismissToast,
