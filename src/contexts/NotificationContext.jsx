@@ -17,11 +17,9 @@ import {
 } from "../api/notifications";
 import {
     NOTIFICATION_CONFIG,
-    loadAudioBuffer,
     unlockAudio,
     startAlertLoop,
     stopAlertLoop,
-    requestSystemNotifPermission,
     showSystemNotificationFromPayload,
 } from "../services/notificationService";
 
@@ -45,6 +43,12 @@ export const NotificationProvider = ({ children }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [toasts, setToasts] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [notifPermission, setNotifPermission] = useState(
+        typeof Notification !== "undefined" ? Notification.permission : "default"
+    );
+
+    const [pushBlocked, setPushBlocked] = useState(false);
+    const [pushBlockedReason, setPushBlockedReason] = useState(null);
 
     const toastTimers = useRef({});
 
@@ -52,12 +56,36 @@ export const NotificationProvider = ({ children }) => {
         isAuthenticated() && NOTIFICATION_ELIGIBLE_ROLES.has(user?.role);
 
     useEffect(() => {
-        loadAudioBuffer();
-        requestSystemNotifPermission();
+        const handlePermissionDenied = (e) => {
+            setPushBlocked(true);
+            setPushBlockedReason(e.detail?.reason ?? "permission-denied");
+            setNotifPermission("denied");
+        };
 
+        const handlePushBlocked = (e) => {
+            setPushBlocked(true);
+            setPushBlockedReason(e.detail?.reason ?? "push-service-error");
+        };
+
+        window.addEventListener("fcm:permission-denied", handlePermissionDenied);
+        window.addEventListener("fcm:push-blocked", handlePushBlocked);
+
+        return () => {
+            window.removeEventListener("fcm:permission-denied", handlePermissionDenied);
+            window.removeEventListener("fcm:push-blocked", handlePushBlocked);
+        };
+    }, []);
+
+    useEffect(() => {
         const unlockOnInteraction = async () => {
             await unlockAudio();
-            await requestSystemNotifPermission();
+
+            if (Notification.permission === "default") {
+                const permission = await Notification.requestPermission();
+                setNotifPermission(permission);
+            } else {
+                setNotifPermission(Notification.permission);
+            }
         };
 
         window.addEventListener("click", unlockOnInteraction, { once: true });
@@ -147,7 +175,29 @@ export const NotificationProvider = ({ children }) => {
         [addToast]
     );
 
-    useFCM(handleFcmMessage, shouldReceive);
+    const { initFCM } = useFCM(handleFcmMessage, shouldReceive);
+
+    const requestNotificationPermission = useCallback(async () => {
+        if (Notification.permission === "denied") {
+            console.warn("[Notifications] Permission blocked — user must enable in browser settings.");
+            setNotifPermission("denied");
+            setPushBlocked(true);
+            setPushBlockedReason("permission-denied");
+            return { granted: false, reason: "permission-denied" };
+        }
+
+        const permission = await Notification.requestPermission();
+        setNotifPermission(permission);
+
+        if (permission === "granted") {
+            setPushBlocked(false);
+            setPushBlockedReason(null);
+            await initFCM();
+            return { granted: true };
+        }
+
+        return { granted: false, reason: permission }; // "default" = dismissed
+    }, [initFCM]);
 
     const handleMarkAsRead = useCallback(
         async (notificationId) => {
@@ -163,7 +213,6 @@ export const NotificationProvider = ({ children }) => {
                 await markNotificationRead(notificationId);
             } catch (err) {
                 console.error("[Notifications] Failed to mark as read:", err);
-
                 setNotifications((prev) =>
                     prev.map((n) =>
                         n.notification_id === notificationId
@@ -208,6 +257,10 @@ export const NotificationProvider = ({ children }) => {
                 unreadCount,
                 toasts,
                 isLoading,
+                notifPermission,
+                pushBlocked,
+                pushBlockedReason,
+                requestNotificationPermission,
                 markAsRead: handleMarkAsRead,
                 markAllAsRead: handleMarkAllRead,
                 dismissToast,

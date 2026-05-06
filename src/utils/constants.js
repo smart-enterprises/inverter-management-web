@@ -1,4 +1,32 @@
+// src/utils/constants.js
 import { ORDER_STATUSES } from "./status";
+
+const getEnv = (key) => {
+    const value = import.meta.env[key];
+    if (!value) {
+        console.error(`[ENV ERROR] Missing environment variable: ${key}`);
+    }
+    return value;
+};
+
+const API_KEY = getEnv("VITE_FIREBASE_API_KEY");
+const AUTH_DOMAIN = getEnv("VITE_FIREBASE_AUTH_DOMAIN");
+const PROJECT_ID = getEnv("VITE_FIREBASE_PROJECT_ID");
+const STORAGE_BUCKET = getEnv("VITE_FIREBASE_STORAGE_BUCKET");
+const MESSAGING_SENDER_ID = getEnv("VITE_FIREBASE_MESSAGING_SENDER_ID");
+const APP_ID = getEnv("VITE_FIREBASE_APP_ID");
+
+export const FIREBASE_CONFIG = Object.freeze({
+    apiKey: API_KEY,
+    authDomain: AUTH_DOMAIN,
+    projectId: PROJECT_ID,
+    storageBucket: STORAGE_BUCKET,
+    messagingSenderId: MESSAGING_SENDER_ID,
+    appId: APP_ID,
+});
+
+export const FIREBASE_VAPID_KEY = getEnv("VITE_FIREBASE_VAPID_KEY");
+export const API_BASE_URL = getEnv("VITE_API_BASE_URL");
 
 export const INITIAL_ORDER_ITEM = {
     product_id: '',

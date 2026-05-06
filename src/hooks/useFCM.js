@@ -3,8 +3,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { getToken, onMessage } from "firebase/messaging";
 import { getMessagingInstance } from "../config/firebaseConfig";
 import { registerFcmToken, deregisterFcmToken } from "../api/notifications";
-
-const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+import { FIREBASE_VAPID_KEY } from "../utils/constants";
 
 const useFCM = (onForegroundMessage, enabled = true) => {
     const tokenRef = useRef(null);
@@ -19,28 +18,95 @@ const useFCM = (onForegroundMessage, enabled = true) => {
         if (!enabled) return;
 
         try {
-            let swReg = null;
-            if ("serviceWorker" in navigator) {
-                swReg = await navigator.serviceWorker.register(
-                    "/firebase-messaging-sw.js",
-                    { scope: "/" }
+            if (Notification.permission === "denied") {
+                console.warn("[FCM] Notifications are blocked. User must enable in browser settings.");
+                window.dispatchEvent(
+                    new CustomEvent("fcm:permission-denied", {
+                        detail: { reason: "permission-denied" },
+                    })
                 );
-                await navigator.serviceWorker.ready;
-            }
-
-            const messaging = await getMessagingInstance();
-            if (!messaging) return;
-
-            const permission = await Notification.requestPermission();
-            if (permission !== "granted") {
-                console.warn("[FCM] Notification permission denied");
                 return;
             }
 
-            const token = await getToken(messaging, {
-                vapidKey: VAPID_KEY,
-                serviceWorkerRegistration: swReg ?? undefined,
-            });
+            const permission =
+                Notification.permission === "granted"
+                    ? "granted"
+                    : await Notification.requestPermission();
+
+            if (permission === "denied") {
+                console.warn("[FCM] Notifications blocked by user.");
+                window.dispatchEvent(
+                    new CustomEvent("fcm:permission-denied", {
+                        detail: { reason: "permission-denied" },
+                    })
+                );
+                return;
+            }
+
+            if (permission === "default") {
+                console.warn("[FCM] Notification prompt dismissed by user.");
+                return;
+            }
+
+            if (!("serviceWorker" in navigator)) {
+                console.warn("[FCM] Service workers not supported in this browser.");
+                return;
+            }
+
+            await navigator.serviceWorker.register(
+                "/firebase-messaging-sw.js",
+                { scope: "/" }
+            );
+
+            const activeReg = await navigator.serviceWorker.ready;
+
+            const messaging = await getMessagingInstance();
+            if (!messaging) {
+                console.warn("[FCM] Messaging instance unavailable");
+                return;
+            }
+
+            let token;
+            try {
+                token = await getToken(messaging, {
+                    vapidKey: FIREBASE_VAPID_KEY,
+                    serviceWorkerRegistration: activeReg,
+                });
+            } catch (tokenErr) {
+                if (
+                    tokenErr.name === "AbortError" ||
+                    tokenErr.code === "messaging/token-subscribe-failed"
+                ) {
+                    const isBrave =
+                        typeof navigator.brave !== "undefined" &&
+                        (await navigator.brave.isBrave().catch(() => false));
+
+                    if (isBrave) {
+                        console.warn(
+                            "[FCM] Brave Shields is blocking the FCM push service. " +
+                            "Lower Shields for this site or switch to Chrome/Firefox."
+                        );
+                        window.dispatchEvent(
+                            new CustomEvent("fcm:push-blocked", {
+                                detail: { reason: "brave-shields" },
+                            })
+                        );
+                    } else {
+                        console.warn(
+                            "[FCM] Push service registration failed. " +
+                            "fcm.googleapis.com may be blocked by your network or firewall."
+                        );
+                        window.dispatchEvent(
+                            new CustomEvent("fcm:push-blocked", {
+                                detail: { reason: "push-service-error" },
+                            })
+                        );
+                    }
+                    return;
+                }
+
+                throw tokenErr;
+            }
 
             if (!token) {
                 console.warn("[FCM] Failed to retrieve FCM token");
@@ -59,12 +125,12 @@ const useFCM = (onForegroundMessage, enabled = true) => {
 
             unsubscribeRef.current = onMessage(messaging, (remoteMessage) => {
                 console.log("[FCM] Foreground message received:", remoteMessage);
+
                 const normalized = normalizeFcmPayload(remoteMessage);
                 if (normalized) {
                     onMessageRef.current?.(normalized);
                 }
             });
-
         } catch (err) {
             console.error("[FCM] Initialisation failed:", err);
         }
@@ -102,7 +168,7 @@ const useFCM = (onForegroundMessage, enabled = true) => {
         };
     }, [enabled]);
 
-    return { teardownFCM };
+    return { initFCM, teardownFCM };
 };
 
 const normalizeFcmPayload = (remoteMessage) => {
