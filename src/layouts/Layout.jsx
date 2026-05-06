@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 import { useState, useEffect } from "react";
 import NotificationToastStack from "../components/NotificationToast";
+import NotificationBanner from "../components/NotificationBanner";
 
 export default function Layout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -39,6 +40,9 @@ export default function Layout() {
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
+
+        <NotificationBanner />
+
         <main className="flex-1 overflow-auto bg-[#F9FAFB]">
           <div className="p-4">
             <Outlet />

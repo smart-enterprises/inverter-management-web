@@ -19,7 +19,12 @@ const useFCM = (onForegroundMessage, enabled = true) => {
 
         try {
             if (Notification.permission === "denied") {
-                console.warn("[FCM] Notifications are blocked. Please enable them in your browser settings.");
+                console.warn("[FCM] Notifications are blocked. User must enable in browser settings.");
+                window.dispatchEvent(
+                    new CustomEvent("fcm:permission-denied", {
+                        detail: { reason: "permission-denied" },
+                    })
+                );
                 return;
             }
 
@@ -30,6 +35,11 @@ const useFCM = (onForegroundMessage, enabled = true) => {
 
             if (permission === "denied") {
                 console.warn("[FCM] Notifications blocked by user.");
+                window.dispatchEvent(
+                    new CustomEvent("fcm:permission-denied", {
+                        detail: { reason: "permission-denied" },
+                    })
+                );
                 return;
             }
 
@@ -39,7 +49,7 @@ const useFCM = (onForegroundMessage, enabled = true) => {
             }
 
             if (!("serviceWorker" in navigator)) {
-                console.warn("[FCM] Service workers not supported in this browser");
+                console.warn("[FCM] Service workers not supported in this browser.");
                 return;
             }
 
@@ -56,10 +66,47 @@ const useFCM = (onForegroundMessage, enabled = true) => {
                 return;
             }
 
-            const token = await getToken(messaging, {
-                vapidKey: FIREBASE_VAPID_KEY,
-                serviceWorkerRegistration: activeReg,
-            });
+            let token;
+            try {
+                token = await getToken(messaging, {
+                    vapidKey: FIREBASE_VAPID_KEY,
+                    serviceWorkerRegistration: activeReg,
+                });
+            } catch (tokenErr) {
+                if (
+                    tokenErr.name === "AbortError" ||
+                    tokenErr.code === "messaging/token-subscribe-failed"
+                ) {
+                    const isBrave =
+                        typeof navigator.brave !== "undefined" &&
+                        (await navigator.brave.isBrave().catch(() => false));
+
+                    if (isBrave) {
+                        console.warn(
+                            "[FCM] Brave Shields is blocking the FCM push service. " +
+                            "Lower Shields for this site or switch to Chrome/Firefox."
+                        );
+                        window.dispatchEvent(
+                            new CustomEvent("fcm:push-blocked", {
+                                detail: { reason: "brave-shields" },
+                            })
+                        );
+                    } else {
+                        console.warn(
+                            "[FCM] Push service registration failed. " +
+                            "fcm.googleapis.com may be blocked by your network or firewall."
+                        );
+                        window.dispatchEvent(
+                            new CustomEvent("fcm:push-blocked", {
+                                detail: { reason: "push-service-error" },
+                            })
+                        );
+                    }
+                    return;
+                }
+
+                throw tokenErr;
+            }
 
             if (!token) {
                 console.warn("[FCM] Failed to retrieve FCM token");

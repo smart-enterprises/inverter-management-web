@@ -17,11 +17,9 @@ import {
 } from "../api/notifications";
 import {
     NOTIFICATION_CONFIG,
-    loadAudioBuffer,
     unlockAudio,
     startAlertLoop,
     stopAlertLoop,
-    requestSystemNotifPermission,
     showSystemNotificationFromPayload,
 } from "../services/notificationService";
 
@@ -49,14 +47,36 @@ export const NotificationProvider = ({ children }) => {
         typeof Notification !== "undefined" ? Notification.permission : "default"
     );
 
+    const [pushBlocked, setPushBlocked] = useState(false);
+    const [pushBlockedReason, setPushBlockedReason] = useState(null);
+
     const toastTimers = useRef({});
 
     const shouldReceive =
         isAuthenticated() && NOTIFICATION_ELIGIBLE_ROLES.has(user?.role);
 
     useEffect(() => {
-        loadAudioBuffer();
+        const handlePermissionDenied = (e) => {
+            setPushBlocked(true);
+            setPushBlockedReason(e.detail?.reason ?? "permission-denied");
+            setNotifPermission("denied");
+        };
 
+        const handlePushBlocked = (e) => {
+            setPushBlocked(true);
+            setPushBlockedReason(e.detail?.reason ?? "push-service-error");
+        };
+
+        window.addEventListener("fcm:permission-denied", handlePermissionDenied);
+        window.addEventListener("fcm:push-blocked", handlePushBlocked);
+
+        return () => {
+            window.removeEventListener("fcm:permission-denied", handlePermissionDenied);
+            window.removeEventListener("fcm:push-blocked", handlePushBlocked);
+        };
+    }, []);
+
+    useEffect(() => {
         const unlockOnInteraction = async () => {
             await unlockAudio();
 
@@ -161,18 +181,22 @@ export const NotificationProvider = ({ children }) => {
         if (Notification.permission === "denied") {
             console.warn("[Notifications] Permission blocked — user must enable in browser settings.");
             setNotifPermission("denied");
-            return false;
+            setPushBlocked(true);
+            setPushBlockedReason("permission-denied");
+            return { granted: false, reason: "permission-denied" };
         }
 
         const permission = await Notification.requestPermission();
         setNotifPermission(permission);
 
         if (permission === "granted") {
+            setPushBlocked(false);
+            setPushBlockedReason(null);
             await initFCM();
-            return true;
+            return { granted: true };
         }
 
-        return false;
+        return { granted: false, reason: permission }; // "default" = dismissed
     }, [initFCM]);
 
     const handleMarkAsRead = useCallback(
@@ -234,6 +258,8 @@ export const NotificationProvider = ({ children }) => {
                 toasts,
                 isLoading,
                 notifPermission,
+                pushBlocked,
+                pushBlockedReason,
                 requestNotificationPermission,
                 markAsRead: handleMarkAsRead,
                 markAllAsRead: handleMarkAllRead,

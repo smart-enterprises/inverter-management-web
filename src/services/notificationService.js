@@ -58,7 +58,12 @@ const AudioState = {
 
 const getAudioContext = () => {
     if (!AudioState.ctx) {
-        AudioState.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        try {
+            AudioState.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (err) {
+            console.warn("[Audio] Failed to create AudioContext:", err);
+            return null;
+        }
     }
     return AudioState.ctx;
 };
@@ -66,20 +71,21 @@ const getAudioContext = () => {
 export const loadAudioBuffer = async () => {
     if (AudioState.buffer) return AudioState.buffer;
 
+    if (!AudioState.ctx) return null;
+
     try {
-        const ctx = getAudioContext();
         const response = await fetch("/notification-alert.mp3");
 
         if (!response.ok) {
             console.warn(
-                "[Audio] /public/notification-alert.mp3 not found. " +
+                "[Audio] /public/notification-alert.mp3 not found." +
                 "Add the file to /public to enable sound alerts."
             );
             return null;
         }
 
         const arrayBuffer = await response.arrayBuffer();
-        AudioState.buffer = await ctx.decodeAudioData(arrayBuffer);
+        AudioState.buffer = await AudioState.ctx.decodeAudioData(arrayBuffer);
         return AudioState.buffer;
     } catch (err) {
         console.error("[Audio] Failed to load buffer:", err);
@@ -92,8 +98,14 @@ export const unlockAudio = async () => {
 
     try {
         const ctx = getAudioContext();
-        await ctx.resume();
+        if (!ctx) return;
+
+        if (ctx.state === "suspended") {
+            await ctx.resume();
+        }
+
         AudioState.unlocked = true;
+
         await loadAudioBuffer();
     } catch (err) {
         console.warn("[Audio] Unlock failed:", err);
