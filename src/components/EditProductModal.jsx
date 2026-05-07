@@ -6,7 +6,7 @@ import Swal from "sweetalert2";
 import CustomSelect from "../components/CustomSelect";
 import { fetchProductById, updateProduct } from "../api/products";
 import { getAllBrands } from "../api/brands";
-import { PRODUCT_CATEGORIES } from "../utils/constants";
+import { PRODUCT_CATEGORIES } from "../utils/constants.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
