@@ -6,6 +6,7 @@ import React, {
     useEffect,
     useCallback,
     useRef,
+    useMemo,
 } from "react";
 import { useAuth } from "../hooks/useAuth";
 import useFCM from "../hooks/useFCM";
@@ -17,11 +18,9 @@ import {
 } from "../api/notifications";
 import {
     NOTIFICATION_CONFIG,
-    loadAudioBuffer,
     unlockAudio,
     startAlertLoop,
     stopAlertLoop,
-    requestSystemNotifPermission,
     showSystemNotificationFromPayload,
 } from "../services/notificationService";
 
@@ -36,6 +35,8 @@ const NOTIFICATION_ELIGIBLE_ROLES = new Set([
     "ROLE_SALESMAN",
 ]);
 
+const TOAST_DURATION_MS = 5_000;
+
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
@@ -45,29 +46,70 @@ export const NotificationProvider = ({ children }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [toasts, setToasts] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [notifPermission, setNotifPermission] = useState(
+        typeof Notification !== "undefined" ? Notification.permission : "default"
+    );
+    const [pushBlocked, setPushBlocked] = useState(false);
+    const [pushBlockedReason, setPushBlockedReason] = useState(null);
 
     const toastTimers = useRef({});
+    const loadInProgressRef = useRef(false);
 
-    const shouldReceive =
-        isAuthenticated() && NOTIFICATION_ELIGIBLE_ROLES.has(user?.role);
+    const shouldReceive = useMemo(
+        () => isAuthenticated() && NOTIFICATION_ELIGIBLE_ROLES.has(user?.role),
+        [user?.role, isAuthenticated]
+    );
 
     useEffect(() => {
-        loadAudioBuffer();
-        requestSystemNotifPermission();
-
-        const unlockOnInteraction = async () => {
-            await unlockAudio();
-            await requestSystemNotifPermission();
+        const onPermDenied = (e) => {
+            setPushBlocked(true);
+            setPushBlockedReason(e.detail?.reason ?? "permission-denied");
+            setNotifPermission("denied");
+        };
+        const onPushBlocked = (e) => {
+            setPushBlocked(true);
+            setPushBlockedReason(e.detail?.reason ?? "push-service-error");
+        };
+        const onNotSupported = () => {
+            setPushBlocked(true);
+            setPushBlockedReason("not-supported");
         };
 
-        window.addEventListener("click", unlockOnInteraction, { once: true });
-        window.addEventListener("keydown", unlockOnInteraction, { once: true });
-        window.addEventListener("touchstart", unlockOnInteraction, { once: true });
+        window.addEventListener("fcm:permission-denied", onPermDenied);
+        window.addEventListener("fcm:push-blocked", onPushBlocked);
+        window.addEventListener("fcm:not-supported", onNotSupported);
 
         return () => {
-            window.removeEventListener("click", unlockOnInteraction);
-            window.removeEventListener("keydown", unlockOnInteraction);
-            window.removeEventListener("touchstart", unlockOnInteraction);
+            window.removeEventListener("fcm:permission-denied", onPermDenied);
+            window.removeEventListener("fcm:push-blocked", onPushBlocked);
+            window.removeEventListener("fcm:not-supported", onNotSupported);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleInteraction = async () => {
+            await unlockAudio();
+
+            if (typeof Notification !== "undefined" && Notification.permission === "default") {
+                const perm = await Notification.requestPermission();
+                setNotifPermission(perm);
+                if (perm === "denied") {
+                    setPushBlocked(true);
+                    setPushBlockedReason("permission-denied");
+                }
+            } else if (typeof Notification !== "undefined") {
+                setNotifPermission(Notification.permission);
+            }
+        };
+
+        window.addEventListener("click", handleInteraction, { once: true });
+        window.addEventListener("keydown", handleInteraction, { once: true });
+        window.addEventListener("touchstart", handleInteraction, { once: true, passive: true });
+
+        return () => {
+            window.removeEventListener("click", handleInteraction);
+            window.removeEventListener("keydown", handleInteraction);
+            window.removeEventListener("touchstart", handleInteraction);
         };
     }, []);
 
@@ -76,9 +118,7 @@ export const NotificationProvider = ({ children }) => {
         delete toastTimers.current[notificationId];
 
         setToasts((prev) => {
-            const remaining = prev.filter(
-                (t) => t.notification_id !== notificationId
-            );
+            const remaining = prev.filter((t) => t.notification_id !== notificationId);
             if (remaining.length === 0) stopAlertLoop();
             return remaining;
         });
@@ -87,8 +127,7 @@ export const NotificationProvider = ({ children }) => {
     const addToast = useCallback(
         (notification) => {
             setToasts((prev) => {
-                if (prev.some((t) => t.notification_id === notification.notification_id))
-                    return prev;
+                if (prev.some((t) => t.notification_id === notification.notification_id)) return prev;
                 return [...prev, { ...notification, addedAt: Date.now() }];
             });
 
@@ -103,7 +142,7 @@ export const NotificationProvider = ({ children }) => {
 
             const timer = setTimeout(
                 () => dismissToast(notification.notification_id),
-                5_000
+                TOAST_DURATION_MS
             );
             toastTimers.current[notification.notification_id] = timer;
         },
@@ -112,20 +151,26 @@ export const NotificationProvider = ({ children }) => {
 
     const loadNotifications = useCallback(async () => {
         if (!shouldReceive) return;
+        if (loadInProgressRef.current) {
+            console.debug("[Notifications] Load already in progress — skipped");
+            return;
+        }
+
+        loadInProgressRef.current = true;
         try {
             setIsLoading(true);
             const [notifRes, countRes] = await Promise.all([
                 fetchNotifications({ page: 1, limit: 20 }),
                 fetchUnreadCount(),
             ]);
-            if (notifRes?.success)
-                setNotifications(notifRes.data.notifications ?? []);
-            if (countRes?.success)
-                setUnreadCount(countRes.data.count ?? 0);
+
+            if (notifRes?.success) setNotifications(notifRes.data?.notifications ?? []);
+            if (countRes?.success) setUnreadCount(countRes.data?.count ?? 0);
         } catch (err) {
-            console.error("[Notifications] Failed to load:", err);
+            console.error("[Notifications] loadNotifications failed:", err.message);
         } finally {
             setIsLoading(false);
+            loadInProgressRef.current = false;
         }
     }, [shouldReceive]);
 
@@ -135,9 +180,12 @@ export const NotificationProvider = ({ children }) => {
 
     const handleFcmMessage = useCallback(
         (normalized) => {
+            console.info(
+                `[Notifications] FCM message: ${normalized.type} | ${normalized.notification_id}`
+            );
+
             setNotifications((prev) => {
-                if (prev.some((n) => n.notification_id === normalized.notification_id))
-                    return prev;
+                if (prev.some((n) => n.notification_id === normalized.notification_id)) return prev;
                 return [normalized, ...prev];
             });
 
@@ -147,7 +195,32 @@ export const NotificationProvider = ({ children }) => {
         [addToast]
     );
 
-    useFCM(handleFcmMessage, shouldReceive);
+    const { initFCM } = useFCM(handleFcmMessage, shouldReceive);
+
+    const requestNotificationPermission = useCallback(async () => {
+        if (typeof Notification === "undefined") {
+            return { granted: false, reason: "not-supported" };
+        }
+
+        if (Notification.permission === "denied") {
+            setNotifPermission("denied");
+            setPushBlocked(true);
+            setPushBlockedReason("permission-denied");
+            return { granted: false, reason: "permission-denied" };
+        }
+
+        const permission = await Notification.requestPermission();
+        setNotifPermission(permission);
+
+        if (permission === "granted") {
+            setPushBlocked(false);
+            setPushBlockedReason(null);
+            await initFCM();
+            return { granted: true };
+        }
+
+        return { granted: false, reason: permission };
+    }, [initFCM]);
 
     const handleMarkAsRead = useCallback(
         async (notificationId) => {
@@ -162,13 +235,11 @@ export const NotificationProvider = ({ children }) => {
             try {
                 await markNotificationRead(notificationId);
             } catch (err) {
-                console.error("[Notifications] Failed to mark as read:", err);
-
+                console.error("[Notifications] markAsRead failed:", err.message);
+                // Rollback
                 setNotifications((prev) =>
                     prev.map((n) =>
-                        n.notification_id === notificationId
-                            ? { ...n, is_read: false }
-                            : n
+                        n.notification_id === notificationId ? { ...n, is_read: false } : n
                     )
                 );
                 setUnreadCount((c) => c + 1);
@@ -189,7 +260,7 @@ export const NotificationProvider = ({ children }) => {
         try {
             await markAllNotificationsRead();
         } catch (err) {
-            console.error("[Notifications] Failed to mark all as read:", err);
+            console.error("[Notifications] markAllAsRead failed:", err.message);
             loadNotifications();
         }
     }, [loadNotifications]);
@@ -208,6 +279,10 @@ export const NotificationProvider = ({ children }) => {
                 unreadCount,
                 toasts,
                 isLoading,
+                notifPermission,
+                pushBlocked,
+                pushBlockedReason,
+                requestNotificationPermission,
                 markAsRead: handleMarkAsRead,
                 markAllAsRead: handleMarkAllRead,
                 dismissToast,
@@ -221,7 +296,6 @@ export const NotificationProvider = ({ children }) => {
 
 export const useNotifications = () => {
     const ctx = useContext(NotificationContext);
-    if (!ctx)
-        throw new Error("useNotifications must be used inside <NotificationProvider>");
+    if (!ctx) throw new Error("useNotifications must be used inside <NotificationProvider>");
     return ctx;
 };
