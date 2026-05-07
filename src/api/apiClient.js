@@ -1,5 +1,5 @@
-/* ================= API CONFIG ================= */
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+// src/api/apiClient.js
+import { API_BASE_URL } from "../utils/constants.js";
 
 /* ================= GET AUTH TOKEN ================= */
 const getToken = () => {
