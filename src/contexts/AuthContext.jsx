@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AuthContext } from './AuthContextValue';
 import { login as apiLogin, logout as apiLogout } from '../api/auth.js';
+import { deregisterAllFcmTokens } from '../api/notifications.js';
 import { canManageUsers } from '../utils/roles';
 
 export const AuthProvider = ({ children }) => {
@@ -9,6 +10,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
+      await deregisterAllFcmTokens();
       await apiLogout();
     } catch (error) {
       console.error('Logout API error:', error);
