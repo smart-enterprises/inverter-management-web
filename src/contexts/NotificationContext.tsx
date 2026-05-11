@@ -1,0 +1,377 @@
+import React, {
+    createContext,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
+import { useAuth } from "../hooks/useAuth";
+import { useFCM, NormalizedNotification } from "../hooks/useFCM";
+import {
+    showSystemNotificationFromPayload,
+    startAlertLoop,
+    stopAlertLoop,
+    unlockAudio,
+} from "../services/notificationService";
+import {
+    NotificationPayload,
+    NOTIFICATION_CONFIG,
+    isNotificationType,
+} from "../services/notificationServiceTypes";
+
+const NOTIFICATION_ELIGIBLE_ROLES = new Set([
+    "ROLE_SUPER_ADMIN",
+    "ROLE_ADMIN",
+    "ROLE_MANAGER",
+    "ROLE_PRODUCTION",
+    "ROLE_PACKING",
+    "ROLE_ACCOUNTS",
+    "ROLE_DELIVERY",
+    "ROLE_SALESMAN",
+]);
+
+const STORAGE_KEY = "smart-enterprise-notifications";
+const MAX_STORED_NOTIFICATIONS = 100;
+const TOAST_DURATION_MS = 5_000;
+
+type NotifPermission = "default" | "granted" | "denied";
+
+type PushBlockedReason =
+    | "permission-denied"
+    | "push-service-error"
+    | "brave-shields"
+    | "not-supported"
+    | null;
+
+export interface NotificationContextValue {
+    notifications: NormalizedNotification[];
+    unreadCount: number;
+    toasts: NormalizedNotification[];
+    isLoading: boolean;
+    notifPermission: NotifPermission;
+    pushBlocked: boolean;
+    pushBlockedReason: PushBlockedReason;
+    requestNotificationPermission: () => Promise<{
+        granted: boolean;
+        reason?: string;
+    }>;
+    markAsRead: (notificationId: string) => Promise<void>;
+    markAllAsRead: () => Promise<void>;
+    dismissToast: (notificationId: string) => void;
+    refreshNotifications: () => Promise<void>;
+}
+export const NotificationContext =
+    createContext<NotificationContextValue | null>(null);
+
+const readStoredNotifications = (): NormalizedNotification[] => {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeStoredNotifications = (notifications: NormalizedNotification[]): void => {
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(notifications.slice(0, MAX_STORED_NOTIFICATIONS)),
+    );
+};
+
+const upsertNotification = (
+    list: NormalizedNotification[],
+    notification: NormalizedNotification,
+): NormalizedNotification[] => {
+    if (list.some((item) => item.notification_id === notification.notification_id)) {
+        return list;
+    }
+
+    return [notification, ...list].slice(0, MAX_STORED_NOTIFICATIONS);
+};
+
+export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
+    children,
+}) => {
+    const { user, isAuthenticated } = useAuth();
+
+    const [notifications, setNotifications] = useState<NormalizedNotification[]>([]);
+    const [toasts, setToasts] = useState<NormalizedNotification[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [notifPermission, setNotifPermission] = useState<NotifPermission>(
+        typeof Notification !== "undefined" ? Notification.permission : "default",
+    );
+    const [pushBlocked, setPushBlocked] = useState(false);
+    const [pushBlockedReason, setPushBlockedReason] =
+        useState<PushBlockedReason>(null);
+
+    const toastTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+    const shouldReceive = useMemo(
+        () => isAuthenticated() && NOTIFICATION_ELIGIBLE_ROLES.has(user?.role ?? ""),
+        [user?.role, isAuthenticated],
+    );
+
+    const unreadCount = useMemo(
+        () => notifications.filter((notification) => !notification.is_read).length,
+        [notifications],
+    );
+
+    useEffect(() => {
+        const onPermissionDenied = (event: Event): void => {
+            const reason =
+                (event as CustomEvent<{ reason?: PushBlockedReason }>).detail?.reason ??
+                "permission-denied";
+
+            setPushBlocked(true);
+            setPushBlockedReason(reason);
+            setNotifPermission("denied");
+        };
+
+        const onPushBlocked = (event: Event): void => {
+            const reason =
+                (event as CustomEvent<{ reason?: PushBlockedReason }>).detail?.reason ??
+                "push-service-error";
+
+            setPushBlocked(true);
+            setPushBlockedReason(reason);
+        };
+
+        const onNotSupported = (): void => {
+            setPushBlocked(true);
+            setPushBlockedReason("not-supported");
+        };
+
+        window.addEventListener("fcm:permission-denied", onPermissionDenied);
+        window.addEventListener("fcm:push-blocked", onPushBlocked);
+        window.addEventListener("fcm:not-supported", onNotSupported);
+
+        return () => {
+            window.removeEventListener("fcm:permission-denied", onPermissionDenied);
+            window.removeEventListener("fcm:push-blocked", onPushBlocked);
+            window.removeEventListener("fcm:not-supported", onNotSupported);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleServiceWorkerMessage = (event: MessageEvent): void => {
+            if (event.data?.type !== "FCM_BACKGROUND_NOTIFICATION") return;
+
+            const notification = event.data.notification as NormalizedNotification | undefined;
+            if (!notification || !isNotificationType(notification.type)) return;
+
+            setNotifications((previous) => upsertNotification(previous, notification));
+        };
+
+        navigator.serviceWorker?.addEventListener("message", handleServiceWorkerMessage);
+
+        return () => {
+            navigator.serviceWorker?.removeEventListener("message", handleServiceWorkerMessage);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleInteraction = async (): Promise<void> => {
+            await unlockAudio();
+
+            if (typeof Notification !== "undefined") {
+                setNotifPermission(Notification.permission);
+            }
+        };
+
+        window.addEventListener("click", handleInteraction, { once: true });
+        window.addEventListener("keydown", handleInteraction, { once: true });
+        window.addEventListener("touchstart", handleInteraction, {
+            once: true,
+            passive: true,
+        });
+
+        return () => {
+            window.removeEventListener("click", handleInteraction);
+            window.removeEventListener("keydown", handleInteraction);
+            window.removeEventListener("touchstart", handleInteraction);
+        };
+    }, []);
+
+    const refreshNotifications = useCallback(async (): Promise<void> => {
+        setIsLoading(true);
+        try {
+            const stored = readStoredNotifications();
+            setNotifications(stored);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void refreshNotifications();
+    }, [refreshNotifications]);
+
+    useEffect(() => {
+        writeStoredNotifications(notifications);
+    }, [notifications]);
+
+    const dismissToast = useCallback((notificationId: string): void => {
+        clearTimeout(toastTimers.current[notificationId]);
+        delete toastTimers.current[notificationId];
+
+        setToasts((previous) => {
+            const remaining = previous.filter(
+                (toast) => toast.notification_id !== notificationId,
+            );
+
+            if (remaining.length === 0) stopAlertLoop();
+
+            return remaining;
+        });
+    }, []);
+
+    const addToast = useCallback(
+        (notification: NormalizedNotification): void => {
+            setToasts((previous) => upsertNotification(previous, notification));
+
+            const config = NOTIFICATION_CONFIG[notification.type];
+            if (config?.soundAlert) {
+                void unlockAudio().finally(startAlertLoop);
+            }
+
+            showSystemNotificationFromPayload(
+                notification,
+                (payload?: NotificationPayload) => {
+                    if (payload?.order_number) {
+                        window.location.href = `/orders/${payload.order_number}`;
+                    }
+                },
+            );
+
+            toastTimers.current[notification.notification_id] = setTimeout(
+                () => dismissToast(notification.notification_id),
+                TOAST_DURATION_MS,
+            );
+        },
+        [dismissToast],
+    );
+
+    const handleFcmMessage = useCallback(
+        (notification: NormalizedNotification): void => {
+            setNotifications((previous) => upsertNotification(previous, notification));
+            addToast(notification);
+        },
+        [addToast],
+    );
+
+    const { initFCM } = useFCM(handleFcmMessage, shouldReceive);
+
+    const requestNotificationPermission = useCallback(async (): Promise<{
+        granted: boolean;
+        reason?: string;
+    }> => {
+        if (typeof Notification === "undefined") {
+            setPushBlocked(true);
+            setPushBlockedReason("not-supported");
+            return { granted: false, reason: "not-supported" };
+        }
+
+        if (Notification.permission === "denied") {
+            setNotifPermission("denied");
+            setPushBlocked(true);
+            setPushBlockedReason("permission-denied");
+            return { granted: false, reason: "permission-denied" };
+        }
+
+        const permission = await Notification.requestPermission();
+        setNotifPermission(permission);
+
+        if (permission === "granted") {
+            setPushBlocked(false);
+            setPushBlockedReason(null);
+            await initFCM();
+            return { granted: true };
+        }
+
+        return { granted: false, reason: permission };
+    }, [initFCM]);
+
+    const markAsRead = useCallback(
+        async (notificationId: string): Promise<void> => {
+            setNotifications((previous) =>
+                previous.map((notification) =>
+                    notification.notification_id === notificationId
+                        ? { ...notification, is_read: true }
+                        : notification,
+                ),
+            );
+
+            dismissToast(notificationId);
+        },
+        [dismissToast],
+    );
+
+    const markAllAsRead = useCallback(async (): Promise<void> => {
+        setNotifications((previous) =>
+            previous.map((notification) => ({ ...notification, is_read: true })),
+        );
+        stopAlertLoop();
+
+        Object.values(toastTimers.current).forEach(clearTimeout);
+        toastTimers.current = {};
+        setToasts([]);
+    }, []);
+
+    useEffect(() => {
+        if (!shouldReceive) {
+            setToasts([]);
+            stopAlertLoop();
+        }
+    }, [shouldReceive]);
+
+    useEffect(() => {
+        return () => {
+            stopAlertLoop();
+            Object.values(toastTimers.current).forEach(clearTimeout);
+        };
+    }, []);
+
+    const value = useMemo<NotificationContextValue>(
+        () => ({
+            notifications,
+            unreadCount,
+            toasts,
+            isLoading,
+            notifPermission,
+            pushBlocked,
+            pushBlockedReason,
+            requestNotificationPermission,
+            markAsRead,
+            markAllAsRead,
+            dismissToast,
+            refreshNotifications,
+        }),
+        [
+            notifications,
+            unreadCount,
+            toasts,
+            isLoading,
+            notifPermission,
+            pushBlocked,
+            pushBlockedReason,
+            requestNotificationPermission,
+            markAsRead,
+            markAllAsRead,
+            dismissToast,
+            refreshNotifications,
+        ],
+    );
+
+    return (
+        <NotificationContext.Provider value={value}>
+            {children}
+        </NotificationContext.Provider>
+    );
+};
+
+export default NotificationContext;
