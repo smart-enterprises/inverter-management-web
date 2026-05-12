@@ -1,18 +1,49 @@
-// src/components/NotificationToast.jsx
-import React, { useEffect, useState, useCallback } from "react";
+// src/components/NotificationToast.tsx
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    FiX,
-    FiShoppingBag,
     FiBell,
+    FiCheckCircle,
+    FiCreditCard,
+    FiTruck,
     FiPackage,
     FiSettings,
-    FiCheckCircle,
+    FiShoppingBag,
+    FiXCircle,
+    FiX,
 } from "react-icons/fi";
-import { useNotifications } from "../contexts/NotificationContext";
 import { useNavigate } from "react-router-dom";
-import { NOTIFICATION_TYPES } from "../services/notificationService";
+import { useNotifications } from "../hooks/useNotifications";
+import {
+    NormalizedNotification,
+    NOTIFICATION_TYPES,
+    NotificationPayload,
+    NotificationType,
+} from "../services/notificationServiceTypes";
 
-const TYPE_CONFIG = {
+const TOAST_DURATION_MS = 5_000;
+const PROGRESS_TICK_MS = 100;
+
+type ToastIcon = React.ComponentType<{
+    size?: number;
+    className?: string;
+}>;
+
+interface ToastTypeConfig {
+    Icon: ToastIcon;
+    iconBg: string;
+    iconColor: string;
+    accent: string;
+    progressColor: string;
+    pingColor: string;
+    dotColor: string;
+    route: (payload: NotificationPayload) => string | null;
+}
+
+const orderRoute = (payload: NotificationPayload): string | null => {
+    return payload?.order_number ? `/orders/${payload.order_number}` : null;
+};
+
+const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
     [NOTIFICATION_TYPES.ORDER_CREATED_PENDING]: {
         Icon: FiShoppingBag,
         iconBg: "bg-indigo-100",
@@ -21,7 +52,7 @@ const TYPE_CONFIG = {
         progressColor: "bg-indigo-500",
         pingColor: "bg-indigo-400",
         dotColor: "bg-indigo-500",
-        route: (payload) => `/orders/${payload?.order_number}`,
+        route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_CREATED_PRODUCTION]: {
         Icon: FiSettings,
@@ -31,7 +62,7 @@ const TYPE_CONFIG = {
         progressColor: "bg-orange-500",
         pingColor: "bg-orange-400",
         dotColor: "bg-orange-500",
-        route: (payload) => `/orders/${payload?.order_number}`,
+        route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_CREATED_PACKED]: {
         Icon: FiPackage,
@@ -41,7 +72,7 @@ const TYPE_CONFIG = {
         progressColor: "bg-emerald-500",
         pingColor: "bg-emerald-400",
         dotColor: "bg-emerald-500",
-        route: (payload) => `/orders/${payload?.order_number}`,
+        route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_CONFIRMED]: {
         Icon: FiCheckCircle,
@@ -51,7 +82,7 @@ const TYPE_CONFIG = {
         progressColor: "bg-teal-500",
         pingColor: "bg-teal-400",
         dotColor: "bg-teal-500",
-        route: (payload) => `/orders/${payload?.order_number}`,
+        route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_PRODUCTION]: {
         Icon: FiSettings,
@@ -61,7 +92,7 @@ const TYPE_CONFIG = {
         progressColor: "bg-orange-400",
         pingColor: "bg-orange-300",
         dotColor: "bg-orange-400",
-        route: (payload) => `/orders/${payload?.order_number}`,
+        route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_PACKED]: {
         Icon: FiPackage,
@@ -71,11 +102,71 @@ const TYPE_CONFIG = {
         progressColor: "bg-emerald-400",
         pingColor: "bg-emerald-300",
         dotColor: "bg-emerald-400",
-        route: (payload) => `/orders/${payload?.order_number}`,
+        route: orderRoute,
+    },
+    [NOTIFICATION_TYPES.ORDER_STATUS_INVOICE]: {
+        Icon: FiCreditCard,
+        iconBg: "bg-cyan-100",
+        iconColor: "text-cyan-600",
+        accent: "border-l-cyan-400",
+        progressColor: "bg-cyan-400",
+        pingColor: "bg-cyan-300",
+        dotColor: "bg-cyan-400",
+        route: orderRoute,
+    },
+    [NOTIFICATION_TYPES.ORDER_STATUS_SHIPPED]: {
+        Icon: FiTruck,
+        iconBg: "bg-blue-100",
+        iconColor: "text-blue-600",
+        accent: "border-l-blue-400",
+        progressColor: "bg-blue-400",
+        pingColor: "bg-blue-300",
+        dotColor: "bg-blue-400",
+        route: orderRoute,
+    },
+    [NOTIFICATION_TYPES.ORDER_STATUS_DELIVERED]: {
+        Icon: FiCheckCircle,
+        iconBg: "bg-teal-100",
+        iconColor: "text-teal-600",
+        accent: "border-l-teal-400",
+        progressColor: "bg-teal-400",
+        pingColor: "bg-teal-300",
+        dotColor: "bg-teal-400",
+        route: orderRoute,
+    },
+    [NOTIFICATION_TYPES.ORDER_STATUS_COMPLETED]: {
+        Icon: FiCheckCircle,
+        iconBg: "bg-teal-100",
+        iconColor: "text-teal-600",
+        accent: "border-l-teal-400",
+        progressColor: "bg-teal-400",
+        pingColor: "bg-teal-300",
+        dotColor: "bg-teal-400",
+        route: orderRoute,
+    },
+    [NOTIFICATION_TYPES.ORDER_STATUS_CANCELLED]: {
+        Icon: FiXCircle,
+        iconBg: "bg-rose-100",
+        iconColor: "text-rose-600",
+        accent: "border-l-rose-400",
+        progressColor: "bg-rose-400",
+        pingColor: "bg-rose-300",
+        dotColor: "bg-rose-400",
+        route: orderRoute,
+    },
+    [NOTIFICATION_TYPES.ORDER_STATUS_REJECTED]: {
+        Icon: FiXCircle,
+        iconBg: "bg-rose-100",
+        iconColor: "text-rose-600",
+        accent: "border-l-rose-400",
+        progressColor: "bg-rose-400",
+        pingColor: "bg-rose-300",
+        dotColor: "bg-rose-400",
+        route: orderRoute,
     },
 };
 
-const getFallbackConfig = () => ({
+const FALLBACK_CONFIG: ToastTypeConfig = {
     Icon: FiBell,
     iconBg: "bg-slate-100",
     iconColor: "text-slate-600",
@@ -84,55 +175,84 @@ const getFallbackConfig = () => ({
     pingColor: "bg-slate-400",
     dotColor: "bg-slate-400",
     route: () => null,
-});
+};
 
-const TOAST_DURATION_MS = 5_000;
+const getTypeConfig = (type: NotificationType): ToastTypeConfig => {
+    return TYPE_CONFIG[type] ?? FALLBACK_CONFIG;
+};
 
-const SingleToast = ({ toast }) => {
+const getPriorityClassName = (priority?: unknown): string => {
+    if (priority === "HIGH") {
+        return "bg-rose-50 text-rose-600 border border-rose-100";
+    }
+
+    if (priority === "MEDIUM") {
+        return "bg-amber-50 text-amber-600 border border-amber-100";
+    }
+
+    return "bg-emerald-50 text-emerald-600 border border-emerald-100";
+};
+
+interface SingleToastProps {
+    toast: NormalizedNotification;
+}
+
+const SingleToast = ({ toast }: SingleToastProps) => {
     const { markAsRead, dismissToast } = useNotifications();
     const navigate = useNavigate();
 
     const [progress, setProgress] = useState(100);
     const [isPaused, setIsPaused] = useState(false);
 
-    const config = TYPE_CONFIG[toast.type] ?? getFallbackConfig();
+    const config = useMemo(() => getTypeConfig(toast.type), [toast.type]);
     const { Icon } = config;
 
     useEffect(() => {
         if (isPaused) return;
 
-        const interval = setInterval(() => {
-            setProgress((p) => {
-                if (p <= 0) {
-                    clearInterval(interval);
-                    return 0;
-                }
-                return p - (100 / (TOAST_DURATION_MS / 100));
-            });
-        }, 100);
+        const decrement = 100 / (TOAST_DURATION_MS / PROGRESS_TICK_MS);
 
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            setProgress((current) => Math.max(0, current - decrement));
+        }, PROGRESS_TICK_MS);
+
+        return () => {
+            clearInterval(interval);
+        };
     }, [isPaused]);
 
-    const handleClick = useCallback(() => {
-        markAsRead(toast.notification_id);
+    const handleClick = useCallback(async (): Promise<void> => {
+        await markAsRead(toast.notification_id);
+
         const route = config.route(toast.payload);
-        if (route) navigate(route);
-    }, [markAsRead, navigate, toast.notification_id, toast.payload, config]);
+
+        if (route) {
+            navigate(route);
+        }
+    }, [config, markAsRead, navigate, toast.notification_id, toast.payload]);
+
+    const handleDismiss = useCallback(
+        (event: React.MouseEvent<HTMLButtonElement>): void => {
+            event.stopPropagation();
+            dismissToast(toast.notification_id);
+        },
+        [dismissToast, toast.notification_id],
+    );
 
     return (
         <div
             className={`
-                relative overflow-hidden w-80 bg-white rounded-2xl
-                shadow-2xl border border-slate-200 border-l-4 ${config.accent}
-                transition-all duration-300 hover:shadow-xl cursor-pointer
-            `}
+        relative overflow-hidden w-80 bg-white rounded-2xl
+        shadow-2xl border border-slate-200 border-l-4 ${config.accent}
+        transition-all duration-300 hover:shadow-xl cursor-pointer
+      `}
             style={{
-                animation: "toastSlideIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards",
+                animation:
+                    "toastSlideIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards",
             }}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
-            onClick={handleClick}
+            onClick={() => void handleClick()}
             role="alert"
             aria-live="polite"
         >
@@ -154,6 +274,7 @@ const SingleToast = ({ toast }) => {
                     <p className="text-sm font-bold text-slate-900 leading-tight">
                         {toast.title}
                     </p>
+
                     <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">
                         {toast.message}
                     </p>
@@ -163,21 +284,20 @@ const SingleToast = ({ toast }) => {
                             <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full font-mono">
                                 #{toast.payload.order_number}
                             </span>
+
                             {toast.payload?.priority && (
                                 <span
-                                    className={`text-[10px] font-black px-2 py-0.5 rounded-full ${toast.payload.priority === "HIGH"
-                                        ? "bg-rose-50 text-rose-600 border border-rose-100"
-                                        : toast.payload.priority === "MEDIUM"
-                                            ? "bg-amber-50 text-amber-600 border border-amber-100"
-                                            : "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                        }`}
+                                    className={`text-[10px] font-black px-2 py-0.5 rounded-full ${getPriorityClassName(
+                                        toast.payload.priority,
+                                    )}`}
                                 >
-                                    {toast.payload.priority}
+                                    {String(toast.payload.priority)}
                                 </span>
                             )}
-                            {toast.payload?.order_status && (
+
+                            {(toast.payload?.order_status || toast.payload?.status) && (
                                 <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
-                                    {toast.payload.order_status}
+                                    {String(toast.payload.order_status || toast.payload.status)}
                                 </span>
                             )}
                         </div>
@@ -189,10 +309,8 @@ const SingleToast = ({ toast }) => {
                 </div>
 
                 <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        dismissToast(toast.notification_id);
-                    }}
+                    type="button"
+                    onClick={handleDismiss}
                     className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all flex-shrink-0 cursor-pointer"
                     aria-label="Dismiss notification"
                 >
@@ -222,11 +340,11 @@ const NotificationToastStack = () => {
     return (
         <>
             <style>{`
-                @keyframes toastSlideIn {
-                    from { opacity: 0; transform: translateX(110%) scale(0.9); }
-                    to   { opacity: 1; transform: translateX(0)   scale(1);   }
-                }
-            `}</style>
+        @keyframes toastSlideIn {
+          from { opacity: 0; transform: translateX(110%) scale(0.9); }
+          to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+      `}</style>
 
             <div
                 className="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none"
