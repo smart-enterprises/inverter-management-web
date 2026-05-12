@@ -1,5 +1,6 @@
 // src/components/NotificationBanner.jsx
-import { useNotifications } from "../contexts/NotificationContext";
+
+import useNotifications from "../hooks/useNotifications";
 
 const BANNER_MESSAGES = {
     "permission-denied": {

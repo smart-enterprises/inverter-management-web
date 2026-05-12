@@ -1,14 +1,13 @@
 // public/firebase-messaging-sw.js
-importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
-self.addEventListener("install", (event) => {
-    console.log("[SW] Installing - skipWaiting");
+importScripts("https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/12.12.1/firebase-messaging-compat.js");
+
+self.addEventListener("install", () => {
     self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-    console.log("[SW] Activated - claiming clients");
     event.waitUntil(clients.claim());
 });
 
@@ -21,126 +20,151 @@ const firebaseConfig = {
     appId: "1:818545460753:web:83237346fa2e84b93693b0",
 };
 
-let app;
-try {
-    app = firebase.app();
-    console.log("[SW] Firebase app already initialized, reusing");
-} catch {
-    app = firebase.initializeApp(firebaseConfig);
-    console.log("[SW] Firebase app initialized");
-}
+const app = firebase.apps.length
+    ? firebase.app()
+    : firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging(app);
 
-const TYPE_CONFIG = {
-    ORDER_CREATED_PENDING: { icon: "/icons/order-pending.png", badge: "/icons/badge.png", tag: "order-pending" },
-    ORDER_CREATED_PRODUCTION: { icon: "/icons/order-production.png", badge: "/icons/badge.png", tag: "order-production" },
-    ORDER_CREATED_PACKED: { icon: "/icons/order-packed.png", badge: "/icons/badge.png", tag: "order-packed" },
-    ORDER_CONFIRMED: { icon: "/icons/order-confirmed.png", badge: "/icons/badge.png", tag: "order-confirmed" },
-    ORDER_STATUS_PRODUCTION: { icon: "/icons/order-production.png", badge: "/icons/badge.png", tag: "order-production" },
-    ORDER_STATUS_PACKED: { icon: "/icons/order-packed.png", badge: "/icons/badge.png", tag: "order-packed" },
+const NOTIFICATION_TAGS = {
+    ORDER_CREATED_PENDING: "order-created-pending",
+    ORDER_CREATED_PRODUCTION: "order-created-production",
+    ORDER_CREATED_PACKED: "order-created-packed",
+    ORDER_CONFIRMED: "order-confirmed",
+    ORDER_STATUS_PRODUCTION: "order-production",
+    ORDER_STATUS_PACKED: "order-packed",
+    ORDER_STATUS_INVOICE: "order-invoice",
+    ORDER_STATUS_SHIPPED: "order-shipped",
+    ORDER_STATUS_DELIVERED: "order-delivered",
+    ORDER_STATUS_COMPLETED: "order-completed",
+    ORDER_STATUS_CANCELLED: "order-cancelled",
+    ORDER_STATUS_REJECTED: "order-rejected",
 };
 
-const getFallbackIcon = () => "/logo192.png";
+const APP_ICON = "/logo.png";
+const APP_BADGE = "/logo.png";
+
+const safeJsonParse = (value, fallback = {}) => {
+    if (typeof value !== "string") return fallback;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return fallback;
+    }
+};
+
+const resolveNotificationData = (payload) => {
+    const data = payload.data || {};
+    const legacyPayload = safeJsonParse(data.payload);
+    const merged = { ...data, ...legacyPayload };
+
+    const orderNumber = merged.order_number || data.order_number || null;
+    const notificationId =
+        data.notification_id ||
+        [data.type, orderNumber, data.status, data.created_at, Date.now()]
+            .filter(Boolean)
+            .join(":");
+
+    return {
+        data: merged,
+        orderNumber,
+        notificationId,
+        targetUrl: orderNumber
+            ? `${self.location.origin}/orders/${orderNumber}`
+            : `${self.location.origin}/dashboard`,
+    };
+};
 
 messaging.onBackgroundMessage((payload) => {
-    console.log("[SW] Background FCM message received:", payload);
+    const { data, orderNumber, notificationId, targetUrl } =
+        resolveNotificationData(payload);
 
-    const notificationTitle = payload.notification?.title
-        ?? payload.data?.title
-        ?? "New Notification";
+    const tag = NOTIFICATION_TAGS[data.type] || "notification";
+    const title = payload.notification?.title || data.title || "Smart Enterprises";
+    const body = payload.notification?.body || data.body || data.message || "";
 
-    const notificationBody = payload.notification?.body
-        ?? payload.data?.message
-        ?? "";
+    const notificationData = {
+        ...data,
+        order_number: orderNumber,
+        notification_id: notificationId,
+        url: targetUrl,
+    };
 
-    const data = payload.data ?? {};
-    const notifType = data.type ?? "";
+    clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then((windowClients) => {
+            windowClients.forEach((client) => {
+                client.postMessage({
+                    type: "FCM_BACKGROUND_NOTIFICATION",
+                    notification: {
+                        notification_id: notificationId,
+                        type: data.type,
+                        title,
+                        message: body,
+                        payload: notificationData,
+                        created_at: data.created_at || new Date().toISOString(),
+                        is_read: false,
+                    },
+                });
+            });
+        });
 
-    let parsedPayload = {};
-    try {
-        parsedPayload = JSON.parse(data.payload || "{}");
-    } catch (e) {
-        console.warn("[SW] Failed to parse notification payload:", e.message);
-    }
-
-    const typeConf = TYPE_CONFIG[notifType] ?? {};
-    const icon = typeConf.icon || getFallbackIcon();
-    const badge = typeConf.badge || getFallbackIcon();
-    const tag = typeConf.tag
-        ? `${typeConf.tag}-${data.notification_id ?? Date.now()}`
-        : `notif-${data.notification_id ?? Date.now()}`;
-
-    const orderNumber = parsedPayload.order_number ?? data.order_number;
-
-    const notificationOptions = {
-        body: notificationBody,
-        icon,
-        badge,
-        tag,
+    return self.registration.showNotification(title, {
+        body,
+        icon: APP_ICON,
+        badge: APP_BADGE,
+        tag: `${tag}-${notificationId}`,
         renotify: true,
         requireInteraction: false,
         silent: false,
-        vibrate: [200, 100, 200, 100, 200],
-        data: {
-            ...data,
-            parsedPayload,
-            order_number: orderNumber,
-            notification_id: data.notification_id,
-            url: orderNumber
-                ? `${self.location.origin}/orders/${orderNumber}`
-                : self.location.origin,
-        },
+        data: notificationData,
         actions: orderNumber
             ? [
-                { action: "view_order", title: "View Order", icon: "/icons/view.png" },
-                { action: "dismiss", title: "Dismiss", icon: "/icons/close.png" },
+                { action: "view_order", title: "View Order" },
+                { action: "dismiss", title: "Dismiss" },
             ]
             : [],
-    };
-
-    event.waitUntil(
-        self.registration.showNotification(notificationTitle, notificationOptions)
-    );
+    });
 });
 
 self.addEventListener("notificationclick", (event) => {
-    console.log("[SW] Notification clicked | action:", event.action, "| data:", event.notification.data);
-
     event.notification.close();
 
     if (event.action === "dismiss") return;
 
-    const targetUrl = event.notification.data?.url ?? self.location.origin;
+    const targetUrl =
+        event.notification.data?.url || `${self.location.origin}/dashboard`;
 
     event.waitUntil(
         clients
             .matchAll({ type: "window", includeUncontrolled: true })
             .then((windowClients) => {
-                for (const client of windowClients) {
-                    if (client.url.startsWith(self.location.origin) && "focus" in client) {
-                        client.focus();
-                        if ("navigate" in client) {
-                            return client.navigate(targetUrl);
-                        }
-                        return client;
-                    }
-                }
-                if (clients.openWindow) {
-                    return clients.openWindow(targetUrl);
-                }
-            })
-    );
-});
+                const existingClient = windowClients.find(
+                    (client) =>
+                        client.url.startsWith(self.location.origin) &&
+                        "focus" in client,
+                );
 
-self.addEventListener("notificationclose", (event) => {
-    console.log("[SW] Notification closed without click | tag:", event.notification.tag);
+                if (existingClient) {
+                    existingClient.focus();
+
+                    if ("navigate" in existingClient) {
+                        return existingClient.navigate(targetUrl);
+                    }
+
+                    return existingClient;
+                }
+
+                return clients.openWindow(targetUrl);
+            }),
+    );
 });
 
 self.addEventListener("message", (event) => {
     if (event.data?.type === "SKIP_WAITING") {
         self.skipWaiting();
     }
+
     if (event.data?.type === "PING") {
         event.ports[0]?.postMessage({ type: "PONG" });
     }
