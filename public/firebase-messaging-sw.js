@@ -1,4 +1,5 @@
-/* global importScripts, firebase, clients */
+// public/firebase-messaging-sw.js
+
 importScripts("https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.12.1/firebase-messaging-compat.js");
 
@@ -25,19 +26,19 @@ const app = firebase.apps.length
 
 const messaging = firebase.messaging(app);
 
-const NOTIFICATION_CONFIG = {
-    ORDER_CREATED_PENDING: { tag: "order-created-pending" },
-    ORDER_CREATED_PRODUCTION: { tag: "order-created-production" },
-    ORDER_CREATED_PACKED: { tag: "order-created-packed" },
-    ORDER_CONFIRMED: { tag: "order-confirmed" },
-    ORDER_STATUS_PRODUCTION: { tag: "order-production" },
-    ORDER_STATUS_PACKED: { tag: "order-packed" },
-    ORDER_STATUS_INVOICE: { tag: "order-invoice" },
-    ORDER_STATUS_SHIPPED: { tag: "order-shipped" },
-    ORDER_STATUS_DELIVERED: { tag: "order-delivered" },
-    ORDER_STATUS_COMPLETED: { tag: "order-completed" },
-    ORDER_STATUS_CANCELLED: { tag: "order-cancelled" },
-    ORDER_STATUS_REJECTED: { tag: "order-rejected" },
+const NOTIFICATION_TAGS = {
+    ORDER_CREATED_PENDING: "order-created-pending",
+    ORDER_CREATED_PRODUCTION: "order-created-production",
+    ORDER_CREATED_PACKED: "order-created-packed",
+    ORDER_CONFIRMED: "order-confirmed",
+    ORDER_STATUS_PRODUCTION: "order-production",
+    ORDER_STATUS_PACKED: "order-packed",
+    ORDER_STATUS_INVOICE: "order-invoice",
+    ORDER_STATUS_SHIPPED: "order-shipped",
+    ORDER_STATUS_DELIVERED: "order-delivered",
+    ORDER_STATUS_COMPLETED: "order-completed",
+    ORDER_STATUS_CANCELLED: "order-cancelled",
+    ORDER_STATUS_REJECTED: "order-rejected",
 };
 
 const APP_ICON = "/logo.png";
@@ -45,7 +46,6 @@ const APP_BADGE = "/logo.png";
 
 const safeJsonParse = (value, fallback = {}) => {
     if (typeof value !== "string") return fallback;
-
     try {
         return JSON.parse(value);
     } catch {
@@ -56,10 +56,7 @@ const safeJsonParse = (value, fallback = {}) => {
 const resolveNotificationData = (payload) => {
     const data = payload.data || {};
     const legacyPayload = safeJsonParse(data.payload);
-    const merged = {
-        ...data,
-        ...legacyPayload,
-    };
+    const merged = { ...data, ...legacyPayload };
 
     const orderNumber = merged.order_number || data.order_number || null;
     const notificationId =
@@ -82,7 +79,7 @@ messaging.onBackgroundMessage((payload) => {
     const { data, orderNumber, notificationId, targetUrl } =
         resolveNotificationData(payload);
 
-    const typeConfig = NOTIFICATION_CONFIG[data.type] || {};
+    const tag = NOTIFICATION_TAGS[data.type] || "notification";
     const title = payload.notification?.title || data.title || "Smart Enterprises";
     const body = payload.notification?.body || data.body || data.message || "";
 
@@ -112,25 +109,19 @@ messaging.onBackgroundMessage((payload) => {
             });
         });
 
-    self.registration.showNotification(title, {
+    return self.registration.showNotification(title, {
         body,
         icon: APP_ICON,
         badge: APP_BADGE,
-        tag: `${typeConfig.tag || "notification"}-${notificationId}`,
+        tag: `${tag}-${notificationId}`,
         renotify: true,
         requireInteraction: false,
         silent: false,
         data: notificationData,
         actions: orderNumber
             ? [
-                {
-                    action: "view_order",
-                    title: "View order",
-                },
-                {
-                    action: "dismiss",
-                    title: "Dismiss",
-                },
+                { action: "view_order", title: "View Order" },
+                { action: "dismiss", title: "Dismiss" },
             ]
             : [],
     });
@@ -141,18 +132,17 @@ self.addEventListener("notificationclick", (event) => {
 
     if (event.action === "dismiss") return;
 
-    const targetUrl = event.notification.data?.url || `${self.location.origin}/dashboard`;
+    const targetUrl =
+        event.notification.data?.url || `${self.location.origin}/dashboard`;
 
     event.waitUntil(
         clients
-            .matchAll({
-                type: "window",
-                includeUncontrolled: true,
-            })
+            .matchAll({ type: "window", includeUncontrolled: true })
             .then((windowClients) => {
                 const existingClient = windowClients.find(
                     (client) =>
-                        client.url.startsWith(self.location.origin) && "focus" in client,
+                        client.url.startsWith(self.location.origin) &&
+                        "focus" in client,
                 );
 
                 if (existingClient) {

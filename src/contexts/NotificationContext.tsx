@@ -1,3 +1,4 @@
+// /src/contexts/NotificationContext.tsx
 import React, {
     createContext,
     useCallback,
@@ -13,6 +14,8 @@ import {
     startAlertLoop,
     stopAlertLoop,
     unlockAudio,
+    teardownAudio,
+    loadAudioBufferEarly,
 } from "../services/notificationService";
 import {
     NotificationPayload,
@@ -61,6 +64,7 @@ export interface NotificationContextValue {
     dismissToast: (notificationId: string) => void;
     refreshNotifications: () => Promise<void>;
 }
+
 export const NotificationContext =
     createContext<NotificationContextValue | null>(null);
 
@@ -68,7 +72,6 @@ const readStoredNotifications = (): NormalizedNotification[] => {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return [];
-
         const parsed = JSON.parse(raw);
         return Array.isArray(parsed) ? parsed : [];
     } catch {
@@ -76,21 +79,30 @@ const readStoredNotifications = (): NormalizedNotification[] => {
     }
 };
 
-const writeStoredNotifications = (notifications: NormalizedNotification[]): void => {
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(notifications.slice(0, MAX_STORED_NOTIFICATIONS)),
-    );
+const writeStoredNotifications = (
+    notifications: NormalizedNotification[],
+): void => {
+    try {
+        localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify(notifications.slice(0, MAX_STORED_NOTIFICATIONS)),
+        );
+    } catch {
+        // Storage quota exceeded — non-fatal
+    }
 };
 
 const upsertNotification = (
     list: NormalizedNotification[],
     notification: NormalizedNotification,
 ): NormalizedNotification[] => {
-    if (list.some((item) => item.notification_id === notification.notification_id)) {
+    if (
+        list.some(
+            (item) => item.notification_id === notification.notification_id,
+        )
+    ) {
         return list;
     }
-
     return [notification, ...list].slice(0, MAX_STORED_NOTIFICATIONS);
 };
 
@@ -99,34 +111,61 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
     const { user, isAuthenticated } = useAuth();
 
-    const [notifications, setNotifications] = useState<NormalizedNotification[]>([]);
+    const [notifications, setNotifications] = useState<NormalizedNotification[]>(
+        [],
+    );
     const [toasts, setToasts] = useState<NormalizedNotification[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [notifPermission, setNotifPermission] = useState<NotifPermission>(
-        typeof Notification !== "undefined" ? Notification.permission : "default",
+        typeof Notification !== "undefined"
+            ? (Notification.permission as NotifPermission)
+            : "default",
     );
     const [pushBlocked, setPushBlocked] = useState(false);
     const [pushBlockedReason, setPushBlockedReason] =
         useState<PushBlockedReason>(null);
 
-    const toastTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+    const toastTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+        {},
+    );
 
     const shouldReceive = useMemo(
-        () => isAuthenticated() && NOTIFICATION_ELIGIBLE_ROLES.has(user?.role ?? ""),
-        [user?.role, isAuthenticated],
+        () =>
+            isAuthenticated() &&
+            NOTIFICATION_ELIGIBLE_ROLES.has(user?.role ?? ""),
+        [user?.role],
     );
 
     const unreadCount = useMemo(
-        () => notifications.filter((notification) => !notification.is_read).length,
+        () => notifications.filter((n) => !n.is_read).length,
         [notifications],
     );
 
     useEffect(() => {
+        void loadAudioBufferEarly();
+    }, []);
+
+    useEffect(() => {
+        const unlock = async () => {
+            await unlockAudio();
+        };
+
+        window.addEventListener("click", unlock);
+        window.addEventListener("touchstart", unlock);
+        window.addEventListener("keydown", unlock);
+
+        return () => {
+            window.removeEventListener("click", unlock);
+            window.removeEventListener("touchstart", unlock);
+            window.removeEventListener("keydown", unlock);
+        };
+    }, []);
+
+    useEffect(() => {
         const onPermissionDenied = (event: Event): void => {
             const reason =
-                (event as CustomEvent<{ reason?: PushBlockedReason }>).detail?.reason ??
-                "permission-denied";
-
+                (event as CustomEvent<{ reason?: PushBlockedReason }>).detail
+                    ?.reason ?? "permission-denied";
             setPushBlocked(true);
             setPushBlockedReason(reason);
             setNotifPermission("denied");
@@ -134,9 +173,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const onPushBlocked = (event: Event): void => {
             const reason =
-                (event as CustomEvent<{ reason?: PushBlockedReason }>).detail?.reason ??
-                "push-service-error";
-
+                (event as CustomEvent<{ reason?: PushBlockedReason }>).detail
+                    ?.reason ?? "push-service-error";
             setPushBlocked(true);
             setPushBlockedReason(reason);
         };
@@ -151,49 +189,34 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         window.addEventListener("fcm:not-supported", onNotSupported);
 
         return () => {
-            window.removeEventListener("fcm:permission-denied", onPermissionDenied);
+            window.removeEventListener(
+                "fcm:permission-denied",
+                onPermissionDenied,
+            );
             window.removeEventListener("fcm:push-blocked", onPushBlocked);
             window.removeEventListener("fcm:not-supported", onNotSupported);
         };
     }, []);
 
     useEffect(() => {
-        const handleServiceWorkerMessage = (event: MessageEvent): void => {
+        const handleSWMessage = (event: MessageEvent): void => {
             if (event.data?.type !== "FCM_BACKGROUND_NOTIFICATION") return;
 
-            const notification = event.data.notification as NormalizedNotification | undefined;
+            const notification = event.data
+                .notification as NormalizedNotification | undefined;
             if (!notification || !isNotificationType(notification.type)) return;
 
-            setNotifications((previous) => upsertNotification(previous, notification));
+            setNotifications((prev) => upsertNotification(prev, notification));
+
+            addToast(notification);
         };
 
-        navigator.serviceWorker?.addEventListener("message", handleServiceWorkerMessage);
-
+        navigator.serviceWorker?.addEventListener("message", handleSWMessage);
         return () => {
-            navigator.serviceWorker?.removeEventListener("message", handleServiceWorkerMessage);
-        };
-    }, []);
-
-    useEffect(() => {
-        const handleInteraction = async (): Promise<void> => {
-            await unlockAudio();
-
-            if (typeof Notification !== "undefined") {
-                setNotifPermission(Notification.permission);
-            }
-        };
-
-        window.addEventListener("click", handleInteraction, { once: true });
-        window.addEventListener("keydown", handleInteraction, { once: true });
-        window.addEventListener("touchstart", handleInteraction, {
-            once: true,
-            passive: true,
-        });
-
-        return () => {
-            window.removeEventListener("click", handleInteraction);
-            window.removeEventListener("keydown", handleInteraction);
-            window.removeEventListener("touchstart", handleInteraction);
+            navigator.serviceWorker?.removeEventListener(
+                "message",
+                handleSWMessage,
+            );
         };
     }, []);
 
@@ -219,24 +242,27 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         clearTimeout(toastTimers.current[notificationId]);
         delete toastTimers.current[notificationId];
 
-        setToasts((previous) => {
-            const remaining = previous.filter(
-                (toast) => toast.notification_id !== notificationId,
+        setToasts((prev) => {
+            const remaining = prev.filter(
+                (t) => t.notification_id !== notificationId,
             );
-
             if (remaining.length === 0) stopAlertLoop();
-
             return remaining;
         });
     }, []);
 
     const addToast = useCallback(
         (notification: NormalizedNotification): void => {
-            setToasts((previous) => upsertNotification(previous, notification));
+            setToasts((prev) => upsertNotification(prev, notification));
 
             const config = NOTIFICATION_CONFIG[notification.type];
+
             if (config?.soundAlert) {
-                void unlockAudio().finally(startAlertLoop);
+                (async () => {
+                    await unlockAudio();
+
+                    startAlertLoop();
+                })();
             }
 
             showSystemNotificationFromPayload(
@@ -258,7 +284,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const handleFcmMessage = useCallback(
         (notification: NormalizedNotification): void => {
-            setNotifications((previous) => upsertNotification(previous, notification));
+            setNotifications((prev) => upsertNotification(prev, notification));
             addToast(notification);
         },
         [addToast],
@@ -284,7 +310,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         const permission = await Notification.requestPermission();
-        setNotifPermission(permission);
+        setNotifPermission(permission as NotifPermission);
 
         if (permission === "granted") {
             setPushBlocked(false);
@@ -298,23 +324,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const markAsRead = useCallback(
         async (notificationId: string): Promise<void> => {
-            setNotifications((previous) =>
-                previous.map((notification) =>
-                    notification.notification_id === notificationId
-                        ? { ...notification, is_read: true }
-                        : notification,
+            setNotifications((prev) =>
+                prev.map((n) =>
+                    n.notification_id === notificationId
+                        ? { ...n, is_read: true }
+                        : n,
                 ),
             );
-
             dismissToast(notificationId);
         },
         [dismissToast],
     );
 
     const markAllAsRead = useCallback(async (): Promise<void> => {
-        setNotifications((previous) =>
-            previous.map((notification) => ({ ...notification, is_read: true })),
-        );
+        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
         stopAlertLoop();
 
         Object.values(toastTimers.current).forEach(clearTimeout);
@@ -332,6 +355,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
     useEffect(() => {
         return () => {
             stopAlertLoop();
+            teardownAudio();
             Object.values(toastTimers.current).forEach(clearTimeout);
         };
     }, []);

@@ -1,134 +1,26 @@
+// src/services/notificationService.ts
+import {
+    unlockAudio as _unlockAudio,
+    startAlertLoop as _startAlertLoop,
+    stopAlertLoop as _stopAlertLoop,
+    teardownAudio,
+    loadAudioBufferEarly,
+} from "./audioService";
+
 import {
     NormalizedNotification,
     NotificationPayload,
     NOTIFICATION_CONFIG,
 } from "./notificationServiceTypes";
 
-type WebkitWindow = Window &
-    typeof globalThis & {
-        webkitAudioContext?: typeof AudioContext;
-    };
-
-const AudioState: {
-    ctx: AudioContext | null;
-    buffer: AudioBuffer | null;
-    intervalId: ReturnType<typeof setInterval> | null;
-    unlocked: boolean;
-    loadAttempted: boolean;
-    LOOP_MS: number;
-    AUDIO_PATH: string;
-} = {
-    ctx: null,
-    buffer: null,
-    intervalId: null,
-    unlocked: false,
-    loadAttempted: false,
-    LOOP_MS: 2_500,
-    AUDIO_PATH: "/notification-alert.mp3",
-};
-
-const getAudioContext = (): AudioContext | null => {
-    if (typeof window === "undefined") return null;
-
-    if (!AudioState.ctx) {
-        try {
-            const AudioContextClass =
-                window.AudioContext ?? (window as WebkitWindow).webkitAudioContext;
-
-            if (!AudioContextClass) return null;
-
-            AudioState.ctx = new AudioContextClass();
-            console.info("[Audio] AudioContext created");
-        } catch (error) {
-            console.warn("[Audio] Failed to create AudioContext:", error);
-            return null;
-        }
-    }
-
-    return AudioState.ctx;
-};
+export { teardownAudio, loadAudioBufferEarly };
+export const unlockAudio = _unlockAudio;
+export const startAlertLoop = _startAlertLoop;
+export const stopAlertLoop = _stopAlertLoop;
 
 export const loadAudioBuffer = async (): Promise<AudioBuffer | null> => {
-    if (AudioState.buffer) return AudioState.buffer;
-    if (AudioState.loadAttempted) return null;
-
-    AudioState.loadAttempted = true;
-
-    const ctx = getAudioContext();
-    if (!ctx) return null;
-
-    try {
-        const response = await fetch(AudioState.AUDIO_PATH);
-
-        if (!response.ok) {
-            console.warn(
-                `[Audio] ${AudioState.AUDIO_PATH} not found (${response.status}). Add an MP3 to public/notification-alert.mp3 to enable sound alerts.`,
-            );
-            return null;
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        AudioState.buffer = await ctx.decodeAudioData(arrayBuffer);
-
-        console.info("[Audio] Audio buffer loaded successfully");
-        return AudioState.buffer;
-    } catch (error) {
-        console.warn("[Audio] Failed to load audio buffer:", error);
-        return null;
-    }
-};
-
-export const unlockAudio = async (): Promise<void> => {
-    if (AudioState.unlocked) return;
-
-    try {
-        const ctx = getAudioContext();
-        if (!ctx) return;
-
-        if (ctx.state === "suspended") {
-            await ctx.resume();
-            console.info("[Audio] AudioContext resumed");
-        }
-
-        AudioState.unlocked = true;
-        await loadAudioBuffer();
-    } catch (error) {
-        console.warn("[Audio] Unlock failed:", error);
-    }
-};
-
-const playOnce = (): void => {
-    const { ctx, buffer, unlocked } = AudioState;
-
-    if (!ctx || !buffer || !unlocked) return;
-
-    try {
-        if (ctx.state === "suspended") {
-            void ctx.resume();
-        }
-
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(ctx.destination);
-        source.start(0);
-    } catch (error) {
-        console.warn("[Audio] playOnce failed:", error);
-    }
-};
-
-export const startAlertLoop = (): void => {
-    stopAlertLoop();
-    playOnce();
-    AudioState.intervalId = setInterval(playOnce, AudioState.LOOP_MS);
-    console.debug("[Audio] Alert loop started");
-};
-
-export const stopAlertLoop = (): void => {
-    if (!AudioState.intervalId) return;
-
-    clearInterval(AudioState.intervalId);
-    AudioState.intervalId = null;
-    console.debug("[Audio] Alert loop stopped");
+    await loadAudioBufferEarly();
+    return null;
 };
 
 export type SystemNotificationPermission =
@@ -139,7 +31,6 @@ export const getSystemNotifPermission = (): SystemNotificationPermission => {
     if (typeof window === "undefined" || !("Notification" in window)) {
         return "unsupported";
     }
-
     return Notification.permission;
 };
 
@@ -148,17 +39,11 @@ export const requestSystemNotifPermission =
         if (typeof window === "undefined" || !("Notification" in window)) {
             return "unsupported";
         }
-
-        if (Notification.permission === "granted") {
-            return "granted";
-        }
+        if (Notification.permission === "granted") return "granted";
 
         try {
-            const result = await Notification.requestPermission();
-            console.info("[SystemNotif] Permission result:", result);
-            return result;
-        } catch (error) {
-            console.warn("[SystemNotif] Permission request failed:", error);
+            return await Notification.requestPermission();
+        } catch {
             return "denied";
         }
     };
@@ -180,15 +65,8 @@ export const showSystemNotification = ({
     data,
     onClick,
 }: ShowSystemNotificationOptions): Notification | null => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-        console.debug("[SystemNotif] Notification API not available");
-        return null;
-    }
-
-    if (Notification.permission !== "granted") {
-        console.debug("[SystemNotif] Permission not granted — skipping");
-        return null;
-    }
+    if (typeof window === "undefined" || !("Notification" in window)) return null;
+    if (Notification.permission !== "granted") return null;
 
     try {
         const notification = new Notification(title, {
@@ -208,13 +86,13 @@ export const showSystemNotification = ({
             onClick?.(data);
         };
 
-        notification.onerror = (event) => {
-            console.warn("[SystemNotif] Notification error:", event);
+        notification.onerror = () => {
+            console.warn("[SystemNotif] Notification error");
         };
 
         return notification;
-    } catch (error) {
-        console.warn("[SystemNotif] Failed to show notification:", error);
+    } catch (err) {
+        console.warn("[SystemNotif] Failed to show notification:", err);
         return null;
     }
 };
@@ -224,13 +102,7 @@ export const showSystemNotificationFromPayload = (
     onClick?: (payload?: NotificationPayload) => void,
 ): Notification | null => {
     const config = NOTIFICATION_CONFIG[notification.type];
-
-    if (!config?.systemNotif) {
-        console.debug(
-            `[SystemNotif] Type '${notification.type}' has systemNotif=false — skipped`,
-        );
-        return null;
-    }
+    if (!config?.systemNotif) return null;
 
     return showSystemNotification({
         title: `${config.icon ?? "🔔"} ${notification.title}`,
