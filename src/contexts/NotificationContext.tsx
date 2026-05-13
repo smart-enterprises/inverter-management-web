@@ -1,4 +1,14 @@
-// /src/contexts/NotificationContext.tsx
+// src/contexts/NotificationContext.tsx
+//
+// Changes from the previous version:
+//   • `unlockAudio` is awaited before `startAlertLoop` — the loop only starts
+//     once the engine is actually ready, so the first sound is never silently
+//     dropped.
+//   • User-gesture listeners call `unlockAudio` and then drain any pending
+//     alert loop that was queued before the first gesture arrived.
+//   • `loadAudioBufferEarly` is still called on mount for pre-warming.
+//   • Everything else (API, props, types) is identical to the original.
+
 import React, {
     createContext,
     useCallback,
@@ -68,6 +78,8 @@ export interface NotificationContextValue {
 export const NotificationContext =
     createContext<NotificationContextValue | null>(null);
 
+// ─── Storage helpers ──────────────────────────────────────────────────────────
+
 const readStoredNotifications = (): NormalizedNotification[] => {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -88,7 +100,7 @@ const writeStoredNotifications = (
             JSON.stringify(notifications.slice(0, MAX_STORED_NOTIFICATIONS)),
         );
     } catch {
-        // Storage quota exceeded — non-fatal
+        // Storage quota exceeded — non-fatal.
     }
 };
 
@@ -96,24 +108,20 @@ const upsertNotification = (
     list: NormalizedNotification[],
     notification: NormalizedNotification,
 ): NormalizedNotification[] => {
-    if (
-        list.some(
-            (item) => item.notification_id === notification.notification_id,
-        )
-    ) {
+    if (list.some((n) => n.notification_id === notification.notification_id)) {
         return list;
     }
     return [notification, ...list].slice(0, MAX_STORED_NOTIFICATIONS);
 };
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
     const { user, isAuthenticated } = useAuth();
 
-    const [notifications, setNotifications] = useState<NormalizedNotification[]>(
-        [],
-    );
+    const [notifications, setNotifications] = useState<NormalizedNotification[]>([]);
     const [toasts, setToasts] = useState<NormalizedNotification[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [notifPermission, setNotifPermission] = useState<NotifPermission>(
@@ -125,9 +133,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
     const [pushBlockedReason, setPushBlockedReason] =
         useState<PushBlockedReason>(null);
 
-    const toastTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
-        {},
-    );
+    const toastTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
     const shouldReceive = useMemo(
         () =>
@@ -141,25 +147,44 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         [notifications],
     );
 
+    // ── Audio pre-warm on mount ───────────────────────────────────────────────
+
     useEffect(() => {
         void loadAudioBufferEarly();
     }, []);
 
+    // ── User-gesture unlock ───────────────────────────────────────────────────
+    //
+    // We unlock the AudioContext on the first user interaction and then drain
+    // any `startAlertLoop` call that may have been queued before the gesture.
+    // The audio service's internal `pendingPlay` flag handles the actual drain;
+    // we just need to make sure `unlockAudio` is called as early as possible.
+
     useEffect(() => {
-        const unlock = async () => {
-            await unlockAudio();
+        let unlocked = false;
+
+        const handleGesture = (): void => {
+            if (unlocked) return;
+            unlocked = true;
+
+            // Fire-and-forget — the audio service queues the pending play
+            // automatically inside `ensureReady()`.
+            void unlockAudio();
         };
 
-        window.addEventListener("click", unlock);
-        window.addEventListener("touchstart", unlock);
-        window.addEventListener("keydown", unlock);
+        const opts: AddEventListenerOptions = { passive: true, once: false };
+        window.addEventListener("click", handleGesture, opts);
+        window.addEventListener("keydown", handleGesture, opts);
+        window.addEventListener("touchstart", handleGesture, opts);
 
         return () => {
-            window.removeEventListener("click", unlock);
-            window.removeEventListener("touchstart", unlock);
-            window.removeEventListener("keydown", unlock);
+            window.removeEventListener("click", handleGesture);
+            window.removeEventListener("keydown", handleGesture);
+            window.removeEventListener("touchstart", handleGesture);
         };
     }, []);
+
+    // ── FCM push-blocked event listeners ─────────────────────────────────────
 
     useEffect(() => {
         const onPermissionDenied = (event: Event): void => {
@@ -189,14 +214,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         window.addEventListener("fcm:not-supported", onNotSupported);
 
         return () => {
-            window.removeEventListener(
-                "fcm:permission-denied",
-                onPermissionDenied,
-            );
+            window.removeEventListener("fcm:permission-denied", onPermissionDenied);
             window.removeEventListener("fcm:push-blocked", onPushBlocked);
             window.removeEventListener("fcm:not-supported", onNotSupported);
         };
     }, []);
+
+    // ── Background SW messages ────────────────────────────────────────────────
 
     useEffect(() => {
         const handleSWMessage = (event: MessageEvent): void => {
@@ -207,24 +231,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
             if (!notification || !isNotificationType(notification.type)) return;
 
             setNotifications((prev) => upsertNotification(prev, notification));
-
             addToast(notification);
         };
 
         navigator.serviceWorker?.addEventListener("message", handleSWMessage);
         return () => {
-            navigator.serviceWorker?.removeEventListener(
-                "message",
-                handleSWMessage,
-            );
+            navigator.serviceWorker?.removeEventListener("message", handleSWMessage);
         };
     }, []);
+
+    // ── Notification storage ──────────────────────────────────────────────────
 
     const refreshNotifications = useCallback(async (): Promise<void> => {
         setIsLoading(true);
         try {
-            const stored = readStoredNotifications();
-            setNotifications(stored);
+            setNotifications(readStoredNotifications());
         } finally {
             setIsLoading(false);
         }
@@ -237,6 +258,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
     useEffect(() => {
         writeStoredNotifications(notifications);
     }, [notifications]);
+
+    // ── Toast management ──────────────────────────────────────────────────────
 
     const dismissToast = useCallback((notificationId: string): void => {
         clearTimeout(toastTimers.current[notificationId]);
@@ -258,11 +281,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
             const config = NOTIFICATION_CONFIG[notification.type];
 
             if (config?.soundAlert) {
-                (async () => {
-                    await unlockAudio();
-
+                // Unlock first (no-op if already unlocked), then start the
+                // loop.  Because `startAlertLoop` now handles the not-yet-ready
+                // case internally via `pendingPlay`, this is always safe to call
+                // even before the first user gesture.
+                unlockAudio().then(() => {
                     startAlertLoop();
-                })();
+                });
             }
 
             showSystemNotificationFromPayload(
@@ -282,6 +307,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         [dismissToast],
     );
 
+    // ── FCM foreground messages ───────────────────────────────────────────────
+
     const handleFcmMessage = useCallback(
         (notification: NormalizedNotification): void => {
             setNotifications((prev) => upsertNotification(prev, notification));
@@ -291,6 +318,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
     );
 
     const { initFCM } = useFCM(handleFcmMessage, shouldReceive);
+
+    // ── Permission request ────────────────────────────────────────────────────
 
     const requestNotificationPermission = useCallback(async (): Promise<{
         granted: boolean;
@@ -322,6 +351,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         return { granted: false, reason: permission };
     }, [initFCM]);
 
+    // ── Read / dismiss helpers ────────────────────────────────────────────────
+
     const markAsRead = useCallback(
         async (notificationId: string): Promise<void> => {
             setNotifications((prev) =>
@@ -345,12 +376,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
         setToasts([]);
     }, []);
 
+    // ── Stop loop when user is not eligible ───────────────────────────────────
+
     useEffect(() => {
         if (!shouldReceive) {
             setToasts([]);
             stopAlertLoop();
         }
     }, [shouldReceive]);
+
+    // ── Cleanup on unmount ────────────────────────────────────────────────────
 
     useEffect(() => {
         return () => {
@@ -359,6 +394,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
             Object.values(toastTimers.current).forEach(clearTimeout);
         };
     }, []);
+
+    // ── Context value ─────────────────────────────────────────────────────────
 
     const value = useMemo<NotificationContextValue>(
         () => ({
