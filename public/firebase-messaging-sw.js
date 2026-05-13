@@ -32,6 +32,7 @@ const NOTIFICATION_TAGS = {
     ORDER_CREATED_PACKED: "order-created-packed",
     ORDER_CONFIRMED: "order-confirmed",
     ORDER_STATUS_PRODUCTION: "order-production",
+    ORDER_STATUS_PRODUCTION_COMPLETED: "order-production-completed",
     ORDER_STATUS_PACKED: "order-packed",
     ORDER_STATUS_INVOICE: "order-invoice",
     ORDER_STATUS_SHIPPED: "order-shipped",

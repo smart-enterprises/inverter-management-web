@@ -35,7 +35,7 @@ const NOTIFICATION_ELIGIBLE_ROLES = new Set([
 ]);
 
 const STORAGE_KEY = "smart-enterprise-notifications";
-const MAX_STORED_NOTIFICATIONS = 100;
+const MAX_STORED_NOTIFICATIONS = 10;
 const TOAST_DURATION_MS = 5_000;
 
 type NotifPermission = "default" | "granted" | "denied";
