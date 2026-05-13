@@ -4,6 +4,7 @@ export const NOTIFICATION_TYPES = Object.freeze({
     ORDER_CREATED_PACKED: "ORDER_CREATED_PACKED",
     ORDER_CONFIRMED: "ORDER_CONFIRMED",
     ORDER_STATUS_PRODUCTION: "ORDER_STATUS_PRODUCTION",
+    ORDER_STATUS_PRODUCTION_COMPLETED: "ORDER_STATUS_PRODUCTION_COMPLETED",
     ORDER_STATUS_PACKED: "ORDER_STATUS_PACKED",
     ORDER_STATUS_INVOICE: "ORDER_STATUS_INVOICE",
     ORDER_STATUS_SHIPPED: "ORDER_STATUS_SHIPPED",
@@ -77,6 +78,12 @@ export const NOTIFICATION_CONFIG: NotificationConfigMap = Object.freeze({
     [NOTIFICATION_TYPES.ORDER_STATUS_PRODUCTION]: {
         label: "Production Started",
         icon: "Production",
+        soundAlert: true,
+        systemNotif: true,
+    },
+    [NOTIFICATION_TYPES.ORDER_STATUS_PRODUCTION_COMPLETED]: {
+        label: "Production Completed",
+        icon: "Production Completed",
         soundAlert: true,
         systemNotif: true,
     },
