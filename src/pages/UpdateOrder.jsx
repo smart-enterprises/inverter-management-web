@@ -13,6 +13,7 @@ import {
 } from 'react-icons/fi';
 import { useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import { toastSuccess, toastInfo } from '../utils/toast';
 import CustomSelect from '../components/CustomSelect';
 import {
   fetchOrderById,
@@ -295,14 +296,14 @@ const UpdateOrder = () => {
       !buildPayload.payment_method &&
       !buildPayload.order_details
     ) {
-      return Swal.fire({ icon: 'info', title: 'No Changes Detected' });
+      return toastInfo('No Changes Detected');
     }
 
     setSubmitting(true);
     try {
       const res = await updateOrderStatus(order.order_number, buildPayload);
       if (res?.success) {
-        await Swal.fire({ icon: 'success', title: 'Order Updated Successfully' });
+        toastSuccess('Order Updated Successfully');
         navigate('/orders');
       } else {
         setError(res?.message || 'Update failed');

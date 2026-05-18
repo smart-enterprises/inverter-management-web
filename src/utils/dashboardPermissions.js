@@ -23,13 +23,12 @@ export const DASHBOARD_PERMISSIONS = Object.freeze({
         DASHBOARD_SECTIONS.RECENT_ORDERS,
     ],
 
-    // Salesman: full view but NO low stock anything
+    // Salesman: full view but NO low stock anything and NO total dealer count
     [ROLES.SALESMAN]: [
         DASHBOARD_SECTIONS.STATS_ORDERS,
-        DASHBOARD_SECTIONS.STATS_DEALERS,
         DASHBOARD_SECTIONS.BUSINESS_METRICS,
         DASHBOARD_SECTIONS.RECENT_ORDERS,
-        // NO low stock alert, NO low stock products
+        // NO low stock alert, NO low stock products, NO total dealers (only assigned dealers)
     ],
 
     // Production & Packing: only order + stock related
