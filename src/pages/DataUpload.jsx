@@ -1,5 +1,5 @@
 // BulkUpload.jsx
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import {
     FiUploadCloud, FiRefreshCw, FiCheckCircle,
     FiAlertCircle, FiFileText, FiLoader,
@@ -73,7 +73,6 @@ const DataUpload = () => {
     const [uploadResult, setUploadResult] = useState(null);
     const [uploadError, setUploadError] = useState(null);
     const { toasts, addToast } = useToast();
-    const abortRef = useRef(null);
 
     /* ── File handlers ── */
     const handleFileSelect = useCallback((selected) => {

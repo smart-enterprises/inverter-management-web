@@ -6,7 +6,7 @@ import {
     FiArrowUpRight, FiArrowDownRight, FiTag, FiBox,
     FiChevronLeft, FiChevronRight, FiActivity, FiShoppingCart,
 } from "react-icons/fi";
-import { fetchOrders, fetchOrdersByDate } from "../api/orders";
+import { fetchOrders } from "../api/orders";
 import { fetchDealers } from "../api/dealer";
 import { capitalizeFirstLetter } from "../utils/constants";
 import CustomSelect from "../components/CustomSelect";

@@ -28,11 +28,9 @@ const StatusBadge = ({ status }) => {
 };
 
 const ProductionStatusBadge = ({
-    hasProduction = false,
     hasUnpacked = false,
     variant = "table",
 }) => {
-    // if (!hasProduction) return null;
 
     if (variant === "detail") {
         return (

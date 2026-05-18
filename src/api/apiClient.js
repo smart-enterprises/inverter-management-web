@@ -20,6 +20,27 @@ export const getAuthHeaders = () => {
     };
 };
 
+/**
+ * Canonical API response shape. Every apiRequest result has these fields:
+ *   success    boolean        true on 2xx with a backend success flag, false otherwise
+ *   status     number         HTTP status code (0 on network failure)
+ *   message    string         Human-readable message from backend, or synthesized
+ *   data       any | null     Backend payload (only meaningful on success)
+ *   errors     any | null     Validation/error details (only meaningful on failure)
+ *   pagination object | null  Pagination meta when present
+ *
+ * Backend extras (timestamp, errorCode, etc.) are preserved via spread.
+ */
+const errorResponse = (overrides) => ({
+    success: false,
+    status: 0,
+    message: "",
+    data: null,
+    errors: null,
+    pagination: null,
+    ...overrides,
+});
+
 /* ================= API REQUEST ================= */
 export const apiRequest = async (endpoint, options = {}) => {
     const url = `${API_BASE_URL}${endpoint}`;
@@ -36,10 +57,12 @@ export const apiRequest = async (endpoint, options = {}) => {
     try {
         const response = await fetch(url, config);
 
-        const data = await response.json().catch(() => null);
+        const body = await response.json().catch(() => null);
 
         /* ── 401 Unauthorized — session expired or invalid token ── */
-        if (response.status === 401) {
+        /* Only treat as session expiry if the user actually had a token. */
+        /* Otherwise (e.g. login with wrong credentials), surface the real error. */
+        if (response.status === 401 && getToken()) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
 
@@ -47,32 +70,38 @@ export const apiRequest = async (endpoint, options = {}) => {
 
             window.location.replace("/login");
 
-            return {
-                success: false,
+            return errorResponse({
+                status: 401,
                 message: "Session expired. Please login again.",
-            };
+            });
         }
 
         /* ================= OTHER ERRORS ================= */
         if (!response.ok) {
-            return {
-                success: false,
-                message: data?.message || `Request failed (${response.status})`,
-                errors: data?.errors || [],
+            return errorResponse({
                 status: response.status,
-            };
+                message: body?.message || `Request failed (${response.status})`,
+                errors: body?.errors ?? null,
+            });
         }
 
-        return data;
+        /* ================= SUCCESS ================= */
+        /* Spread backend body for extras, then enforce canonical fields. */
+        return {
+            success: true,
+            message: "",
+            data: null,
+            errors: null,
+            pagination: null,
+            ...body,
+            status: response.status,
+        };
 
     } catch (error) {
         console.error("❌ API Request Error:", error);
 
-        return {
-            success: false,
+        return errorResponse({
             message: error.message || "Network error. Please check your connection.",
-            errors: [],
-        };
-
+        });
     }
 };

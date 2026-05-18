@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { FiX, FiPackage, FiZap } from "react-icons/fi";
 import Swal from "sweetalert2";
 import { updateProductStock } from "../api/products";
+import { useAuth } from "../hooks/useAuth";
+import { canUpdatePackedStock, canUpdateUnpackedStock } from "../utils/productPermissions";
 
 const initialFormState = {
     unpackedStock: 0,
@@ -21,6 +23,10 @@ const StockUpdateModal = ({
     productName,
     category
 }) => {
+
+    const { user } = useAuth();
+    const canPacked = canUpdatePackedStock(user?.role);
+    const canUnpacked = canUpdateUnpackedStock(user?.role);
 
     const [formData, setFormData] = useState(initialFormState);
     const [loading, setLoading] = useState(false);
@@ -211,7 +217,7 @@ const StockUpdateModal = ({
                         <div className="space-y-4">
 
                             {/* UNPACKED (ONLY NON-BATTERY) */}
-                            {!isBatteryCategory(category) && (
+                            {!isBatteryCategory(category) && canUnpacked && (
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -246,34 +252,38 @@ const StockUpdateModal = ({
                             )}
 
                             {/* PACKED */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Packed Stock Quantity
-                                </label>
-                                <input
-                                    type="number"
-                                    name="packedStock"
-                                    value={formData.packedStock}
-                                    onChange={handleChange}
-                                    min="0"
-                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                                />
-                            </div>
+                            {canPacked && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Packed Stock Quantity
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="packedStock"
+                                            value={formData.packedStock}
+                                            onChange={handleChange}
+                                            min="0"
+                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                                        />
+                                    </div>
 
-                            {formData.packedStock > 0 && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Packed Notes (Optional)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="packedNotes"
-                                        value={formData.packedNotes}
-                                        onChange={handleChange}
-                                        placeholder="e.g. New stock addition"
-                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
-                                    />
-                                </div>
+                                    {formData.packedStock > 0 && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Packed Notes (Optional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="packedNotes"
+                                                value={formData.packedNotes}
+                                                onChange={handleChange}
+                                                placeholder="e.g. New stock addition"
+                                                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                                            />
+                                        </div>
+                                    )}
+                                </>
                             )}
 
                         </div>

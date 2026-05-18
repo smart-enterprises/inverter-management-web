@@ -349,7 +349,10 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
   const panelRef = useRef(null);
   const [panelStyle, setPanelStyle] = useState({});
 
-  const options = discountOptions[index] || [];
+  const options = useMemo(
+    () => discountOptions[index] || [],
+    [discountOptions, index]
+  );
   const selectedDealer = options.find((o) => o.dealer_discount_id === item.dealer_discount_id);
 
   const filtered = useMemo(() => {
@@ -1002,7 +1005,7 @@ const CreateOrder = () => {
     };
 
     loadDealers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [canSelectSalesmanPermission, formData.salesman_id, user?.employee_id]);
 
   /* ----------------------------------------------------------------

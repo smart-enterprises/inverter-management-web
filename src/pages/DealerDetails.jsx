@@ -867,7 +867,6 @@ const AddDiscountsModal = ({ dealerId, allBrands, brandToModels, onClose, onSucc
 
 const EditDiscountModal = ({
   discount,
-  originalDiscount,
   productsByBrand,
   onClose,
   onSave,
@@ -946,7 +945,7 @@ const EditDiscountModal = ({
 // Page Sections
 // ─────────────────────────────────────────────
 
-const BrandsModelsSection = ({ dealer, allBrands, brandToModels, onAddBrand, showBrandActions }) => {
+const BrandsModelsSection = ({ dealer, brandToModels, onAddBrand, showBrandActions }) => {
   const existingBrands = dealer?.brand || [];
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -1476,7 +1475,7 @@ const DealerDetails = () => {
   const showDiscountActions = canManageDiscounts(role);
   const canViewOrderDetails = canAccess("/orders/:id");
 
-  const showBrandActions = role == ROLES.SUPER_ADMIN || role == ROLES.ADMIN || role == ROLES.MANAGER;
+  const showBrandActions = role == ROLES.SUPER_ADMIN || role == ROLES.ADMIN;
 
   // ── Dealer & UI state ──
   const [dealer, setDealer] = useState(null);

@@ -62,16 +62,6 @@ export default function Login() {
         return;
       }
 
-      const { token, user } = result.data || {};
-
-      if (!token) {
-        setError("Invalid authentication response");
-        return;
-      }
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
       const redirectTo = location.state?.from?.pathname || "/dashboard";
       navigate(redirectTo, { replace: true });
     } catch (err) {

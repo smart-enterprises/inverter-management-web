@@ -20,8 +20,6 @@ const PriceHistoryModal = ({
     formatDate
 }) => {
 
-    if (!isOpen) return null;
-
     /* SORT HISTORY */
     const sortedHistory = useMemo(() => {
         return [...priceHistory].sort(
@@ -44,6 +42,8 @@ const PriceHistoryModal = ({
         return { max, min, avg, current };
 
     }, [priceHistory]);
+
+    if (!isOpen) return null;
 
     return (
         <>

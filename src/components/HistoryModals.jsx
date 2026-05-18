@@ -47,7 +47,7 @@ const AnalyticsCard = ({ label, value, icon, color = "slate" }) => (
 
 // ─── Delta Badge ──────────────────────────────────────────────────────────────
 
-const DeltaBadge = ({ diff, format }) => {
+const DeltaBadge = ({ diff }) => {
     if (diff == null || isNaN(diff)) return null;
 
     if (diff === 0) return (
@@ -57,7 +57,6 @@ const DeltaBadge = ({ diff, format }) => {
     );
 
     const up = diff > 0;
-    const abs = Math.abs(diff);
 
     return (
         <span className={cls(
