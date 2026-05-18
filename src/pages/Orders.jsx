@@ -503,14 +503,76 @@ const Orders = () => {
                     const status = order.status.toUpperCase();
                     const isProductionStatus = status === ORDER_STATUSES.PRODUCTION;
 
-                    const hasProduction = orderDetails?.some(
-                      (d) => d.stock_flags?.hasProduction === true
-                    );
-                    const hasUnpacked = orderDetails?.some(
+                    const unpackedCount = orderDetails?.filter(
                       (d) => d.stock_flags?.hasUnpacked === true
-                    );
+                    ).length ?? 0;
+                    const hasUnpacked = unpackedCount > 0;
 
-                    const showProduction = isProductionStatus && (hasProduction || hasUnpacked);
+                    const isTerminalOrder = status === ORDER_STATUSES.COMPLETED;
+
+                    const countByStatus = (s) =>
+                      orderDetails?.filter((d) => d.status?.toUpperCase() === s).length ?? 0;
+
+                    const inProductionCount = isTerminalOrder ? 0 : countByStatus(ORDER_STATUSES.PRODUCTION);
+                    const awaitingInvoiceCount = isTerminalOrder ? 0 : countByStatus(ORDER_STATUSES.PACKED);
+                    const awaitingShippingCount = isTerminalOrder ? 0 : countByStatus(ORDER_STATUSES.INVOICE);
+                    const awaitingDeliveryCount = isTerminalOrder ? 0 : countByStatus(ORDER_STATUSES.SHIPPED);
+                    const deliveredCount = isTerminalOrder ? 0 : countByStatus(ORDER_STATUSES.DELIVERED);
+                    const completedCount = isTerminalOrder ? 0 : countByStatus(ORDER_STATUSES.COMPLETED);
+
+                    const pluralize = (n, word) => `${n} ${n === 1 ? word : word + "s"}`;
+
+                    const subLines = [];
+                    if (isProductionStatus && hasUnpacked) {
+                      subLines.push({
+                        text: `${pluralize(unpackedCount, "item")} ready for packing`,
+                        icon: "package",
+                        tone: "amber",
+                      });
+                    }
+                    if (inProductionCount > 0) {
+                      subLines.push({
+                        text: `${pluralize(inProductionCount, "item")} in production`,
+                        icon: "package",
+                        tone: "indigo",
+                      });
+                    }
+                    if (awaitingInvoiceCount > 0) {
+                      subLines.push({
+                        text: `${pluralize(awaitingInvoiceCount, "item")} awaiting invoice`,
+                        icon: "invoice",
+                        tone: "amber",
+                      });
+                    }
+                    if (awaitingShippingCount > 0) {
+                      subLines.push({
+                        text: `${pluralize(awaitingShippingCount, "item")} awaiting shipping`,
+                        icon: "truck",
+                        tone: "amber",
+                      });
+                    }
+                    if (awaitingDeliveryCount > 0) {
+                      subLines.push({
+                        text: `${pluralize(awaitingDeliveryCount, "item")} awaiting delivery`,
+                        icon: "delivery",
+                        tone: "amber",
+                      });
+                    }
+                    if (deliveredCount > 0) {
+                      subLines.push({
+                        text: `${pluralize(deliveredCount, "item")} delivered`,
+                        icon: "delivery",
+                        tone: "green",
+                      });
+                    }
+                    if (completedCount > 0) {
+                      subLines.push({
+                        text: `${pluralize(completedCount, "item")} completed`,
+                        icon: "delivery",
+                        tone: "green",
+                      });
+                    }
+                    const hasSubLines = subLines.length > 0;
 
                     return (
                       <tr
@@ -545,10 +607,10 @@ const Orders = () => {
                           <PriorityBadge priority={order.priority} />
                         </td>
                         <td className="px-5 py-4">
-                          {showProduction ? (
+                          {hasSubLines ? (
                             <ProductionStatusBadge
-                              hasProduction={hasProduction}
-                              hasUnpacked={hasUnpacked}
+                              status={order.status}
+                              subLines={subLines}
                               variant="table"
                             />
                           ) : (

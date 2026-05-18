@@ -539,8 +539,8 @@ const Delivery = () => {
                         <td className="px-5 py-4">
                           {showProduction ? (
                             <ProductionStatusBadge
-                              hasProduction={hasProduction}
-                              hasUnpacked={hasUnpacked}
+                              status="Production"
+                              subLine={hasUnpacked ? "Ready for packing" : null}
                               variant="table"
                             />
                           ) : (

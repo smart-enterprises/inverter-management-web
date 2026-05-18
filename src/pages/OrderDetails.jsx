@@ -12,6 +12,7 @@ import {
   FiArrowRight, FiClock, FiSlash,
 } from "react-icons/fi";
 import Swal from "sweetalert2";
+import { toastSuccess } from "../utils/toast";
 import { useAuth } from "../hooks/useAuth";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrderById, updateOrderStatus } from "../api/orders";
@@ -55,11 +56,12 @@ const getRoleOrderPermissions = (role) => {
     case ROLES.SALESMAN:
       return {
         canUpdateStatus: false,
-        canUpdateDelivery: false,
+        canUpdateDelivery: true,
         canCancelOrder: false,
         canAddPayment: false,
         canUpdateItemStatus: false,
-        canUpdateItemDelivery: false,
+        canUpdateItemDelivery: true, // Date + note only (no qty)
+        hideDeliveredQty: true,
         canCancelItem: false,
         allowedItemStatuses: [],
         allowedOrderStatuses: [],
@@ -89,7 +91,7 @@ const getRoleOrderPermissions = (role) => {
         canUpdateItemDelivery: true, // Date + note only (no qty)
         hideDeliveredQty: true,
         canCancelItem: false,
-        allowedItemStatuses: ["PACKED", "SHIPPED"],
+        allowedItemStatuses: ["PACKED", "SHIPPED", "DELIVERED"],
         allowedOrderStatuses: [],
         hideProductionFlag: true,
         statusModalTitle: "Update Packing Status",
@@ -105,6 +107,8 @@ const getRoleOrderPermissions = (role) => {
         canCancelItem: false,
         allowedItemStatuses: ["INVOICE", "SHIPPED", "DELIVERED"],
         allowedOrderStatuses: ["INVOICE", "SHIPPED", "DELIVERED"],
+        hideProductionFlag: true,
+        hideUnpackedFlag: true,
       };
     case ROLES.DELIVERY:
       return {
@@ -744,7 +748,7 @@ const ItemStatusModal = memo(({ isOpen, onClose, detail, onSubmit, submitting, r
               </p>
               <div className="space-y-2">
                 {showUnpackedCheckbox && (
-                  <CheckboxToggleRow label="Unpacked Completed" description="All unpacked items have been processed" checked={hasUnpackedDone} onChange={setHasUnpackedDone} />
+                  <CheckboxToggleRow label="Packing Completed" description="All unpacked items have been packed" checked={hasUnpackedDone} onChange={setHasUnpackedDone} />
                 )}
                 {showProductionCheckbox && (
                   <CheckboxToggleRow label="Production Completed" description="Manufacturing / production is complete" checked={hasProdDone} onChange={setHasProdDone} />
@@ -1275,7 +1279,7 @@ const OrderItemCard = memo(({
         <div className="flex items-center gap-2 flex-shrink-0 ml-3">
           {d.is_free && <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-blue-50 text-blue-700 border border-blue-100 uppercase">Free</span>}
           {showProductionBadge ? (
-            <ProductionStatusBadge hasProduction={hasProduction} hasUnpacked={hasUnpacked} variant="detail" />
+            <ProductionStatusBadge status="Production" subLine={hasUnpacked ? "Ready for packing" : null} variant="detail" />
           ) : (
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(d?.status)}`}>{d?.status || "Unknown"}</span>
           )}
@@ -1311,7 +1315,7 @@ const OrderItemCard = memo(({
           <CancellationHistoryCard history={cancellationHistory} userMap={userMap} />
         )}
 
-        {!isLocked && actionBtns.length > 0 && (
+        {!isLocked && !isPendingOrder && actionBtns.length > 0 && (
           <div className="border-t border-slate-100 pt-4">
             <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-3">Item Actions</p>
             <div className="flex flex-wrap gap-2">
@@ -1324,7 +1328,7 @@ const OrderItemCard = memo(({
           </div>
         )}
 
-        {!isLocked && actionBtns.length === 0 && rolePermissions && (
+        {!isLocked && !isPendingOrder && actionBtns.length === 0 && rolePermissions && (
           <div className="border-t border-slate-100 pt-3">
             <p className="text-[10px] text-slate-400 font-medium italic text-center">View only — no actions available for your role</p>
           </div>
@@ -1496,10 +1500,14 @@ const OrderDetails = () => {
   const submitUpdate = useCallback(async (payload) => {
     setSubmitting(true);
     try {
-      const res = await updateOrderStatus(order.order_number, { order_number: order.order_number, ...payload });
+      const body = { order_number: order.order_number, ...payload };
+      if (!body.delivery_date && order?.promised_delivery_date) {
+        body.delivery_date = new Date(order.promised_delivery_date).toISOString();
+      }
+      const res = await updateOrderStatus(order.order_number, body);
       if (res?.success) {
         closeModal();
-        await Swal.fire({ icon: "success", title: "Updated Successfully", timer: 1800, showConfirmButton: false });
+        toastSuccess("Updated Successfully");
         await loadOrder();
       } else {
         Swal.fire({ icon: "error", title: "Update Failed", text: res?.message || "Something went wrong." });
@@ -1514,7 +1522,12 @@ const OrderDetails = () => {
   const handleItemStatusSubmit = useCallback((payload) => {
     const detailNumber = modal.itemData?.order_details_number;
     if (!detailNumber) return;
-    submitUpdate({ order_details: [{ order_details_number: detailNumber, ...payload }] });
+    const existingDeliveryDate = modal.itemData?.delivery_date;
+    const detail = { order_details_number: detailNumber, ...payload };
+    if (!detail.delivery_date && existingDeliveryDate) {
+      detail.delivery_date = new Date(existingDeliveryDate).toISOString();
+    }
+    submitUpdate({ order_details: [detail] });
   }, [modal.itemData, submitUpdate]);
 
   const handleDeliveryUpdateSubmit = useCallback((payload) => {
@@ -1530,7 +1543,16 @@ const OrderDetails = () => {
   const handleCancelItemSubmit = useCallback((payload) => {
     const detailNumber = modal.itemData?.order_details_number;
     if (!detailNumber) return;
-    submitUpdate({ order_details: [{ order_details_number: detailNumber, cancel_qty: payload.cancel_qty, reason_for_cancellation: payload.reason_for_cancellation }] });
+    const existingDeliveryDate = modal.itemData?.delivery_date;
+    const detail = {
+      order_details_number: detailNumber,
+      cancel_qty: payload.cancel_qty,
+      reason_for_cancellation: payload.reason_for_cancellation,
+    };
+    if (existingDeliveryDate) {
+      detail.delivery_date = new Date(existingDeliveryDate).toISOString();
+    }
+    submitUpdate({ order_details: [detail] });
   }, [modal.itemData, submitUpdate]);
 
   const handleOrderStatusSubmit = useCallback((payload) => {

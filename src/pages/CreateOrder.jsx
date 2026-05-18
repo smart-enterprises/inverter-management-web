@@ -17,6 +17,7 @@ import { fetchUserByRole } from "../api/user";
 import { getBrandsByDealer } from "../api/brands";
 import { useAuth } from "../hooks/useAuth";
 import Swal from "sweetalert2";
+import { toastSuccess } from "../utils/toast";
 import { PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
 import { canSelectSalesman, ROLES } from "../utils/roles";
 import {
@@ -1236,7 +1237,7 @@ const CreateOrder = () => {
 
       const response = await createOrder(payload);
       if (response?.success) {
-        await Swal.fire({ icon: "success", title: "Order Created Successfully 🎉" });
+        toastSuccess("Order Created Successfully 🎉");
         navigate("/orders");
       } else {
         setError(response?.message || "Failed to create order");
