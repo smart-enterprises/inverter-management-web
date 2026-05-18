@@ -9,7 +9,7 @@ import { HiOutlineSparkles } from "react-icons/hi2";
 import { TbBuildingStore } from "react-icons/tb";
 import Swal from "sweetalert2";
 import { fetchDealers } from "../api/dealer";
-import { fetchUserById, fetchUsers, updateUser } from "../api/user";
+import { fetchUsers, updateUser } from "../api/user";
 import { capitalizeFirstLetter } from "../utils/constants";
 
 const getDealerId = (dealer) =>
@@ -364,6 +364,9 @@ const ManageDealersModal = ({
             }
         };
         load();
+        // Only re-initialize when a different salesman is opened.
+        // Adding salesman.dealers would clobber in-progress local edits.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [salesman.employee_id]);
 
     useEffect(() => {

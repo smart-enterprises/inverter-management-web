@@ -7,7 +7,7 @@ import {
   FiWifi, FiWifiOff,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { fetchUsers } from "../api/user";
+import { fetchUsers, fetchEmployeeCount } from "../api/user";
 import { ROLES } from "../utils/roles";
 import { fetchOrders } from "../api/orders";
 import { fetchLowStockProducts } from "../api/products";
@@ -27,7 +27,6 @@ const PURCHASE_ANALYTICS_ROLES = [
   ROLES.SUPER_ADMIN,
   ROLES.ADMIN,
   ROLES.MANAGER,
-  ROLES.ACCOUNTS,
 ];
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -368,34 +367,24 @@ const Dashboard = () => {
   }, [fetchCount]);
 
   const loadUserCounts = useCallback(async () => {
-    const res = await fetchUsers({ page: 1, limit: 5000, status: "active", includeDealers: true });
-    const employees = res?.data?.employees ?? [];
+    /* Parallel: one tiny call for all role counts, one limit=1 call for assigned dealers total. */
+    const [countsRes, assignedRes] = await Promise.all([
+      fetchEmployeeCount(),
+      fetchUsers({
+        page: 1, limit: 1, role: ROLES.DEALER,
+        status: "active", includeDealers: true, scope: "ASSIGNED_ONLY",
+      }),
+    ]);
 
-    const counts = employees.reduce(
-      (acc, { role: r }) => {
-        if (r === ROLES.SUPER_ADMIN) acc.superAdmin++;
-        else if (r === ROLES.ADMIN) acc.admin++;
-        else if (r === ROLES.SALESMAN) acc.salesman++;
-        else if (r === ROLES.DEALER) acc.dealer++;
-
-        if (r !== ROLES.DEALER) acc.employee++;
-        return acc;
-      },
-      { superAdmin: 0, admin: 0, salesman: 0, dealer: 0, employee: 0 }
-    );
-
-    const assignedRes = await fetchUsers({
-      page: 1, limit: 5000, role: ROLES.DEALER,
-      status: "active", includeDealers: true, scope: "ASSIGNED_ONLY",
-    });
+    const roleCounts = countsRes?.data?.roleCounts ?? {};
 
     return {
-      superAdminCount: counts.superAdmin,
-      adminCount: counts.admin,
-      salesmanCount: counts.salesman,
-      dealerCount: counts.dealer,
-      assignedDealerCount: assignedRes?.data?.employees?.length ?? 0,
-      employeeCount: counts.employee,
+      superAdminCount: roleCounts[ROLES.SUPER_ADMIN] ?? 0,
+      adminCount: roleCounts[ROLES.ADMIN] ?? 0,
+      salesmanCount: roleCounts[ROLES.SALESMAN] ?? 0,
+      dealerCount: roleCounts[ROLES.DEALER] ?? 0,
+      assignedDealerCount: assignedRes?.data?.total ?? 0,
+      employeeCount: countsRes?.data?.totalUsers ?? 0,
     };
   }, []);
 

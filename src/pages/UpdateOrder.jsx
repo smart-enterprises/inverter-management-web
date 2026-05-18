@@ -19,7 +19,6 @@ import {
   updateOrderStatus,
 } from '../api/orders';
 import {
-  getStatusStyle,
   ORDER_STATUS_LIST,
   PAYMENT_METHOD_OPTIONS,
   PRIORITY_OPTIONS,
@@ -75,7 +74,7 @@ const CheckboxField = ({ label, checked, onChange, disabled }) => (
    NORMALIZE ORDER
    ================================================================ */
 
-export const normalizeOrder = (order) => ({
+const normalizeOrder = (order) => ({
   ...order,
   payment_method: order.payment_type || '',
   amount_paid: 0,
@@ -150,7 +149,6 @@ const UpdateOrder = () => {
   const [amountPaid, setAmountPaid] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [deliveryDate, setDeliveryDate] = useState(null);
   const [error, setError] = useState('');
 
   /* ---- PERMISSION DERIVED FLAGS ---- */
@@ -176,7 +174,6 @@ const UpdateOrder = () => {
         }
         const fetched = res.data.order;
         setAmountPaid(fetched?.amount_paid ?? 0);
-        setDeliveryDate(fetched?.promised_delivery_date);
         const normalized = normalizeOrder(fetched);
         setOrder(normalized);
         setOriginalOrder(normalized);
@@ -504,7 +501,6 @@ const UpdateOrder = () => {
                     (!permissions.canEditAll && !permissions.editableFields?.includes('promised_delivery_date'))
                   }
                   onChange={(e) => {
-                    setDeliveryDate(e.target.value);
                     updateOrderField('promised_delivery_date', e.target.value);
                   }}
                   className="form-input"
@@ -563,7 +559,6 @@ const UpdateOrder = () => {
                 status,
                 delivery_date,
                 total_qty_ordered,
-                qty_ordered,
                 qty_delivered,
                 total_cancelled_qty,
                 has_unPacked_completed,

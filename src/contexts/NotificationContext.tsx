@@ -7,6 +7,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useFCM, NormalizedNotification } from "../hooks/useFCM";
 import {
@@ -104,6 +105,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
     const { user, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
 
     const [notifications, setNotifications] = useState<NormalizedNotification[]>([]);
     const [toasts, setToasts] = useState<NormalizedNotification[]>([]);
@@ -255,7 +257,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
                 notification,
                 (payload?: NotificationPayload) => {
                     if (payload?.order_number) {
-                        window.location.href = `/orders/${payload.order_number}`;
+                        navigate(`/orders/${payload.order_number}`);
                     }
                 },
             );
@@ -265,7 +267,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
                 TOAST_DURATION_MS,
             );
         },
-        [dismissToast],
+        [dismissToast, navigate],
     );
 
     const handleFcmMessage = useCallback(

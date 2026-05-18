@@ -28,7 +28,7 @@ import { capitalizeFirstLetter } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
 import ManageDealersModal from "../components/ManageDealersModal";
 
-const DEALER_MANAGER_ROLES = new Set([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER]);
+const DEALER_MANAGER_ROLES = new Set([ROLES.SUPER_ADMIN, ROLES.ADMIN]);
 
 // ─── Info Card ────────────────────────────────────────────────────────────────
 

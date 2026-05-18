@@ -15,7 +15,7 @@ import {
 import { STOCK_ACTIONS, STOCK_TYPES } from "../utils/constants";
 
 /* ACTION BADGE */
-export const getActionBadge = (action) => {
+const getActionBadge = (action) => {
     switch (action) {
         case STOCK_ACTIONS.STOCK_ADD:
             return {
@@ -48,7 +48,7 @@ export const getActionBadge = (action) => {
 };
 
 /* STOCK TYPE BADGE */
-export const getStockTypeBadge = (type) => {
+const getStockTypeBadge = (type) => {
     if (type === STOCK_TYPES.STOCK_PACKED)
         return "bg-purple-100 text-purple-700";
 
@@ -70,8 +70,6 @@ const StockHistoryModal = ({
     userMap = {},
     formatDate
 }) => {
-
-    if (!isOpen) return null;
 
     /* SORT HISTORY */
     const sortedHistory = useMemo(() => {
@@ -108,6 +106,8 @@ const StockHistoryModal = ({
         };
 
     }, [stockHistory]);
+
+    if (!isOpen) return null;
 
     return (
         <>

@@ -1,6 +1,6 @@
 // OrderDetails.jsx — Senior Refactor: Strict RBAC + Cancellation History + Conditional UI
 import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   FiArrowLeft, FiUser, FiMapPin, FiPhone, FiMail, FiBox,
   FiCalendar, FiTruck, FiCreditCard, FiEdit2,
@@ -18,12 +18,12 @@ import { fetchOrderById, updateOrderStatus } from "../api/orders";
 import { fetchUsers } from "../api/user";
 import { capitalizeFirstLetter } from "../utils/constants";
 import { formatDealerDiscountNotes, formatDeliveryNotes, formatStockNotes } from "../utils/notesUtils";
-import { getStatusStyle, ORDER_STATUS_LIST, ORDER_STATUSES, PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
+import { ORDER_STATUS_LIST, ORDER_STATUSES, PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
 import { useUpdateOrderPermissions } from "../hooks/useUpdateOrderPermissions";
 import { formatDateForInput, formatDeliveryDate } from "../utils/dateUtils";
 import { getAllowedNextStatuses } from "../utils/orderStatusHelper";
 import { fetchCompanyAddress } from "../api/companyAddress";
-import { canPrintOrder, canViewOrderPrice, canViewDealerInformation } from "../utils/orderPermissions";
+import { canPrintOrder, canViewOrderPrice, canViewDealerInformation, canViewFullDealerInformation } from "../utils/orderPermissions";
 import DeliveryNotesCard from "../components/DeliveryNotesCard";
 import ProductionStatusBadge from "../components/ProductionStatusBadge";
 import { ROLES } from "../utils/roles";
@@ -70,12 +70,14 @@ const getRoleOrderPermissions = (role) => {
         canUpdateDelivery: false,
         canCancelOrder: false,
         canAddPayment: false,
-        canUpdateItemStatus: true,  // Only production_completed checkbox
-        canUpdateItemDelivery: false,
+        canUpdateItemStatus: true,
+        canUpdateItemDelivery: true, // Date + note only (no qty)
+        hideDeliveredQty: true,
         canCancelItem: false,
         allowedItemStatuses: [], // no status change, only production flag
         allowedOrderStatuses: [],
-        onlyProductionFlag: true,
+        hideUnpackedFlag: true,
+        statusModalTitle: "Update Production Status",
       };
     case ROLES.PACKING:
       return {
@@ -83,12 +85,14 @@ const getRoleOrderPermissions = (role) => {
         canUpdateDelivery: false,
         canCancelOrder: false,
         canAddPayment: false,
-        canUpdateItemStatus: true,  // Only unpacked_completed checkbox
-        canUpdateItemDelivery: false,
+        canUpdateItemStatus: true,
+        canUpdateItemDelivery: true, // Date + note only (no qty)
+        hideDeliveredQty: true,
         canCancelItem: false,
-        allowedItemStatuses: [],
+        allowedItemStatuses: ["PACKED", "SHIPPED"],
         allowedOrderStatuses: [],
-        onlyUnpackedFlag: true,
+        hideProductionFlag: true,
+        statusModalTitle: "Update Packing Status",
       };
     case ROLES.ACCOUNTS:
       return {
@@ -252,7 +256,7 @@ const formatRoleLabel = (role) =>
 // PDF GENERATOR (unchanged from original)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const generateOrderPDF = (order, companyInfo, userMap) => {
+const generateOrderPDF = (order, companyInfo) => {
   const company = companyInfo || {};
   const totalAmount = Number(order?.order_total_price ?? 0);
   const discountAmount = Number(order?.order_total_discount ?? 0);
@@ -628,12 +632,12 @@ const ItemStatusModal = memo(({ isOpen, onClose, detail, onSubmit, submitting, r
 
   // RBAC: what statuses can this role select?
   const allowedByRole = rolePermissions?.allowedItemStatuses; // null = all, [] = none
-  const onlyProductionFlag = rolePermissions?.onlyProductionFlag;
-  const onlyUnpackedFlag = rolePermissions?.onlyUnpackedFlag;
+  const hideProductionFlag = rolePermissions?.hideProductionFlag;
+  const hideUnpackedFlag = rolePermissions?.hideUnpackedFlag;
 
   useEffect(() => {
     if (isOpen && detail) {
-      setSelectedStatus(currentStatus);
+      setSelectedStatus(detail.status || "");
       setHasUnpackedDone(detail.has_unPacked_completed || false);
       setHasProdDone(detail.has_production_completed || false);
     }
@@ -649,30 +653,26 @@ const ItemStatusModal = memo(({ isOpen, onClose, detail, onSubmit, submitting, r
     return true;
   });
 
-  const showStatusList = !isProduction && !onlyProductionFlag && !onlyUnpackedFlag && visibleStatusOptions.length > 0;
-  const showProductionCheckbox = hasProduction && (onlyProductionFlag || (!onlyUnpackedFlag));
-  const showUnpackedCheckbox = hasUnpacked && (onlyUnpackedFlag || (!onlyProductionFlag));
+  const showStatusList = !isProduction && visibleStatusOptions.length > 0;
+  const showProductionCheckbox = hasProduction && !hideProductionFlag;
+  const showUnpackedCheckbox = hasUnpacked && !hideUnpackedFlag;
 
   const isStatusChanged = selectedStatus && selectedStatus !== currentStatus;
   const hasChanges =
-    isStatusChanged ||
-    (hasUnpacked && hasUnpackedDone !== (detail?.has_unPacked_completed || false)) ||
-    (hasProduction && hasProdDone !== (detail?.has_production_completed || false));
+    (showStatusList && isStatusChanged) ||
+    (showUnpackedCheckbox && hasUnpackedDone !== (detail?.has_unPacked_completed || false)) ||
+    (showProductionCheckbox && hasProdDone !== (detail?.has_production_completed || false));
 
   const handleSubmit = () => {
     const payload = {};
-    if (!isProduction && !onlyProductionFlag && !onlyUnpackedFlag && isStatusChanged) payload.status = selectedStatus;
-    if (showUnpackedCheckbox || hasUnpacked) payload.has_unPacked_completed = hasUnpackedDone;
-    if (showProductionCheckbox || hasProduction) payload.has_production_completed = hasProdDone;
+    if (showStatusList && isStatusChanged) payload.status = selectedStatus;
+    if (showUnpackedCheckbox) payload.has_unPacked_completed = hasUnpackedDone;
+    if (showProductionCheckbox) payload.has_production_completed = hasProdDone;
     if (Object.keys(payload).length === 0) { onClose(); return; }
     onSubmit(payload);
   };
 
-  const modalTitle = onlyProductionFlag
-    ? "Update Production Status"
-    : onlyUnpackedFlag
-      ? "Update Unpacking Status"
-      : "Update Item Status";
+  const modalTitle = rolePermissions?.statusModalTitle || "Update Item Status";
 
   return (
     <ModalShell
@@ -762,7 +762,7 @@ const ItemStatusModal = memo(({ isOpen, onClose, detail, onSubmit, submitting, r
 // MODAL: DELIVERY UPDATE
 // ═════════════════════════════════════════════════════════════════════════════
 
-const DeliveryUpdateModal = memo(({ isOpen, onClose, detail, onSubmit, submitting }) => {
+const DeliveryUpdateModal = memo(({ isOpen, onClose, detail, onSubmit, submitting, rolePermissions }) => {
   const [form, setForm] = useState({ delivery_date: "", delivery_note: "", delivered_qty: "" });
   const [errors, setErrors] = useState({});
 
@@ -774,7 +774,8 @@ const DeliveryUpdateModal = memo(({ isOpen, onClose, detail, onSubmit, submittin
 
   useEffect(() => {
     if (isOpen) {
-      setForm({ delivery_date: originalDate ? formatDateForInput(originalDate) : "", delivery_note: "", delivered_qty: "" });
+      const date = detail?.delivery_date || "";
+      setForm({ delivery_date: date ? formatDateForInput(date) : "", delivery_note: "", delivered_qty: "" });
       setErrors({});
     }
   }, [isOpen, detail]);
@@ -829,7 +830,9 @@ const DeliveryUpdateModal = memo(({ isOpen, onClose, detail, onSubmit, submittin
             {errors.delivery_note && <FieldError msg={errors.delivery_note} />}
           </FormField>
         )}
-        <FormField label={`Delivered Quantity (Max: ${maxDeliverable})`} hint="Leave empty to skip quantity update"><EditInput type="number" min={0} max={maxDeliverable} value={form.delivered_qty} onChange={(e) => setField("delivered_qty", e.target.value)} placeholder={`0 – ${maxDeliverable}`} />{errors.delivered_qty && <FieldError msg={errors.delivered_qty} />}</FormField>
+        {!rolePermissions?.hideDeliveredQty && (
+          <FormField label={`Delivered Quantity (Max: ${maxDeliverable})`} hint="Leave empty to skip quantity update"><EditInput type="number" min={0} max={maxDeliverable} value={form.delivered_qty} onChange={(e) => setField("delivered_qty", e.target.value)} placeholder={`0 – ${maxDeliverable}`} />{errors.delivered_qty && <FieldError msg={errors.delivered_qty} />}</FormField>
+        )}
       </div>
     </ModalShell>
   );
@@ -1026,7 +1029,11 @@ const OrderDeliveryModal = memo(({ isOpen, onClose, order, onSubmit, submitting 
   const originalDate = order?.promised_delivery_date || "";
 
   useEffect(() => {
-    if (isOpen) { setForm({ promised_delivery_date: originalDate ? formatDateForInput(originalDate) : "", delivery_note: "" }); setErrors({}); }
+    if (isOpen) {
+      const date = order?.promised_delivery_date || "";
+      setForm({ promised_delivery_date: date ? formatDateForInput(date) : "", delivery_note: "" });
+      setErrors({});
+    }
   }, [isOpen, order]);
 
   const isDateChanged = form.promised_delivery_date && form.promised_delivery_date !== formatDateForInput(originalDate);
@@ -1414,13 +1421,12 @@ const confirmCancelOrder = async () => {
 
 const OrderDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
 
   const userCanPrint = canPrintOrder(user?.role);
   const userCanViewPrice = canViewOrderPrice(user?.role);
   const userCanViewDealerInfo = canViewDealerInformation(user?.role);
+  const userCanViewFullDealerInfo = canViewFullDealerInformation(user?.role);
   const rolePermissions = useMemo(() => getRoleOrderPermissions(user?.role), [user?.role]);
   const permissions = useUpdateOrderPermissions();
 
@@ -1479,13 +1485,13 @@ const OrderDetails = () => {
         const res = await fetchCompanyAddress();
         if (res?.success && Array.isArray(res.data) && res.data.length > 0) { company = res.data[0]; setCompanyInfo(company); }
       }
-      generateOrderPDF(order, company, userMap);
+      generateOrderPDF(order, company);
     } catch (err) {
       Swal.fire({ icon: "error", title: "PDF Generation Failed", text: err.message || "Could not generate PDF." });
     } finally {
       setPdfLoading(false);
     }
-  }, [order, companyInfo, userMap]);
+  }, [order, companyInfo]);
 
   const submitUpdate = useCallback(async (payload) => {
     setSubmitting(true);
@@ -1620,9 +1626,13 @@ const OrderDetails = () => {
           <div className="grid sm:grid-cols-2 gap-1">
             <InfoCell icon={<FiUser />} label="Dealer Name">{order?.dealer?.employee_name ? capitalizeFirstLetter(order.dealer.employee_name) : null}</InfoCell>
             <InfoCell icon={<FiBox />} label="Shop Name">{order?.dealer?.shop_name ? capitalizeFirstLetter(order.dealer.shop_name) : null}</InfoCell>
-            <InfoCell icon={<FiMail />} label="Email">{order?.dealer?.employee_email}</InfoCell>
-            <InfoCell icon={<FiPhone />} label="Phone">{order?.dealer?.employee_phone}</InfoCell>
-            <InfoCell icon={<FiMapPin />} label="Address">{order?.dealer?.address ? capitalizeFirstLetter(order.dealer.address) : null}</InfoCell>
+            {userCanViewFullDealerInfo && (
+              <>
+                <InfoCell icon={<FiMail />} label="Email">{order?.dealer?.employee_email}</InfoCell>
+                <InfoCell icon={<FiPhone />} label="Phone">{order?.dealer?.employee_phone}</InfoCell>
+                <InfoCell icon={<FiMapPin />} label="Address">{order?.dealer?.address ? capitalizeFirstLetter(order.dealer.address) : null}</InfoCell>
+              </>
+            )}
           </div>
         </SectionCard>
       )}
@@ -1681,7 +1691,7 @@ const OrderDetails = () => {
         submitting={submitting}
         rolePermissions={rolePermissions}
       />
-      <DeliveryUpdateModal isOpen={modal.name === MODAL.DELIVERY} onClose={closeModal} detail={modal.itemData} onSubmit={handleDeliveryUpdateSubmit} submitting={submitting} />
+      <DeliveryUpdateModal isOpen={modal.name === MODAL.DELIVERY} onClose={closeModal} detail={modal.itemData} onSubmit={handleDeliveryUpdateSubmit} submitting={submitting} rolePermissions={rolePermissions} />
       <CancelItemModal isOpen={modal.name === MODAL.CANCEL_ITEM} onClose={closeModal} detail={modal.itemData} onSubmit={handleCancelItemSubmit} submitting={submitting} />
       <OrderStatusModal isOpen={modal.name === MODAL.ORDER_STATUS} onClose={closeModal} order={order} onSubmit={handleOrderStatusSubmit} submitting={submitting} rolePermissions={rolePermissions} />
       <OrderDeliveryModal isOpen={modal.name === MODAL.ORDER_DELIVERY} onClose={closeModal} order={order} onSubmit={handleOrderDeliverySubmit} submitting={submitting} />

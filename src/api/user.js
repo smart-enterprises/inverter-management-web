@@ -55,7 +55,7 @@ export const fetchUserByRole = async (role) =>
   });
 
 export const fetchProfile = async () =>
-  request(`/employees/get/profile`, {
+  apiRequest(`/employees/get/profile`, {
     method: "GET",
   });
 

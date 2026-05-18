@@ -10,7 +10,7 @@ import { Link } from "react-router-dom";
 
 import CustomSelect from "../components/CustomSelect";
 import { ROLES } from "../utils/roles";
-import { validateEmployeeFields, errorsToMap } from "../utils/validationUtils";
+import { validateEmployeeFields } from "../utils/validationUtils";
 
 import { fetchDealers, fetchDealerById, createDealer, updateDealer, deleteDealer } from "../api/dealer";
 import { getAllBrands } from "../api/brands";
@@ -722,7 +722,9 @@ const Dealers = () => {
     try {
       const res = await fetchDealerById(dealerId);
       if (res?.success && res?.data) setEditingDealerData(res.data);
-    } catch { }
+    } catch {
+      // ignore fetch errors here; modal will show empty state
+    }
   };
 
   const handleOpenDeleteModal = (dealerId) => {

@@ -25,7 +25,7 @@ const STATUS_OPTIONS = [
 ];
 
 const PASSWORD_COLUMN_ROLES = new Set([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER]);
-const DEALER_MANAGER_ROLES = new Set([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER]);
+const DEALER_MANAGER_ROLES = new Set([ROLES.SUPER_ADMIN, ROLES.ADMIN]);
 
 const PASSWORD_SHIELD_MAP = {
   [ROLES.SUPER_ADMIN]: new Set(),
@@ -59,9 +59,7 @@ const CREATABLE_ROLES_BY_VIEWER = {
     ROLES.ADMIN, ROLES.MANAGER, ROLES.SALESMAN,
     ROLES.PRODUCTION, ROLES.PACKING, ROLES.ACCOUNTS, ROLES.DELIVERY,
   ],
-  [ROLES.MANAGER]: [
-    ROLES.SALESMAN, ROLES.PRODUCTION, ROLES.PACKING, ROLES.ACCOUNTS, ROLES.DELIVERY,
-  ],
+  [ROLES.MANAGER]: [],
 };
 
 const getViewableRoles = (viewerRole) =>
@@ -89,7 +87,7 @@ const getRoleColor = (role) =>
 
 // ─── Password Visibility ──────────────────────────────────────────────────────
 
-export const canViewPassword = (viewerRole, targetRole, viewerEmployeeId, targetEmployeeId) => {
+const canViewPassword = (viewerRole, targetRole, viewerEmployeeId, targetEmployeeId) => {
   const viewer = (viewerRole || "").toUpperCase();
   const target = (targetRole || "").toUpperCase();
   if (Object.prototype.hasOwnProperty.call(PASSWORD_SHIELD_MAP, viewer))
@@ -308,10 +306,7 @@ const User = () => {
   const creatableRoles = useMemo(() => getCreatableRoles(viewerRole), [viewerRole]);
   const roleTabs = useMemo(() => ["ALL", ...viewableRoles], [viewableRoles]);
 
-  const canCreateUser = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(viewerRole), [viewerRole]);
-  const canUpdateUser = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(viewerRole), [viewerRole]);
-  const canDeleteUser = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(viewerRole), [viewerRole]);
-  const canManageUser = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER].includes(viewerRole), [viewerRole]);
+  const canCreateUser = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(viewerRole), [viewerRole]);
   const canManageDealers = useMemo(() => DEALER_MANAGER_ROLES.has(viewerRole), [viewerRole]);
   const showPasswordColumn = useMemo(() => PASSWORD_COLUMN_ROLES.has(viewerRole), [viewerRole]);
 
@@ -567,7 +562,7 @@ const User = () => {
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">Users</h1>
             <p className="text-xs text-slate-400 font-medium mt-0.5">Manage and track all system users</p>
           </div>
-          {canManageUser && (
+          {canCreateUser && (
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}

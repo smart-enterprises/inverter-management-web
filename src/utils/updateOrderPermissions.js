@@ -25,7 +25,7 @@ export const UPDATE_ORDER_PERMISSIONS = {
 
     [ROLES.PRODUCTION]: {
         viewOnly: true,
-        // Can update when "Production Completed" flag is set
+        // Production toggles "Production Completed" + can update per-item delivery date/note.
         editableDetailFields: [
             "has_production_completed",
             "delivery_date",
@@ -36,7 +36,7 @@ export const UPDATE_ORDER_PERMISSIONS = {
 
     [ROLES.PACKING]: {
         viewOnly: true,
-        // Can update when "Unpacked Completed" flag is set
+        // Packing toggles "Unpacked Completed" + can update per-item delivery date/note.
         editableDetailFields: [
             "has_unPacked_completed",
             "delivery_date",
@@ -50,10 +50,10 @@ export const UPDATE_ORDER_PERMISSIONS = {
         editableFields: [
             "amount_paid",
             "payment_method",
-            "status",           // only INVOICE or SHIPPED (enforced below)
+            "status",           // INVOICE, SHIPPED, or DELIVERED
         ],
         // Condition: all items must be PACKED — enforce this in the UI
-        allowedStatuses: ["INVOICE", "SHIPPED"],
+        allowedStatuses: ["INVOICE", "SHIPPED", "DELIVERED"],
         requireAllItemsPacked: true,
     },
 
