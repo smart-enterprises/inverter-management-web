@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { icon: FiShield, label: "Brands", path: "/brands" },
   { icon: FiClipboard, label: "Orders", path: "/orders" },
   { icon: FiTruck, label: "Delivery", path: "/delivery" },
+  { icon: FiBarChart2, label: "Analytics", path: "/analytics" },
   // { icon: FiPackage, label: "Billing", path: "/billing" },
 ];
 

@@ -22,6 +22,7 @@ import UserDetails from "../pages/UserDetails";
 import CompanyDetails from "../pages/CompanyDetails";
 import DataUpload from "../pages/DataUpload";
 import PurchaseAnalytics from "../pages/Purchaseanalytics";
+import Analytics from "../pages/Analytics";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
@@ -73,6 +74,7 @@ export default function AppRoutes() {
         <Route path="/company-details" element={<CompanyDetails />} />
         <Route path="/data-upload" element={<DataUpload />} />
         <Route path="/purchase-analytics" element={<PurchaseAnalytics />} />
+        <Route path="/analytics" element={<Analytics />} />
       </Route>
 
       {/* ── 404 ── */}

@@ -68,6 +68,9 @@ export const ROUTE_PERMISSIONS = {
   "/purchase-analytics": [
     ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
   ],
+  "/analytics": [
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.ACCOUNTS,
+  ],
 };
 
 export const getAllowedRoles = (pathname) => {
