@@ -63,7 +63,6 @@ export const ROUTE_PERMISSIONS = {
 
   "/production-summary": [
     ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
-    ROLES.PRODUCTION, ROLES.PACKING,
   ],
 
   "/billing": [

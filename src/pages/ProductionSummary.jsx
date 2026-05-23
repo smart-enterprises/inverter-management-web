@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   FiSearch, FiX, FiRefreshCw, FiPackage, FiAlertCircle, FiActivity,
+  FiChevronRight, FiChevronDown, FiUsers,
 } from "react-icons/fi";
 import { fetchProductionSummary } from "../api/orders";
 import { capitalizeFirstLetter } from "../utils/constants";
@@ -35,6 +36,16 @@ const ProductionSummary = () => {
   const [error, setError] = useState(null);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+
+  const toggleExpand = (productId) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setSearchQuery(searchInput.trim()), 300);
@@ -200,6 +211,7 @@ const ProductionSummary = () => {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <th className="w-10 px-2 py-3.5"></th>
                   <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap">
                     Product
                   </th>
@@ -222,7 +234,7 @@ const ProductionSummary = () => {
               <tbody className="divide-y divide-slate-50">
                 {filteredRows.length === 0 ? (
                   <tr>
-                    <td colSpan={3 + TRACKED_STATUSES.length} className="px-5 py-20 text-center">
+                    <td colSpan={4 + TRACKED_STATUSES.length} className="px-5 py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="p-5 bg-slate-100 rounded-2xl">
                           <FiPackage size={24} className="text-slate-400" />
@@ -233,39 +245,114 @@ const ProductionSummary = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredRows.map((row) => (
-                    <tr
-                      key={row.product_id}
-                      className="hover:bg-slate-50/60 transition-colors duration-100"
-                    >
-                      <td className="px-5 py-4">
-                        <p className="font-bold text-slate-900">
-                          {capitalizeFirstLetter(row.product_name)}
-                        </p>
-                        <p className="text-[10px] font-mono text-slate-400 mt-0.5">
-                          {row.product_id}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="font-semibold text-slate-700">
-                          {capitalizeFirstLetter(row.product_brand)}
-                        </p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          {row.product_model}
-                        </p>
-                      </td>
-                      {TRACKED_STATUSES.map((s) => (
-                        <td key={s} className="px-5 py-4 text-center">
-                          <QtyCell qty={row.counts?.[s] || 0} status={s} />
-                        </td>
-                      ))}
-                      <td className="px-5 py-4 text-right">
-                        <span className="text-sm font-bold text-slate-900">
-                          {(row.total_qty || 0).toLocaleString("en-IN")}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                  filteredRows.map((row) => {
+                    const isExpanded = expandedIds.has(row.product_id);
+                    const dealers = Array.isArray(row.dealers) ? row.dealers : [];
+                    const dealerCount = row.dealer_count ?? dealers.length;
+
+                    return (
+                      <React.Fragment key={row.product_id}>
+                        <tr
+                          onClick={() => toggleExpand(row.product_id)}
+                          className="hover:bg-slate-50/60 transition-colors duration-100 cursor-pointer"
+                        >
+                          <td className="w-10 px-2 py-4 text-center">
+                            {dealers.length > 0 ? (
+                              isExpanded
+                                ? <FiChevronDown size={14} className="text-indigo-500 inline-block" />
+                                : <FiChevronRight size={14} className="text-slate-400 inline-block" />
+                            ) : null}
+                          </td>
+                          <td className="px-5 py-4">
+                            <p className="font-bold text-slate-900">
+                              {capitalizeFirstLetter(row.product_name)}
+                            </p>
+                            <p className="text-[10px] font-mono text-slate-400 mt-0.5 flex items-center gap-1.5">
+                              <span>{row.product_id}</span>
+                              {dealerCount > 0 && (
+                                <span className="inline-flex items-center gap-0.5 text-slate-500">
+                                  <FiUsers size={9} /> {dealerCount} dealer{dealerCount !== 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </p>
+                          </td>
+                          <td className="px-5 py-4">
+                            <p className="font-semibold text-slate-700">
+                              {capitalizeFirstLetter(row.product_brand)}
+                            </p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              {row.product_model}
+                            </p>
+                          </td>
+                          {TRACKED_STATUSES.map((s) => (
+                            <td key={s} className="px-5 py-4 text-center">
+                              <QtyCell qty={row.counts?.[s] || 0} status={s} />
+                            </td>
+                          ))}
+                          <td className="px-5 py-4 text-right">
+                            <span className="text-sm font-bold text-slate-900">
+                              {(row.total_qty || 0).toLocaleString("en-IN")}
+                            </span>
+                          </td>
+                        </tr>
+
+                        {isExpanded && dealers.length > 0 && (
+                          <tr className="bg-slate-50/40">
+                            <td colSpan={4 + TRACKED_STATUSES.length} className="px-5 py-3">
+                              <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+                                <table className="min-w-full text-sm">
+                                  <thead>
+                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                      <th className="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">Dealer</th>
+                                      <th className="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">Shop / Town</th>
+                                      {TRACKED_STATUSES.map((s) => (
+                                        <th key={s} className="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">
+                                          {s}
+                                        </th>
+                                      ))}
+                                      <th className="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">Total</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {dealers.map((d, i) => (
+                                      <tr key={`${d.dealer_id || "unknown"}-${i}`}>
+                                        <td className="px-4 py-2.5">
+                                          <p className="font-semibold text-slate-800">
+                                            {capitalizeFirstLetter(d.dealer_name) || d.dealer_id || "—"}
+                                          </p>
+                                          {d.employee_phone && (
+                                            <p className="text-[10px] text-slate-400 mt-0.5">{d.employee_phone}</p>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-2.5">
+                                          <p className="text-slate-700">
+                                            {capitalizeFirstLetter(d.shop_name) || "—"}
+                                          </p>
+                                          <p className="text-[10px] text-slate-400 mt-0.5">
+                                            {capitalizeFirstLetter(d.town) || ""}
+                                          </p>
+                                        </td>
+                                        {TRACKED_STATUSES.map((s) => (
+                                          <td key={s} className="px-4 py-2.5 text-center">
+                                            <QtyCell qty={d.counts?.[s] || 0} status={s} />
+                                          </td>
+                                        ))}
+                                        <td className="px-4 py-2.5 text-right">
+                                          <span className="text-sm font-bold text-slate-900">
+                                            {(d.total_qty || 0).toLocaleString("en-IN")}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
                 )}
               </tbody>
             </table>

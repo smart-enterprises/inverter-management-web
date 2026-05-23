@@ -131,6 +131,40 @@ const StatusBadge = ({ status }) => {
 };
 
 /* ================================================================
+   PROGRESS BAR — compact "X of Y delivered · NN%" with thin bar
+   ================================================================ */
+const SKIP_PROGRESS_STATUSES = new Set(["CANCELLED", "REJECTED"]);
+
+const ProgressBar = ({ progress, status }) => {
+  if (!progress) return null;
+  if (SKIP_PROGRESS_STATUSES.has(String(status).toUpperCase())) return null;
+
+  const ordered = Number(progress.qty_ordered_total) || 0;
+  const delivered = Number(progress.qty_delivered_total) || 0;
+  if (ordered <= 0) return null;
+
+  const pct = Number(progress.delivered_percent) || 0;
+  const isComplete = delivered >= ordered;
+
+  return (
+    <div className="mt-1.5 w-36">
+      <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500">
+        <span>
+          {delivered}/{ordered} delivered
+        </span>
+        <span className={isComplete ? "text-emerald-600" : "text-slate-400"}>{pct}%</span>
+      </div>
+      <div className="mt-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${isComplete ? "bg-emerald-500" : "bg-indigo-500"}`}
+          style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+/* ================================================================
    DATE INPUT
    ================================================================ */
 const DateInput = ({ value, onChange, placeholder, max }) => (
@@ -369,9 +403,10 @@ const Orders = () => {
       { value: "ALL", label: "All Dealers" },
       ...dealersList.map((d) => ({
         value: d.employee_id,
-        label: d.shop_name
-          ? `${capitalizeFirstLetter(d.employee_name)} — ${capitalizeFirstLetter(d.shop_name)}`
-          : capitalizeFirstLetter(d.employee_name),
+        label: d.shop_name && d.town
+          ? `${capitalizeFirstLetter(d.shop_name)} — ${capitalizeFirstLetter(d.town)}`
+          : capitalizeFirstLetter(d.shop_name) || capitalizeFirstLetter(d.employee_name),
+        subLabel: d.employee_phone ? String(d.employee_phone) : null,
       })),
     ],
     [dealersList]
@@ -745,6 +780,7 @@ const Orders = () => {
                           ) : (
                             <StatusBadge status={order.status} />
                           )}
+                          <ProgressBar progress={order.progress} status={order.status} />
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center justify-end gap-1">
