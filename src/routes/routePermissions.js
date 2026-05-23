@@ -61,11 +61,18 @@ export const ROUTE_PERMISSIONS = {
     ROLES.ACCOUNTS, ROLES.DELIVERY,
   ],
 
+  "/production-summary": [
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+  ],
+
   "/billing": [
     ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
     ROLES.ACCOUNTS, ROLES.DELIVERY,
   ],
   "/purchase-analytics": [
+    ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
+  ],
+  "/analytics": [
     ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER,
   ],
 };

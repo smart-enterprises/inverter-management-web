@@ -10,10 +10,12 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrders } from "../api/orders";
+import { fetchUserByRole } from "../api/user";
+import { fetchDealers } from "../api/dealer";
 import { getFilteredStatusOptions, ORDER_STATUSES, PRIORITY_OPTIONS } from "../utils/status";
 import { capitalizeFirstLetter } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
-import { ROLES } from "../utils/roles";
+import { canSelectSalesman, ROLES } from "../utils/roles";
 import ProductionStatusBadge from "../components/ProductionStatusBadge";
 
 /* ================================================================
@@ -129,6 +131,40 @@ const StatusBadge = ({ status }) => {
 };
 
 /* ================================================================
+   PROGRESS BAR — compact "X of Y delivered · NN%" with thin bar
+   ================================================================ */
+const SKIP_PROGRESS_STATUSES = new Set(["CANCELLED", "REJECTED"]);
+
+const ProgressBar = ({ progress, status }) => {
+  if (!progress) return null;
+  if (SKIP_PROGRESS_STATUSES.has(String(status).toUpperCase())) return null;
+
+  const ordered = Number(progress.qty_ordered_total) || 0;
+  const delivered = Number(progress.qty_delivered_total) || 0;
+  if (ordered <= 0) return null;
+
+  const pct = Number(progress.delivered_percent) || 0;
+  const isComplete = delivered >= ordered;
+
+  return (
+    <div className="mt-1.5 w-36">
+      <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500">
+        <span>
+          {delivered}/{ordered} delivered
+        </span>
+        <span className={isComplete ? "text-emerald-600" : "text-slate-400"}>{pct}%</span>
+      </div>
+      <div className="mt-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full ${isComplete ? "bg-emerald-500" : "bg-indigo-500"}`}
+          style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+/* ================================================================
    DATE INPUT
    ================================================================ */
 const DateInput = ({ value, onChange, placeholder, max }) => (
@@ -213,6 +249,14 @@ const Orders = () => {
   const [startDate, setStartDate] = useState(routeState?.startDate || "");
   const [endDate, setEndDate] = useState(routeState?.endDate || "");
 
+  const canSelectSalesmanPermission = useMemo(() => canSelectSalesman(role), [role]);
+  const canFilterByDealer = canSelectSalesmanPermission || role === ROLES.SALESMAN;
+
+  const [salespersons, setSalespersons] = useState([]);
+  const [dealersList, setDealersList] = useState([]);
+  const [selectedSalesman, setSelectedSalesman] = useState("ALL");
+  const [selectedDealer, setSelectedDealer] = useState("ALL");
+
   /* Debounce: push searchInput → searchQuery after 400 ms */
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -221,6 +265,58 @@ const Orders = () => {
     }, 400);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  /* Load salespersons — admin/superadmin/manager only */
+  useEffect(() => {
+    if (!canSelectSalesmanPermission) return;
+    (async () => {
+      try {
+        const res = await fetchUserByRole(ROLES.SALESMAN);
+        if (res?.success && Array.isArray(res.data)) setSalespersons(res.data);
+      } catch {
+        /* silent — non-blocking filter */
+      }
+    })();
+  }, [canSelectSalesmanPermission]);
+
+  /* Load dealers for the dealer filter.
+     - admin/manager: all dealers when no salesman selected, else that salesman's assigned dealers
+     - salesman: only their own assigned dealers */
+  useEffect(() => {
+    if (!canFilterByDealer) return;
+
+    (async () => {
+      try {
+        const salesmanIds =
+          canSelectSalesmanPermission && selectedSalesman !== "ALL"
+            ? [selectedSalesman]
+            : [];
+
+        const res = await fetchDealers({
+          page: 1,
+          limit: 5000,
+          role: ROLES.DEALER,
+          status: "active",
+          includeDealers: true,
+          scope: "ASSIGNED_ONLY",
+          salesmanIds,
+        });
+
+        if (res?.success && res?.data?.employees) {
+          setDealersList(res.data.employees.filter((e) => e.role === ROLES.DEALER));
+        } else {
+          setDealersList([]);
+        }
+      } catch {
+        setDealersList([]);
+      }
+    })();
+  }, [canFilterByDealer, canSelectSalesmanPermission, selectedSalesman, user?.employee_id]);
+
+  /* When salesman changes, reset dealer selection */
+  useEffect(() => {
+    setSelectedDealer("ALL");
+  }, [selectedSalesman]);
 
   const queryParams = useMemo(
     () => ({
@@ -231,8 +327,15 @@ const Orders = () => {
       search: searchQuery || undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
+      salesman: canSelectSalesmanPermission && selectedSalesman !== "ALL" ? selectedSalesman : undefined,
+      dealer: canFilterByDealer && selectedDealer !== "ALL" ? selectedDealer : undefined,
     }),
-    [pagination.page, pagination.limit, selectedStatus, selectedPriority, searchQuery, startDate, endDate]
+    [
+      pagination.page, pagination.limit, selectedStatus, selectedPriority,
+      searchQuery, startDate, endDate,
+      canSelectSalesmanPermission, selectedSalesman,
+      canFilterByDealer, selectedDealer,
+    ]
   );
 
   const loadOrders = useCallback(async () => {
@@ -266,7 +369,9 @@ const Orders = () => {
     selectedStatus !== "ALL" ||
     selectedPriority !== "ALL" ||
     startDate ||
-    endDate;
+    endDate ||
+    selectedSalesman !== "ALL" ||
+    selectedDealer !== "ALL";
 
   const clearFilters = () => {
     setSearchInput("");
@@ -275,10 +380,37 @@ const Orders = () => {
     setSelectedPriority("ALL");
     setStartDate("");
     setEndDate("");
+    setSelectedSalesman("ALL");
+    setSelectedDealer("ALL");
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const statusOptions = useMemo(() => getFilteredStatusOptions(role), [role]);
+
+  const salesmanOptions = useMemo(
+    () => [
+      { value: "ALL", label: "All Salesmen" },
+      ...salespersons.map((s) => ({
+        value: s.employee_id,
+        label: capitalizeFirstLetter(s.employee_name),
+      })),
+    ],
+    [salespersons]
+  );
+
+  const dealerOptions = useMemo(
+    () => [
+      { value: "ALL", label: "All Dealers" },
+      ...dealersList.map((d) => ({
+        value: d.employee_id,
+        label: d.shop_name && d.town
+          ? `${capitalizeFirstLetter(d.shop_name)} — ${capitalizeFirstLetter(d.town)}`
+          : capitalizeFirstLetter(d.shop_name) || capitalizeFirstLetter(d.employee_name),
+        subLabel: d.employee_phone ? String(d.employee_phone) : null,
+      })),
+    ],
+    [dealersList]
+  );
 
   /* ── Loading / error states ── */
   if (loading && orders.length === 0) {
@@ -403,6 +535,38 @@ const Orders = () => {
                     options={PRIORITY_OPTIONS}
                   />
                 </div>
+
+                {canSelectSalesmanPermission && (
+                  <div className="w-44">
+                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Salesman</span>
+                    <CustomSelect
+                      name="salesman"
+                      value={selectedSalesman}
+                      onChange={(e) => {
+                        setSelectedSalesman(e.target.value);
+                        setPagination((prev) => ({ ...prev, page: 1 }));
+                      }}
+                      options={salesmanOptions}
+                      searchable
+                    />
+                  </div>
+                )}
+
+                {canFilterByDealer && (
+                  <div className="w-48">
+                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Dealer</span>
+                    <CustomSelect
+                      name="dealer"
+                      value={selectedDealer}
+                      onChange={(e) => {
+                        setSelectedDealer(e.target.value);
+                        setPagination((prev) => ({ ...prev, page: 1 }));
+                      }}
+                      options={dealerOptions}
+                      searchable
+                    />
+                  </div>
+                )}
 
                 {/* Date Range */}
                 <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
@@ -616,6 +780,7 @@ const Orders = () => {
                           ) : (
                             <StatusBadge status={order.status} />
                           )}
+                          <ProgressBar progress={order.progress} status={order.status} />
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center justify-end gap-1">

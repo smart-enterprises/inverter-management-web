@@ -17,6 +17,7 @@ export const fetchOrders = async ({
     priority,
     search,
     dealer,
+    salesman,
     startDate,
     endDate,
     deliveryStartDate,
@@ -51,6 +52,11 @@ export const fetchOrders = async ({
     // Dealer filter
     if (dealer) {
         queryParams.append('dealer', dealer);
+    }
+
+    // Salesman filter
+    if (salesman) {
+        queryParams.append('salesman', salesman);
     }
 
     // Date range filters
@@ -88,6 +94,13 @@ export const updateOrderStatus = async (orderNumber, payload) => {
     return apiRequest(`/order-details/status/${orderNumber}`, {
         method: "PUT",
         body: JSON.stringify(payload),
+    });
+};
+
+// ✅ Production Summary — per-product remaining qty by status
+export const fetchProductionSummary = async () => {
+    return apiRequest(`/order-details/production-summary`, {
+        method: "GET",
     });
 };
 

@@ -37,6 +37,7 @@ const CustomSelect = ({
   // Support both string and object options
   const getOptionLabel = (option) => (typeof option === 'object' ? option.label : option);
   const getOptionValue = (option) => (typeof option === 'object' ? option.value : option);
+  const getOptionSubLabel = (option) => (typeof option === 'object' ? option.subLabel : null);
 
   // Check if options are grouped
   const isGrouped = grouped || (options.length > 0 && options[0]?.group);
@@ -47,7 +48,14 @@ const CustomSelect = ({
     return opts.flatMap((group) => group.options || []);
   };
 
-  // Filter options based on search query
+  // Filter options based on search query (matches label and subLabel)
+  const optionMatchesSearch = (option, q) => {
+    const needle = q.toLowerCase();
+    const label = (getOptionLabel(option) || '').toLowerCase();
+    const sub = (getOptionSubLabel(option) || '').toLowerCase();
+    return label.includes(needle) || sub.includes(needle);
+  };
+
   const filterOptions = (opts) => {
     if (!searchQuery) return opts;
     if (isGrouped) {
@@ -55,14 +63,12 @@ const CustomSelect = ({
         .map((group) => ({
           ...group,
           options: (group.options || []).filter((option) =>
-            getOptionLabel(option).toLowerCase().includes(searchQuery.toLowerCase())
+            optionMatchesSearch(option, searchQuery)
           ),
         }))
         .filter((group) => group.options.length > 0);
     } else {
-      return opts.filter((option) =>
-        getOptionLabel(option).toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      return opts.filter((option) => optionMatchesSearch(option, searchQuery));
     }
   };
 
@@ -176,43 +182,55 @@ const CustomSelect = ({
                     <div className="px-4 py-1.5 text-[9px] font-black text-gray-400 uppercase tracking-[0.14em] bg-gray-50 sticky top-0 whitespace-nowrap border-b border-gray-100">
                       {group.group || group.label}
                     </div>
-                    {(group.options || []).map((option) => (
-                      <button
-                        key={getOptionValue(option)}
-                        type="button"
-                        onClick={() => {
-                          onChange({ target: { name, value: getOptionValue(option) } });
-                          setIsOpen(false);
-                          setSearchQuery('');
-                        }}
-                        className={`w-full px-6 py-2.5 text-sm text-left transition-colors border-b border-gray-50 last:border-0 ${value === getOptionValue(option)
-                          ? 'bg-[#9333EA]/8 text-[#9333EA] font-semibold'
-                          : 'text-gray-700 hover:bg-gray-50'
-                          }`}
-                      >
-                        {getOptionLabel(option)}
-                      </button>
-                    ))}
+                    {(group.options || []).map((option) => {
+                      const sub = getOptionSubLabel(option);
+                      return (
+                        <button
+                          key={getOptionValue(option)}
+                          type="button"
+                          onClick={() => {
+                            onChange({ target: { name, value: getOptionValue(option) } });
+                            setIsOpen(false);
+                            setSearchQuery('');
+                          }}
+                          className={`w-full px-6 py-2.5 text-sm text-left transition-colors border-b border-gray-50 last:border-0 ${value === getOptionValue(option)
+                            ? 'bg-[#9333EA]/8 text-[#9333EA] font-semibold'
+                            : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                        >
+                          <div>{getOptionLabel(option)}</div>
+                          {sub && (
+                            <div className="text-[11px] text-gray-400 font-normal mt-0.5">{sub}</div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 ))
               ) : (
-                filteredOptions.map((option) => (
-                  <button
-                    key={getOptionValue(option)}
-                    type="button"
-                    onClick={() => {
-                      onChange({ target: { name, value: getOptionValue(option) } });
-                      setIsOpen(false);
-                      setSearchQuery('');
-                    }}
-                    className={`w-full px-4 py-2.5 text-sm text-left transition-colors border-b border-gray-50 last:border-0 ${value === getOptionValue(option)
-                      ? 'bg-[#9333EA]/10 text-[#9333EA] font-semibold'
-                      : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                  >
-                    {getOptionLabel(option)}
-                  </button>
-                ))
+                filteredOptions.map((option) => {
+                  const sub = getOptionSubLabel(option);
+                  return (
+                    <button
+                      key={getOptionValue(option)}
+                      type="button"
+                      onClick={() => {
+                        onChange({ target: { name, value: getOptionValue(option) } });
+                        setIsOpen(false);
+                        setSearchQuery('');
+                      }}
+                      className={`w-full px-4 py-2.5 text-sm text-left transition-colors border-b border-gray-50 last:border-0 ${value === getOptionValue(option)
+                        ? 'bg-[#9333EA]/10 text-[#9333EA] font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                      <div>{getOptionLabel(option)}</div>
+                      {sub && (
+                        <div className="text-[11px] text-gray-400 font-normal mt-0.5">{sub}</div>
+                      )}
+                    </button>
+                  );
+                })
               )
             ) : (
               <div className="px-4 py-6 text-sm text-gray-400 text-center font-medium">
