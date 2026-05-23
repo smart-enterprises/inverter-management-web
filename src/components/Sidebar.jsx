@@ -11,6 +11,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiShield,
+  FiActivity,
 } from "react-icons/fi";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { icon: FiBox, label: "Products", path: "/products" },
   { icon: FiShield, label: "Brands", path: "/brands" },
   { icon: FiClipboard, label: "Orders", path: "/orders" },
+  { icon: FiActivity, label: "Production", path: "/production-summary" },
   { icon: FiTruck, label: "Delivery", path: "/delivery" },
   { icon: FiBarChart2, label: "Analytics", path: "/analytics" },
   // { icon: FiPackage, label: "Billing", path: "/billing" },

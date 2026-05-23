@@ -19,20 +19,21 @@ export const fetchSalesTrend = ({ from, to, interval = "day", dealer_id, salesma
     apiRequest(`/analytics/sales-trend${build({ from, to, interval, dealer_id, salesman_id })}`);
 
 // GET /api/v1/analytics/top-products
-export const fetchTopProducts = ({ from, to, limit = 10, metric = "revenue", dealer_id, salesman_id } = {}) =>
-    apiRequest(`/analytics/top-products${build({ from, to, limit, metric, dealer_id, salesman_id })}`);
+// `view`: "delivered" (default) | "booked"
+export const fetchTopProducts = ({ from, to, limit = 10, metric = "revenue", view = "delivered", dealer_id, salesman_id } = {}) =>
+    apiRequest(`/analytics/top-products${build({ from, to, limit, metric, view, dealer_id, salesman_id })}`);
 
 // GET /api/v1/analytics/top-dealers
-export const fetchTopDealers = ({ from, to, limit = 10, salesman_id } = {}) =>
-    apiRequest(`/analytics/top-dealers${build({ from, to, limit, salesman_id })}`);
+export const fetchTopDealers = ({ from, to, limit = 10, view = "delivered", salesman_id } = {}) =>
+    apiRequest(`/analytics/top-dealers${build({ from, to, limit, view, salesman_id })}`);
 
 // GET /api/v1/analytics/top-brands
-export const fetchTopBrands = ({ from, to, limit = 8, metric = "qty", dealer_id, salesman_id } = {}) =>
-    apiRequest(`/analytics/top-brands${build({ from, to, limit, metric, dealer_id, salesman_id })}`);
+export const fetchTopBrands = ({ from, to, limit = 8, metric = "qty", view = "delivered", dealer_id, salesman_id } = {}) =>
+    apiRequest(`/analytics/top-brands${build({ from, to, limit, metric, view, dealer_id, salesman_id })}`);
 
 // GET /api/v1/analytics/top-salesmen
-export const fetchTopSalesmen = ({ from, to, limit = 10, dealer_id } = {}) =>
-    apiRequest(`/analytics/top-salesmen${build({ from, to, limit, dealer_id })}`);
+export const fetchTopSalesmen = ({ from, to, limit = 10, view = "delivered", dealer_id } = {}) =>
+    apiRequest(`/analytics/top-salesmen${build({ from, to, limit, view, dealer_id })}`);
 
 // GET /api/v1/analytics/salesman-achievement
 export const fetchSalesmanAchievement = ({ from, to, dealer_id } = {}) =>

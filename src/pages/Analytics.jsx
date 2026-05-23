@@ -19,7 +19,7 @@ import {
     FiActivity, FiAlertCircle, FiArrowDownRight, FiArrowUpRight,
     FiAward, FiBarChart, FiBarChart2, FiCheckCircle, FiChevronLeft,
     FiChevronRight, FiDollarSign, FiFilter, FiPackage, FiPieChart,
-    FiRefreshCw, FiShoppingBag, FiTrendingUp, FiUsers, FiXCircle,
+    FiRefreshCw, FiShoppingBag, FiSlash, FiTrendingUp, FiUsers, FiXCircle,
 } from "react-icons/fi";
 import {
     Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart,
@@ -35,6 +35,8 @@ import {
 import { fetchDealers } from "../api/dealer";
 import { capitalizeFirstLetter } from "../utils/constants";
 import CustomSelect from "../components/CustomSelect";
+import { useAuth } from "../hooks/useAuth";
+import { ROLES } from "../utils/roles";
 
 /* ─────────────────────────────── Formatting ─────────────────────────────── */
 const compactINR = (n) => {
@@ -494,6 +496,25 @@ const Analytics = () => {
     const [interval, setInterval] = useState("day");
     const [metric, setMetric] = useState("revenue");
     const [brandMetric, setBrandMetric] = useState("qty");
+    // Shared view toggle for all top-* panels: "delivered" (real business) or "booked" (all orders).
+    const [topView, setTopView] = useState("delivered");
+    // Number format for KPI cards: true → compact (5L, 1.2Cr), false → full Indian (3,50,050).
+    const [compactNumbers, setCompactNumbers] = useState(true);
+    const fmtINR = compactNumbers ? compactINR : fullINR;
+
+    // Profit (revenue − cost) is cost-sensitive. Only admins see it.
+    // Managers see analytics but no profit anywhere on the page.
+    const { user } = useAuth();
+    const canSeeProfit = user?.role === ROLES.SUPER_ADMIN || user?.role === ROLES.ADMIN;
+
+    // Defensive: if a non-admin somehow lands with metric="profit" (cached
+    // state, deep link, etc.), reset it so the request doesn't 403.
+    useEffect(() => {
+        if (!canSeeProfit) {
+            if (metric === "profit") setMetric("revenue");
+            if (brandMetric === "profit") setBrandMetric("qty");
+        }
+    }, [canSeeProfit, metric, brandMetric]);
 
     // Chart-type toggles
     const [trendType, setTrendType] = useState("composed"); // composed | area | bar | line
@@ -571,12 +592,12 @@ const Analytics = () => {
             fetchAnalyticsSummary({ from, to, ...scope }),
             fetchAnalyticsSummary({ from: previousRange.from, to: previousRange.to, ...scope }),
             fetchSalesTrend({ from, to, interval, ...scope }),
-            fetchTopProducts({ from, to, metric, limit: 10, ...scope }),
-            fetchTopBrands({ from, to, metric: brandMetric, limit: 8, ...scope }),
+            fetchTopProducts({ from, to, metric, view: topView, limit: 10, ...scope }),
+            fetchTopBrands({ from, to, metric: brandMetric, view: topView, limit: 8, ...scope }),
             showTopDealers
-                ? fetchTopDealers({ from, to, limit: 10 })
+                ? fetchTopDealers({ from, to, view: topView, limit: 10 })
                 : Promise.resolve({ success: true, data: { items: [] } }),
-            fetchTopSalesmen({ from, to, limit: 10, ...scope }),
+            fetchTopSalesmen({ from, to, view: topView, limit: 10, ...scope }),
             fetchSalesmanAchievement({ from: monthStart, to: monthEnd, ...scope }),
         ]);
 
@@ -598,7 +619,7 @@ const Analytics = () => {
         setTopSalesmen(salesmenRes.data?.items || []);
         setAchievement(achRes.data || { default_target_qty: 0, items: [] });
         setLoading(false);
-    }, [from, to, interval, metric, brandMetric, dealerId, achMonth.year, achMonth.month0, previousRange.from, previousRange.to]);
+    }, [from, to, interval, metric, brandMetric, topView, dealerId, achMonth.year, achMonth.month0, previousRange.from, previousRange.to]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -618,7 +639,7 @@ const Analytics = () => {
 
     const trendData = useMemo(() => trend, [trend]);
     const topData = useMemo(() => {
-        const key = metric === "qty" ? "qty_sold" : "revenue";
+        const key = metric === "qty" ? "qty_sold" : metric; // "qty_sold" | "revenue" | "profit"
         return [...topProducts]
             .map((p) => ({ ...p, _value: p[key] || 0 }))
             .sort((a, b) => b._value - a._value);
@@ -633,7 +654,9 @@ const Analytics = () => {
         booked: pct(summary?.revenue_booked, prevSummary?.revenue_booked),
         delivered: pct(summary?.revenue_delivered, prevSummary?.revenue_delivered),
         cancelled: pct(summary?.revenue_cancelled, prevSummary?.revenue_cancelled),
+        rejected: pct(summary?.revenue_rejected, prevSummary?.revenue_rejected),
         pending: pct(summary?.revenue_pending, prevSummary?.revenue_pending),
+        profit: pct(summary?.profit_delivered, prevSummary?.profit_delivered),
         paid: pct(summary?.revenue_paid, prevSummary?.revenue_paid),
         due: pct(summary?.revenue_due, prevSummary?.revenue_due),
     };
@@ -732,8 +755,31 @@ const Analytics = () => {
                 </div>
             )}
 
-            {/* KPI strip — revenue split into Booked / Delivered / Cancelled / Pending */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* KPI number-format toggle */}
+            <div className="flex items-center justify-end">
+                <div className="inline-flex items-center bg-white border border-slate-200 rounded-xl p-1">
+                    {[
+                        { id: true,  label: "Compact (5L)" },
+                        { id: false, label: "Full (5,00,000)" },
+                    ].map((opt) => (
+                        <button
+                            key={String(opt.id)}
+                            onClick={() => setCompactNumbers(opt.id)}
+                            className={[
+                                "px-3 py-1 text-xs font-bold rounded-lg transition-all",
+                                compactNumbers === opt.id
+                                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
+                                    : "text-slate-500 hover:text-indigo-600",
+                            ].join(" ")}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* KPI strip — revenue split into Booked / Delivered / Profit / Cancelled / Rejected / Pending / Paid / Due / Avg */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <KpiCard
                     icon={<FiShoppingBag />} title="Orders" color="indigo"
                     value={fullNum(summary?.orders_total)} delta={d.orders} loading={loading}
@@ -741,33 +787,44 @@ const Analytics = () => {
                 />
                 <KpiCard
                     icon={<FiDollarSign />} title="Bookings" color="emerald"
-                    value={compactINR(summary?.revenue_booked)} delta={d.booked} loading={loading}
+                    value={fmtINR(summary?.revenue_booked)} delta={d.booked} loading={loading}
                 />
                 <KpiCard
                     icon={<FiPackage />} title="Delivered ₹" color="violet"
-                    value={compactINR(summary?.revenue_delivered)} delta={d.delivered} loading={loading}
+                    value={fmtINR(summary?.revenue_delivered)} delta={d.delivered} loading={loading}
                     onClick={() => drillTo({ status: "DELIVERED", startDate: from, endDate: to })}
                 />
+                {canSeeProfit && (
+                    <KpiCard
+                        icon={<FiAward />} title="Profit ₹" color="emerald"
+                        value={fmtINR(summary?.profit_delivered)} delta={d.profit} loading={loading}
+                    />
+                )}
                 <KpiCard
                     icon={<FiXCircle />} title="Cancelled ₹" color="rose"
-                    value={compactINR(summary?.revenue_cancelled)} delta={d.cancelled} loading={loading}
+                    value={fmtINR(summary?.revenue_cancelled)} delta={d.cancelled} loading={loading}
                     onClick={() => drillTo({ status: "CANCELLED", startDate: from, endDate: to })}
                 />
                 <KpiCard
+                    icon={<FiSlash />} title="Rejected ₹" color="rose"
+                    value={fmtINR(summary?.revenue_rejected)} delta={d.rejected} loading={loading}
+                    onClick={() => drillTo({ status: "REJECTED", startDate: from, endDate: to })}
+                />
+                <KpiCard
                     icon={<FiActivity />} title="Pending ₹" color="amber"
-                    value={compactINR(summary?.revenue_pending)} delta={d.pending} loading={loading}
+                    value={fmtINR(summary?.revenue_pending)} delta={d.pending} loading={loading}
                 />
                 <KpiCard
                     icon={<FiCheckCircle />} title="Paid" color="blue"
-                    value={compactINR(summary?.revenue_paid)} delta={d.paid} loading={loading}
+                    value={fmtINR(summary?.revenue_paid)} delta={d.paid} loading={loading}
                 />
                 <KpiCard
                     icon={<FiActivity />} title="Due" color="amber"
-                    value={compactINR(summary?.revenue_due)} delta={d.due} loading={loading}
+                    value={fmtINR(summary?.revenue_due)} delta={d.due} loading={loading}
                 />
                 <KpiCard
                     icon={<FiTrendingUp />} title="Avg / Order" color="sky"
-                    value={summary?.orders_total ? compactINR(summary.revenue_booked / summary.orders_total) : "—"}
+                    value={summary?.orders_total ? fmtINR(summary.revenue_booked / summary.orders_total) : "—"}
                     loading={loading}
                 />
             </div>
@@ -811,6 +868,37 @@ const Analytics = () => {
                 )}
             </Card>
 
+            {/* Ranking section header — Delivered/Booked toggle drives Top Products / Brands / Dealers / Salesmen */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between pt-2">
+                <div>
+                    <h2 className="text-sm font-black text-slate-800 tracking-tight">Top performance</h2>
+                    <p className="text-[11px] text-slate-400 font-medium">
+                        {topView === "delivered"
+                            ? "Ranked by what was actually delivered (real business)."
+                            : "Ranked by all booked orders (including pending & cancelled)."}
+                    </p>
+                </div>
+                <div className="inline-flex items-center bg-white border border-slate-200 rounded-xl p-1 self-start sm:self-auto">
+                    {[
+                        { id: "delivered", label: "Delivered" },
+                        { id: "booked", label: "Booked" },
+                    ].map((v) => (
+                        <button
+                            key={v.id}
+                            onClick={() => setTopView(v.id)}
+                            className={[
+                                "px-3 py-1 text-xs font-bold rounded-lg transition-all",
+                                topView === v.id
+                                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
+                                    : "text-slate-500 hover:text-indigo-600",
+                            ].join(" ")}
+                        >
+                            {v.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
                 {/* Status pipeline */}
@@ -845,7 +933,7 @@ const Analytics = () => {
                 <div className="lg:col-span-3">
                     <Card
                         title="Top Products"
-                        subtitle={`Top 10 · by ${metric === "revenue" ? "revenue" : "quantity"}`}
+                        subtitle={`${topView === "delivered" ? "Delivered" : "Booked"} · by ${metric === "revenue" ? "revenue" : metric === "profit" ? "profit" : "quantity"} · top 10`}
                         action={
                             <select
                                 value={metric}
@@ -853,6 +941,7 @@ const Analytics = () => {
                                 className="px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
                             >
                                 <option value="revenue">Revenue</option>
+                                {canSeeProfit && <option value="profit">Profit</option>}
                                 <option value="qty">Quantity</option>
                             </select>
                         }
@@ -882,7 +971,7 @@ const Analytics = () => {
                                         fontSize={11}
                                         tickLine={false}
                                         axisLine={false}
-                                        tickFormatter={(v) => metric === "revenue" ? compactINR(v) : compactNum(v)}
+                                        tickFormatter={(v) => metric === "qty" ? compactNum(v) : compactINR(v)}
                                     />
                                     <YAxis
                                         type="category"
@@ -897,20 +986,20 @@ const Analytics = () => {
                                     <Tooltip
                                         content={
                                             <ChartTooltip
-                                                formatter={(v, key) => key === "revenue" ? fullINR(v) : fullNum(v)}
+                                                formatter={(v, key) => (key === "revenue" || key === "profit") ? fullINR(v) : fullNum(v)}
                                             />
                                         }
                                     />
                                     <Bar
-                                        dataKey={metric === "qty" ? "qty_sold" : "revenue"}
+                                        dataKey={metric === "qty" ? "qty_sold" : metric}
                                         fill="url(#grad-bar)"
                                         radius={[0, 8, 8, 0]}
                                         barSize={18}
                                     >
                                         <LabelList
-                                            dataKey={metric === "qty" ? "qty_sold" : "revenue"}
+                                            dataKey={metric === "qty" ? "qty_sold" : metric}
                                             position="right"
-                                            formatter={(v) => metric === "revenue" ? compactINR(v) : compactNum(v)}
+                                            formatter={(v) => metric === "qty" ? compactNum(v) : compactINR(v)}
                                             fill="#475569"
                                             fontSize={11}
                                             fontWeight={700}
@@ -931,7 +1020,7 @@ const Analytics = () => {
                 <div className="lg:col-span-2">
                     <Card
                         title="Top Brands"
-                        subtitle={`By ${brandMetric === "revenue" ? "revenue" : "quantity"}`}
+                        subtitle={`${topView === "delivered" ? "Delivered" : "Booked"} · by ${brandMetric === "revenue" ? "revenue" : brandMetric === "profit" ? "profit" : "quantity"}`}
                         action={
                             <select
                                 value={brandMetric}
@@ -940,6 +1029,7 @@ const Analytics = () => {
                             >
                                 <option value="qty">Quantity</option>
                                 <option value="revenue">Revenue</option>
+                                {canSeeProfit && <option value="profit">Profit</option>}
                             </select>
                         }
                     >
@@ -968,7 +1058,7 @@ const Analytics = () => {
                                         fontSize={11}
                                         tickLine={false}
                                         axisLine={false}
-                                        tickFormatter={(v) => brandMetric === "revenue" ? compactINR(v) : compactNum(v)}
+                                        tickFormatter={(v) => brandMetric === "qty" ? compactNum(v) : compactINR(v)}
                                     />
                                     <YAxis
                                         type="category"
@@ -982,20 +1072,20 @@ const Analytics = () => {
                                     <Tooltip
                                         content={
                                             <ChartTooltip
-                                                formatter={(v, key) => key === "revenue" ? fullINR(v) : fullNum(v)}
+                                                formatter={(v, key) => (key === "revenue" || key === "profit") ? fullINR(v) : fullNum(v)}
                                             />
                                         }
                                     />
                                     <Bar
-                                        dataKey={brandMetric === "revenue" ? "revenue" : "qty_sold"}
+                                        dataKey={brandMetric === "qty" ? "qty_sold" : brandMetric}
                                         fill="url(#grad-brand)"
                                         radius={[0, 8, 8, 0]}
                                         barSize={18}
                                     >
                                         <LabelList
-                                            dataKey={brandMetric === "revenue" ? "revenue" : "qty_sold"}
+                                            dataKey={brandMetric === "qty" ? "qty_sold" : brandMetric}
                                             position="right"
-                                            formatter={(v) => brandMetric === "revenue" ? compactINR(v) : compactNum(v)}
+                                            formatter={(v) => brandMetric === "qty" ? compactNum(v) : compactINR(v)}
                                             fill="#475569"
                                             fontSize={11}
                                             fontWeight={700}
@@ -1021,7 +1111,7 @@ const Analytics = () => {
                             </div>
                         </Card>
                     ) : (
-                        <Card title="Top Dealers" subtitle="By revenue · top 10">
+                        <Card title="Top Dealers" subtitle={`By ${topView} revenue · top 10`}>
                             {loading ? (
                                 <Skeleton className="h-80" />
                             ) : topDealers.length === 0 ? (
@@ -1031,7 +1121,7 @@ const Analytics = () => {
                                     <table className="min-w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-slate-100 bg-slate-50/50 text-left">
-                                                {["#", "Dealer", "Orders", "Revenue", "Paid", "Due"].map((h, i) => (
+                                                {["#", "Dealer", "Orders", "Revenue", ...(canSeeProfit ? ["Profit"] : []), "Paid", "Due"].map((h, i) => (
                                                     <th
                                                         key={h}
                                                         className={[
@@ -1068,6 +1158,11 @@ const Analytics = () => {
                                                     <td className="px-3 py-3 text-right tabular-nums font-bold text-emerald-700">
                                                         {compactINR(d.revenue)}
                                                     </td>
+                                                    {canSeeProfit && (
+                                                        <td className="px-3 py-3 text-right tabular-nums font-bold text-violet-700">
+                                                            {compactINR(d.profit)}
+                                                        </td>
+                                                    )}
                                                     <td className="px-3 py-3 text-right tabular-nums font-semibold text-blue-700">
                                                         {compactINR(d.paid)}
                                                     </td>
@@ -1091,7 +1186,7 @@ const Analytics = () => {
 
                 {/* Top Salesmen table */}
                 <div className="lg:col-span-2">
-                    <Card title="Top Salesmen" subtitle="By revenue · top 10">
+                    <Card title="Top Salesmen" subtitle={`By ${topView} revenue · top 10`}>
                         {loading ? (
                             <Skeleton className="h-80" />
                         ) : topSalesmen.length === 0 ? (
@@ -1101,7 +1196,7 @@ const Analytics = () => {
                                 <table className="min-w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-100 bg-slate-50/50 text-left">
-                                            {["#", "Salesman", "Orders", "Revenue", "Due"].map((h, i) => (
+                                            {["#", "Salesman", "Orders", "Revenue", ...(canSeeProfit ? ["Profit"] : []), "Due"].map((h, i) => (
                                                 <th
                                                     key={h}
                                                     className={[
@@ -1139,6 +1234,11 @@ const Analytics = () => {
                                                 <td className="px-3 py-3 text-right tabular-nums font-bold text-emerald-700">
                                                     {compactINR(s.revenue)}
                                                 </td>
+                                                {canSeeProfit && (
+                                                    <td className="px-3 py-3 text-right tabular-nums font-bold text-violet-700">
+                                                        {compactINR(s.profit)}
+                                                    </td>
+                                                )}
                                                 <td className="px-3 py-3 text-right tabular-nums font-semibold text-amber-700">
                                                     {compactINR(s.due)}
                                                 </td>

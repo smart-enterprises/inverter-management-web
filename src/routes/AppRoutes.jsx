@@ -23,6 +23,7 @@ import CompanyDetails from "../pages/CompanyDetails";
 import DataUpload from "../pages/DataUpload";
 import PurchaseAnalytics from "../pages/Purchaseanalytics";
 import Analytics from "../pages/Analytics";
+import ProductionSummary from "../pages/ProductionSummary";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../hooks/useAuth";
@@ -67,6 +68,8 @@ export default function AppRoutes() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/create" element={<CreateOrder />} />
         <Route path="/orders/:id" element={<OrderDetails />} />
+
+        <Route path="/production-summary" element={<ProductionSummary />} />
 
         <Route path="/delivery" element={<Delivery />} />
         <Route path="/billing" element={<Billing />} />
