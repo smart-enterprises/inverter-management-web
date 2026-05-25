@@ -27,7 +27,11 @@ import { fetchCompanyAddress } from "../api/companyAddress";
 import { canPrintOrder, canViewOrderPrice, canViewDealerInformation, canViewFullDealerInformation } from "../utils/orderPermissions";
 import DeliveryNotesCard from "../components/DeliveryNotesCard";
 import ProductionStatusBadge from "../components/ProductionStatusBadge";
+import AddItemsModal from "../components/AddItemsModal";
 import { ROLES } from "../utils/roles";
+
+const ADMIN_PRIVILEGED_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER];
+const ADD_ITEMS_BLOCKED_STATUSES = ["DELIVERED", "COMPLETED", "CANCELLED", "REJECTED"];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RBAC HELPERS
@@ -1342,7 +1346,7 @@ const OrderItemCard = memo(({
 // PAGE HEADER — RBAC-filtered action buttons
 // ═════════════════════════════════════════════════════════════════════════════
 
-const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusModal, openDelivery, openCancelOrder, submitting, rolePermissions }) => {
+const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusModal, openDelivery, openCancelOrder, openAddItems, canAddItems, submitting, rolePermissions }) => {
   const isTerminal = ["COMPLETED", "CANCELLED", "REJECTED"].includes(order?.status);
   const isPending = order?.status?.toUpperCase() === "PENDING";
 
@@ -1388,6 +1392,12 @@ const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusM
               {rolePermissions?.canUpdateDelivery && !isPending && (
                 <button onClick={openDelivery} disabled={submitting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 text-white text-sm font-bold rounded-xl hover:bg-teal-700 active:scale-95 transition-all shadow-sm shadow-teal-200 disabled:opacity-50">
                   <FiCalendar size={13} />Delivery Schedule
+                </button>
+              )}
+
+              {canAddItems && (
+                <button onClick={openAddItems} disabled={submitting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-sm shadow-emerald-200 disabled:opacity-50">
+                  <FiPlus size={13} />Add Items
                 </button>
               )}
 
@@ -1443,6 +1453,18 @@ const OrderDetails = () => {
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const [modal, setModal] = useState({ name: null, itemIndex: null, itemData: null });
+  const [addItemsOpen, setAddItemsOpen] = useState(false);
+
+  // Add Items is allowed when:
+  //  - the order isn't in a terminal state (DELIVERED/COMPLETED/CANCELLED/REJECTED)
+  //  - AND the caller is the original creator OR has an admin-privileged role
+  const canAddItems = useMemo(() => {
+    if (!order) return false;
+    const statusOk = !ADD_ITEMS_BLOCKED_STATUSES.includes(String(order.status).toUpperCase());
+    const isCreator = !!user?.employee_id && order.created_by === user.employee_id;
+    const isPrivileged = ADMIN_PRIVILEGED_ROLES.includes(user?.role);
+    return statusOk && (isCreator || isPrivileged);
+  }, [order, user?.employee_id, user?.role]);
 
   const openItemModal = useCallback((name, index, data) => setModal({ name, itemIndex: index, itemData: data }), []);
   const openOrderModal = useCallback((name) => setModal({ name, itemIndex: null, itemData: null }), []);
@@ -1614,7 +1636,19 @@ const OrderDetails = () => {
         openStatusModal={() => openOrderModal(MODAL.ORDER_STATUS)}
         openDelivery={() => openOrderModal(MODAL.ORDER_DELIVERY)}
         openCancelOrder={handleCancelOrder}
+        openAddItems={() => setAddItemsOpen(true)}
+        canAddItems={canAddItems}
         rolePermissions={rolePermissions}
+      />
+
+      <AddItemsModal
+        isOpen={addItemsOpen}
+        onClose={() => setAddItemsOpen(false)}
+        order={order}
+        onSuccess={(updatedOrder) => {
+          if (updatedOrder) setOrder(updatedOrder);
+          else loadOrder();
+        }}
       />
 
       <SectionCard title="Order Summary" subtitle="Overview">

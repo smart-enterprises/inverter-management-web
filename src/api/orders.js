@@ -97,6 +97,14 @@ export const updateOrderStatus = async (orderNumber, payload) => {
     });
 };
 
+// ✅ Add new line items to an existing order
+export const addItemsToOrder = async (orderNumber, items) => {
+    return apiRequest(`/order-details/${orderNumber}/items`, {
+        method: "POST",
+        body: JSON.stringify({ order_details: items }),
+    });
+};
+
 // ✅ Production Summary — per-product remaining qty by status
 export const fetchProductionSummary = async () => {
     return apiRequest(`/order-details/production-summary`, {
