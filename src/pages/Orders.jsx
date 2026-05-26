@@ -239,6 +239,11 @@ const Orders = () => {
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 10 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // True until the first fetch completes (success OR error). Used to gate
+  // the full-screen spinner so it never replaces the layout during a
+  // user-driven refetch — that was unmounting the search input mid-typing
+  // and stealing focus when the previous query returned 0 results.
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const [searchInput, setSearchInput] = useState(routeState?.search || "");
   const [searchQuery, setSearchQuery] = useState(routeState?.search || "");
@@ -357,6 +362,7 @@ const Orders = () => {
       setError("Failed to load orders");
     } finally {
       setLoading(false);
+      setInitialLoad(false);
     }
   }, [queryParams]);
 
@@ -412,8 +418,12 @@ const Orders = () => {
     [dealersList]
   );
 
-  /* ── Loading / error states ── */
-  if (loading && orders.length === 0) {
+  /* ── Loading / error states ──
+     Only show the full-screen spinner on the very first load. Subsequent
+     refetches (triggered by search, filters, pagination) show an inline
+     "Updating results…" banner instead — see below. Otherwise the layout
+     unmounts and steals focus from the search input mid-typing. */
+  if (initialLoad && loading) {
     return (
       <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -427,7 +437,7 @@ const Orders = () => {
     );
   }
 
-  if (error && orders.length === 0) {
+  if (initialLoad && error) {
     return (
       <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-center">
@@ -610,8 +620,10 @@ const Orders = () => {
             </div>
           </div>
 
-          {/* Inline loading indicator */}
-          {loading && orders.length > 0 && (
+          {/* Inline loading indicator — shows during refetches regardless of
+              whether the current result set is empty, so the layout (and
+              search input focus) stays put. */}
+          {loading && !initialLoad && (
             <div className="px-5 py-2 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
               <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
               <span className="text-xs text-indigo-600 font-semibold">Updating results…</span>
