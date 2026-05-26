@@ -34,6 +34,15 @@ const getTotalItems = (details) =>
 const formatDate = (date) =>
   date ? new Date(date).toLocaleDateString("en-IN") : "N/A";
 
+// Local YYYY-MM-DD (not UTC) for HTML date inputs.
+const todayISO = () => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 /* ================================================================
    PAGINATION
    ================================================================ */
@@ -206,8 +215,10 @@ const Delivery = () => {
   const [selectedStatus, setSelectedStatus] = useState(deriveStatus);
   const [selectedPriority, setSelectedPriority] = useState(routeState?.priority || "ALL");
 
-  const [deliveryStartDate, setDeliveryStartDate] = useState(routeState?.deliveryStartDate || "");
-  const [deliveryEndDate, setDeliveryEndDate] = useState(routeState?.deliveryEndDate || "");
+  // Default both ends to today so the page opens on "today's deliveries".
+  // User can change the range to view other days. routeState wins if set.
+  const [deliveryStartDate, setDeliveryStartDate] = useState(routeState?.deliveryStartDate || todayISO());
+  const [deliveryEndDate, setDeliveryEndDate] = useState(routeState?.deliveryEndDate || todayISO());
 
   /*
    * Role-based default status:
@@ -268,20 +279,26 @@ const Delivery = () => {
     loadOrders();
   }, [loadOrders]);
 
+  // "Today" is the default delivery range — don't count it as an active filter,
+  // otherwise the Clear chip would always be lit. Only flag dates as active
+  // if the user has moved either end off today.
+  const today = todayISO();
+  const dateRangeIsToday =
+    deliveryStartDate === today && deliveryEndDate === today;
+
   const hasActiveFilters =
     searchQuery ||
     selectedStatus !== "ALL" ||
     selectedPriority !== "ALL" ||
-    Boolean(deliveryStartDate) ||
-    Boolean(deliveryEndDate);
+    !dateRangeIsToday;
 
   const clearFilters = useCallback(() => {
     setSearchInput("");
     setSearchQuery("");
     setSelectedStatus("ALL");
     setSelectedPriority("ALL");
-    setDeliveryStartDate("");
-    setDeliveryEndDate("");
+    setDeliveryStartDate(todayISO());
+    setDeliveryEndDate(todayISO());
     setPagination((prev) => ({ ...prev, page: 1 }));
   }, []);
 
