@@ -53,8 +53,8 @@ const FormFieldSecondary = ({ label, children }) => (
 const CheckboxField = ({ label, checked, onChange, disabled }) => (
   <label
     className={`group flex items-center gap-3 text-sm cursor-pointer px-4 py-2.5 rounded-xl border transition-all duration-200 select-none ${checked
-        ? 'bg-violet-50 border-violet-200 text-violet-700'
-        : 'bg-white border-gray-200 text-gray-600 hover:border-violet-200 hover:bg-violet-50/30'
+        ? 'bg-amber-50 border-amber-200 text-amber-700'
+        : 'bg-white border-gray-200 text-gray-600 hover:border-amber-200 hover:bg-amber-50/30'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
   >
     <input
@@ -62,11 +62,11 @@ const CheckboxField = ({ label, checked, onChange, disabled }) => (
       checked={checked}
       onChange={onChange}
       disabled={disabled}
-      className="accent-violet-600 w-4 h-4 flex-shrink-0"
+      className="accent-amber-600 w-4 h-4 flex-shrink-0"
     />
     <span className="font-medium">{label}</span>
     {checked && (
-      <FiCheckCircle size={14} className="ml-auto text-violet-500 flex-shrink-0" />
+      <FiCheckCircle size={14} className="ml-auto text-amber-500 flex-shrink-0" />
     )}
   </label>
 );
@@ -123,10 +123,10 @@ const getItemStatusStyle = (status) => {
   switch (status?.toUpperCase()) {
     case 'PENDING': return 'bg-amber-50 text-amber-700 border border-amber-100';
     case 'CONFIRMED': return 'bg-blue-50 text-blue-700 border border-blue-100';
-    case 'PRODUCTION': return 'bg-indigo-50 text-indigo-700 border border-indigo-100';
-    case 'PACKED': return 'bg-violet-50 text-violet-700 border border-violet-100';
+    case 'PRODUCTION': return 'bg-blue-50 text-blue-700 border border-blue-100';
+    case 'PACKED': return 'bg-amber-50 text-amber-700 border border-amber-100';
     case 'INVOICE': return 'bg-cyan-50 text-cyan-700 border border-cyan-100';
-    case 'SHIPPED': return 'bg-orange-50 text-orange-700 border border-orange-100';
+    case 'SHIPPED': return 'bg-blue-50 text-blue-700 border border-blue-100';
     case 'DELIVERED': return 'bg-green-50 text-green-700 border border-green-100';
     case 'COMPLETED': return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
     case 'CANCELLED':
@@ -320,8 +320,8 @@ const UpdateOrder = () => {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
         <div className="relative">
-          <div className="w-12 h-12 border-4 border-violet-100 rounded-full" />
-          <div className="absolute inset-0 w-12 h-12 border-4 border-violet-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-12 h-12 border-4 border-amber-100 rounded-full" />
+          <div className="absolute inset-0 w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" />
         </div>
         <p className="text-sm text-gray-400 font-medium">Loading order…</p>
       </div>
@@ -379,7 +379,7 @@ const UpdateOrder = () => {
                 ? 'Completed or Delivered orders cannot be edited'
                 : ''
             }
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-violet-600 text-white text-sm font-bold rounded-xl hover:bg-violet-700 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-violet-200"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white text-sm font-bold rounded-xl hover:bg-amber-700 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-amber-200"
           >
             <FiSave size={15} />
             {submitting ? 'Updating…' : 'Save Changes'}
@@ -889,7 +889,7 @@ const UpdateOrder = () => {
                     <span className="text-sm font-bold text-gray-800">Balance Amount</span>
                     <div className="flex items-center gap-1">
                       <span className="text-gray-400 font-semibold">₹</span>
-                      <span className="text-2xl font-black text-violet-700 tracking-tight tabular-nums">
+                      <span className="text-2xl font-black text-amber-700 tracking-tight tabular-nums">
                         {order.amount_due?.toLocaleString('en-IN')}
                       </span>
                     </div>

@@ -180,7 +180,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <FiPlus size={16} className="text-indigo-500" /> Add Items
+              <FiPlus size={16} className="text-blue-500" /> Add Items
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               Order <span className="font-mono">{order?.order_number}</span> · Dealer {capitalizeFirstLetter(order?.dealer?.employee_name) || dealerId}
@@ -195,7 +195,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
         <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3">
           {loading ? (
             <div className="flex flex-col items-center gap-3 py-10 text-slate-400">
-              <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
               <span className="text-xs font-semibold">Loading brands & products…</span>
             </div>
           ) : brands.length === 0 ? (
@@ -285,7 +285,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                         type="number" min={1} step={1}
                         value={item.qty_ordered}
                         onChange={(e) => updateRow(index, { qty_ordered: e.target.value })}
-                        className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+                        className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
                       />
                     </div>
                     <div>
@@ -297,7 +297,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                           min={todayISO()}
                           value={item.delivery_date}
                           onChange={(e) => updateRow(index, { delivery_date: e.target.value })}
-                          className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+                          className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
                         />
                       </div>
                     </div>
@@ -317,7 +317,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
           )}
 
           {!loading && brands.length > 0 && (
-            <button onClick={addRow} className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition flex items-center justify-center gap-1.5">
+            <button onClick={addRow} className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:text-blue-600 hover:border-blue-300 transition flex items-center justify-center gap-1.5">
               <FiPlus size={12} /> Add another item
             </button>
           )}
@@ -346,7 +346,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
             <button
               onClick={handleSubmit}
               disabled={submitting || loading || brands.length === 0}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 active:scale-95 transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-95 transition disabled:opacity-50"
             >
               {submitting ? (
                 <>

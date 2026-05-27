@@ -26,7 +26,7 @@ const Field = ({ label, icon: Icon, error, className = "", ...props }) => (
             className={`w-full border rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 transition-all duration-150
         ${error
                     ? "border-rose-300 focus:ring-rose-200 focus:border-rose-400"
-                    : "border-slate-200 focus:ring-indigo-200 focus:border-indigo-400 hover:border-slate-300"
+                    : "border-slate-200 focus:ring-blue-200 focus:border-blue-400 hover:border-slate-300"
                 }`}
         />
         {error && (
@@ -40,7 +40,7 @@ const Field = ({ label, icon: Icon, error, className = "", ...props }) => (
 /* ─── Detail Row (View Mode) ─── */
 const DetailRow = ({ icon: Icon, label, value, truncate = false }) => (
     <div className="flex items-start gap-4 px-6 py-4 border-b border-slate-50 last:border-0 group hover:bg-slate-50/60 transition-colors duration-100">
-        <div className="mt-0.5 p-2 rounded-lg bg-indigo-50 text-indigo-500 border border-indigo-100 flex-shrink-0 group-hover:border-indigo-200 transition-colors">
+        <div className="mt-0.5 p-2 rounded-lg bg-blue-50 text-blue-500 border border-blue-100 flex-shrink-0 group-hover:border-blue-200 transition-colors">
             <Icon size={12} />
         </div>
         <div className="flex-1 min-w-0">
@@ -184,8 +184,8 @@ const CompanyDetails = () => {
             <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="relative w-10 h-10">
-                        <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-                        <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                        <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+                        <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
                     </div>
                     <p className="text-sm text-slate-400 font-medium animate-pulse">Loading company details…</p>
                 </div>
@@ -225,8 +225,8 @@ const CompanyDetails = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2.5 mb-1">
-                            <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                                <FiBriefcase size={13} className="text-indigo-600" />
+                            <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center">
+                                <FiBriefcase size={13} className="text-blue-600" />
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                                 Organisation
@@ -252,7 +252,7 @@ const CompanyDetails = () => {
                                 </button>
                                 <button
                                     onClick={() => setIsEditing(true)}
-                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
                                 >
                                     <FiEdit2 size={13} />
                                     Modify Details
@@ -286,7 +286,7 @@ const CompanyDetails = () => {
                                         {existingData.company_name}
                                     </p>
                                     {existingData.gst_number && (
-                                        <span className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-violet-700 text-[10px] font-black uppercase tracking-wide">
+                                        <span className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black uppercase tracking-wide">
                                             <FiShield size={9} />
                                             GST · {existingData.gst_number}
                                         </span>
@@ -335,7 +335,7 @@ const CompanyDetails = () => {
                             <div className="flex items-center gap-3">
                                 <div className={`p-2 rounded-xl border ${existingData
                                     ? "bg-sky-50 text-sky-600 border-sky-100"
-                                    : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                                    : "bg-blue-50 text-blue-600 border-blue-100"
                                     }`}>
                                     {existingData ? <FiEdit2 size={14} /> : <FiPlus size={14} />}
                                 </div>
@@ -510,7 +510,7 @@ const CompanyDetails = () => {
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={saving}
-                                className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {saving ? (
                                     <FiLoader size={14} className="animate-spin" />

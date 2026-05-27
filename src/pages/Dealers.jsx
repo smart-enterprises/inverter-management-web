@@ -42,7 +42,7 @@ const FormField = ({ label, required, errorMsg, children }) => (
 const FormInput = ({ className = "", ...props }) => (
   <input
     {...props}
-    className={`w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all ${className}`}
+    className={`w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all ${className}`}
   />
 );
 
@@ -85,12 +85,12 @@ const MultiSelectDropdown = ({
       <div
         onClick={() => !disabled && !loading && setIsOpen(!isOpen)}
         className={`w-full px-3.5 py-2.5 rounded-lg border min-h-[42px] flex flex-wrap items-center gap-1.5 cursor-pointer transition-all
-          ${disabled ? "opacity-50 cursor-not-allowed bg-slate-50 border-slate-200" : "bg-white border-slate-200 hover:border-indigo-300"}
-          ${isOpen ? "border-indigo-400 ring-2 ring-indigo-100" : ""}`}
+          ${disabled ? "opacity-50 cursor-not-allowed bg-slate-50 border-slate-200" : "bg-white border-slate-200 hover:border-blue-300"}
+          ${isOpen ? "border-blue-400 ring-2 ring-blue-100" : ""}`}
       >
         {loading ? (
           <div className="flex items-center gap-2">
-            <div className="w-3.5 h-3.5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+            <div className="w-3.5 h-3.5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
             <span className="text-sm text-slate-400">{placeholder}</span>
           </div>
         ) : selectedValues.length > 0 ? (
@@ -100,13 +100,13 @@ const MultiSelectDropdown = ({
               return (
                 <span
                   key={value}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 max-w-[120px]"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200 max-w-[120px]"
                 >
                   <span className="truncate">{option?.label || value}</span>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); handleRemoveTag(value); }}
-                    className="text-indigo-400 hover:text-indigo-700 flex-shrink-0"
+                    className="text-blue-400 hover:text-blue-700 flex-shrink-0"
                   >
                     <FiX size={9} />
                   </button>
@@ -131,7 +131,7 @@ const MultiSelectDropdown = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search brands…"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -141,13 +141,13 @@ const MultiSelectDropdown = ({
               ? filteredOptions.map((option) => (
                 <div
                   key={option.value}
-                  className={`px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-slate-50 transition-colors ${selectedValues.includes(option.value) ? "bg-indigo-50" : ""}`}
+                  className={`px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-slate-50 transition-colors ${selectedValues.includes(option.value) ? "bg-blue-50" : ""}`}
                   onClick={() => handleToggleOption(option.value)}
                 >
-                  <span className={`font-medium ${selectedValues.includes(option.value) ? "text-indigo-700" : "text-slate-700"}`}>
+                  <span className={`font-medium ${selectedValues.includes(option.value) ? "text-blue-700" : "text-slate-700"}`}>
                     {option.label}
                   </span>
-                  {selectedValues.includes(option.value) && <FiCheck className="text-indigo-600" size={14} />}
+                  {selectedValues.includes(option.value) && <FiCheck className="text-blue-600" size={14} />}
                 </div>
               ))
               : (
@@ -373,7 +373,7 @@ const CreateDealerModal = ({
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+              <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
                 <FiUsers size={14} />
               </div>
               <div>
@@ -517,7 +517,7 @@ const CreateDealerModal = ({
                 onChange={handleChange}
                 rows={3}
                 placeholder="Enter complete address"
-                className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all resize-none"
+                className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none"
               />
             </FormField>
           </form>
@@ -535,7 +535,7 @@ const CreateDealerModal = ({
               type="submit"
               form="dealer-form"
               disabled={loading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-indigo-200 cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-blue-200 cursor-pointer"
             >
               {loading
                 ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{editingDealerId ? "Updating…" : "Adding…"}</>
@@ -559,7 +559,7 @@ const DealerActions = ({ dealerId, onEdit, onDelete, dealerStatus, canUpdateDeal
       <Link
         to={`/dealers/${dealerId}`}
         title="View Details"
-        className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+        className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
       >
         <FiEye size={14} />
       </Link>
@@ -614,7 +614,7 @@ const DealersPagination = ({ currentPage, totalPages, onPageChange }) => {
               {showDots && <span className="px-1.5 text-slate-300 text-xs">…</span>}
               <button
                 onClick={() => handleChange(page)}
-                className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === currentPage ? "bg-indigo-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}
+                className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === currentPage ? "bg-blue-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}
               >
                 {page}
               </button>
@@ -767,7 +767,7 @@ const Dealers = () => {
           {canCreateDealer && (
             <button
               onClick={() => { setIsModalOpen(true); setEditingDealerId(null); setEditingDealerData(null); }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 cursor-pointer"
             >
               <FiPlus size={14} />Add New Dealer
             </button>
@@ -787,7 +787,7 @@ const Dealers = () => {
                   placeholder="Search by name or shop…"
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
                 />
               </div>
               <div className="flex items-center gap-2.5 flex-wrap">
@@ -808,7 +808,7 @@ const Dealers = () => {
                       type="checkbox"
                       checked={includePassword}
                       onChange={(e) => setIncludePassword(e.target.checked)}
-                      className="accent-indigo-600 w-3.5 h-3.5"
+                      className="accent-blue-600 w-3.5 h-3.5"
                     />
                     Show Passwords
                   </label>
@@ -821,8 +821,8 @@ const Dealers = () => {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
               <div className="relative w-10 h-10">
-                <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-                <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+                <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
               </div>
               <p className="text-sm text-slate-400 font-medium">Loading dealers…</p>
             </div>
@@ -834,7 +834,7 @@ const Dealers = () => {
               <p className="text-sm font-semibold text-rose-600">{error}</p>
               <button
                 onClick={fetchDealersList}
-                className="text-sm text-indigo-600 font-bold hover:text-indigo-700 transition-colors"
+                className="text-sm text-blue-600 font-bold hover:text-blue-700 transition-colors"
               >
                 Try Again
               </button>
@@ -877,7 +877,7 @@ const Dealers = () => {
                       {/* Dealer */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 font-black text-sm border border-indigo-100 flex-shrink-0">
+                          <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 text-blue-700 font-black text-sm border border-blue-100 flex-shrink-0">
                             {dealer.employee_name?.charAt(0).toUpperCase()}
                           </div>
                           <div>

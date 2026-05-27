@@ -61,9 +61,9 @@ const getMonthRange = (year, month) => {
 const KPICard = ({ title, value, sub, icon, color, loading, trend, trendVal }) => {
     const colorMap = {
         indigo: {
-            bg: "bg-indigo-50 border-indigo-100",
-            icon: "text-indigo-600",
-            val: "text-indigo-700",
+            bg: "bg-blue-50 border-blue-100",
+            icon: "text-blue-600",
+            val: "text-blue-700",
         },
         emerald: {
             bg: "bg-emerald-50 border-emerald-100",
@@ -76,9 +76,9 @@ const KPICard = ({ title, value, sub, icon, color, loading, trend, trendVal }) =
             val: "text-amber-700",
         },
         violet: {
-            bg: "bg-violet-50 border-violet-100",
-            icon: "text-violet-600",
-            val: "text-violet-700",
+            bg: "bg-amber-50 border-amber-100",
+            icon: "text-amber-600",
+            val: "text-amber-700",
         },
     }[color] || { bg: "bg-slate-50 border-slate-200", icon: "text-slate-500", val: "text-slate-700" };
 
@@ -134,7 +134,7 @@ const SCard = ({ title, subtitle, action, children }) => (
 );
 
 // ── Horizontal Bar ────────────────────────────────────────────────
-const HBar = ({ label, value, max, colorClass = "bg-indigo-500", sub }) => {
+const HBar = ({ label, value, max, colorClass = "bg-blue-500", sub }) => {
     const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
     return (
         <div className="flex items-center gap-3">
@@ -158,7 +158,7 @@ const HBar = ({ label, value, max, colorClass = "bg-indigo-500", sub }) => {
 const Stat = ({ label, value, highlight, success, warning }) => {
     let color = "text-slate-700";
 
-    if (highlight) color = "text-indigo-600";
+    if (highlight) color = "text-blue-600";
     if (success) color = "text-emerald-600";
     if (warning) color = "text-amber-600";
 
@@ -370,9 +370,9 @@ const PurchaseAnalytics = () => {
     const STATUS_COLORS = {
         COMPLETED: "bg-emerald-500",
         DELIVERED: "bg-green-500",
-        SHIPPED: "bg-orange-500",
-        PACKED: "bg-violet-500",
-        PRODUCTION: "bg-indigo-500",
+        SHIPPED: "bg-blue-500",
+        PACKED: "bg-amber-500",
+        PRODUCTION: "bg-blue-500",
         CONFIRMED: "bg-blue-500",
         PENDING: "bg-amber-500",
         CANCELLED: "bg-rose-500",
@@ -421,7 +421,7 @@ const PurchaseAnalytics = () => {
                             key={m}
                             onClick={() => setMode(m)}
                             className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wide transition-all ${mode === m
-                                ? "bg-indigo-600 text-white shadow-sm"
+                                ? "bg-blue-600 text-white shadow-sm"
                                 : "text-slate-500 hover:text-slate-800"
                                 }`}
                         >
@@ -552,7 +552,7 @@ const PurchaseAnalytics = () => {
                     title="Top Products by Volume"
                     subtitle="Units sold this period"
                     action={
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase tracking-wide">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-wide">
                             <FiPackage size={9} /> {topProducts.length} products
                         </span>
                     }
@@ -572,22 +572,22 @@ const PurchaseAnalytics = () => {
                         <div className="space-y-3">
                             {topProducts.map((p, i) => (
                                 <div key={i} className="flex items-center gap-3 group">
-                                    <div className="w-6 h-6 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-[9px] font-black text-indigo-600">{i + 1}</span>
+                                    <div className="w-6 h-6 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-[9px] font-black text-blue-600">{i + 1}</span>
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-2 mb-1">
                                             <p className="text-xs font-bold text-slate-900 truncate">
                                                 {capitalizeFirstLetter(p.name)}
                                             </p>
-                                            <span className="text-[10px] font-black text-indigo-700 flex-shrink-0">
+                                            <span className="text-[10px] font-black text-blue-700 flex-shrink-0">
                                                 {fmtNum(p.qty)} units
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                                 <div
-                                                    className="h-full bg-indigo-500 rounded-full transition-all duration-700"
+                                                    className="h-full bg-blue-500 rounded-full transition-all duration-700"
                                                     style={{ width: `${topProducts[0].qty > 0 ? (p.qty / topProducts[0].qty) * 100 : 0}%` }}
                                                 />
                                             </div>
@@ -610,7 +610,7 @@ const PurchaseAnalytics = () => {
                     title="Top Brands"
                     subtitle="By units purchased"
                     action={
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-violet-50 text-violet-600 border border-violet-100 uppercase tracking-wide">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-100 uppercase tracking-wide">
                             <FiTag size={9} /> {topBrands.length} brands
                         </span>
                     }
@@ -636,7 +636,7 @@ const PurchaseAnalytics = () => {
                                     value={b.qty}
                                     max={topBrands[0].qty}
                                     colorClass={
-                                        ["bg-violet-500", "bg-indigo-500", "bg-blue-500", "bg-cyan-500", "bg-teal-500", "bg-emerald-500"][i] || "bg-slate-400"
+                                        ["bg-amber-500", "bg-blue-500", "bg-blue-500", "bg-cyan-500", "bg-teal-500", "bg-emerald-500"][i] || "bg-slate-400"
                                     }
                                 />
                             ))}
@@ -680,7 +680,7 @@ const PurchaseAnalytics = () => {
                                             className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300 p-4"
                                         >
                                             {/* Hover Gradient */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition" />
+                                            <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition" />
 
                                             <div className="relative flex items-center gap-4">
 

@@ -9,7 +9,7 @@ const DeliveryCard = ({ delivery, isPending, onManage }) => {
           <h3 className="text-xl font-bold text-gray-800">{delivery.id}</h3>
           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
             delivery.status === 'Pending'
-              ? 'bg-orange-100 text-orange-600'
+              ? 'bg-blue-100 text-blue-600'
               : 'bg-green-100 text-green-600'
           }`}>
             {delivery.status === 'Pending' 

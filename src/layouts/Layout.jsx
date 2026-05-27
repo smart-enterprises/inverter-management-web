@@ -18,7 +18,7 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="flex bg-[#F9FAFB] h-screen overflow-hidden">
+    <div className="flex bg-[#F8FAFC] h-screen overflow-hidden">
       {isMobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"
@@ -43,7 +43,7 @@ export default function Layout() {
 
         <NotificationBanner />
 
-        <main className="flex-1 overflow-auto bg-[#F9FAFB]">
+        <main className="flex-1 overflow-auto bg-[#F8FAFC]">
           <div className="p-4">
             <Outlet />
           </div>

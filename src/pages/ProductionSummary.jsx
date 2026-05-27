@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   FiSearch, FiX, FiRefreshCw, FiPackage, FiAlertCircle, FiActivity,
-  FiChevronRight, FiChevronDown, FiUsers,
+  FiChevronRight, FiChevronDown, FiUsers, FiHash,
 } from "react-icons/fi";
 import { fetchProductionSummary } from "../api/orders";
 import { capitalizeFirstLetter } from "../utils/constants";
@@ -11,8 +11,8 @@ import { capitalizeFirstLetter } from "../utils/constants";
 const TRACKED_STATUSES = ["PRODUCTION", "PACKED", "INVOICE", "SHIPPED"];
 
 const STATUS_STYLE = {
-  PRODUCTION: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  PACKED: "bg-violet-50 text-violet-700 border-violet-200",
+  PRODUCTION: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  PACKED: "bg-teal-50 text-teal-700 border-teal-200",
   INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
   SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
 };
@@ -100,8 +100,8 @@ const ProductionSummary = () => {
       <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-10 h-10">
-            <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-            <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+            <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
           <p className="text-sm text-slate-400 font-medium">Loading summary…</p>
         </div>
@@ -130,7 +130,7 @@ const ProductionSummary = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <FiActivity size={18} className="text-indigo-500" />
+              <FiActivity size={18} className="text-blue-500" />
               Production Summary
             </h1>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
@@ -163,8 +163,8 @@ const ProductionSummary = () => {
               </p>
             </div>
           ))}
-          <div className="bg-indigo-600 text-white border border-indigo-600 rounded-xl px-4 py-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-indigo-100">
+          <div className="bg-blue-600 text-white border border-blue-600 rounded-xl px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-blue-100">
               Total
             </p>
             <p className="text-lg font-bold mt-1">
@@ -185,7 +185,7 @@ const ProductionSummary = () => {
                 placeholder="Search by product, brand, model..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition"
+                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none transition"
               />
               {searchInput && (
                 <button
@@ -200,9 +200,9 @@ const ProductionSummary = () => {
 
           {/* Inline loading */}
           {loading && rows.length > 0 && (
-            <div className="px-5 py-2 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
-              <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
-              <span className="text-xs text-indigo-600 font-semibold">Updating…</span>
+            <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+              <span className="text-xs text-blue-600 font-semibold">Updating…</span>
             </div>
           )}
 
@@ -259,7 +259,7 @@ const ProductionSummary = () => {
                           <td className="w-10 px-2 py-4 text-center">
                             {dealers.length > 0 ? (
                               isExpanded
-                                ? <FiChevronDown size={14} className="text-indigo-500 inline-block" />
+                                ? <FiChevronDown size={14} className="text-blue-500 inline-block" />
                                 : <FiChevronRight size={14} className="text-slate-400 inline-block" />
                             ) : null}
                           </td>
@@ -297,56 +297,101 @@ const ProductionSummary = () => {
                         </tr>
 
                         {isExpanded && dealers.length > 0 && (
-                          <tr className="bg-slate-50/40">
-                            <td colSpan={4 + TRACKED_STATUSES.length} className="px-5 py-3">
-                              <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
-                                <table className="min-w-full text-sm">
-                                  <thead>
-                                    <tr className="bg-slate-50 border-b border-slate-200">
-                                      <th className="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">Dealer</th>
-                                      <th className="px-4 py-2.5 text-left text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">Shop / Town</th>
-                                      {TRACKED_STATUSES.map((s) => (
-                                        <th key={s} className="px-4 py-2.5 text-center text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">
-                                          {s}
-                                        </th>
-                                      ))}
-                                      <th className="px-4 py-2.5 text-right text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">Total</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-100">
-                                    {dealers.map((d, i) => (
-                                      <tr key={`${d.dealer_id || "unknown"}-${i}`}>
-                                        <td className="px-4 py-2.5">
-                                          <p className="font-semibold text-slate-800">
+                          <tr className="bg-blue-50/20">
+                            <td colSpan={4 + TRACKED_STATUSES.length} className="px-5 pt-2 pb-4">
+                              {/* Reddit-style threaded view: Product → Dealer → Order */}
+                              <ul className="pl-3">
+                                {dealers.map((d, i) => {
+                                  const orders = Array.isArray(d.orders) ? d.orders : [];
+                                  const isLastDealer = i === dealers.length - 1;
+                                  return (
+                                    <li
+                                      key={`${d.dealer_id || "unknown"}-${i}`}
+                                      className="relative pl-7"
+                                    >
+                                      {/* dealer vertical line — full height for non-last, stops at elbow for last */}
+                                      <span
+                                        aria-hidden
+                                        className={`absolute left-2 top-0 w-px bg-blue-200 ${isLastDealer ? "h-6" : "h-full"}`}
+                                      />
+                                      {/* dealer L-elbow */}
+                                      <span
+                                        aria-hidden
+                                        className="absolute left-2 top-6 w-4 h-px bg-blue-200"
+                                      />
+
+                                      {/* dealer header row */}
+                                      <div className="flex flex-wrap items-center justify-between gap-3 bg-white rounded-lg border border-blue-100/70 px-3.5 py-2.5 mt-2">
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-sm font-semibold text-slate-800 truncate">
                                             {capitalizeFirstLetter(d.dealer_name) || d.dealer_id || "—"}
                                           </p>
-                                          {d.employee_phone && (
-                                            <p className="text-[10px] text-slate-400 mt-0.5">{d.employee_phone}</p>
-                                          )}
-                                        </td>
-                                        <td className="px-4 py-2.5">
-                                          <p className="text-slate-700">
+                                          <p className="text-[10px] text-slate-400 mt-0.5 truncate">
                                             {capitalizeFirstLetter(d.shop_name) || "—"}
+                                            {d.town && <> · {capitalizeFirstLetter(d.town)}</>}
+                                            {d.employee_phone && <> · {d.employee_phone}</>}
                                           </p>
-                                          <p className="text-[10px] text-slate-400 mt-0.5">
-                                            {capitalizeFirstLetter(d.town) || ""}
-                                          </p>
-                                        </td>
-                                        {TRACKED_STATUSES.map((s) => (
-                                          <td key={s} className="px-4 py-2.5 text-center">
-                                            <QtyCell qty={d.counts?.[s] || 0} status={s} />
-                                          </td>
-                                        ))}
-                                        <td className="px-4 py-2.5 text-right">
-                                          <span className="text-sm font-bold text-slate-900">
+                                        </div>
+
+                                        {/* compact status counts */}
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          {TRACKED_STATUSES.map((s) => {
+                                            const qty = d.counts?.[s] || 0;
+                                            if (!qty) return null;
+                                            return (
+                                              <QtyCell key={s} qty={qty} status={s} />
+                                            );
+                                          })}
+                                        </div>
+
+                                        {/* dealer total */}
+                                        <div className="text-right pl-3 border-l border-blue-100 ml-1">
+                                          <p className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400">Total</p>
+                                          <p className="text-base font-extrabold text-slate-900 tabular-nums">
                                             {(d.total_qty || 0).toLocaleString("en-IN")}
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      {/* orders under this dealer — second thread level */}
+                                      {orders.length > 0 && (
+                                        <ul className="mt-1 mb-1">
+                                          {orders.map((o, oi) => {
+                                            const isLastOrder = oi === orders.length - 1;
+                                            return (
+                                              <li
+                                                key={`${o.order_number || "unknown"}-${oi}`}
+                                                className="relative pl-7 ml-3"
+                                              >
+                                                {/* order vertical line */}
+                                                <span
+                                                  aria-hidden
+                                                  className={`absolute left-2 top-0 w-px bg-blue-200/70 ${isLastOrder ? "h-4" : "h-full"}`}
+                                                />
+                                                {/* order L-elbow */}
+                                                <span
+                                                  aria-hidden
+                                                  className="absolute left-2 top-4 w-4 h-px bg-blue-200/70"
+                                                />
+
+                                                <div className="flex items-center justify-between text-[11px] py-1.5 px-2 rounded hover:bg-blue-50/60 transition-colors">
+                                                  <span className="inline-flex items-center gap-1.5 font-mono text-slate-600">
+                                                    <FiHash size={10} className="text-blue-400" />
+                                                    {o.order_number || "—"}
+                                                  </span>
+                                                  <span className="font-bold text-slate-700 tabular-nums">
+                                                    {(o.qty || 0).toLocaleString("en-IN")}
+                                                  </span>
+                                                </div>
+                                              </li>
+                                            );
+                                          })}
+                                        </ul>
+                                      )}
+                                    </li>
+                                  );
+                                })}
+                              </ul>
                             </td>
                           </tr>
                         )}

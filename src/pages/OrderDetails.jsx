@@ -159,7 +159,7 @@ const STATUS_COLOR_MAP = {
   rose: { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-700", dot: "bg-rose-500", ring: "ring-rose-200" },
   cyan: { bg: "bg-cyan-50", border: "border-cyan-200", text: "text-cyan-700", dot: "bg-cyan-500", ring: "ring-cyan-200" },
   slate: { bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-600", dot: "bg-slate-400", ring: "ring-slate-200" },
-  orange: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700", dot: "bg-orange-500", ring: "ring-orange-200" },
+  orange: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", dot: "bg-blue-500", ring: "ring-blue-200" },
   emerald: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", dot: "bg-emerald-500", ring: "ring-emerald-200" },
 };
 
@@ -198,8 +198,8 @@ const formatCurrency = (value) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STATUS_HEX = {
-  PENDING: "#d97706", CONFIRMED: "#2563eb", PRODUCTION: "#4f46e5",
-  PACKED: "#7c3aed", INVOICE: "#0891b2", SHIPPED: "#ea580c",
+  PENDING: "#d97706", CONFIRMED: "#2563eb", PRODUCTION: "#c026d3",
+  PACKED: "#14b8a6", INVOICE: "#0891b2", SHIPPED: "#f97316",
   DELIVERED: "#16a34a", COMPLETED: "#059669", CANCELLED: "#e11d48",
   REJECTED: "#e11d48",
 };
@@ -208,10 +208,10 @@ const getOrderStatusStyle = (status) => {
   const map = {
     PENDING: "bg-amber-50 text-amber-700 border-amber-200",
     CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
-    PRODUCTION: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    PACKED: "bg-violet-50 text-violet-700 border-violet-200",
+    PRODUCTION: "bg-blue-50 text-blue-700 border-blue-200",
+    PACKED: "bg-amber-50 text-amber-700 border-amber-200",
     INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
-    SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
+    SHIPPED: "bg-blue-50 text-blue-700 border-blue-200",
     DELIVERED: "bg-green-50 text-green-700 border-green-200",
     COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
     CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
@@ -245,11 +245,11 @@ const getPaymentStatusStyle = (s) => {
 
 const getRoleBadgeStyle = (role) => {
   const map = {
-    ROLE_SUPER_ADMIN: "bg-violet-50 text-violet-700 border-violet-200",
+    ROLE_SUPER_ADMIN: "bg-amber-50 text-amber-700 border-amber-200",
     ROLE_ADMIN: "bg-blue-50 text-blue-700 border-blue-200",
-    ROLE_MANAGER: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    ROLE_MANAGER: "bg-blue-50 text-blue-700 border-blue-200",
     ROLE_SALESMAN: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    ROLE_PRODUCTION: "bg-orange-50 text-orange-700 border-orange-200",
+    ROLE_PRODUCTION: "bg-blue-50 text-blue-700 border-blue-200",
     ROLE_PACKING: "bg-pink-50 text-pink-700 border-pink-200",
     ROLE_ACCOUNTS: "bg-cyan-50 text-cyan-700 border-cyan-200",
     ROLE_DELIVERY: "bg-teal-50 text-teal-700 border-teal-200",
@@ -348,13 +348,13 @@ const FormField = memo(({ label, required, children, hint }) => (
 const EditInput = memo(({ className = "", ...props }) => (
   <input
     {...props}
-    className={`w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${className}`}
+    className={`w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${className}`}
   />
 ));
 
 const InfoCell = memo(({ icon, label, children }) => (
   <div className="flex items-start gap-3 p-4 rounded-xl hover:bg-slate-50 transition-colors group">
-    <div className="mt-0.5 p-1.5 rounded-lg bg-indigo-50 text-indigo-500 border border-indigo-100 group-hover:border-indigo-200 transition-colors flex-shrink-0">
+    <div className="mt-0.5 p-1.5 rounded-lg bg-blue-50 text-blue-500 border border-blue-100 group-hover:border-blue-200 transition-colors flex-shrink-0">
       {React.cloneElement(icon, { size: 12 })}
     </div>
     <div className="flex-1 min-w-0">
@@ -367,7 +367,7 @@ const InfoCell = memo(({ icon, label, children }) => (
 ));
 
 const SectionCard = memo(({ title, subtitle, action, children, className = "", editHighlight = false, headerExtra }) => (
-  <section className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${editHighlight ? "border-indigo-200 ring-1 ring-indigo-100" : "border-slate-200"} ${className}`}>
+  <section className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${editHighlight ? "border-blue-200 ring-1 ring-blue-100" : "border-slate-200"} ${className}`}>
     {(title || action) && (
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
         <div className="flex-1 min-w-0">
@@ -393,7 +393,7 @@ const QtyTracker = memo(({ ordered, delivered, cancelled }) => {
       </div>
       <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-700 ${balance === 0 ? "bg-emerald-500" : "bg-indigo-500"}`}
+          className={`h-full rounded-full transition-all duration-700 ${balance === 0 ? "bg-emerald-500" : "bg-blue-500"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -417,7 +417,7 @@ const QtyTracker = memo(({ ordered, delivered, cancelled }) => {
 const NotesList = memo(({ title, notes, variant = "default" }) => {
   if (!notes?.length) return null;
   const styles = variant === "purple"
-    ? "bg-indigo-50/70 border-indigo-100 text-indigo-700"
+    ? "bg-blue-50/70 border-blue-100 text-blue-700"
     : "bg-slate-50 border-slate-100 text-slate-600";
   return (
     <div className={`mt-2 border rounded-lg p-3 ${styles}`}>
@@ -519,7 +519,7 @@ const CancellationHistoryCard = memo(({ history = [], userMap = {} }) => {
 
 const ModalShell = memo(({
   isOpen, onClose, title, subtitle, icon,
-  accentClass = "bg-indigo-600", children, footer, width = "max-w-lg",
+  accentClass = "bg-blue-600", children, footer, width = "max-w-lg",
 }) => {
   useEffect(() => {
     if (!isOpen) return;
@@ -607,20 +607,20 @@ const CheckboxToggleRow = memo(({ label, description, checked, onChange, disable
       group flex items-start gap-3 px-4 py-3.5 rounded-xl border transition-all select-none
       ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
       ${checked
-        ? "bg-violet-50 border-violet-200 ring-1 ring-violet-100"
-        : "bg-white border-slate-200 hover:border-violet-200 hover:bg-violet-50/30"
+        ? "bg-amber-50 border-amber-200 ring-1 ring-amber-100"
+        : "bg-white border-slate-200 hover:border-amber-200 hover:bg-amber-50/30"
       }
     `}
   >
-    <div className={`relative mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? "bg-violet-600 border-violet-600" : "border-slate-300 bg-white"}`}>
+    <div className={`relative mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? "bg-amber-600 border-amber-600" : "border-slate-300 bg-white"}`}>
       {checked && <FiCheck size={11} className="text-white" strokeWidth={3} />}
       <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
     </div>
     <div className="flex-1 min-w-0">
-      <span className={`text-sm font-semibold block ${checked ? "text-violet-700" : "text-slate-700"}`}>{label}</span>
+      <span className={`text-sm font-semibold block ${checked ? "text-amber-700" : "text-slate-700"}`}>{label}</span>
       {description && <span className="text-[10px] text-slate-400 font-medium block mt-0.5">{description}</span>}
     </div>
-    {checked && <FiCheckCircle size={14} className="text-violet-500 mt-0.5 flex-shrink-0" />}
+    {checked && <FiCheckCircle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />}
   </label>
 ));
 
@@ -990,11 +990,11 @@ const OrderStatusModal = memo(({ isOpen, onClose, order, onSubmit, submitting, r
   };
 
   return (
-    <ModalShell isOpen={isOpen} onClose={onClose} title="Update Order Status & Priority" subtitle="Change workflow state and urgency" icon={<FiActivity size={14} />} accentClass="bg-indigo-600"
+    <ModalShell isOpen={isOpen} onClose={onClose} title="Update Order Status & Priority" subtitle="Change workflow state and urgency" icon={<FiActivity size={14} />} accentClass="bg-blue-600"
       footer={
         <>
           <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting || !hasChanges} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm">
+          <button onClick={handleSubmit} disabled={submitting || !hasChanges} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm">
             {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</> : <><FiSave size={13} />Apply Changes</>}
           </button>
         </>
@@ -1158,10 +1158,10 @@ const FinancialSummary = memo(({ order, onAddPayment, canViewPrice, canAddPaymen
 
   return (
     <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="h-0.5 bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400" />
+      <div className="h-0.5 bg-gradient-to-r from-blue-400 via-amber-400 to-blue-400" />
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100"><FiBarChart2 size={14} /></div>
+          <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100"><FiBarChart2 size={14} /></div>
           <div><h2 className="text-sm font-bold text-slate-800">Bill Breakdown</h2><p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">Financial Overview</p></div>
         </div>
         <div className="flex items-center gap-2">
@@ -1181,7 +1181,7 @@ const FinancialSummary = memo(({ order, onAddPayment, canViewPrice, canAddPaymen
           <div className="flex justify-between items-center py-3"><span className="flex items-center gap-2 text-sm text-slate-500 font-medium"><span className="w-4 h-4 rounded-md bg-slate-100 flex items-center justify-center"><FiLayers size={9} className="text-slate-400" /></span>Gross Total</span><span className="text-sm font-bold text-slate-700">{formatCurrency(grossAmount)}</span></div>
           {discountAmount > 0 && <div className="flex justify-between items-center py-3"><span className="flex items-center gap-2 text-sm text-slate-500 font-medium"><span className="w-4 h-4 rounded-md bg-rose-50 flex items-center justify-center"><FiTrendingDown size={9} className="text-rose-400" /></span>Savings</span><span className="text-sm font-bold text-rose-500">− {formatCurrency(discountAmount)}</span></div>}
           <div className="py-3"><div className="flex justify-between items-baseline"><span className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">You Pay</span><span className="text-2xl font-black text-slate-900 tabular-nums">{formatCurrency(totalAmount)}</span></div></div>
-          {amountReceived > 0 && <div className="flex justify-between items-center py-3"><span className="flex items-center gap-2 text-sm text-slate-500 font-medium"><span className="w-4 h-4 rounded-md bg-indigo-50 flex items-center justify-center"><FiCreditCard size={9} className="text-indigo-400" /></span>Total Paid</span><span className="text-sm font-bold text-indigo-600">{formatCurrency(amountReceived)}</span></div>}
+          {amountReceived > 0 && <div className="flex justify-between items-center py-3"><span className="flex items-center gap-2 text-sm text-slate-500 font-medium"><span className="w-4 h-4 rounded-md bg-blue-50 flex items-center justify-center"><FiCreditCard size={9} className="text-blue-400" /></span>Total Paid</span><span className="text-sm font-bold text-blue-600">{formatCurrency(amountReceived)}</span></div>}
           <div className="pt-3">
             <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl border ${isPaid ? "bg-emerald-50/80 border-emerald-200" : "bg-rose-50/80 border-rose-200"}`}>
               <div><p className={`text-[10px] font-black uppercase tracking-[0.1em] ${isPaid ? "text-emerald-600" : "text-rose-500"}`}>{isPaid ? "Fully Paid" : "Balance Due"}</p><p className="text-[10px] text-slate-500 font-medium mt-0.5">{isPaid ? "No dues remaining" : "To be collected"}</p></div>
@@ -1202,7 +1202,7 @@ const PriceCard = memo(({ label, value, note, strikethrough, variant = "default"
   const isSuccess = variant === "success";
   return (
     <div className={`relative overflow-hidden rounded-xl border p-4 hover:shadow-sm transition-all ${isSuccess ? "bg-emerald-50 border-emerald-200 hover:border-emerald-300" : "bg-white border-slate-200 hover:border-slate-300"}`}>
-      <div className={`absolute top-0 inset-x-0 h-0.5 rounded-t-xl ${isSuccess ? "bg-emerald-500" : "bg-indigo-500"}`} />
+      <div className={`absolute top-0 inset-x-0 h-0.5 rounded-t-xl ${isSuccess ? "bg-emerald-500" : "bg-blue-500"}`} />
       <p className={`text-[10px] font-black uppercase tracking-[0.12em] mb-2 ${isSuccess ? "text-emerald-700" : "text-slate-400"}`}>{label}</p>
       <div className="flex items-baseline gap-2">
         <p className={`text-lg font-black tabular-nums ${isSuccess ? "text-emerald-700" : "text-slate-900"}`}>{value}</p>
@@ -1271,10 +1271,10 @@ const OrderItemCard = memo(({
   ].filter(Boolean);
 
   return (
-    <div className={`bg-white border rounded-2xl overflow-hidden shadow-sm transition-all duration-200 ${isLocked ? "border-slate-200 opacity-80" : "border-slate-200 hover:border-indigo-200 hover:shadow-md"}`}>
+    <div className={`bg-white border rounded-2xl overflow-hidden shadow-sm transition-all duration-200 ${isLocked ? "border-slate-200 opacity-80" : "border-slate-200 hover:border-blue-200 hover:shadow-md"}`}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0"><FiPackage size={14} className="text-indigo-500" /></div>
+          <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0"><FiPackage size={14} className="text-blue-500" /></div>
           <div className="min-w-0">
             <p className="font-bold text-slate-900 text-sm truncate">{capitalizeFirstLetter(d.product_name)}</p>
             <p className="text-xs text-slate-400 font-medium mt-0.5">{[d.product_category, d.product_brand, d.product_model].filter(Boolean).map(capitalizeFirstLetter).join(" · ")}</p>
@@ -1365,7 +1365,7 @@ const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusM
       <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-lg font-black text-slate-900 tracking-tight">Order <span className="text-indigo-600 font-mono">{order?.order_number}</span></h1>
+            <h1 className="text-lg font-black text-slate-900 tracking-tight">Order <span className="text-blue-600 font-mono">{order?.order_number}</span></h1>
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getPriorityStyle(order?.priority)}`}>{order?.priority || "Normal"}</span>
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(order?.status)}`}>{order?.status || "Unknown"}</span>
           </div>
@@ -1383,7 +1383,7 @@ const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusM
             <>
               {/* Status & Priority: shown only when PENDING (mandatory), or when role allows + not production badge */}
               {rolePermissions?.canUpdateStatus && (isPending || !showProductionBadge) && (
-                <button onClick={openStatusModal} disabled={submitting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 disabled:opacity-50">
+                <button onClick={openStatusModal} disabled={submitting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 disabled:opacity-50">
                   <FiActivity size={13} />
                   {isPending ? "Confirm Order" : "Status & Priority"}
                 </button>
@@ -1606,7 +1606,7 @@ const OrderDetails = () => {
 
   if (loading) return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-      <div className="relative w-10 h-10"><div className="absolute inset-0 border-4 border-indigo-100 rounded-full" /><div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>
+      <div className="relative w-10 h-10"><div className="absolute inset-0 border-4 border-blue-100 rounded-full" /><div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
       <p className="text-sm text-slate-400 font-medium">Loading order details…</p>
     </div>
   );

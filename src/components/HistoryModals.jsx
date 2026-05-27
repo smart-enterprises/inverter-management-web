@@ -17,10 +17,10 @@ const cls = (...args) => args.filter(Boolean).join(" ");
 const CARD_COLORS = {
     emerald: "bg-emerald-50 border-emerald-100 text-emerald-700",
     rose: "bg-rose-50    border-rose-100    text-rose-700",
-    indigo: "bg-indigo-50  border-indigo-100  text-indigo-700",
-    violet: "bg-violet-50  border-violet-100  text-violet-700",
+    indigo: "bg-blue-50  border-blue-100  text-blue-700",
+    violet: "bg-amber-50  border-amber-100  text-amber-700",
     amber: "bg-amber-50   border-amber-100   text-amber-700",
-    purple: "bg-purple-50  border-purple-100  text-purple-700",
+    purple: "bg-blue-50  border-blue-100  text-blue-700",
     slate: "bg-slate-100  border-slate-200   text-slate-600",
 };
 
@@ -524,7 +524,7 @@ export const CostHistoryModal = ({
             title="Cost History"
             subtitle="Historical cost movements for this product"
             headerIcon={<FiClock />}
-            headerIconClass="from-violet-500 to-purple-600"
+            headerIconClass="from-amber-500 to-blue-600"
             emptyMessage="Cost updates will appear here when the product cost changes."
             analyticsCards={analytics}
             columns={columns}

@@ -14,7 +14,7 @@ import { ROLES } from "../utils/roles";
 const BrandInput = ({ className = "", ...props }) => (
   <input
     {...props}
-    className={`w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all ${className}`}
+    className={`w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all ${className}`}
   />
 );
 
@@ -76,7 +76,7 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+              <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
                 <FiTag size={14} />
               </div>
 
@@ -101,7 +101,7 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
               <div key={brandIndex} className="bg-slate-50 rounded-xl border border-slate-200 p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-black">
+                    <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-black">
                       {brandIndex + 1}
                     </div>
                     <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Brand {brandIndex + 1}</p>
@@ -140,7 +140,7 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
                     <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                       Models <span className="text-rose-400">*</span>
                     </label>
-                    <button type="button" onClick={() => addModel(brandIndex)} className="text-[10px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-wide transition-colors">
+                    <button type="button" onClick={() => addModel(brandIndex)} className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-wide transition-colors">
                       + Add Model
                     </button>
                   </div>
@@ -161,7 +161,7 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
             <button
               type="button"
               onClick={addBrand}
-              className="w-full py-3.5 border-2 border-dashed border-slate-200 rounded-xl text-sm font-bold text-slate-400 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 border-2 border-dashed border-slate-200 rounded-xl text-sm font-bold text-slate-400 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/30 transition-all flex items-center justify-center gap-2"
             >
               <FiPlus size={14} />Add Another Brand
             </button>
@@ -170,7 +170,7 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
           {/* Footer */}
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex-shrink-0">
             <button type="button" onClick={onClose} disabled={loading} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-all disabled:opacity-50">Cancel</button>
-            <button type="submit" form="brand-form" disabled={loading} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-indigo-200">
+            <button type="submit" form="brand-form" disabled={loading} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-blue-200">
               {loading ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Creating…</> : <><FiPlus size={13} />Create Brands</>}
             </button>
           </div>
@@ -281,7 +281,7 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
             <div className="space-y-1.5">
               <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Description</label>
               <textarea name="description" value={formData.description} onChange={handleInputChange} rows={3} placeholder="Brief description of the brand…"
-                className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all resize-none"
+                className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none"
               />
             </div>
 
@@ -293,7 +293,7 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
                 <button
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, status: prev.status === "active" ? "inactive" : "active" }))}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 ${formData.status === "active" ? "bg-indigo-600" : "bg-slate-200"}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 ${formData.status === "active" ? "bg-blue-600" : "bg-slate-200"}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${formData.status === "active" ? "translate-x-6" : "translate-x-1"}`} />
                 </button>
@@ -305,7 +305,7 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Models <span className="text-rose-400">*</span></label>
-                <button type="button" onClick={addModel} className="text-[10px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-wide transition-colors">+ Add Model</button>
+                <button type="button" onClick={addModel} className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-wide transition-colors">+ Add Model</button>
               </div>
               <div className="space-y-2">
                 {formData.brand_models.map((model, index) => (
@@ -336,7 +336,7 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
           {/* Footer */}
           <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex-shrink-0">
             <button type="button" onClick={onClose} disabled={loading} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-all disabled:opacity-50">Cancel</button>
-            <button type="submit" form="edit-brand-form" disabled={loading} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-indigo-200">
+            <button type="submit" form="edit-brand-form" disabled={loading} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-blue-200">
               {loading ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Updating…</> : "Update Brand"}
             </button>
           </div>
@@ -369,7 +369,7 @@ const BrandsPagination = ({ currentPage, totalPages, onPageChange }) => {
             <div key={page} className="flex items-center">
               {showDots && <span className="px-1.5 text-slate-300 text-xs">…</span>}
               <button onClick={() => onPageChange(page)}
-                className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === currentPage ? "bg-indigo-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}>
+                className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === currentPage ? "bg-blue-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}>
                 {page}
               </button>
             </div>
@@ -447,7 +447,7 @@ const Brands = () => {
             </button>
             {canManageBrands && (
               <button onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 cursor-pointer">
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 cursor-pointer">
                 <FiPlus size={14} />Create Brand
               </button>
             )}
@@ -467,7 +467,7 @@ const Brands = () => {
                   placeholder="Search by name, ID or models…"
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
                 />
               </div>
 
@@ -487,8 +487,8 @@ const Brands = () => {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
               <div className="relative w-10 h-10">
-                <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-                <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+                <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
               </div>
               <p className="text-sm text-slate-400 font-medium">Loading brands…</p>
             </div>
@@ -496,7 +496,7 @@ const Brands = () => {
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100"><FiAlertCircle size={22} className="text-rose-500" /></div>
               <p className="text-sm font-semibold text-rose-600">{error}</p>
-              <button onClick={fetchBrandsList} className="flex items-center gap-1.5 text-sm text-indigo-600 font-bold hover:text-indigo-700 transition-colors">
+              <button onClick={fetchBrandsList} className="flex items-center gap-1.5 text-sm text-blue-600 font-bold hover:text-blue-700 transition-colors">
                 <FiRefreshCw size={12} />Try Again
               </button>
             </div>
@@ -532,7 +532,7 @@ const Brands = () => {
                       {/* Brand */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 font-black text-sm border border-indigo-100 flex-shrink-0">
+                          <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 text-blue-700 font-black text-sm border border-blue-100 flex-shrink-0">
                             {brand.brand_name?.charAt(0)?.toUpperCase()}
                           </div>
                           <div>

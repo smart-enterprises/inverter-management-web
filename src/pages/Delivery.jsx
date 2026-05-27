@@ -76,7 +76,7 @@ const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
                 <button
                   onClick={() => onPageChange(page)}
                   className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === currentPage
-                    ? "bg-indigo-600 text-white shadow-sm"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
                     }`}
                 >
@@ -121,10 +121,10 @@ const StatusBadge = ({ status }) => {
   const map = {
     PENDING: "bg-amber-50 text-amber-700 border-amber-200",
     CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
-    PRODUCTION: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    PACKED: "bg-violet-50 text-violet-700 border-violet-200",
+    PRODUCTION: "bg-blue-50 text-blue-700 border-blue-200",
+    PACKED: "bg-amber-50 text-amber-700 border-amber-200",
     INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
-    SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
+    SHIPPED: "bg-blue-50 text-blue-700 border-blue-200",
     DELIVERED: "bg-green-50 text-green-700 border-green-200",
     COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
     CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
@@ -158,7 +158,7 @@ const DateInput = ({ value, onChange, placeholder, max }) => (
         value={value}
         onChange={onChange}
         max={max}
-        className="pl-8 pr-3 py-2.5 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all cursor-pointer"
+        className="pl-8 pr-3 py-2.5 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all cursor-pointer"
       />
       {value && (
         <button
@@ -322,8 +322,8 @@ const Delivery = () => {
       <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
         <div className="flex flex-col items-center gap-5">
           <div className="relative w-12 h-12">
-            <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-            <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+            <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
           <p className="text-sm text-slate-400 font-semibold tracking-wide">Loading deliveries…</p>
         </div>
@@ -388,7 +388,7 @@ const Delivery = () => {
                   placeholder="Search orders, dealers, shops..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition"
+                  className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none transition"
                 />
                 {searchInput && (
                   <button
@@ -439,7 +439,7 @@ const Delivery = () => {
                   <div className="flex items-center pb-2 text-slate-400"><FiArrowRight size={12} /></div>
                   <DateInput label="To" value={deliveryEndDate} onChange={handleDeliveryEndChange} min={deliveryStartDate || undefined} />
                   {(deliveryStartDate || deliveryEndDate) && (
-                    <span className="px-2 py-1 text-[9px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-full uppercase tracking-wide whitespace-nowrap ml-1">Active</span>
+                    <span className="px-2 py-1 text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-100 rounded-full uppercase tracking-wide whitespace-nowrap ml-1">Active</span>
                   )}
                 </div>
 
@@ -457,9 +457,9 @@ const Delivery = () => {
 
           {/* Inline loading indicator */}
           {loading && orders.length > 0 && (
-            <div className="px-5 py-2 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
-              <div className="w-3 h-3 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
-              <span className="text-xs text-indigo-600 font-semibold">Updating results…</span>
+            <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+              <span className="text-xs text-blue-600 font-semibold">Updating results…</span>
             </div>
           )}
 
@@ -569,7 +569,7 @@ const Delivery = () => {
                             <button
                               onClick={() => navigate(`/orders/${order.order_number}`)}
                               title="View Order"
-                              className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                              className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
                             >
                               <FiEye size={14} />
                             </button>

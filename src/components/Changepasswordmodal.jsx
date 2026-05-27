@@ -44,7 +44,7 @@ const PwInput = ({ label, value, onChange, placeholder, name, error }) => {
                     autoComplete="new-password"
                     className={`w-full pl-9 pr-10 py-2.5 border rounded-xl text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 transition-all ${error
                         ? "border-rose-300 focus:ring-rose-100 focus:border-rose-400"
-                        : "border-slate-200 focus:ring-indigo-100 focus:border-indigo-400 hover:border-slate-300"
+                        : "border-slate-200 focus:ring-blue-100 focus:border-blue-400 hover:border-slate-300"
                         }`}
                 />
                 <button
@@ -152,9 +152,9 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                     style={{ animation: "nb-dropdown-in 160ms cubic-bezier(0.4,0,0.2,1) forwards" }}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-indigo-50/60 to-white">
+                    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-blue-50/60 to-white">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-indigo-100 border border-indigo-200 text-indigo-600">
+                            <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-100 border border-blue-200 text-blue-600">
                                 <FiShield size={16} />
                             </div>
                             <div>
@@ -287,7 +287,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-indigo-200"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-blue-200"
                                 >
                                     {loading ? (
                                         <>

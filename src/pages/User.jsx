@@ -72,11 +72,11 @@ const getCreatableRoles = (viewerRole) =>
 
 const ROLE_CONFIG = {
   ALL: { tab: "bg-slate-800 text-white shadow-md", tabInactive: "text-slate-600 hover:bg-slate-100", badge: "bg-slate-100 text-slate-700 border-slate-200", dot: "bg-slate-500" },
-  [ROLES.SUPER_ADMIN]: { tab: "bg-violet-600 text-white shadow-md shadow-violet-200", tabInactive: "text-violet-600 hover:bg-violet-50", badge: "bg-violet-50 text-violet-700 border-violet-200", dot: "bg-violet-500" },
+  [ROLES.SUPER_ADMIN]: { tab: "bg-amber-600 text-white shadow-md shadow-amber-200", tabInactive: "text-amber-600 hover:bg-amber-50", badge: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500" },
   [ROLES.ADMIN]: { tab: "bg-blue-600 text-white shadow-md shadow-blue-200", tabInactive: "text-blue-600 hover:bg-blue-50", badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" },
-  [ROLES.MANAGER]: { tab: "bg-indigo-600 text-white shadow-md shadow-indigo-200", tabInactive: "text-indigo-600 hover:bg-indigo-50", badge: "bg-indigo-50 text-indigo-700 border-indigo-200", dot: "bg-indigo-500" },
+  [ROLES.MANAGER]: { tab: "bg-blue-600 text-white shadow-md shadow-blue-200", tabInactive: "text-blue-600 hover:bg-blue-50", badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" },
   [ROLES.SALESMAN]: { tab: "bg-emerald-600 text-white shadow-md shadow-emerald-200", tabInactive: "text-emerald-600 hover:bg-emerald-50", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
-  [ROLES.PRODUCTION]: { tab: "bg-orange-500 text-white shadow-md shadow-orange-200", tabInactive: "text-orange-600 hover:bg-orange-50", badge: "bg-orange-50 text-orange-700 border-orange-200", dot: "bg-orange-500" },
+  [ROLES.PRODUCTION]: { tab: "bg-blue-500 text-white shadow-md shadow-blue-200", tabInactive: "text-blue-600 hover:bg-blue-50", badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" },
   [ROLES.PACKING]: { tab: "bg-pink-500 text-white shadow-md shadow-pink-200", tabInactive: "text-pink-600 hover:bg-pink-50", badge: "bg-pink-50 text-pink-700 border-pink-200", dot: "bg-pink-500" },
   [ROLES.ACCOUNTS]: { tab: "bg-cyan-600 text-white shadow-md shadow-cyan-200", tabInactive: "text-cyan-600 hover:bg-cyan-50", badge: "bg-cyan-50 text-cyan-700 border-cyan-200", dot: "bg-cyan-500" },
   [ROLES.DELIVERY]: { tab: "bg-teal-600 text-white shadow-md shadow-teal-200", tabInactive: "text-teal-600 hover:bg-teal-50", badge: "bg-teal-50 text-teal-700 border-teal-200", dot: "bg-teal-500" },
@@ -145,7 +145,7 @@ const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
               type="button"
               onClick={() => handlePageChange(p)}
               className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === p
-                ? "bg-indigo-600 text-white shadow-sm"
+                ? "bg-blue-600 text-white shadow-sm"
                 : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
                 }`}
             >
@@ -171,7 +171,7 @@ const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
 const ModalInput = ({ className = "", ...props }) => (
   <input
     {...props}
-    className={`w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all ${className}`}
+    className={`w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all ${className}`}
   />
 );
 
@@ -217,7 +217,7 @@ const PasswordCell = ({ employee, isAllowed, isRevealed, onToggleReveal }) => {
       <button
         type="button"
         onClick={() => onToggleReveal(employee.employee_id)}
-        className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all flex-shrink-0"
+        className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all flex-shrink-0"
         title={isRevealed ? "Hide password" : "Show password"}
         aria-label={isRevealed ? "Hide password" : "Show password"}
       >
@@ -249,7 +249,7 @@ const UserActions = React.memo(({ user: u, onView, onEdit, onDelete, onManageDea
       <button
         type="button"
         onClick={onView}
-        className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+        className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
         aria-label="View user"
       >
         <FiEye size={14} />
@@ -566,7 +566,7 @@ const User = () => {
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 cursor-pointer"
             >
               <FiPlus size={14} /> Add New User
             </button>
@@ -621,7 +621,7 @@ const User = () => {
                   placeholder="Search by name or email…"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
                 />
               </div>
               <div className="flex items-center gap-2.5 flex-wrap">
@@ -642,7 +642,7 @@ const User = () => {
                       type="checkbox"
                       checked={includePassword}
                       onChange={(e) => setIncludePassword(e.target.checked)}
-                      className="accent-indigo-600 w-3.5 h-3.5 rounded"
+                      className="accent-blue-600 w-3.5 h-3.5 rounded"
                     />
                     Show Passwords
                   </label>
@@ -673,8 +673,8 @@ const User = () => {
                     <td colSpan={tableHeaders.length} className="py-20 text-center">
                       <div className="flex justify-center">
                         <div className="relative w-10 h-10">
-                          <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-                          <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                          <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+                          <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
                         </div>
                       </div>
                     </td>
@@ -821,7 +821,7 @@ const User = () => {
             >
               <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                  <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
                     <FiUsers size={14} />
                   </div>
                   <div>
@@ -877,7 +877,7 @@ const User = () => {
                   <select
                     value={formData.role || ""}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full appearance-none border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all cursor-pointer"
+                    className="w-full appearance-none border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all cursor-pointer"
                   >
                     <option value="" disabled>Select Role</option>
                     {creatableRoles.map((role) => (
@@ -905,7 +905,7 @@ const User = () => {
                   placeholder="Address"
                   value={formData.address || ""}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 resize-none transition-all"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none transition-all"
                 />
               </div>
 
@@ -914,7 +914,7 @@ const User = () => {
                   type="button"
                   onClick={handleCreate}
                   disabled={loading}
-                  className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-indigo-200"
+                  className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-blue-200"
                 >
                   {loading ? "Creating…" : "Create User"}
                 </button>
@@ -977,7 +977,7 @@ const User = () => {
                 <select
                   value={formData.role || ""}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
                 >
                   {[...new Set([...(formData.role ? [formData.role] : []), ...creatableRoles])].map(
                     (role) => (
@@ -989,7 +989,7 @@ const User = () => {
                 <select
                   value={formData.status || ""}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -1000,7 +1000,7 @@ const User = () => {
                   value={formData.address || ""}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   rows={3}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 resize-none transition-all"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none transition-all"
                 />
               </div>
 
@@ -1015,7 +1015,7 @@ const User = () => {
                 <button
                   type="button"
                   onClick={handleUpdate}
-                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
                 >
                   Update User
                 </button>

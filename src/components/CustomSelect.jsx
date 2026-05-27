@@ -10,7 +10,7 @@ if (typeof document !== 'undefined' && !document.getElementById('cs-scroll-style
     .cs-scroll::-webkit-scrollbar { width: 4px; }
     .cs-scroll::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
     .cs-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 8px; }
-    .cs-scroll::-webkit-scrollbar-thumb:hover { background: #9333ea; }
+    .cs-scroll::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
     .cs-scroll { scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
   `;
   document.head.appendChild(s);
@@ -128,8 +128,8 @@ const CustomSelect = ({
         className={`w-full px-4 py-2.5 bg-white border rounded-lg text-left text-sm flex items-center justify-between transition-all ${disabled
           ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-200'
           : isOpen
-            ? 'border-[#9333EA] ring-2 ring-[#9333EA]/20 outline-none'
-            : 'border-gray-200 hover:border-[#9333EA] focus:outline-none focus:ring-2 focus:ring-[#9333EA]/20'
+            ? 'border-[#3B82F6] ring-2 ring-[#3B82F6]/20 outline-none'
+            : 'border-gray-200 hover:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20'
           }`}
       >
         <span className={value ? 'text-gray-900' : 'text-gray-400 text-sm'}>
@@ -163,7 +163,7 @@ const CustomSelect = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search..."
-                  className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#9333EA]/40 focus:border-[#9333EA] placeholder-gray-300"
+                  className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3B82F6]/40 focus:border-[#3B82F6] placeholder-gray-300"
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>
@@ -194,7 +194,7 @@ const CustomSelect = ({
                             setSearchQuery('');
                           }}
                           className={`w-full px-6 py-2.5 text-sm text-left transition-colors border-b border-gray-50 last:border-0 ${value === getOptionValue(option)
-                            ? 'bg-[#9333EA]/8 text-[#9333EA] font-semibold'
+                            ? 'bg-[#3B82F6]/8 text-[#3B82F6] font-semibold'
                             : 'text-gray-700 hover:bg-gray-50'
                             }`}
                         >
@@ -220,7 +220,7 @@ const CustomSelect = ({
                         setSearchQuery('');
                       }}
                       className={`w-full px-4 py-2.5 text-sm text-left transition-colors border-b border-gray-50 last:border-0 ${value === getOptionValue(option)
-                        ? 'bg-[#9333EA]/10 text-[#9333EA] font-semibold'
+                        ? 'bg-[#3B82F6]/10 text-[#3B82F6] font-semibold'
                         : 'text-gray-700 hover:bg-gray-50'
                         }`}
                     >

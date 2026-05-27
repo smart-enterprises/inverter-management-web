@@ -29,16 +29,16 @@ import {
    ================================================================ */
 const scrollbarStyles = `
   .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
-  .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
-  .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; transition: background 0.2s; }
-  .custom-scroll::-webkit-scrollbar-thumb:hover { background: #6366f1; }
-  .custom-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
+  .custom-scroll::-webkit-scrollbar-track { background: #fef3e7; border-radius: 10px; }
+  .custom-scroll::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; transition: background 0.2s; }
+  .custom-scroll::-webkit-scrollbar-thumb:hover { background: #fb923c; }
+  .custom-scroll { scrollbar-width: thin; scrollbar-color: #fed7aa #fef3e7; }
 
   .dropdown-scroll::-webkit-scrollbar { width: 4px; }
   .dropdown-scroll::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
-  .dropdown-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 8px; }
-  .dropdown-scroll::-webkit-scrollbar-thumb:hover { background: #818cf8; }
-  .dropdown-scroll { scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
+  .dropdown-scroll::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 8px; }
+  .dropdown-scroll::-webkit-scrollbar-thumb:hover { background: #fb923c; }
+  .dropdown-scroll { scrollbar-width: thin; scrollbar-color: #fed7aa transparent; }
 `;
 
 if (typeof document !== "undefined" && !document.getElementById("co-scroll-styles")) {
@@ -137,12 +137,12 @@ const Field = ({ label, required, children, hint }) => (
    ================================================================ */
 const SectionCard = ({ icon, title, subtitle, action, children, accent = "indigo" }) => {
   const a = accent === "indigo"
-    ? { icon: "bg-indigo-50 text-indigo-600 border border-indigo-100", bar: "from-indigo-500 to-violet-500" }
+    ? { icon: "bg-blue-50 text-blue-600 border border-blue-100", bar: "from-blue-400 to-blue-600" }
     : { icon: "bg-slate-50 text-slate-500 border border-slate-200", bar: "from-slate-400 to-slate-300" };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white">
+    <div className="bg-white rounded-2xl border border-blue-100/60 overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-blue-100/60 bg-blue-50/30">
         <div className="flex items-center gap-3">
           <div className={`w-1 h-10 rounded-full bg-gradient-to-b ${a.bar} flex-shrink-0`} />
           <div className={`p-2 rounded-xl ${a.icon} flex-shrink-0`}>{icon}</div>
@@ -164,7 +164,7 @@ const SectionCard = ({ icon, title, subtitle, action, children, accent = "indigo
 const StyledInput = ({ className = "", ...props }) => (
   <input
     {...props}
-    className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all duration-150 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${className}`}
+    className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all duration-150 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${className}`}
   />
 );
 
@@ -172,9 +172,9 @@ const StyledInput = ({ className = "", ...props }) => (
    SALESMAN REQUIRED HINT — shown when dealer cannot be selected yet
    ================================================================ */
 const SalesmanRequiredHint = () => (
-  <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg bg-indigo-50 border border-indigo-100">
-    <FiUser size={12} className="text-indigo-400 flex-shrink-0" />
-    <p className="text-[10px] font-semibold text-indigo-600">
+  <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg bg-blue-50/70 border border-blue-100">
+    <FiUser size={12} className="text-blue-500 flex-shrink-0" />
+    <p className="text-[10px] font-semibold text-blue-600">
       Select a salesman first to load their assigned dealers
     </p>
   </div>
@@ -185,8 +185,8 @@ const SalesmanRequiredHint = () => (
    ================================================================ */
 const CascadeSelect = ({ value, options, onChange, placeholder, disabled, color = "indigo" }) => {
   const colors = {
-    indigo: "focus:ring-indigo-200 focus:border-indigo-400",
-    violet: "focus:ring-violet-200 focus:border-violet-400",
+    indigo: "focus:ring-blue-200 focus:border-blue-400",
+    violet: "focus:ring-amber-200 focus:border-amber-400",
   };
   return (
     <div className="relative">
@@ -264,7 +264,7 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
         ref={triggerRef} type="button"
         disabled={isLoading || isEmpty}
         onClick={() => isOpen ? (setIsOpen(false), setSearch("")) : openPanel()}
-        className={`w-full px-3 py-2 bg-white border rounded-lg text-sm text-left flex items-center justify-between gap-2 transition-all duration-150 ${isOpen ? "border-indigo-400 ring-2 ring-indigo-100" : "border-slate-200 hover:border-indigo-300"
+        className={`w-full px-3 py-2 bg-white border rounded-lg text-sm text-left flex items-center justify-between gap-2 transition-all duration-150 ${isOpen ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200 hover:border-blue-300"
           } ${isLoading || isEmpty ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
       >
         <span className={`truncate font-medium ${selected ? "text-slate-800" : "text-slate-400"}`}>
@@ -278,10 +278,10 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
 
       {isOpen && !isLoading && options.length > 0 && (
         <div ref={panelRef} style={panelStyle}
-          className="bg-white border border-slate-200 rounded-xl shadow-[0_20px_60px_-12px_rgba(15,23,42,0.18)] overflow-hidden">
+          className="bg-white border border-blue-100/80 rounded-xl shadow-[0_20px_60px_-12px_rgba(15,23,42,0.18)] overflow-hidden">
 
           {/* Search */}
-          <div className="px-3 pt-3 pb-2 border-b border-slate-100 bg-slate-50/50">
+          <div className="px-3 pt-3 pb-2 border-b border-blue-100/60 bg-blue-50/40">
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -289,15 +289,15 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
               </svg>
               <input ref={searchRef} type="text" value={search} onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name, model or type…"
-                className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:border-indigo-400 bg-white placeholder-slate-300"
+                className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-400 bg-white placeholder-slate-300"
                 onClick={(e) => e.stopPropagation()} />
             </div>
           </div>
 
           {/* Column headers */}
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_80px] px-4 py-2 bg-slate-50 border-b border-slate-100">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_80px] px-4 py-2 bg-blue-50/40 border-b border-blue-100/60">
             {["Product", "Brand", "Model", "Type", "Stock"].map((h) => (
-              <span key={h} className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{h}</span>
+              <span key={h} className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{h}</span>
             ))}
           </div>
 
@@ -319,8 +319,8 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
               return (
                 <button key={opt.value} type="button"
                   onClick={() => { onChange({ target: { value: opt.value } }); setIsOpen(false); setSearch(""); }}
-                  className={`w-full grid grid-cols-[2fr_1fr_1fr_1fr_80px] gap-3 items-center px-4 py-3 text-sm text-left transition-all duration-150 border-b border-slate-100 last:border-0 ${isSelected ? "bg-indigo-50" : "hover:bg-slate-50"}`}>
-                  <span className={`font-semibold ${isSelected ? "text-indigo-700" : "text-slate-900"}`}>
+                  className={`w-full grid grid-cols-[2fr_1fr_1fr_1fr_80px] gap-3 items-center px-4 py-3 text-sm text-left transition-all duration-150 border-b border-blue-50 last:border-0 ${isSelected ? "bg-blue-50/70" : "hover:bg-blue-50/30"}`}>
+                  <span className={`font-semibold ${isSelected ? "text-blue-700" : "text-slate-900"}`}>
                     {opt.product_name ? capitalizeFirstLetter(opt.product_name) : opt.label}
                   </span>
                   <span className="text-sm text-slate-500">{opt.product_brand ? capitalizeFirstLetter(opt.product_brand) : <span className="text-slate-300">—</span>}</span>
@@ -418,13 +418,13 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
       <div className="flex gap-1">
         {options.length > 0 && (
           <button type="button" onClick={() => handleModeSwitch("dealer")}
-            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[9px] font-black uppercase tracking-wide border transition-all ${mode === "dealer" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[9px] font-black uppercase tracking-wide border transition-all ${mode === "dealer" ? "bg-blue-500 text-white border-blue-500" : "bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600"
               }`}>
             <FiTag size={8} />Dealer
           </button>
         )}
         <button type="button" onClick={() => handleModeSwitch("manual")}
-          className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[9px] font-black uppercase tracking-wide border transition-all ${mode === "manual" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+          className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[9px] font-black uppercase tracking-wide border transition-all ${mode === "manual" ? "bg-blue-500 text-white border-blue-500" : "bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600"
             }`}>
           <FiPercent size={8} />Manual
         </button>
@@ -438,7 +438,7 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
         <>
           <button ref={triggerRef} type="button"
             onClick={() => dropOpen ? setDropOpen(false) : openDrop()}
-            className={`w-full px-2.5 py-2 bg-white border rounded-lg text-xs text-left flex items-center justify-between gap-1.5 transition-all ${dropOpen ? "border-indigo-400 ring-2 ring-indigo-100" : "border-slate-200 hover:border-indigo-300"
+            className={`w-full px-2.5 py-2 bg-white border rounded-lg text-xs text-left flex items-center justify-between gap-1.5 transition-all ${dropOpen ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200 hover:border-blue-300"
               }`}>
             <span className={`truncate font-semibold ${selectedDealer ? "text-slate-800" : "text-slate-400"}`}>
               {selectedDealer
@@ -449,10 +449,10 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
           </button>
           {dropOpen && (
             <div ref={panelRef} style={panelStyle}
-              className="bg-white border border-slate-200 rounded-xl shadow-[0_16px_48px_-8px_rgba(15,23,42,0.16)] overflow-hidden">
-              <div className="p-2 border-b border-slate-100">
+              className="bg-white border border-blue-100/80 rounded-xl shadow-[0_16px_48px_-8px_rgba(15,23,42,0.16)] overflow-hidden">
+              <div className="p-2 border-b border-blue-100/60">
                 <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…"
-                  className="w-full px-2.5 py-1.5 text-xs font-medium border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-300" />
+                  className="w-full px-2.5 py-1.5 text-xs font-medium border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300" />
               </div>
               <div className="max-h-40 overflow-y-auto dropdown-scroll">
                 {filtered.length === 0 ? (
@@ -460,7 +460,7 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
                 ) : filtered.map((opt) => (
                   <button key={opt.dealer_discount_id} type="button"
                     onClick={() => { onDealerChange(index, opt.dealer_discount_id); setDropOpen(false); setSearch(""); }}
-                    className={`w-full px-3 py-2.5 text-left text-xs font-semibold border-b border-slate-50 last:border-0 transition-colors ${item.dealer_discount_id === opt.dealer_discount_id ? "bg-indigo-50 text-indigo-700" : "hover:bg-slate-50 text-slate-700"
+                    className={`w-full px-3 py-2.5 text-left text-xs font-semibold border-b border-blue-50 last:border-0 transition-colors ${item.dealer_discount_id === opt.dealer_discount_id ? "bg-blue-50/70 text-blue-700" : "hover:bg-blue-50/30 text-slate-700"
                       }`}>
                     <span className="font-black">{opt.is_percentage ? `${opt.discount_value}%` : `₹ ${opt.discount_value}`}</span>
                     <span className="ml-1.5 text-[10px] text-slate-400">{opt.is_percentage ? "% off" : "flat off"}</span>
@@ -493,12 +493,12 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
   const savingsPct = subtotal > 0 ? ((totalDiscount / subtotal) * 100).toFixed(1) : 0;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-      <div className="h-1 bg-gradient-to-r from-indigo-400 via-violet-500 to-purple-400" />
+    <div className="rounded-2xl border border-blue-100/60 bg-white overflow-hidden">
+      <div className="h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-amber-400" />
 
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-blue-100/60 bg-blue-50/30">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-200">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
             <FiBarChart2 size={14} className="text-white" />
           </div>
           <div>
@@ -521,7 +521,7 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
 
       <div className="px-5 py-3 space-y-1">
         {/* Gross Total */}
-        <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
+        <div className="flex items-center justify-between py-2.5 border-b border-blue-50">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
               <FiLayers size={10} className="text-slate-500" />
@@ -538,7 +538,7 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
 
         {/* Discount */}
         {totalDiscount > 0 && (
-          <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
+          <div className="flex items-center justify-between py-2.5 border-b border-blue-50">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
                 <FiTrendingDown size={10} className="text-rose-500" />
@@ -556,10 +556,10 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
 
         {/* Net Payable */}
         <div className="py-3">
-          <div className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 shadow-md shadow-indigo-200/50">
+          <div className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 shadow-md shadow-blue-500/30">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.1em] text-indigo-200">Net Payable</p>
-              <p className="text-[9px] text-indigo-300 font-medium mt-0.5">After all discounts</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.1em] text-blue-100">Net Payable</p>
+              <p className="text-[9px] text-blue-200 font-medium mt-0.5">After all discounts</p>
             </div>
             <span className="text-2xl font-black text-white tabular-nums">
               ₹ {netAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -569,17 +569,17 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
 
         {/* Amount Paid */}
         {amountPaid > 0 && (
-          <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
+          <div className="flex items-center justify-between py-2.5 border-b border-blue-50">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                <FiCreditCard size={10} className="text-indigo-500" />
+              <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <FiCreditCard size={10} className="text-amber-600" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-indigo-600">Paid Now</p>
-                <p className="text-[9px] text-indigo-400 font-medium">Amount tendered</p>
+                <p className="text-xs font-semibold text-amber-700">Paid Now</p>
+                <p className="text-[9px] text-amber-500 font-medium">Amount tendered</p>
               </div>
             </div>
-            <span className="text-sm font-bold text-indigo-600 tabular-nums">
+            <span className="text-sm font-bold text-amber-700 tabular-nums">
               − ₹ {amountPaid.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </span>
           </div>
@@ -639,12 +639,12 @@ const ItemCard = ({
   const hasProduct = !!item.product_name;
 
   return (
-    <div className="hidden xl:block bg-white border border-slate-200 rounded-2xl overflow-visible transition-all duration-200 hover:border-indigo-200 hover:shadow-lg group">
+    <div className="hidden xl:block bg-white border border-blue-100/60 rounded-2xl overflow-visible transition-all duration-200 hover:border-blue-200 hover:shadow-lg group">
 
       {/* Card header */}
-      <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 rounded-t-2xl">
+      <div className="flex items-center justify-between px-5 py-3 bg-blue-50/30 border-b border-blue-100/60 rounded-t-2xl">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-indigo-200">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-500/30">
             <span className="text-[10px] font-black text-white">{index + 1}</span>
           </div>
           <div>
@@ -679,7 +679,7 @@ const ItemCard = ({
 
         <div className="flex items-center gap-2">
           {hasProduct && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-100">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100">
               {item.is_product_scheme ? (
                 <span className="text-xs font-black text-emerald-600">FREE</span>
               ) : (
@@ -687,7 +687,7 @@ const ItemCard = ({
                   {discountLabel && (
                     <span className="text-[10px] text-slate-400 line-through">₹{itemTotal.toLocaleString("en-IN")}</span>
                   )}
-                  <span className="text-xs font-black text-indigo-700">₹{Math.max(0, finalAmount).toLocaleString("en-IN")}</span>
+                  <span className="text-xs font-black text-blue-700">₹{Math.max(0, finalAmount).toLocaleString("en-IN")}</span>
                   {discountLabel && (
                     <span className="text-[9px] font-black text-rose-500 bg-rose-50 px-1 rounded">{discountLabel}</span>
                   )}
@@ -700,7 +700,7 @@ const ItemCard = ({
             onClick={() => onItemChange(index, "is_product_scheme", !item.is_product_scheme)}
             className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-wide transition-all ${item.is_product_scheme
               ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-sm"
-              : "bg-white text-slate-400 border-slate-200 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50"
+              : "bg-white text-slate-400 border-slate-200 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50"
               }`}>
             <FiZap size={9} />Scheme
           </button>
@@ -716,13 +716,13 @@ const ItemCard = ({
 
       <div className="px-5 pt-4 pb-5 space-y-4">
         {/* Brand + Model row */}
-        <div className="grid grid-cols-2 gap-4 pb-4 border-b border-dashed border-slate-100">
+        <div className="grid grid-cols-2 gap-4 pb-4 border-b border-dashed border-blue-100/60">
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-2 h-2 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex-shrink-0" />
+              <div className="w-2 h-2 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0" />
               <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Brand</span>
               {currentBrand && (
-                <span className="ml-auto inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 text-[8px] font-black leading-4">
+                <span className="ml-auto inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-blue-50 text-blue-600 border border-blue-100 text-[8px] font-black leading-4">
                   <FiCheck size={7} />{currentBrand}
                 </span>
               )}
@@ -735,10 +735,10 @@ const ItemCard = ({
           </div>
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-2 h-2 rounded-full bg-gradient-to-br from-violet-400 to-violet-600 flex-shrink-0" />
+              <div className="w-2 h-2 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex-shrink-0" />
               <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Model</span>
               {currentModel && (
-                <span className="ml-auto inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-violet-50 text-violet-600 border border-violet-100 text-[8px] font-black leading-4">
+                <span className="ml-auto inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-amber-50 text-amber-600 border border-amber-100 text-[8px] font-black leading-4">
                   <FiCheck size={7} />{currentModel}
                 </span>
               )}
@@ -751,7 +751,7 @@ const ItemCard = ({
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 hover:shadow-md transition-all duration-200">
+        <div className="rounded-xl border border-blue-100/60 bg-white p-4 hover:shadow-md transition-all duration-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_90px_120px_180px_160px] gap-4 items-start">
 
             {/* Product */}
@@ -816,19 +816,19 @@ const MobileItemCard = ({
   onBrandChange, onModelChange, onItemChange, onDealerDiscount, onManualDiscount,
   onClearDiscount, onRemove,
 }) => (
-  <div className="xl:hidden bg-white border border-slate-200 rounded-2xl overflow-hidden">
-    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
+  <div className="xl:hidden bg-white border border-blue-100/60 rounded-2xl overflow-hidden">
+    <div className="flex items-center justify-between px-4 py-3 bg-blue-50/30 border-b border-blue-100/60">
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
           <span className="text-[9px] font-black text-white">{index + 1}</span>
         </div>
-        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-indigo-600">Item #{index + 1}</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-blue-600">Item #{index + 1}</span>
       </div>
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => onItemChange(index, "is_product_scheme", !item.is_product_scheme)}
           className={`flex items-center gap-1 px-2 py-1 rounded border text-[9px] font-black uppercase tracking-wide transition-all ${item.is_product_scheme
             ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent"
-            : "bg-white text-slate-400 border-slate-200 hover:border-indigo-300"
+            : "bg-white text-slate-400 border-slate-200 hover:border-blue-300"
             }`}>
           <FiZap size={8} />Scheme
         </button>
@@ -879,7 +879,7 @@ const MobileItemCard = ({
           onChange={(e) => onItemChange(index, "delivery_date", e.target.value)} />
       </Field>
       {item.product_name && (
-        <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-slate-50 to-indigo-50/20 border border-slate-100">
+        <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-blue-50/40 to-amber-50/30 border border-blue-100/60">
           <div className="min-w-0">
             <p className="text-xs font-bold text-slate-900 truncate">{capitalizeFirstLetter(item.product_name)}</p>
             <p className="text-[10px] text-slate-400 mt-0.5">
@@ -1273,7 +1273,7 @@ const CreateOrder = () => {
      RENDER
      ================================================================ */
   return (
-    <div className="min-h-screen bg-slate-50/70">
+    <div className="min-h-screen bg-[#F8FAFC]">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -1281,16 +1281,16 @@ const CreateOrder = () => {
           <div className="flex justify-between items-center gap-4">
             <div className="flex items-center gap-3.5">
               <button type="button" onClick={() => navigate("/orders")}
-                className="p-2 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all group">
-                <FiArrowLeft size={15} className="text-slate-400 group-hover:text-slate-700 transition-colors" />
+                className="p-2 rounded-xl border border-slate-200 bg-white hover:text-blue-600 hover:border-blue-200 transition-colors group">
+                <FiArrowLeft size={15} className="text-slate-500 group-hover:text-blue-600 transition-colors" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight">Place New Order</h1>
+                <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Place New Order</h1>
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.12em] mt-0.5">Order Management</p>
               </div>
             </div>
             <button type="submit" disabled={loading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm shadow-indigo-200">
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-bold rounded-xl hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm shadow-blue-500/30">
               <FiSend size={13} />
               {loading ? "Creating…" : "Submit Order"}
             </button>
@@ -1372,7 +1372,7 @@ const CreateOrder = () => {
               <Field label="Order Notes" hint="Optional">
                 <textarea name="order_note" value={formData.order_note} onChange={handleChange} rows={3}
                   placeholder="Special instructions or notes…"
-                  className="w-full border border-slate-200 rounded-lg px-3.5 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all resize-none" />
+                  className="w-full border border-slate-200 rounded-lg px-3.5 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none" />
               </Field>
             </div>
           </SectionCard>
@@ -1390,7 +1390,7 @@ const CreateOrder = () => {
                     <FiFilter size={8} />{allBrands.length} brand{allBrands.length !== 1 ? "s" : ""}
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase tracking-wide">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-wide">
                   <FiPackage size={9} />
                   {formData.order_details.length} {formData.order_details.length === 1 ? "Item" : "Items"}
                 </span>
@@ -1401,9 +1401,9 @@ const CreateOrder = () => {
 
               {/* ── Context hints ── */}
               {canSelectSalesmanPermission && !formData.salesman_id && (
-                <div className="flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 border-dashed rounded-xl">
-                  <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-500 flex-shrink-0"><FiUser size={12} /></div>
-                  <p className="text-xs font-semibold text-indigo-700">Select a salesman to load their assigned dealers and products</p>
+                <div className="flex items-center gap-3 px-4 py-3 bg-blue-50/60 border border-blue-200 border-dashed rounded-xl">
+                  <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600 flex-shrink-0"><FiUser size={12} /></div>
+                  <p className="text-xs font-semibold text-blue-700">Select a salesman to load their assigned dealers and products</p>
                 </div>
               )}
               {(!canSelectSalesmanPermission || formData.salesman_id) && !formData.dealer_id && (
@@ -1473,9 +1473,9 @@ const CreateOrder = () => {
 
               {/* ── Add item ── */}
               <button type="button" onClick={addItem}
-                className="w-full flex items-center justify-center gap-2.5 py-4 border-2 border-dashed border-slate-200 rounded-xl text-sm font-semibold text-slate-400 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/40 transition-all group">
-                <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-indigo-100 transition-colors">
-                  <FiPlus size={12} className="group-hover:text-indigo-600 transition-colors" />
+                className="w-full flex items-center justify-center gap-2.5 py-4 border-2 border-dashed border-blue-200/70 rounded-xl text-sm font-semibold text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/40 transition-all group">
+                <div className="p-1.5 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                  <FiPlus size={12} className="text-blue-500 group-hover:text-blue-600 transition-colors" />
                 </div>
                 Add Another Item
               </button>
@@ -1489,18 +1489,18 @@ const CreateOrder = () => {
 
           {/* ── STICKY FOOTER ── */}
           <div className="sticky bottom-6 z-20 flex justify-end pointer-events-none">
-            <div className="pointer-events-auto flex items-center gap-3 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-lg px-5 py-3 ring-1 ring-slate-100">
-              <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+            <div className="pointer-events-auto flex items-center gap-3 bg-white/95 backdrop-blur-md border border-blue-100/80 rounded-xl shadow-lg px-5 py-3 ring-1 ring-blue-100/60">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
               <span className="text-sm text-slate-500 font-semibold hidden sm:block">
                 {formData.order_details.length} {formData.order_details.length === 1 ? "item" : "items"} in cart
               </span>
-              <div className="w-px h-4 bg-slate-200 mx-1 hidden sm:block" />
+              <div className="w-px h-4 bg-blue-100 mx-1 hidden sm:block" />
               <button type="button" onClick={() => navigate("/orders")}
-                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg hover:bg-slate-50 active:scale-95 transition-all">
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg hover:border-blue-200 hover:text-blue-600 active:scale-95 transition-colors">
                 Cancel
               </button>
               <button type="submit" disabled={loading}
-                className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-200">
+                className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-500/30">
                 <FiSend size={12} />
                 {loading ? "Creating…" : "Place Order"}
               </button>
