@@ -74,7 +74,7 @@ const buildBrandModelMap = (brands = []) =>
 // ─────────────────────────────────────────────
 
 const inputCls =
-  "w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all disabled:bg-slate-50 disabled:text-slate-400";
+  "w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all disabled:bg-slate-50 disabled:text-slate-400";
 
 // ─────────────────────────────────────────────
 // Primitive UI Components
@@ -82,7 +82,7 @@ const inputCls =
 
 const InfoItem = ({ icon, label, value }) => (
   <div className="flex items-start gap-3.5 px-5 py-4 rounded-xl hover:bg-slate-50/60 transition-colors group">
-    <div className="mt-0.5 p-2 rounded-lg bg-indigo-50 text-indigo-500 border border-indigo-100 group-hover:border-indigo-200 transition-colors flex-shrink-0">
+    <div className="mt-0.5 p-2 rounded-lg bg-blue-50 text-blue-500 border border-blue-100 group-hover:border-blue-200 transition-colors flex-shrink-0">
       {React.cloneElement(icon, { size: 13 })}
     </div>
     <div className="flex-1 min-w-0">
@@ -131,8 +131,8 @@ const StatPill = ({ title, value, color }) => {
   const palette = {
     blue: "text-blue-700 bg-blue-50 border-blue-200",
     yellow: "text-amber-700 bg-amber-50 border-amber-200",
-    purple: "text-violet-700 bg-violet-50 border-violet-200",
-    orange: "text-orange-700 bg-orange-50 border-orange-200",
+    purple: "text-amber-700 bg-amber-50 border-amber-200",
+    orange: "text-blue-700 bg-blue-50 border-blue-200",
     emerald: "text-emerald-700 bg-emerald-50 border-emerald-200",
     rose: "text-rose-700 bg-rose-50 border-rose-200",
   };
@@ -174,8 +174,8 @@ const PageLoader = ({ label = "Loading…" }) => (
   <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
     <div className="flex flex-col items-center gap-4">
       <div className="relative w-10 h-10">
-        <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-        <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+        <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
       <p className="text-sm text-slate-400 font-medium">{label}</p>
     </div>
@@ -237,7 +237,7 @@ const ModalFooter = ({
     <button
       onClick={onSubmit}
       disabled={submitting}
-      className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-indigo-200 inline-flex items-center justify-center gap-2"
+      className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-blue-200 inline-flex items-center justify-center gap-2"
     >
       {submitting ? (
         <>
@@ -278,7 +278,7 @@ const DateRangeFilter = ({ startDate, endDate, onStartChange, onEndChange }) => 
       />
     </div>
     {(startDate || endDate) && (
-      <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full uppercase tracking-wide">
+      <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-200 rounded-full uppercase tracking-wide">
         Active
       </span>
     )}
@@ -307,7 +307,7 @@ const MiniPagination = ({ page, total, limit, onPageChange }) => {
           <button
             onClick={() => onPageChange(p)}
             className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${p === page
-              ? "bg-indigo-600 text-white shadow-sm"
+              ? "bg-blue-600 text-white shadow-sm"
               : "border border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
           >
@@ -355,7 +355,7 @@ const ProductMultiSelect = ({ products = [], selected = [], onChange }) => {
     <div className="relative" ref={containerRef}>
       <div
         onClick={() => setOpen((prev) => !prev)}
-        className="min-h-[44px] flex flex-wrap gap-1.5 px-3.5 py-2.5 border border-slate-200 rounded-lg cursor-pointer hover:border-indigo-300 transition-colors"
+        className="min-h-[44px] flex flex-wrap gap-1.5 px-3.5 py-2.5 border border-slate-200 rounded-lg cursor-pointer hover:border-blue-300 transition-colors"
       >
         {selected.length === 0 && (
           <span className="text-slate-400 text-sm font-medium">Select products…</span>
@@ -366,12 +366,12 @@ const ProductMultiSelect = ({ products = [], selected = [], onChange }) => {
           return (
             <span
               key={id}
-              className="flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full text-[10px] font-black"
+              className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full text-[10px] font-black"
             >
               {product.product_name}
               <button
                 onMouseDown={(e) => { e.stopPropagation(); toggle(id); }}
-                className="text-indigo-400 hover:text-indigo-700"
+                className="text-blue-400 hover:text-blue-700"
               >
                 <FiX size={9} />
               </button>
@@ -387,7 +387,7 @@ const ProductMultiSelect = ({ products = [], selected = [], onChange }) => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onMouseDown={(e) => e.stopPropagation()}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
             />
           </div>
           <div className="max-h-52 overflow-y-auto">
@@ -402,11 +402,11 @@ const ProductMultiSelect = ({ products = [], selected = [], onChange }) => {
                   <div
                     key={product.product_id}
                     onMouseDown={(e) => { e.stopPropagation(); toggle(product.product_id); }}
-                    className={`px-4 py-2.5 text-sm cursor-pointer flex justify-between hover:bg-slate-50 transition-colors ${active ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-700"
+                    className={`px-4 py-2.5 text-sm cursor-pointer flex justify-between hover:bg-slate-50 transition-colors ${active ? "bg-blue-50 text-blue-700 font-semibold" : "text-slate-700"
                       }`}
                   >
                     <span>{product.product_name} ({product.model})</span>
-                    {active && <FiCheck size={13} className="text-indigo-600 flex-shrink-0" />}
+                    {active && <FiCheck size={13} className="text-blue-600 flex-shrink-0" />}
                   </div>
                 );
               })
@@ -460,12 +460,12 @@ const BrandMultiSelect = ({
         onClick={() => !disabled && !loading && setOpen((p) => !p)}
         className={`w-full px-3.5 py-2.5 rounded-lg border min-h-[42px] flex flex-wrap items-center gap-1.5 cursor-pointer transition-all ${disabled
           ? "opacity-50 cursor-not-allowed bg-slate-50 border-slate-200"
-          : "bg-white border-slate-200 hover:border-indigo-300"
-          } ${open ? "border-indigo-400 ring-2 ring-indigo-100" : ""}`}
+          : "bg-white border-slate-200 hover:border-blue-300"
+          } ${open ? "border-blue-400 ring-2 ring-blue-100" : ""}`}
       >
         {loading ? (
           <div className="flex items-center gap-2">
-            <Spinner border="border-indigo-200 border-t-indigo-600" />
+            <Spinner border="border-blue-200 border-t-blue-600" />
             <span className="text-sm text-slate-400">{placeholder}</span>
           </div>
         ) : selectedValues.length > 0 ? (
@@ -474,13 +474,13 @@ const BrandMultiSelect = ({
             return (
               <span
                 key={value}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 max-w-[120px]"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200 max-w-[120px]"
               >
                 <span className="truncate">{option?.label || value}</span>
                 <button
                   type="button"
                   onMouseDown={(e) => { e.stopPropagation(); removeTag(value); }}
-                  className="text-indigo-400 hover:text-indigo-700 flex-shrink-0"
+                  className="text-blue-400 hover:text-blue-700 flex-shrink-0"
                 >
                   <FiX size={9} />
                 </button>
@@ -506,7 +506,7 @@ const BrandMultiSelect = ({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onMouseDown={(e) => e.stopPropagation()}
                 placeholder="Search brands…"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
               />
             </div>
           )}
@@ -518,13 +518,13 @@ const BrandMultiSelect = ({
                   <div
                     key={option.value}
                     onMouseDown={(e) => { e.stopPropagation(); toggle(option.value); }}
-                    className={`px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-slate-50 transition-colors ${active ? "bg-indigo-50" : ""
+                    className={`px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-slate-50 transition-colors ${active ? "bg-blue-50" : ""
                       }`}
                   >
-                    <span className={`font-medium ${active ? "text-indigo-700" : "text-slate-700"}`}>
+                    <span className={`font-medium ${active ? "text-blue-700" : "text-slate-700"}`}>
                       {option.label}
                     </span>
-                    {active && <FiCheck className="text-indigo-600 flex-shrink-0" size={14} />}
+                    {active && <FiCheck className="text-blue-600 flex-shrink-0" size={14} />}
                   </div>
                 );
               })
@@ -549,7 +549,7 @@ const DiscountToggle = ({ isPercentage, onChange }) => (
     <button
       type="button"
       onClick={() => onChange(false)}
-      className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${!isPercentage ? "bg-white shadow text-indigo-600" : "text-slate-500"
+      className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${!isPercentage ? "bg-white shadow text-blue-600" : "text-slate-500"
         }`}
     >
       ₹
@@ -557,7 +557,7 @@ const DiscountToggle = ({ isPercentage, onChange }) => (
     <button
       type="button"
       onClick={() => onChange(true)}
-      className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${isPercentage ? "bg-white shadow text-indigo-600" : "text-slate-500"
+      className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${isPercentage ? "bg-white shadow text-blue-600" : "text-slate-500"
         }`}
     >
       %
@@ -792,7 +792,7 @@ const AddDiscountsModal = ({ dealerId, allBrands, brandToModels, onClose, onSucc
                       updateRow(idx, { discount_value: v });
                     }}
                     placeholder="Enter value"
-                    className="flex-1 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
+                    className="flex-1 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
                   />
                   <DiscountToggle
                     isPercentage={row.is_percentage}
@@ -820,7 +820,7 @@ const AddDiscountsModal = ({ dealerId, allBrands, brandToModels, onClose, onSucc
                   value={row.description}
                   onChange={(e) => updateRow(idx, { description: e.target.value })}
                   placeholder="Enter description…"
-                  className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all resize-none"
+                  className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none"
                 />
                 <p className="text-[10px] text-slate-400 text-right mt-1">
                   {row.description?.length || 0}/200
@@ -833,7 +833,7 @@ const AddDiscountsModal = ({ dealerId, allBrands, brandToModels, onClose, onSucc
       <div className="px-7 py-5 border-t border-slate-100 bg-slate-50/30 flex justify-between items-center flex-shrink-0">
         <button
           onClick={() => setRows((prev) => [...prev, createEmptyDiscountRow()])}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 border border-indigo-300 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-50 transition-all"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 border border-blue-300 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-50 transition-all"
         >
           <FiPlus size={13} />
           Add Rule
@@ -848,7 +848,7 @@ const AddDiscountsModal = ({ dealerId, allBrands, brandToModels, onClose, onSucc
           <button
             disabled={submitting}
             onClick={handleSubmit}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-indigo-200"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-blue-200"
           >
             {submitting ? (
               <>
@@ -893,7 +893,7 @@ const EditDiscountModal = ({
             type="number"
             value={discount.discount_value}
             onChange={(e) => onChange({ discount_value: e.target.value })}
-            className="flex-1 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
+            className="flex-1 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
           />
           <DiscountToggle
             isPercentage={discount.is_percentage}
@@ -920,7 +920,7 @@ const EditDiscountModal = ({
           }
           onChange={(e) => onChange({ description: e.target.value })}
           placeholder="Enter description…"
-          className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all resize-none"
+          className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none"
         />
       </FormField>
     </div>
@@ -933,7 +933,7 @@ const EditDiscountModal = ({
       </button>
       <button
         onClick={onSave}
-        className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+        className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
       >
         Update Discount
       </button>
@@ -951,7 +951,7 @@ const BrandsModelsSection = ({ dealer, brandToModels, onAddBrand, showBrandActio
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+          <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
             <FiTag size={14} />
           </div>
           <div>
@@ -970,7 +970,7 @@ const BrandsModelsSection = ({ dealer, brandToModels, onAddBrand, showBrandActio
           {showBrandActions && (
             <button
               onClick={onAddBrand}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
             >
               <FiPlus size={13} />
               Add Brands
@@ -996,7 +996,7 @@ const BrandsModelsSection = ({ dealer, brandToModels, onAddBrand, showBrandActio
               const models = brandToModels[brand] || [];
               return (
                 <div key={index} className="relative pl-4">
-                  <div className="absolute left-0 top-1 h-5 w-1 bg-indigo-500 rounded-full" />
+                  <div className="absolute left-0 top-1 h-5 w-1 bg-blue-500 rounded-full" />
                   <h3 className="text-sm font-bold text-slate-900 mb-2">{brand}</h3>
                   {models.length > 0 ? (
                     <ul className="space-y-1">
@@ -1030,7 +1030,7 @@ const DiscountsSection = ({
   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
     <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+        <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
           <FiPercent size={14} />
         </div>
         <div>
@@ -1043,7 +1043,7 @@ const DiscountsSection = ({
       {showDiscountActions && (
         <button
           onClick={onAddDiscount}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
         >
           <FiPlus size={13} />
           Add Discounts
@@ -1054,8 +1054,8 @@ const DiscountsSection = ({
       {discountState.loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="relative w-8 h-8">
-            <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-            <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+            <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
         </div>
       ) : discounts.length === 0 ? (
@@ -1114,7 +1114,7 @@ const DiscountsSection = ({
                                 </span>
                                 <div className="flex items-center gap-1.5 text-[10px] mt-0.5">
                                   <span className="text-slate-400 line-through">₹{base}</span>
-                                  <span className="font-bold text-indigo-600">₹{final}</span>
+                                  <span className="font-bold text-blue-600">₹{final}</span>
                                 </div>
                               </div>
                             );
@@ -1125,7 +1125,7 @@ const DiscountsSection = ({
                       )}
                     </td>
                     <td className="px-5 py-4">
-                      <span className="inline-flex px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-black">
+                      <span className="inline-flex px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-black">
                         {d.is_percentage ? `− ${d.discount_value}%` : `− ₹${d.discount_value}`}
                       </span>
                     </td>
@@ -1151,7 +1151,7 @@ const DiscountsSection = ({
                         <button
                           onClick={() => onEditDiscount(d)}
                           aria-label="Edit discount"
-                          className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                          className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
                         >
                           <FiEdit3 size={14} />
                         </button>
@@ -1262,7 +1262,7 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
           onClick={loadOrders}
           disabled={loading}
           title="Refresh orders"
-          className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all disabled:opacity-50"
+          className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all disabled:opacity-50"
         >
           <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
@@ -1279,7 +1279,7 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
               placeholder="Search orders…"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-8 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all"
+              className="w-full pl-9 pr-8 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
             />
             {searchInput && (
               <button
@@ -1358,9 +1358,9 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
 
       {/* Inline loading indicator when refreshing */}
       {loading && orders.length > 0 && (
-        <div className="px-6 py-2 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
-          <Spinner border="border-indigo-300 border-t-indigo-600" />
-          <span className="text-xs text-indigo-600 font-semibold">Updating orders…</span>
+        <div className="px-6 py-2 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+          <Spinner border="border-blue-300 border-t-blue-600" />
+          <span className="text-xs text-blue-600 font-semibold">Updating orders…</span>
         </div>
       )}
 
@@ -1374,8 +1374,8 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
         {loading && orders.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <div className="relative w-8 h-8">
-              <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-              <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+              <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+              <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
             </div>
           </div>
         ) : !error && orders.length === 0 ? (
@@ -1436,7 +1436,7 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
                           <td className="px-5 py-4 text-right">
                             <button
                               onClick={() => onViewOrder(order.order_number)}
-                              className="inline-flex items-center gap-1 text-indigo-600 font-bold hover:text-indigo-800 text-sm transition-colors"
+                              className="inline-flex items-center gap-1 text-blue-600 font-bold hover:text-blue-800 text-sm transition-colors"
                             >
                               View <FiArrowRight size={12} />
                             </button>
@@ -1753,9 +1753,9 @@ const DealerDetails = () => {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
 
           {/* Card header */}
-          <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 via-white to-purple-50/30">
+          <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 via-white to-blue-50/30">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#9333EA] to-purple-400 flex items-center justify-center shadow-sm shadow-purple-200">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#9333EA] to-blue-400 flex items-center justify-center shadow-sm shadow-blue-200">
                 <FiUser size={16} className="text-white" />
               </div>
               <div>

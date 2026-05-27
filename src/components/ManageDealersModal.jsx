@@ -39,7 +39,7 @@ const ModalShell = ({ children }) => (
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Top gradient bar */}
-                <div className="h-1 w-full flex-shrink-0 bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500" />
+                <div className="h-1 w-full flex-shrink-0 bg-gradient-to-r from-amber-500 via-blue-500 to-blue-500" />
                 {children}
             </div>
         </div>
@@ -49,7 +49,7 @@ const ModalShell = ({ children }) => (
 const ModalHeader = ({ title, subtitle, onClose, assignedCount }) => (
     <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0 bg-gradient-to-r from-slate-50/80 to-white">
         <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md shadow-indigo-200 flex-shrink-0">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-amber-600 shadow-md shadow-blue-200 flex-shrink-0">
                 <FiLink2 size={16} className="text-white" />
             </div>
             <div>
@@ -60,7 +60,7 @@ const ModalHeader = ({ title, subtitle, onClose, assignedCount }) => (
                     <p className="text-xs text-slate-500 font-medium mt-1 leading-none flex items-center gap-2">
                         {subtitle}
                         {assignedCount !== undefined && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-black">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black">
                                 {assignedCount} assigned
                             </span>
                         )}
@@ -145,7 +145,7 @@ const Checkbox = ({ checked, indeterminate = false, onChange, size = 16 }) => {
             >
                 {checked && <FiCheck size={size * 0.58} strokeWidth={3} color="#fff" />}
                 {!checked && indeterminate && (
-                    <div className="w-[45%] h-[2px] rounded-full bg-indigo-500" />
+                    <div className="w-[45%] h-[2px] rounded-full bg-blue-500" />
                 )}
             </div>
         </label>
@@ -153,7 +153,7 @@ const Checkbox = ({ checked, indeterminate = false, onChange, size = 16 }) => {
 };
 
 const STATUS_CONFIG = {
-    added: { label: "+ New", cls: "bg-indigo-50 text-indigo-600 border-indigo-200" },
+    added: { label: "+ New", cls: "bg-blue-50 text-blue-600 border-blue-200" },
     removed: { label: "− Remove", cls: "bg-rose-50 text-rose-600 border-rose-200" },
     active: { label: "Active", cls: "bg-emerald-50 text-emerald-600 border-emerald-200" },
 };
@@ -192,9 +192,9 @@ const DealerRow = React.memo(({ dealer, isChecked, wasOriginal, userMap, onToggl
             className={[
                 "group flex items-center gap-3 px-4 py-3 rounded-2xl border cursor-pointer",
                 "transition-all duration-150 select-none outline-none",
-                "focus-visible:ring-2 focus-visible:ring-indigo-200",
+                "focus-visible:ring-2 focus-visible:ring-blue-200",
                 isChecked
-                    ? "bg-indigo-50 border-indigo-200 shadow-sm"
+                    ? "bg-blue-50 border-blue-200 shadow-sm"
                     : "bg-white border-slate-100 hover:bg-slate-50 hover:border-slate-200 hover:shadow-sm",
             ].join(" ")}
         >
@@ -226,9 +226,9 @@ const DealerRow = React.memo(({ dealer, isChecked, wasOriginal, userMap, onToggl
 DealerRow.displayName = "DealerRow";
 
 const AssignedChip = ({ dealer, onRemove }) => (
-    <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 group hover:border-indigo-300 hover:bg-indigo-100/70 transition-all">
+    <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 group hover:border-blue-300 hover:bg-blue-100/70 transition-all">
         <DealerAvatar name={dealer.employee_name} active size="sm" />
-        <span className="text-[11px] font-semibold text-indigo-800 leading-none max-w-[90px] truncate">
+        <span className="text-[11px] font-semibold text-blue-800 leading-none max-w-[90px] truncate">
             {capitalizeFirstLetter(dealer.employee_name)}
         </span>
         <button
@@ -237,7 +237,7 @@ const AssignedChip = ({ dealer, onRemove }) => (
                 e.stopPropagation();
                 onRemove(getDealerId(dealer));
             }}
-            className="ml-0.5 w-3.5 h-3.5 flex items-center justify-center rounded-full text-indigo-300 hover:text-white hover:bg-rose-400 transition-all opacity-0 group-hover:opacity-100"
+            className="ml-0.5 w-3.5 h-3.5 flex items-center justify-center rounded-full text-blue-300 hover:text-white hover:bg-rose-400 transition-all opacity-0 group-hover:opacity-100"
             aria-label={`Remove ${dealer.employee_name}`}
         >
             <FiX size={8} />
@@ -249,7 +249,7 @@ const LoadingSpinner = ({ label = "Loading…" }) => (
     <div className="flex flex-col items-center justify-center py-16 gap-4">
         <div className="relative w-10 h-10">
             <div className="absolute inset-0 border-[3px] border-slate-100 rounded-full" />
-            <div className="absolute inset-0 border-[3px] border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-0 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
         <p className="text-xs text-slate-400 font-medium tracking-wide">{label}</p>
     </div>
@@ -277,7 +277,7 @@ const StatsBar = ({ total, assigned, pendingAdd, pendingRemove }) => (
         </div>
         <div className="w-px h-8 bg-slate-200" />
         <div className="flex-1 text-center">
-            <p className="text-[18px] font-black text-indigo-600 leading-none">{assigned}</p>
+            <p className="text-[18px] font-black text-blue-600 leading-none">{assigned}</p>
             <p className="text-[10px] text-slate-400 font-semibold mt-0.5 uppercase tracking-wide">Assigned</p>
         </div>
         {pendingAdd > 0 && (
@@ -504,7 +504,7 @@ const ManageDealersModal = ({
                         <div className="flex items-center justify-between">
                             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 flex items-center gap-2">
                                 Currently Assigned
-                                <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-600 rounded-full font-black text-[9px]">
+                                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded-full font-black text-[9px]">
                                     {assignedDealers.length}
                                 </span>
                             </p>
@@ -512,7 +512,7 @@ const ManageDealersModal = ({
                                 <button
                                     type="button"
                                     onClick={() => setChipsExpanded((p) => !p)}
-                                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-indigo-600 transition-colors"
+                                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-blue-600 transition-colors"
                                 >
                                     {chipsExpanded ? (
                                         <><FiChevronUp size={11} /> Collapse</>
@@ -560,7 +560,7 @@ const ManageDealersModal = ({
                             placeholder="Search by dealer name or shop name…"
                             value={dealerSearch}
                             onChange={(e) => setDealerSearch(e.target.value)}
-                            className="w-full pl-9 pr-9 py-2.5 text-[13px] border border-slate-200 rounded-xl bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all shadow-sm"
+                            className="w-full pl-9 pr-9 py-2.5 text-[13px] border border-slate-200 rounded-xl bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all shadow-sm"
                         />
                         {dealerSearch && (
                             <button
@@ -580,7 +580,7 @@ const ManageDealersModal = ({
                             <button
                                 type="button"
                                 onClick={handleSelectAll}
-                                className="inline-flex items-center gap-2 text-[12px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                                className="inline-flex items-center gap-2 text-[12px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
                             >
                                 <Checkbox
                                     checked={allFilteredSelected}
@@ -641,7 +641,7 @@ const ManageDealersModal = ({
                     type="button"
                     onClick={handleSave}
                     disabled={saving || loading || !hasPendingChanges}
-                    className="flex-1 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-bold hover:from-indigo-700 hover:to-violet-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-indigo-200/60 inline-flex items-center justify-center gap-2"
+                    className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-amber-600 text-white rounded-xl text-sm font-bold hover:from-blue-700 hover:to-amber-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-200/60 inline-flex items-center justify-center gap-2"
                 >
                     {saving ? (
                         <>

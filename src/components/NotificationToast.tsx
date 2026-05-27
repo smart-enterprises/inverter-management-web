@@ -46,22 +46,22 @@ const orderRoute = (payload: NotificationPayload): string | null => {
 const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
     [NOTIFICATION_TYPES.ORDER_CREATED_PENDING]: {
         Icon: FiShoppingBag,
-        iconBg: "bg-indigo-100",
-        iconColor: "text-indigo-600",
-        accent: "border-l-indigo-500",
-        progressColor: "bg-indigo-500",
-        pingColor: "bg-indigo-400",
-        dotColor: "bg-indigo-500",
+        iconBg: "bg-blue-100",
+        iconColor: "text-blue-600",
+        accent: "border-l-blue-500",
+        progressColor: "bg-blue-500",
+        pingColor: "bg-blue-400",
+        dotColor: "bg-blue-500",
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_CREATED_PRODUCTION]: {
         Icon: FiSettings,
-        iconBg: "bg-orange-100",
-        iconColor: "text-orange-600",
-        accent: "border-l-orange-500",
-        progressColor: "bg-orange-500",
-        pingColor: "bg-orange-400",
-        dotColor: "bg-orange-500",
+        iconBg: "bg-blue-100",
+        iconColor: "text-blue-600",
+        accent: "border-l-blue-500",
+        progressColor: "bg-blue-500",
+        pingColor: "bg-blue-400",
+        dotColor: "bg-blue-500",
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_CREATED_PACKED]: {
@@ -86,12 +86,12 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_PRODUCTION]: {
         Icon: FiSettings,
-        iconBg: "bg-orange-100",
-        iconColor: "text-orange-600",
-        accent: "border-l-orange-400",
-        progressColor: "bg-orange-400",
-        pingColor: "bg-orange-300",
-        dotColor: "bg-orange-400",
+        iconBg: "bg-blue-100",
+        iconColor: "text-blue-600",
+        accent: "border-l-blue-400",
+        progressColor: "bg-blue-400",
+        pingColor: "bg-blue-300",
+        dotColor: "bg-blue-400",
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_PACKED]: {
@@ -281,7 +281,7 @@ const SingleToast = ({ toast }: SingleToastProps) => {
 
                     {toast.payload?.order_number && (
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full font-mono">
+                            <span className="text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full font-mono">
                                 #{toast.payload.order_number}
                             </span>
 

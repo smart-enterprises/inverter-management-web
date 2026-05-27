@@ -109,8 +109,8 @@ const StockCard = ({ label, value, colorClass, bgClass }) => (
 const PageLoader = () => (
     <div className="flex items-center justify-center py-32">
         <div className="relative w-10 h-10">
-            <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-            <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+            <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
         </div>
     </div>
 );
@@ -281,7 +281,7 @@ const ProductDetails = () => {
                         {userCanEdit && (
                             <button
                                 onClick={() => setIsEditOpen(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
                             >
                                 <FiEdit3 size={14} />
                                 Edit Product
@@ -299,7 +299,7 @@ const ProductDetails = () => {
                                 Overview & specifications
                             </p>
                         </div>
-                        <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                        <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
                             <FiBox size={14} />
                         </div>
                     </div>
@@ -331,10 +331,10 @@ const ProductDetails = () => {
                             <InfoCard
                                 icon={<FiDollarSign size={15} />}
                                 label="Selling Price"
-                                iconBg="bg-violet-50 text-violet-600"
+                                iconBg="bg-amber-50 text-amber-600"
                             >
                                 <div className="flex items-center gap-2.5">
-                                    <span className="text-base font-black text-violet-700">
+                                    <span className="text-base font-black text-amber-700">
                                         {formatCurrency(price)}
                                     </span>
                                     {/* Price History — SUPER_ADMIN / ADMIN ONLY — not rendered otherwise */}
@@ -380,9 +380,9 @@ const ProductDetails = () => {
                         <InfoCard
                             icon={<FiPackage size={15} />}
                             label="Available Stock"
-                            iconBg="bg-indigo-50 text-indigo-600"
+                            iconBg="bg-blue-50 text-blue-600"
                         >
-                            <span className="text-base font-black text-indigo-700">
+                            <span className="text-base font-black text-blue-700">
                                 {available_stock ?? 0}
                             </span>
                         </InfoCard>
@@ -416,7 +416,7 @@ const ProductDetails = () => {
                         </div>
                         <button
                             onClick={() => setIsStockHistoryOpen(true)}
-                            className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all"
+                            className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all"
                             title="View Stock History"
                         >
                             <FiClock size={15} />
@@ -427,8 +427,8 @@ const ProductDetails = () => {
                         <StockCard
                             label="Packed Stock"
                             value={packedStock}
-                            colorClass="text-violet-700"
-                            bgClass="bg-violet-50 border-violet-100"
+                            colorClass="text-amber-700"
+                            bgClass="bg-amber-50 border-amber-100"
                         />
                         <StockCard
                             label="Unpacked Stock"

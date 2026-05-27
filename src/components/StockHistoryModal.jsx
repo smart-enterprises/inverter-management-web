@@ -50,7 +50,7 @@ const getActionBadge = (action) => {
 /* STOCK TYPE BADGE */
 const getStockTypeBadge = (type) => {
     if (type === STOCK_TYPES.STOCK_PACKED)
-        return "bg-purple-100 text-purple-700";
+        return "bg-blue-100 text-blue-700";
 
     if (type === STOCK_TYPES.STOCK_UNPACKED)
         return "bg-blue-100 text-blue-700";
@@ -133,7 +133,7 @@ const StockHistoryModal = ({
 
                         <div className="flex items-center gap-4">
 
-                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow">
+                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow">
                                 <FiClock />
                             </div>
 
@@ -366,7 +366,7 @@ const SummaryCard = ({ label, value, icon, color }) => {
         emerald: "border-emerald-100 bg-emerald-50 text-emerald-700",
         rose: "border-rose-100 bg-rose-50 text-rose-700",
         sky: "border-sky-100 bg-sky-50 text-sky-700",
-        indigo: "border-indigo-100 bg-indigo-50 text-indigo-700"
+        indigo: "border-blue-100 bg-blue-50 text-blue-700"
     };
 
     return (

@@ -1,16 +1,17 @@
-// Dashboard.jsx
+// Dashboard.jsx — Kredi-themed
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiUsers, FiShoppingBag, FiTruck, FiTrendingUp,
-  FiAlertCircle, FiClock, FiArrowRight, FiPackage,
-  FiChevronRight, FiCheckCircle, FiRefreshCw,
-  FiWifi, FiWifiOff,
+  FiAlertCircle, FiArrowRight, FiPackage,
+  FiCheckCircle, FiRefreshCw, FiActivity, FiHexagon,
+  FiBox, FiBell,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { fetchUsers, fetchEmployeeCount } from "../api/user";
 import { ROLES } from "../utils/roles";
 import { fetchOrders } from "../api/orders";
-import { fetchLowStockProducts } from "../api/products";
+import { fetchLowStockProducts, fetchProducts } from "../api/products";
+import { getAllBrands } from "../api/brands";
 import { capitalizeFirstLetter, ONGOING_STATUSES } from "../utils/constants";
 import { useRouteAccess } from "../hooks/useRouteAccess";
 import { useAuth } from "../hooks/useAuth";
@@ -19,20 +20,9 @@ import {
   DASHBOARD_SECTIONS,
 } from "../utils/dashboardPermissions";
 import { getDateRange } from "../utils/dateUtils";
-import { COLOR_MAP } from "../utils/colorUtils";
-
-// ─── Constants ─────────────────────────────────────────────────────────────────
-
-const PURCHASE_ANALYTICS_ROLES = [
-  ROLES.SUPER_ADMIN,
-  ROLES.ADMIN,
-  ROLES.MANAGER,
-];
 
 const LOW_STOCK_THRESHOLD = 5;
 const RECENT_ORDERS_LIMIT = 6;
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
 
 const formatMonthLabel = () =>
   new Date().toLocaleString("default", { month: "long", year: "numeric" });
@@ -48,246 +38,289 @@ const formatRelativeTime = (dateStr) => {
   return `${Math.floor(hrs / 24)}d ago`;
 };
 
-const getColor = (color) => COLOR_MAP[color] ?? COLOR_MAP._default;
-
-// ─── Skeleton ──────────────────────────────────────────────────────────────────
-
+// ── Skeleton ───────────────────────────────────────────────────────────────────
 const Skeleton = ({ className = "" }) => (
-  <div className={`animate-pulse bg-slate-100 rounded-xl ${className}`} />
+  <div className={`animate-pulse bg-blue-100/40 rounded-lg ${className}`} />
 );
 
-// ─── Stat Card ─────────────────────────────────────────────────────────────────
-
-const StatCard = ({ icon, title, value, color, loading, onClick, error }) => {
-  const c = getColor(color);
-  const isInteractive = onClick && !loading && !error;
-
-  return (
-    <div
-      onClick={isInteractive ? onClick : undefined}
-      role={isInteractive ? "button" : undefined}
-      tabIndex={isInteractive ? 0 : undefined}
-      onKeyDown={isInteractive ? (e) => e.key === "Enter" && onClick() : undefined}
-      className={`
-        bg-white rounded-2xl border border-slate-200 shadow-sm p-5
-        transition-all duration-200 hover:shadow-md
-        ${isInteractive ? `hover:ring-2 ${c.ring} cursor-pointer` : ""}
-      `}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-2 truncate">{title}</p>
-          {loading ? (
-            <Skeleton className="h-9 w-16" />
-          ) : error ? (
-            <p className="text-sm font-semibold text-rose-400">Error</p>
-          ) : (
-            <p className={`text-3xl font-black tabular-nums ${c.val}`}>{value}</p>
-          )}
-        </div>
-        <div className={`p-2.5 rounded-xl ${c.bg} border ${c.border} flex-shrink-0`}>
-          {React.cloneElement(icon, { size: 16, className: c.icon })}
-        </div>
+// ── Hero KPI card (top row) ─────────────────────────────────────────────────────
+const HeroKpi = ({ icon, tint, label, value, loading, onClick }) => (
+  <button
+    onClick={onClick}
+    type="button"
+    disabled={!onClick}
+    className={`text-left w-full bg-white rounded-2xl border border-blue-100/60 p-5 transition-all ${onClick ? "hover:border-blue-200 hover:shadow-sm cursor-pointer" : "cursor-default"}`}
+  >
+    <div className="flex items-start justify-between gap-3 mb-3">
+      <p className="text-xs font-semibold text-slate-500 mt-1">{label}</p>
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tint}`}>
+        {React.cloneElement(icon, { size: 16 })}
       </div>
-      {isInteractive && (
-        <div className={`mt-3 flex items-center gap-1 text-[10px] font-black uppercase tracking-wide ${c.icon}`}>
-          View all <FiChevronRight size={10} />
-        </div>
-      )}
     </div>
-  );
-};
+    {loading ? (
+      <Skeleton className="h-9 w-24" />
+    ) : (
+      <p className="text-3xl font-extrabold tracking-tight text-slate-900 tabular-nums">
+        {typeof value === "number" ? value.toLocaleString("en-IN") : value ?? "—"}
+      </p>
+    )}
+  </button>
+);
 
-// ─── Metric Card ───────────────────────────────────────────────────────────────
+// ── Module card (2x3 grid) ──────────────────────────────────────────────────────
+const ModuleCard = ({ icon, iconTint, title, description, status = "Active", rows, loading }) => {
+  const statusStyle =
+    status === "Warning"
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : status === "Alert"
+        ? "bg-rose-50 text-rose-700 border-rose-200"
+        : "bg-emerald-50 text-emerald-700 border-emerald-200";
 
-const MetricCard = ({ title, value, subValue, icon, color, loading, onClick, error, badge }) => {
-  const c = getColor(color);
-  const isInteractive = onClick && !loading && !error;
+  const statusDot = status === "Warning"
+    ? "text-amber-500"
+    : status === "Alert"
+      ? "text-rose-500"
+      : "text-emerald-500";
 
   return (
-    <div
-      onClick={isInteractive ? onClick : undefined}
-      role={isInteractive ? "button" : undefined}
-      tabIndex={isInteractive ? 0 : undefined}
-      onKeyDown={isInteractive ? (e) => e.key === "Enter" && onClick() : undefined}
-      className={`
-        bg-white rounded-2xl border border-slate-200 shadow-sm p-5
-        transition-all duration-200 hover:shadow-md
-        ${isInteractive ? `hover:ring-2 ${c.ring} cursor-pointer` : ""}
-      `}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 truncate pr-2">{title}</p>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {badge && (
-            <span className="px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide rounded-full bg-rose-100 text-rose-600 border border-rose-200">
-              {badge}
-            </span>
-          )}
-          <div className={`p-2 rounded-xl ${c.bg} border ${c.border}`}>
-            {React.cloneElement(icon, { size: 13, className: c.icon })}
+    <div className="bg-white rounded-2xl border border-blue-100/60 p-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconTint}`}>
+            {React.cloneElement(icon, { size: 17 })}
           </div>
+          <h3 className="text-[15px] font-bold text-slate-900">{title}</h3>
         </div>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusStyle}`}>
+          <FiCheckCircle size={10} className={statusDot} />
+          {status}
+        </span>
       </div>
-      {loading ? (
-        <>
-          <Skeleton className="h-8 w-20 mb-2" />
-          <Skeleton className="h-3 w-32" />
-        </>
-      ) : error ? (
-        <p className="text-sm font-semibold text-rose-400">Failed to load</p>
-      ) : (
-        <>
-          <p className={`text-2xl font-black tabular-nums ${c.val}`}>{value ?? "—"}</p>
-          {subValue && <p className="text-xs text-slate-400 font-medium mt-1">{subValue}</p>}
-        </>
+
+      {description && (
+        <p className="text-xs text-slate-500 mb-4 leading-relaxed">{description}</p>
       )}
-      {isInteractive && (
-        <div className={`mt-2 flex items-center gap-1 text-[10px] font-black uppercase tracking-wide ${c.icon}`}>
-          View <FiChevronRight size={10} />
-        </div>
-      )}
+
+      <div className="space-y-2">
+        {rows.map((r, i) => (
+          <div
+            key={i}
+            onClick={r.onClick}
+            className={`flex items-center justify-between px-3 py-2 rounded-lg bg-blue-50/50 ${r.onClick ? "cursor-pointer hover:bg-blue-100/60" : ""}`}
+          >
+            <span className="text-xs font-medium text-slate-600">{r.label}</span>
+            <span className="text-sm font-bold text-slate-900 tabular-nums">
+              {loading ? <Skeleton className="h-4 w-10 inline-block" /> : (r.value?.toLocaleString?.("en-IN") ?? r.value ?? "—")}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-// ─── Badge style maps ──────────────────────────────────────────────────────────
-
-const PRIORITY_STYLES = {
-  HIGH: "bg-rose-50    text-rose-700    border-rose-200",
-  MEDIUM: "bg-amber-50   text-amber-700   border-amber-200",
-  LOW: "bg-emerald-50 text-emerald-700 border-emerald-200",
+// ── Pipeline health bar ─────────────────────────────────────────────────────────
+const PIPELINE_LABELS = {
+  PENDING: "Pending",
+  CONFIRMED: "Confirmed",
+  PRODUCTION: "In Production",
+  PACKED: "Packed",
+  INVOICE: "Invoiced",
+  SHIPPED: "Shipped",
 };
 
-const STATUS_STYLES = {
-  PENDING: "bg-amber-50   text-amber-700   border-amber-200",
-  CONFIRMED: "bg-blue-50    text-blue-700    border-blue-200",
-  PRODUCTION: "bg-indigo-50  text-indigo-700  border-indigo-200",
-  PACKED: "bg-violet-50  text-violet-700  border-violet-200",
-  DELIVERED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  SHIPPED: "bg-orange-50  text-orange-700  border-orange-200",
-  COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  CANCELLED: "bg-rose-50    text-rose-700    border-rose-200",
-};
-
-const getBadgeStyle = (map, key) =>
-  map[key?.toUpperCase()] ?? "bg-slate-50 text-slate-600 border-slate-200";
-
-// ─── Order Row ─────────────────────────────────────────────────────────────────
-
-const OrderRow = ({ order, canNavigate, onClick }) => {
-  if (!order) return null;
-
-  const dealerName = order.dealer?.employee_name
-    ? capitalizeFirstLetter(order.dealer.employee_name)
-    : "Unknown Dealer";
-
-  const Wrapper = canNavigate ? "button" : "div";
-  const wrapperClass = [
-    "w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4",
-    "bg-white border border-slate-100 rounded-xl transition-all duration-150 text-left",
-    canNavigate
-      ? "hover:border-indigo-200 hover:shadow-sm hover:bg-indigo-50/20 active:scale-[0.99] group cursor-pointer"
-      : "",
-  ].join(" ");
-
-  return (
-    <Wrapper onClick={onClick} className={wrapperClass}>
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
-          <FiPackage size={13} className="text-indigo-500" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-slate-900 font-mono truncate">{order.order_number}</p>
-          <p className="text-xs text-slate-400 font-medium mt-0.5 truncate">{dealerName}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        {order.priority && (
-          <span className={`px-2.5 py-1 text-[10px] font-black rounded-full border uppercase tracking-wide ${getBadgeStyle(PRIORITY_STYLES, order.priority)}`}>
-            {order.priority}
-          </span>
-        )}
-        {order.status && (
-          <span className={`px-2.5 py-1 text-[10px] font-black rounded-full border uppercase tracking-wide ${getBadgeStyle(STATUS_STYLES, order.status)}`}>
-            {order.status}
-          </span>
-        )}
-        {order.created_at && (
-          <span className="text-[10px] text-slate-400 font-medium hidden md:block">
-            {formatRelativeTime(order.created_at)}
-          </span>
-        )}
-        {canNavigate && (
-          <FiChevronRight
-            size={13}
-            className="text-slate-300 group-hover:text-indigo-400 transition-colors ml-auto flex-shrink-0 hidden sm:block"
-          />
-        )}
-      </div>
-    </Wrapper>
-  );
-};
-
-// ─── Section Header ────────────────────────────────────────────────────────────
-
-const SectionHeader = ({ title, subtitle, action }) => (
-  <div className="flex items-center justify-between mb-4">
-    <div>
-      <h2 className="text-sm font-bold text-slate-800 tracking-tight">{title}</h2>
-      {subtitle && <p className="text-xs text-slate-400 font-medium mt-0.5">{subtitle}</p>}
+const PipelineHealth = ({ counts, loading, total }) => (
+  <div className="bg-white rounded-2xl border border-blue-100/60 p-5">
+    <div className="flex items-center gap-2 mb-4">
+      <FiActivity size={14} className="text-blue-500" />
+      <h3 className="text-[15px] font-bold text-slate-900">Pipeline Health</h3>
     </div>
-    {action}
+    <div className="space-y-3.5">
+      {ONGOING_STATUSES.map((s) => {
+        const val = counts?.[s] ?? 0;
+        const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+        return (
+          <div key={s}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-slate-600">{PIPELINE_LABELS[s] ?? s}</span>
+              <span className="text-xs font-bold text-slate-900 tabular-nums">
+                {loading ? "—" : val.toLocaleString("en-IN")}
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-blue-50 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all"
+                style={{ width: loading ? "0%" : `${Math.min(100, Math.max(2, pct))}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   </div>
 );
 
-// ─── Error Banner ──────────────────────────────────────────────────────────────
-
-const ErrorBanner = ({ sections, onRetry }) => {
-  if (!sections.length) return null;
-  return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-sm">
-      <div className="flex items-center gap-2 text-rose-700">
-        <FiWifiOff size={14} />
-        <span className="font-semibold">Failed to load: {sections.join(", ")}</span>
-      </div>
-      <button
-        onClick={onRetry}
-        className="flex items-center gap-1.5 text-xs font-bold text-rose-700 hover:text-rose-900 transition-colors"
-      >
-        <FiRefreshCw size={11} /> Retry
-      </button>
+// ── Recent alerts card ──────────────────────────────────────────────────────────
+const RecentAlerts = ({ items, loading }) => (
+  <div className="bg-white rounded-2xl border border-blue-100/60 p-5">
+    <div className="flex items-center gap-2 mb-4">
+      <FiBell size={14} className="text-blue-500" />
+      <h3 className="text-[15px] font-bold text-slate-900">Recent Alerts</h3>
     </div>
-  );
-};
-
-// ─── Last Updated ──────────────────────────────────────────────────────────────
-
-const LastUpdated = ({ timestamp, loading, onRefresh }) => (
-  <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
     {loading ? (
-      <>
-        <FiRefreshCw size={11} className="animate-spin" />
-        <span>Refreshing…</span>
-      </>
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
+      </div>
+    ) : items.length === 0 ? (
+      <div className="py-6 text-center">
+        <FiCheckCircle size={20} className="text-emerald-500 mx-auto mb-2" />
+        <p className="text-xs font-semibold text-slate-500">All systems operational</p>
+      </div>
     ) : (
-      <>
-        <FiWifi size={11} className="text-emerald-400" />
-        <span>Updated {formatRelativeTime(timestamp)}</span>
-        <button
-          onClick={onRefresh}
-          className="p-1 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600"
-          title="Refresh dashboard"
-        >
-          <FiRefreshCw size={11} />
-        </button>
-      </>
+      <ul className="space-y-3">
+        {items.map((a, i) => (
+          <li key={i} className="flex items-start gap-2.5">
+            <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${a.tone === "danger" ? "bg-rose-500" : a.tone === "warn" ? "bg-amber-500" : "bg-emerald-500"}`} />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-slate-800">{a.title}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{a.subtitle}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
     )}
   </div>
 );
 
-// ─── Dashboard ─────────────────────────────────────────────────────────────────
+// ── Order status pill (used in recent orders table) ─────────────────────────────
+const STATUS_PILL = {
+  PENDING: "bg-amber-50 text-amber-700 border-amber-200",
+  CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
+  PRODUCTION: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  PACKED: "bg-teal-50 text-teal-700 border-teal-200",
+  INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
+  DELIVERED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
+  REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
+};
 
+// ── Recent orders card ──────────────────────────────────────────────────────────
+const RecentOrdersCard = ({ orders, loading, onViewAll, onRowClick, canNavigate }) => (
+  <div className="bg-white rounded-2xl border border-blue-100/60 overflow-hidden">
+    <div className="flex items-center justify-between px-5 py-4 border-b border-blue-100/60">
+      <h3 className="text-[15px] font-bold text-slate-900">Recent Orders</h3>
+      <button
+        onClick={onViewAll}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-xs font-bold hover:bg-blue-50 transition-colors"
+      >
+        View All <FiArrowRight size={11} />
+      </button>
+    </div>
+
+    {loading ? (
+      <div className="p-5 space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
+      </div>
+    ) : orders.length === 0 ? (
+      <div className="py-16 text-center">
+        <div className="inline-flex p-4 rounded-2xl bg-blue-50 mb-3">
+          <FiPackage size={20} className="text-blue-400" />
+        </div>
+        <p className="text-sm font-semibold text-slate-500">No recent orders</p>
+      </div>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-blue-50/40">
+              <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Order</th>
+              <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Dealer</th>
+              <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Status</th>
+              <th className="text-right px-5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Amount</th>
+              <th className="text-right px-5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">When</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-blue-50">
+            {orders.map(({ order }) => {
+              if (!order) return null;
+              const dealerName = order.dealer?.employee_name
+                ? capitalizeFirstLetter(order.dealer.employee_name)
+                : "Unknown Dealer";
+              const pill = STATUS_PILL[order.status] ?? "bg-slate-50 text-slate-600 border-slate-200";
+              return (
+                <tr
+                  key={order.order_number}
+                  onClick={canNavigate ? () => onRowClick(order.order_number) : undefined}
+                  className={`${canNavigate ? "cursor-pointer hover:bg-blue-50/40" : ""} transition-colors`}
+                >
+                  <td className="px-5 py-3">
+                    <span className="font-mono text-xs font-bold text-slate-800">{order.order_number}</span>
+                  </td>
+                  <td className="px-5 py-3 text-slate-700 font-medium text-xs">{dealerName}</td>
+                  <td className="px-5 py-3">
+                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border ${pill}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <span className="text-xs font-bold text-slate-900 tabular-nums">
+                      ₹{Number(order.order_total_price || 0).toLocaleString("en-IN")}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-right text-[11px] text-slate-400 font-medium">
+                    {formatRelativeTime(order.created_at)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+);
+
+// ── Low stock list (right rail bottom) ──────────────────────────────────────────
+const LowStockList = ({ products, loading, onClickProduct, canNavigate }) => (
+  <div className="bg-white rounded-2xl border border-blue-100/60 p-5">
+    <div className="flex items-center gap-2 mb-4">
+      <FiAlertCircle size={14} className="text-rose-500" />
+      <h3 className="text-[15px] font-bold text-slate-900">Low Stock</h3>
+    </div>
+    {loading ? (
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
+      </div>
+    ) : products.length === 0 ? (
+      <div className="py-6 text-center">
+        <FiCheckCircle size={20} className="text-emerald-500 mx-auto mb-2" />
+        <p className="text-xs font-semibold text-slate-500">Stock looks healthy</p>
+      </div>
+    ) : (
+      <ul className="space-y-2.5">
+        {products.slice(0, 5).map((p) => (
+          <li
+            key={p.product_id}
+            onClick={canNavigate ? () => onClickProduct(p.product_id) : undefined}
+            className={`flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50/50 ${canNavigate ? "cursor-pointer hover:bg-blue-100/60" : ""}`}
+          >
+            <div className="min-w-0 pr-2">
+              <p className="text-xs font-bold text-slate-800 truncate">{p.product_name}</p>
+              <p className="text-[10px] text-slate-400 truncate">{p.brand}</p>
+            </div>
+            <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border bg-rose-50 text-rose-700 border-rose-200 tabular-nums flex-shrink-0">
+              {p.available_stock ?? 0}
+            </span>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+);
+
+// ── Main Dashboard ──────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -298,35 +331,31 @@ const Dashboard = () => {
   const canViewProductList = canAccess("/products");
   const canViewProductDetail = canAccess("/products/:id");
 
-  const canViewPurchaseAnalytics = PURCHASE_ANALYTICS_ROLES.includes(role);
-
   const showStatsRow = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_USERS) || canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_ORDERS);
   const showBusinessMetrics = canViewDashboardSection(role, DASHBOARD_SECTIONS.BUSINESS_METRICS);
   const showRecentOrders = canViewDashboardSection(role, DASHBOARD_SECTIONS.RECENT_ORDERS);
   const showLowStockAlert = canViewDashboardSection(role, DASHBOARD_SECTIONS.LOW_STOCK_ALERT);
   const showLowStockProducts = canViewDashboardSection(role, DASHBOARD_SECTIONS.LOW_STOCK_PRODUCTS);
   const showUserStats = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_USERS);
-  const showAdminStats = role === ROLES.SUPER_ADMIN || role === ROLES.ADMIN;
   const showDealerStats = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_DEALERS);
-  const showAssignedDealerStats = role === ROLES.SALESMAN;
+  const isAdminish = role === ROLES.SUPER_ADMIN || role === ROLES.ADMIN || role === ROLES.MANAGER;
 
   // ── State ─────────────────────────────────────────────────────────────────────
-
   const [state, setState] = useState({
-    totalOrders: 0, recentOrders: [], ongoingOrders: 0,
+    totalOrders: 0, recentOrders: [], ongoingOrders: 0, ongoingByStatus: {},
     monthlyOrders: 0, todayOrders: 0, todayDeliveryCount: 0,
     totalCompletedOrders: 0, todayCompletedOrders: 0, monthlyCompletedOrders: 0,
-    superAdminCount: 0, adminCount: 0, salesmanCount: 0, dealerCount: 0, assignedDealerCount: 0,
+    superAdminCount: 0, adminCount: 0, salesmanCount: 0,
+    dealerCount: 0, assignedDealerCount: 0, employeeCount: 0,
     lowStockCount: 0, lowStockProducts: [],
+    brandCount: 0, productCount: 0,
   });
 
   const [loading, setLoading] = useState(true);
   const [failedSections, setFailedSections] = useState([]);
-  const [lastUpdated, setLastUpdated] = useState(null);
   const abortRef = useRef(null);
 
   // ── Fetchers ──────────────────────────────────────────────────────────────────
-
   const fetchCount = useCallback(
     (params) =>
       fetchOrders({ page: 1, limit: 1, includeRejected: false, ...params })
@@ -342,9 +371,7 @@ const Dashboard = () => {
       totalComp, todayComp, monthlyComp,
     ] = await Promise.all([
       fetchOrders({ page: 1, limit: RECENT_ORDERS_LIMIT, includeRejected: false }),
-      Promise.all(ONGOING_STATUSES.map((s) => fetchCount({ status: s }))).then(
-        (counts) => counts.reduce((sum, n) => sum + n, 0)
-      ),
+      Promise.all(ONGOING_STATUSES.map((s) => fetchCount({ status: s }))),
       fetchCount({ startDate: firstDayOfMonth, endDate: today }),
       fetchCount({ startDate: today, endDate: today }),
       fetchCount({ deliveryStartDate: today, deliveryEndDate: today }),
@@ -353,10 +380,15 @@ const Dashboard = () => {
       fetchCount({ status: "COMPLETED", startDate: firstDayOfMonth, endDate: today }),
     ]);
 
+    const ongoingByStatus = Object.fromEntries(
+      ONGOING_STATUSES.map((s, i) => [s, ongoingCounts[i]])
+    );
+
     return {
       totalOrders: totalRes?.pagination?.total ?? 0,
       recentOrders: totalRes?.data ?? [],
-      ongoingOrders: ongoingCounts,
+      ongoingOrders: ongoingCounts.reduce((sum, n) => sum + n, 0),
+      ongoingByStatus,
       monthlyOrders: monthly,
       todayOrders: todayOrd,
       todayDeliveryCount: todayDel,
@@ -367,7 +399,6 @@ const Dashboard = () => {
   }, [fetchCount]);
 
   const loadUserCounts = useCallback(async () => {
-    /* Parallel: one tiny call for all role counts, one limit=1 call for assigned dealers total. */
     const [countsRes, assignedRes] = await Promise.all([
       fetchEmployeeCount(),
       fetchUsers({
@@ -377,7 +408,6 @@ const Dashboard = () => {
     ]);
 
     const roleCounts = countsRes?.data?.roleCounts ?? {};
-
     return {
       superAdminCount: roleCounts[ROLES.SUPER_ADMIN] ?? 0,
       adminCount: roleCounts[ROLES.ADMIN] ?? 0,
@@ -397,7 +427,16 @@ const Dashboard = () => {
     };
   }, []);
 
-  // ── Load ──────────────────────────────────────────────────────────────────────
+  const loadCatalogCounts = useCallback(async () => {
+    const [brandsRes, productsRes] = await Promise.all([
+      getAllBrands("active").catch(() => null),
+      fetchProducts({ page: 1, limit: 1 }).catch(() => null),
+    ]);
+    const brands = brandsRes?.data;
+    const brandCount = Array.isArray(brands) ? brands.length : (brandsRes?.pagination?.total ?? 0);
+    const productCount = productsRes?.pagination?.total ?? 0;
+    return { brandCount, productCount };
+  }, []);
 
   const loadDashboard = useCallback(async (signal) => {
     setLoading(true);
@@ -407,28 +446,24 @@ const Dashboard = () => {
       loadOrderData(),
       loadUserCounts(),
       loadLowStockProducts(),
+      loadCatalogCounts(),
     ]);
 
     if (signal?.aborted) return;
 
-    const sectionNames = ["orders", "users", "lowStock"];
+    const sectionNames = ["orders", "users", "lowStock", "catalog"];
     const failed = [];
     const merged = {};
 
     results.forEach((result, i) => {
-      if (result.status === "fulfilled") {
-        Object.assign(merged, result.value);
-      } else {
-        failed.push(sectionNames[i]);
-        console.error(`Dashboard "${sectionNames[i]}" failed:`, result.reason);
-      }
+      if (result.status === "fulfilled") Object.assign(merged, result.value);
+      else failed.push(sectionNames[i]);
     });
 
     setState((prev) => ({ ...prev, ...merged }));
     setFailedSections(failed);
-    setLastUpdated(new Date());
     setLoading(false);
-  }, [loadOrderData, loadUserCounts, loadLowStockProducts]);
+  }, [loadOrderData, loadUserCounts, loadLowStockProducts, loadCatalogCounts]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -445,9 +480,7 @@ const Dashboard = () => {
   }, [loadDashboard]);
 
   // ── Navigation ────────────────────────────────────────────────────────────────
-
   const { today, firstDayOfMonth } = useMemo(getDateRange, []);
-
   const nav = useMemo(() => ({
     allOrders: () => navigate("/orders"),
     completedOrders: () => navigate("/orders", { state: { status: "COMPLETED" } }),
@@ -457,369 +490,257 @@ const Dashboard = () => {
     todayCompleted: () => navigate("/orders", { state: { status: "COMPLETED", startDate: today, endDate: today } }),
     monthCompleted: () => navigate("/orders", { state: { status: "COMPLETED", startDate: firstDayOfMonth, endDate: today } }),
     users: () => navigate("/users", { state: { status: "active" } }),
-    superAdmins: () => navigate("/users", { state: { status: "active", role: ROLES.SUPER_ADMIN } }),
-    admins: () => navigate("/users", { state: { status: "active", role: ROLES.ADMIN } }),
     salesmen: () => navigate("/users", { state: { status: "active", role: ROLES.SALESMAN } }),
     dealers: () => navigate("/dealers", { state: { status: "active" } }),
     products: () => navigate("/products"),
+    brands: () => navigate("/brands"),
     activeOrders: () => navigate("/orders?status=PENDING"),
-    purchaseAnalytics: () => navigate("/purchase-analytics"),
+    production: () => navigate("/production-summary"),
   }), [navigate, today, firstDayOfMonth]);
 
-  // ── Destructure state ─────────────────────────────────────────────────────────
-
   const {
-    totalOrders, recentOrders, ongoingOrders, monthlyOrders,
-    todayOrders, todayDeliveryCount, totalCompletedOrders,
-    todayCompletedOrders, monthlyCompletedOrders,
-    superAdminCount, adminCount, salesmanCount, dealerCount, assignedDealerCount, employeeCount,
-    lowStockCount, lowStockProducts,
+    totalOrders, recentOrders, ongoingOrders, ongoingByStatus,
+    monthlyOrders, todayOrders, todayDeliveryCount,
+    totalCompletedOrders, todayCompletedOrders, monthlyCompletedOrders,
+    salesmanCount, dealerCount, assignedDealerCount, employeeCount,
+    lowStockCount, lowStockProducts, brandCount, productCount,
   } = state;
 
+  // ── Alerts derived from state ─────────────────────────────────────────────────
+  const alerts = useMemo(() => {
+    const items = [];
+    if (showLowStockAlert && lowStockCount > 0) {
+      items.push({
+        tone: "danger",
+        title: `${lowStockCount} product${lowStockCount !== 1 ? "s" : ""} low on stock`,
+        subtitle: `Below threshold (≤${LOW_STOCK_THRESHOLD})`,
+      });
+    }
+    if (failedSections.length > 0) {
+      items.push({
+        tone: "warn",
+        title: "Some sections failed to load",
+        subtitle: failedSections.join(", "),
+      });
+    }
+    if (todayDeliveryCount > 0) {
+      items.push({
+        tone: "warn",
+        title: `${todayDeliveryCount} deliveries scheduled today`,
+        subtitle: "Action required",
+      });
+    }
+    return items;
+  }, [showLowStockAlert, lowStockCount, failedSections, todayDeliveryCount]);
+
   // ── Render ────────────────────────────────────────────────────────────────────
-
   return (
-    <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-8">
+    <div className="min-h-screen bg-[#F8FAFC] p-4 sm:p-6 lg:p-8 space-y-6">
 
-      {/* ── PAGE HEADER ── */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-xs text-slate-400 font-medium mt-0.5">{formatMonthLabel()}</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Dashboard Overview</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Welcome{user?.employee_name ? `, ${capitalizeFirstLetter(user.employee_name)}` : ""}. Monitor orders, production and delivery from here. <span className="text-slate-400">· {formatMonthLabel()}</span>
+          </p>
         </div>
-        <LastUpdated timestamp={lastUpdated} loading={loading} onRefresh={handleRefresh} />
+        <button
+          onClick={handleRefresh}
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-blue-200 text-blue-600 text-xs font-bold hover:bg-blue-50 transition-colors disabled:opacity-50"
+        >
+          <FiRefreshCw size={12} className={loading ? "animate-spin" : ""} />
+          Refresh
+        </button>
       </div>
 
-      {/* ── ERROR BANNER ── */}
-      {!loading && failedSections.length > 0 && (
-        <ErrorBanner sections={failedSections} onRetry={handleRefresh} />
-      )}
-
-      {/* ── OVERVIEW STATS ── */}
+      {/* ─── HERO KPIs ─── */}
       {showStatsRow && (
-        <div>
-          <SectionHeader
-            title="Overview"
-            subtitle="System summary at a glance"
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          <HeroKpi
+            icon={<FiShoppingBag className="text-blue-600" />}
+            tint="bg-blue-100/70 text-blue-600"
+            label="Total Orders"
+            value={totalOrders}
+            loading={loading}
+            onClick={nav.allOrders}
           />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-
-            {showAdminStats && (
-              <>
-                <StatCard
-                  icon={<FiUsers />}
-                  title="Super Admins"
-                  value={superAdminCount}
-                  color="slate"
-                  loading={loading}
-                  onClick={nav.superAdmins}
-                />
-                <StatCard
-                  icon={<FiUsers />}
-                  title="Admins"
-                  value={adminCount}
-                  color="indigo"
-                  loading={loading}
-                  onClick={nav.admins}
-                />
-              </>
-            )}
-
-            {showUserStats && (
-              <StatCard
-                icon={<FiUsers />}
-                title="Salesmen"
-                value={salesmanCount}
-                color="violet"
-                loading={loading}
-                onClick={nav.salesmen}
-              />
-            )}
-
-            {showDealerStats && (
-              <StatCard
-                icon={<FiUsers />}
-                title="Dealers"
-                value={dealerCount}
-                color="blue"
-                loading={loading}
-                onClick={nav.dealers}
-              />
-            )}
-
-            {showAssignedDealerStats && (
-              <StatCard
-                icon={<FiUsers />}
-                title="Assigned Dealers"
-                value={assignedDealerCount}
-                color="cyan"
-                loading={loading}
-                onClick={nav.dealers}
-              />
-            )}
-
-            {showUserStats && (
-              <StatCard
-                icon={<FiUsers />}
-                title="Employees"
-                value={employeeCount}
-                color="emerald"
-                loading={loading}
-                onClick={nav.users}
-              />
-            )}
-
-            {showStatsRow && (
-              <StatCard
-                icon={<FiShoppingBag />}
-                title="Orders"
-                value={totalOrders}
-                color="amber"
-                loading={loading}
-                onClick={nav.allOrders}
-              />
-            )}
-
-          </div>
+          <HeroKpi
+            icon={<FiActivity className="text-blue-600" />}
+            tint="bg-blue-100/70 text-blue-600"
+            label="Active Orders"
+            value={ongoingOrders}
+            loading={loading}
+            onClick={nav.activeOrders}
+          />
+          <HeroKpi
+            icon={<FiTruck className="text-emerald-600" />}
+            tint="bg-emerald-100/70 text-emerald-600"
+            label="Today's Deliveries"
+            value={todayDeliveryCount}
+            loading={loading}
+            onClick={nav.todayDeliveries}
+          />
+          <HeroKpi
+            icon={<FiCheckCircle className="text-amber-600" />}
+            tint="bg-amber-100/70 text-amber-600"
+            label="Completed This Month"
+            value={monthlyCompletedOrders}
+            loading={loading}
+            onClick={nav.monthCompleted}
+          />
         </div>
       )}
 
-      {/* ── BUSINESS METRICS ── */}
-      {showBusinessMetrics && (
-        <div>
-          <SectionHeader
-            title="Business Metrics"
-            subtitle="Performance insights"
-          />
+      {/* ─── MODULES + RIGHT RAIL ─── */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-
-            {canViewPurchaseAnalytics && (
-              <MetricCard
-                icon={<FiTrendingUp />}
-                title="Purchase Analytics"
-                subValue="View detailed insights"
-                color="indigo"
-                loading={loading}
-                onClick={nav.purchaseAnalytics}
-              />
-            )}
-
-            <MetricCard
-              icon={<FiShoppingBag />}
-              title="Today's Orders"
-              value={todayOrders}
-              subValue="New orders placed today"
-              color="blue"
-              loading={loading}
-              onClick={nav.todayOrders}
-            />
-
-            <MetricCard
-              icon={<FiTruck />}
-              title="Today's Deliveries"
-              value={todayDeliveryCount}
-              subValue="Scheduled for delivery today"
-              color="cyan"
-              loading={loading}
-              onClick={nav.todayDeliveries}
-            />
-
-            <MetricCard
-              icon={<FiShoppingBag />}
-              title="Monthly Orders"
-              value={monthlyOrders}
-              subValue={`Orders in ${formatMonthLabel()}`}
-              color="sky"
-              loading={loading}
-              onClick={nav.monthOrders}
-            />
-
-            <MetricCard
-              icon={<FiTruck />}
-              title="Active Orders"
-              value={ongoingOrders}
-              subValue="Pending · Confirmed · In progress"
-              color="amber"
-              loading={loading}
-              onClick={nav.activeOrders}
-              badge={ongoingOrders > 0 ? "Live" : undefined}
-            />
-
-            <MetricCard
-              icon={<FiCheckCircle />}
-              title="Completed Today"
-              value={todayCompletedOrders}
-              subValue="Orders fulfilled today"
-              color="emerald"
-              loading={loading}
-              onClick={nav.todayCompleted}
-            />
-
-            <MetricCard
-              icon={<FiCheckCircle />}
-              title="Completed This Month"
-              value={monthlyCompletedOrders}
-              subValue="Fulfilled orders this month"
-              color="violet"
-              loading={loading}
-              onClick={nav.monthCompleted}
-            />
-
-            <MetricCard
-              icon={<FiCheckCircle />}
-              title="Total Completed"
-              value={totalCompletedOrders}
-              subValue="All-time completed orders"
-              color="green"
-              loading={loading}
-              onClick={nav.completedOrders}
-            />
-
-            {showLowStockAlert && (
-              <MetricCard
-                icon={<FiAlertCircle />}
-                title="Low Stock Products"
-                value={lowStockCount}
-                subValue="Below minimum threshold"
-                color="rose"
-                loading={loading}
-                onClick={canViewProductList ? nav.products : undefined}
-                badge={lowStockCount > 0 ? "Alert" : undefined}
-              />
-            )}
-
-          </div>
-        </div>
-      )}
-
-      {/* ── RECENT ORDERS ── */}
-      {showRecentOrders && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
-                <FiClock size={14} />
+        {/* Modules grid */}
+        <div className="xl:col-span-3 space-y-4">
+          {showBusinessMetrics && (
+            <>
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-slate-900">Operations Modules</h2>
+                <button
+                  onClick={nav.allOrders}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-bold hover:border-blue-200 hover:text-blue-600 transition-colors"
+                >
+                  Manage Orders
+                </button>
               </div>
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">Recent Orders</h2>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
-                  {canViewOrderDetails ? "Click any order to view details" : "Latest orders overview"}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={nav.allOrders}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 cursor-pointer"
-            >
-              View All <FiArrowRight size={13} />
-            </button>
-          </div>
 
-          <div className="p-5">
-            {loading ? (
-              <div className="space-y-2.5">
-                {Array.from({ length: 5 }, (_, i) => (
-                  <Skeleton key={i} className="h-16" />
-                ))}
-              </div>
-            ) : recentOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="p-4 bg-slate-100 rounded-2xl">
-                  <FiPackage size={22} className="text-slate-400" />
-                </div>
-                <p className="text-sm font-semibold text-slate-500">No recent orders</p>
-                <p className="text-xs text-slate-400">New orders will appear here once placed.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {recentOrders.map(({ order }) =>
-                  order ? (
-                    <OrderRow
-                      key={order.order_number}
-                      order={order}
-                      canNavigate={canViewOrderDetails}
-                      onClick={canViewOrderDetails ? () => navigate(`/orders/${order.order_number}`) : undefined}
-                    />
-                  ) : null
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+
+                <ModuleCard
+                  icon={<FiShoppingBag className="text-blue-600" />}
+                  iconTint="bg-blue-100/70"
+                  title="Sales"
+                  description="Order intake and pipeline"
+                  loading={loading}
+                  rows={[
+                    { label: "Today", value: todayOrders, onClick: nav.todayOrders },
+                    { label: "This Month", value: monthlyOrders, onClick: nav.monthOrders },
+                    { label: "Active", value: ongoingOrders, onClick: nav.activeOrders },
+                  ]}
+                />
+
+                <ModuleCard
+                  icon={<FiHexagon className="text-emerald-600" />}
+                  iconTint="bg-emerald-100/70"
+                  title="Production"
+                  description="What's being built and packed"
+                  loading={loading}
+                  rows={[
+                    { label: "In Production", value: ongoingByStatus?.PRODUCTION ?? 0, onClick: nav.production },
+                    { label: "Packed", value: ongoingByStatus?.PACKED ?? 0, onClick: nav.production },
+                    { label: "Invoiced", value: ongoingByStatus?.INVOICE ?? 0, onClick: nav.production },
+                  ]}
+                />
+
+                <ModuleCard
+                  icon={<FiTruck className="text-blue-600" />}
+                  iconTint="bg-blue-100/70"
+                  title="Delivery"
+                  description="Shipping and last-mile"
+                  loading={loading}
+                  rows={[
+                    { label: "Shipped", value: ongoingByStatus?.SHIPPED ?? 0, onClick: nav.allOrders },
+                    { label: "Today's Deliveries", value: todayDeliveryCount, onClick: nav.todayDeliveries },
+                    { label: "Completed Today", value: todayCompletedOrders, onClick: nav.todayCompleted },
+                  ]}
+                />
+
+                {canViewProductList && (
+                  <ModuleCard
+                    icon={<FiBox className="text-amber-600" />}
+                    iconTint="bg-amber-100/70"
+                    title="Brands & Catalog"
+                    description="Master data: brands, products and stock health"
+                    status={lowStockCount > 0 ? "Warning" : "Active"}
+                    loading={loading}
+                    rows={[
+                      { label: "Brands", value: brandCount, onClick: nav.brands },
+                      { label: "Total Products", value: productCount, onClick: nav.products },
+                      { label: "Low Stock", value: lowStockCount, onClick: nav.products },
+                    ]}
+                  />
                 )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* ── LOW STOCK ALERT ── */}
-      {showLowStockAlert && showLowStockProducts && !loading && lowStockProducts.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-rose-50/30">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600 border border-rose-100">
-                <FiAlertCircle size={14} />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">Low Stock Alert</h2>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
-                  {lowStockCount} product{lowStockCount !== 1 ? "s" : ""} below threshold (≤{LOW_STOCK_THRESHOLD})
-                </p>
-              </div>
-            </div>
-            {canViewProductList && (
-              <button
-                onClick={nav.products}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-800 transition-colors cursor-pointer"
-              >
-                View Products <FiArrowRight size={11} />
-              </button>
-            )}
-          </div>
+                {(showUserStats || showDealerStats) && (
+                  <ModuleCard
+                    icon={<FiUsers className="text-cyan-600" />}
+                    iconTint="bg-cyan-100/70"
+                    title="People"
+                    description="Team and dealer network"
+                    loading={loading}
+                    rows={[
+                      ...(showUserStats ? [
+                        { label: "Salesmen", value: salesmanCount, onClick: nav.salesmen },
+                        { label: "Employees", value: employeeCount, onClick: nav.users },
+                      ] : []),
+                      ...(showDealerStats ? [
+                        { label: "Dealers", value: dealerCount, onClick: nav.dealers },
+                      ] : [
+                        { label: "Assigned Dealers", value: assignedDealerCount, onClick: nav.dealers },
+                      ]),
+                    ]}
+                  />
+                )}
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  {["Product", "Brand", "Available", "Packed", "Unpacked"].map((h) => (
-                    <th key={h} className="px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 text-left whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {lowStockProducts.map((p) => (
-                  <tr
-                    key={p.product_id}
-                    onClick={canViewProductDetail ? () => navigate(`/products/${p.product_id}`) : undefined}
-                    className={`hover:bg-slate-50/60 transition-colors ${canViewProductDetail ? "cursor-pointer" : "cursor-default"}`}
-                  >
-                    <td className="px-5 py-3.5">
-                      <p className="font-bold text-slate-900">{p.product_name}</p>
-                      <span className="text-[9px] font-mono text-slate-400">{p.product_id}</span>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-600 font-medium">{p.brand}</td>
-                    <td className="px-5 py-3.5">
-                      <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black border bg-rose-50 text-rose-700 border-rose-200 tabular-nums">
-                        {p.available_stock ?? 0}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="text-xs font-semibold text-violet-600 tabular-nums">
-                        {p.stocks?.[0]?.packed_stock ?? 0}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="text-xs font-semibold text-blue-600 tabular-nums">
-                        {p.stocks?.[0]?.unpacked_stock ?? 0}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                {isAdminish && (
+                  <ModuleCard
+                    icon={<FiTrendingUp className="text-amber-600" />}
+                    iconTint="bg-amber-100/70"
+                    title="Completed Orders"
+                    description="Fulfillment performance"
+                    loading={loading}
+                    rows={[
+                      { label: "Today", value: todayCompletedOrders, onClick: nav.todayCompleted },
+                      { label: "This Month", value: monthlyCompletedOrders, onClick: nav.monthCompleted },
+                      { label: "All-Time", value: totalCompletedOrders, onClick: nav.completedOrders },
+                    ]}
+                  />
+                )}
+
+              </div>
+            </>
+          )}
         </div>
-      )}
+
+        {/* Right rail */}
+        <div className="space-y-5">
+          {showBusinessMetrics && (
+            <PipelineHealth counts={ongoingByStatus} loading={loading} total={ongoingOrders} />
+          )}
+          <RecentAlerts items={alerts} loading={loading} />
+        </div>
+      </div>
+
+      {/* ─── BOTTOM ROW ─── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {showRecentOrders && (
+          <div className="xl:col-span-2">
+            <RecentOrdersCard
+              orders={recentOrders}
+              loading={loading}
+              onViewAll={nav.allOrders}
+              canNavigate={canViewOrderDetails}
+              onRowClick={(num) => navigate(`/orders/${num}`)}
+            />
+          </div>
+        )}
+        {showLowStockProducts && (
+          <div>
+            <LowStockList
+              products={lowStockProducts}
+              loading={loading}
+              canNavigate={canViewProductDetail}
+              onClickProduct={(id) => navigate(`/products/${id}`)}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

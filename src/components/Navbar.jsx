@@ -13,17 +13,16 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
-import { capitalizeFirstLetter } from "../utils/constants";
 import { getRoleLabel, ROLES } from "../utils/roles";
 import ChangePasswordModal from "./Changepasswordmodal";
 import NotificationBell from "./NotificationBell";
 
 const ROLE_ACCENTS = {
-  [ROLES.SUPER_ADMIN]: { badge: "bg-violet-50 text-violet-700 border-violet-200", dot: "bg-violet-500", avatarFrom: "#8b5cf6", avatarTo: "#7c3aed", glow: "rgba(139,92,246,0.35)" },
-  [ROLES.ADMIN]: { badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", avatarFrom: "#3b82f6", avatarTo: "#4f46e5", glow: "rgba(59,130,246,0.35)" },
-  [ROLES.MANAGER]: { badge: "bg-indigo-50 text-indigo-700 border-indigo-200", dot: "bg-indigo-500", avatarFrom: "#6366f1", avatarTo: "#4f46e5", glow: "rgba(99,102,241,0.35)" },
+  [ROLES.SUPER_ADMIN]: { badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", avatarFrom: "#3b82f6", avatarTo: "#1d4ed8", glow: "rgba(59,130,246,0.35)" },
+  [ROLES.ADMIN]: { badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", avatarFrom: "#3b82f6", avatarTo: "#1d4ed8", glow: "rgba(59,130,246,0.35)" },
+  [ROLES.MANAGER]: { badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", avatarFrom: "#f97316", avatarTo: "#c2410c", glow: "rgba(249,115,22,0.35)" },
   [ROLES.SALESMAN]: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", avatarFrom: "#10b981", avatarTo: "#059669", glow: "rgba(16,185,129,0.35)" },
-  [ROLES.PRODUCTION]: { badge: "bg-orange-50 text-orange-700 border-orange-200", dot: "bg-orange-500", avatarFrom: "#f97316", avatarTo: "#ea580c", glow: "rgba(249,115,22,0.35)" },
+  [ROLES.PRODUCTION]: { badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", avatarFrom: "#f97316", avatarTo: "#ea580c", glow: "rgba(249,115,22,0.35)" },
   [ROLES.PACKING]: { badge: "bg-pink-50 text-pink-700 border-pink-200", dot: "bg-pink-500", avatarFrom: "#ec4899", avatarTo: "#db2777", glow: "rgba(236,72,153,0.35)" },
   [ROLES.ACCOUNTS]: { badge: "bg-cyan-50 text-cyan-700 border-cyan-200", dot: "bg-cyan-500", avatarFrom: "#06b6d4", avatarTo: "#0891b2", glow: "rgba(6,182,212,0.35)" },
   [ROLES.DELIVERY]: { badge: "bg-teal-50 text-teal-700 border-teal-200", dot: "bg-teal-500", avatarFrom: "#14b8a6", avatarTo: "#0d9488", glow: "rgba(20,184,166,0.35)" },
@@ -80,8 +79,16 @@ const Navbar = () => {
     setTimeout(() => el.classList.remove("swiped"), 700);
   }, []);
 
-  const initials = user?.employee_name
-    ? user.employee_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+  // Normalize underscores → spaces so backend names like "muhammed_shahul"
+  // render as "Muhammed Shahul" and produce two-letter initials.
+  const displayName = (user?.employee_name || "")
+    .replace(/_/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ""))
+    .join(" ");
+  const initials = displayName
+    ? displayName.split(/\s+/).map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : "U";
 
   const accent = getAccent(user?.role);
@@ -123,11 +130,11 @@ const Navbar = () => {
                 onClick={() => setShowMenu((p) => !p)}
                 aria-haspopup="true"
                 aria-expanded={showMenu}
-                className={`flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 ${showMenu ? "bg-slate-100 border-slate-300" : "bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300 hover:shadow-sm cursor-pointer"}`}
+                className={`flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${showMenu ? "bg-slate-100 border-slate-300" : "bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300 hover:shadow-sm cursor-pointer"}`}
               >
                 <Avatar initials={initials} role={user?.role} size="sm" />
                 <div className="hidden sm:flex flex-col items-start">
-                  <span className="text-[13px] font-bold text-slate-800 leading-tight whitespace-nowrap">{capitalizeFirstLetter(user?.employee_name) || "User"}</span>
+                  <span className="text-[13px] font-bold text-slate-800 leading-tight whitespace-nowrap">{displayName || "User"}</span>
                   <span className="text-[10px] font-semibold text-slate-400 leading-tight mt-[1px]">{getRoleLabel(user?.role)}</span>
                 </div>
                 <FiChevronDown size={12} className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${showMenu ? "rotate-180" : ""}`} aria-hidden="true" />
@@ -139,7 +146,7 @@ const Navbar = () => {
                     <div className="flex items-center gap-3">
                       <Avatar initials={initials} role={user?.role} size="md" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900 truncate">{capitalizeFirstLetter(user?.employee_name)}</p>
+                        <p className="text-sm font-bold text-slate-900 truncate">{displayName}</p>
                         <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">{user?.employee_email}</p>
                       </div>
                     </div>

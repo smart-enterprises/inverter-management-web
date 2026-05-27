@@ -285,8 +285,8 @@ const AnalyticsCard = ({ label, value, icon, color }) => {
     const colors = {
         emerald: "bg-emerald-50 border-emerald-100 text-emerald-700",
         rose: "bg-rose-50 border-rose-100 text-rose-700",
-        indigo: "bg-indigo-50 border-indigo-100 text-indigo-700",
-        purple: "bg-purple-50 border-purple-100 text-purple-700"
+        indigo: "bg-blue-50 border-blue-100 text-blue-700",
+        purple: "bg-blue-50 border-blue-100 text-blue-700"
     };
 
     return (

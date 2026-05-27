@@ -34,7 +34,7 @@ const DEALER_MANAGER_ROLES = new Set([ROLES.SUPER_ADMIN, ROLES.ADMIN]);
 
 const Info = ({ icon, label, value }) => (
   <div className="group flex items-start gap-3 p-4 rounded-xl bg-gray-50 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 transition-all duration-200">
-    <div className="text-[#9333EA] mt-0.5 flex-shrink-0 p-1.5 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
+    <div className="text-[#9333EA] mt-0.5 flex-shrink-0 p-1.5 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
       {icon}
     </div>
     <div className="min-w-0">
@@ -385,9 +385,9 @@ const UserDetails = () => {
       {/* ── Profile Card ── */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
         {/* Card header */}
-        <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 via-white to-purple-50/30">
+        <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 via-white to-blue-50/30">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#9333EA] to-purple-400 flex items-center justify-center shadow-sm shadow-purple-200">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#9333EA] to-blue-400 flex items-center justify-center shadow-sm shadow-blue-200">
               <FiUser size={16} className="text-white" />
             </div>
             <div>

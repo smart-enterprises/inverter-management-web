@@ -44,13 +44,13 @@ const Billing = () => {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex items-start gap-4">
             <div
-              className={`p-2.5 rounded-full ${isSent ? "bg-green-50" : "bg-orange-50"
+              className={`p-2.5 rounded-full ${isSent ? "bg-green-50" : "bg-blue-50"
                 }`}
             >
               {isSent ? (
                 <FiCheckCircle className="text-green-500" size={24} />
               ) : (
-                <FiClock className="text-orange-500" size={24} />
+                <FiClock className="text-blue-500" size={24} />
               )}
             </div>
             <div>
@@ -141,7 +141,7 @@ const Billing = () => {
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${isSent
                       ? "bg-green-100 text-green-600"
-                      : "bg-orange-100 text-orange-600"
+                      : "bg-blue-100 text-blue-600"
                       }`}
                   >
                     {isSent ? (
@@ -159,7 +159,7 @@ const Billing = () => {
                         <FiSend size={14} /> Send
                       </button>
                     )}
-                    <button className="flex items-center gap-1.5 text-[#9333EA] bg-white px-3 py-1.5 rounded-lg text-sm font-medium border border-purple-300 hover:bg-purple-50 transition-colors">
+                    <button className="flex items-center gap-1.5 text-[#9333EA] bg-white px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-300 hover:bg-blue-50 transition-colors">
                       <FiEye size={14} /> View
                     </button>
                     <button className="p-2 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
@@ -198,7 +198,7 @@ const Billing = () => {
                   }`}
               >
                 {tab === "Pending Bills" ? (
-                  <FiClock className="text-orange-500" />
+                  <FiClock className="text-blue-500" />
                 ) : (
                   <FiCheckCircle className="text-green-500" />
                 )}

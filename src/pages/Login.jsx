@@ -73,7 +73,7 @@ export default function Login() {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-indigo-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50 px-4">
       <div className="w-full max-w-md">
 
         {/* LOGIN CARD */}
@@ -126,8 +126,8 @@ export default function Login() {
                   text-sm
                   placeholder:text-gray-400
                   focus:outline-none
-                  focus:ring-2 focus:ring-purple-400
-                  focus:border-purple-400
+                  focus:ring-2 focus:ring-blue-400
+                  focus:border-blue-400
                   transition
                 "
               />
@@ -159,8 +159,8 @@ export default function Login() {
                     text-sm
                     placeholder:text-gray-400
                     focus:outline-none
-                    focus:ring-2 focus:ring-purple-400
-                    focus:border-purple-400
+                    focus:ring-2 focus:ring-blue-400
+                    focus:border-blue-400
                     transition
                   "
                 />
@@ -205,7 +205,7 @@ export default function Login() {
                 shadow-sm
                 hover:opacity-95
                 focus:outline-none
-                focus:ring-2 focus:ring-purple-500
+                focus:ring-2 focus:ring-blue-500
                 focus:ring-offset-2
                 transition
                 disabled:opacity-60

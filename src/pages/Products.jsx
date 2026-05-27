@@ -136,7 +136,7 @@ const FormInput = React.forwardRef(({ prefix, className = "", ...props }, ref) =
       className={[
         "w-full border border-slate-200 rounded-xl py-2.5 text-sm font-medium text-slate-800",
         "placeholder-slate-300 bg-white transition-all",
-        "focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400",
+        "focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400",
         "disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed",
         prefix ? "pl-7 pr-3" : "px-3",
         className,
@@ -149,7 +149,7 @@ FormInput.displayName = "FormInput";
 const SectionHeading = memo(({ icon: Icon, children }) => (
   <div className="flex items-center gap-3">
     {Icon && (
-      <span className="p-1.5 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-500">
+      <span className="p-1.5 bg-blue-50 border border-blue-100 rounded-lg text-blue-500">
         <Icon size={11} />
       </span>
     )}
@@ -320,7 +320,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
         >
           <header className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0 bg-gradient-to-br from-slate-50 to-white">
             <div className="flex items-center gap-3.5">
-              <div className="p-2.5 rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-200">
+              <div className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-200">
                 <FiBox size={14} aria-hidden />
               </div>
               <div>
@@ -413,7 +413,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
 
           <footer className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
             <button type="button" onClick={onClose} disabled={loading} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-all disabled:opacity-50">Cancel</button>
-            <button type="submit" form="create-product-form" disabled={loading} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-indigo-200">
+            <button type="submit" form="create-product-form" disabled={loading} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-blue-200">
               {loading ? <><Spinner size={13} className="text-white" />Creating…</> : <><FiPlus size={13} aria-hidden />Create Product</>}
             </button>
           </footer>
@@ -427,7 +427,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
    STAT CARD
 ───────────────────────────────────────────────────────────────────────*/
 const STAT_COLOR_MAP = {
-  indigo: { wrap: "bg-indigo-600", text: "text-white" },
+  indigo: { wrap: "bg-blue-600", text: "text-white" },
   emerald: { wrap: "bg-emerald-500", text: "text-white" },
   rose: { wrap: "bg-rose-500", text: "text-white" },
   amber: { wrap: "bg-amber-400", text: "text-amber-900" },
@@ -457,7 +457,7 @@ const PaginationBtn = memo(({ children, active, ...props }) => (
     {...props}
     className={[
       "min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all",
-      active ? "bg-indigo-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300",
+      active ? "bg-blue-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300",
       "disabled:opacity-40 disabled:cursor-not-allowed",
     ].join(" ")}
   >
@@ -497,7 +497,7 @@ Pagination.displayName = "Pagination";
 ───────────────────────────────────────────────────────────────────────*/
 const STOCK_BADGE_STYLES = {
   blue: { wrapper: "bg-sky-50 text-sky-700 border-sky-100", dot: "bg-sky-400" },
-  violet: { wrapper: "bg-violet-50 text-violet-700 border-violet-100", dot: "bg-violet-400" },
+  violet: { wrapper: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-400" },
   amber: { wrapper: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-400" },
 };
 
@@ -553,16 +553,16 @@ const ProductRow = memo(({
   const isBattery = isBatteryCategory(product_category);
 
   return (
-    <tr className="group border-b border-slate-100 hover:bg-indigo-50/20 transition-colors duration-100">
+    <tr className="group border-b border-slate-100 hover:bg-blue-50/20 transition-colors duration-100">
 
       {/* ── MERGED: Product + Brand + Model ── */}
       <td className="px-4 py-3.5">
         <div className="flex items-center gap-3">
           {/* Icon */}
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:border-indigo-200 group-hover:from-indigo-100 transition-all duration-150">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:border-blue-200 group-hover:from-blue-100 transition-all duration-150">
             {isBattery
               ? <FiZap size={13} className="text-amber-500 group-hover:text-amber-600 transition-colors" />
-              : <FiBox size={13} className="text-indigo-400 group-hover:text-indigo-500 transition-colors" />
+              : <FiBox size={13} className="text-blue-400 group-hover:text-blue-500 transition-colors" />
             }
           </div>
           {/* Text block */}
@@ -574,7 +574,7 @@ const ProductRow = memo(({
             {/* Brand · Model row */}
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
               {brand && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100 text-[9px] font-black uppercase tracking-wide">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100 text-[9px] font-black uppercase tracking-wide">
                   <FiTag size={8} aria-hidden />
                   {brand}
                 </span>
@@ -647,7 +647,7 @@ const ProductRow = memo(({
       {/* Actions */}
       <td className="px-4 py-3.5">
         <div className="flex items-center justify-end gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
-          <ActionBtn onClick={onView} label="View product" colorClass="hover:text-indigo-600 hover:bg-indigo-50"><FiEye size={14} /></ActionBtn>
+          <ActionBtn onClick={onView} label="View product" colorClass="hover:text-blue-600 hover:bg-blue-50"><FiEye size={14} /></ActionBtn>
           {userCanEdit && (
             <ActionBtn onClick={onEdit} label="Edit product" colorClass="hover:text-sky-600 hover:bg-sky-50"><FiEdit3 size={14} /></ActionBtn>
           )}
@@ -682,7 +682,7 @@ const FilterBar = memo(({
         <input
           type="search" placeholder="Search products…" value={searchInput}
           onChange={(e) => onSearchInput(e.target.value)} aria-label="Search products"
-          className="w-full h-8 pl-7 pr-6 text-[12.5px] text-slate-800 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all duration-150"
+          className="w-full h-8 pl-7 pr-6 text-[12.5px] text-slate-800 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-150"
         />
         {searchInput && (
           <button onClick={onSearchClear} aria-label="Clear search" className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-[15px] h-[15px] rounded text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-all duration-100">
@@ -696,7 +696,7 @@ const FilterBar = memo(({
       <div className="flex items-center gap-1.5 px-2.5 flex-shrink-0">
         <FiSliders size={11} className="text-slate-400" />
         <span className="text-[10px] font-semibold tracking-[.1em] uppercase text-slate-400 whitespace-nowrap">FILTER</span>
-        {loadingMeta && <Spinner size={10} className="text-indigo-400 ml-0.5" />}
+        {loadingMeta && <Spinner size={10} className="text-blue-400 ml-0.5" />}
       </div>
 
       <div className="w-px h-5 bg-slate-200 flex-shrink-0 mx-0.5" />
@@ -711,7 +711,7 @@ const FilterBar = memo(({
         <div key={i} className="relative flex-shrink-0 px-0.5" style={{ width }}>
           <select
             value={value} onChange={onChange} disabled={disabled}
-            className="w-full h-8 appearance-none pl-2.5 pr-5 text-[12px] font-medium text-slate-600 bg-transparent border-none rounded-lg outline-none cursor-pointer hover:bg-slate-50 focus:bg-slate-50 focus:ring-2 focus:ring-indigo-100 disabled:opacity-35 disabled:cursor-not-allowed transition-all duration-150"
+            className="w-full h-8 appearance-none pl-2.5 pr-5 text-[12px] font-medium text-slate-600 bg-transparent border-none rounded-lg outline-none cursor-pointer hover:bg-slate-50 focus:bg-slate-50 focus:ring-2 focus:ring-blue-100 disabled:opacity-35 disabled:cursor-not-allowed transition-all duration-150"
           >
             {options.map((o) => <option key={o}>{o}</option>)}
           </select>
@@ -771,8 +771,8 @@ EmptyState.displayName = "EmptyState";
 const LoadingState = memo(() => (
   <div className="flex flex-col items-center justify-center py-28 gap-5">
     <div className="relative w-12 h-12">
-      <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-      <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+      <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
     </div>
     <p className="text-sm text-slate-400 font-semibold tracking-wide">Loading products…</p>
   </div>
@@ -788,7 +788,7 @@ const ErrorState = memo(({ message, onRetry }) => (
       <p className="text-sm font-bold text-rose-600">Something went wrong</p>
       <p className="text-xs text-slate-400">{message}</p>
     </div>
-    <button onClick={onRetry} className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-bold px-4 py-2 bg-indigo-50 rounded-xl border border-indigo-100 transition-all hover:bg-indigo-100">
+    <button onClick={onRetry} className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-bold px-4 py-2 bg-blue-50 rounded-xl border border-blue-100 transition-all hover:bg-blue-100">
       <FiRefreshCw size={13} />Try again
     </button>
   </div>
@@ -961,7 +961,7 @@ const Products = () => {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5 mb-1">
-              <div className="p-1.5 rounded-lg bg-indigo-600 text-white flex-shrink-0"><FiBox size={13} /></div>
+              <div className="p-1.5 rounded-lg bg-blue-600 text-white flex-shrink-0"><FiBox size={13} /></div>
               <h1 className="text-xl font-black text-slate-900 tracking-tight">Products</h1>
             </div>
             <p className="text-xs text-slate-400 font-medium pl-0.5">
@@ -969,11 +969,11 @@ const Products = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={loadProducts} disabled={loading} title="Refresh" aria-label="Refresh products" className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:shadow-sm transition-all disabled:opacity-50 group">
+            <button onClick={loadProducts} disabled={loading} title="Refresh" aria-label="Refresh products" className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all disabled:opacity-50 group">
               <FiRefreshCw size={14} className={`transition-transform ${loading ? "animate-spin" : "group-hover:rotate-180 duration-500"}`} aria-hidden />
             </button>
             {userCanCreate && (
-              <button onClick={() => openModal("create")} className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm shadow-indigo-200 whitespace-nowrap">
+              <button onClick={() => openModal("create")} className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 whitespace-nowrap">
                 <FiPlus size={14} aria-hidden />Create Product<FiArrowRight size={13} className="opacity-70" aria-hidden />
               </button>
             )}

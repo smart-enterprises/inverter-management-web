@@ -35,8 +35,8 @@ const StatusBadge = ({ status }) => {
     const map = {
         PENDING: "bg-amber-50 text-amber-700 border-amber-200",
         CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
-        PRODUCTION: "bg-indigo-50 text-indigo-700 border-indigo-200",
-        PACKED: "bg-violet-50 text-violet-700 border-violet-200",
+        PRODUCTION: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+        PACKED: "bg-teal-50 text-teal-700 border-teal-200",
         INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
         SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
         DELIVERED: "bg-green-50 text-green-700 border-green-200",
@@ -68,9 +68,9 @@ const TONE_MAP = {
         detail: { wrapper: "bg-emerald-50 text-emerald-900", iconColor: "#065f46" },
         table: { text: "text-emerald-700", iconColor: "#047857" },
     },
-    indigo: {
-        detail: { wrapper: "bg-indigo-50 text-indigo-900", iconColor: "#3730a3" },
-        table: { text: "text-indigo-700", iconColor: "#4338ca" },
+    fuchsia: {
+        detail: { wrapper: "bg-fuchsia-50 text-fuchsia-900", iconColor: "#86198f" },
+        table: { text: "text-fuchsia-700", iconColor: "#a21caf" },
     },
 };
 
@@ -118,7 +118,7 @@ const ProductionStatusBadge = ({
     }
 
     return (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 items-start">
             <StatusBadge status={status} />
             {lines.map((l, i) => (
                 <SubLine key={i} text={l.text} icon={l.icon} tone={l.tone} variant="table" />

@@ -47,13 +47,13 @@ interface TypeStyle {
 const TYPE_STYLE: Partial<Record<NotificationType, TypeStyle>> = {
     [NOTIFICATION_TYPES.ORDER_CREATED_PENDING]: {
         Icon: FiShoppingBag,
-        iconBg: "bg-indigo-100",
-        iconText: "text-indigo-600",
+        iconBg: "bg-blue-100",
+        iconText: "text-blue-600",
     },
     [NOTIFICATION_TYPES.ORDER_CREATED_PRODUCTION]: {
         Icon: FiSettings,
-        iconBg: "bg-orange-100",
-        iconText: "text-orange-600",
+        iconBg: "bg-blue-100",
+        iconText: "text-blue-600",
     },
     [NOTIFICATION_TYPES.ORDER_CREATED_PACKED]: {
         Icon: FiPackage,
@@ -67,8 +67,8 @@ const TYPE_STYLE: Partial<Record<NotificationType, TypeStyle>> = {
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_PRODUCTION]: {
         Icon: FiSettings,
-        iconBg: "bg-orange-100",
-        iconText: "text-orange-600",
+        iconBg: "bg-blue-100",
+        iconText: "text-blue-600",
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_PACKED]: {
         Icon: FiPackage,
@@ -135,7 +135,7 @@ const NotificationItem = React.memo(
           border-b border-slate-50 last:border-0
           text-left transition-colors duration-150 cursor-pointer
           ${!notification.is_read
-                        ? "bg-indigo-50/40 hover:bg-indigo-50/70"
+                        ? "bg-blue-50/40 hover:bg-blue-50/70"
                         : "hover:bg-slate-50"
                     }
         `}
@@ -166,7 +166,7 @@ const NotificationItem = React.memo(
                 </div>
 
                 {!notification.is_read && (
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0 mt-1.5" />
+                    <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />
                 )}
             </button>
         );
@@ -236,9 +236,9 @@ const NotificationBell = () => {
                 className={`
           relative w-9 h-9 flex items-center justify-center cursor-pointer
           rounded-xl border transition-all duration-200
-          focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300
           ${isOpen
-                        ? "bg-indigo-50 border-indigo-200 text-indigo-600"
+                        ? "bg-blue-50 border-blue-200 text-blue-600"
                         : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-600"
                     }
         `}
@@ -285,7 +285,7 @@ const NotificationBell = () => {
                             <button
                                 type="button"
                                 onClick={() => void markAllAsRead()}
-                                className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                                className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-lg transition-all cursor-pointer"
                             >
                                 <FiCheck size={10} />
                                 Mark all read
@@ -296,7 +296,7 @@ const NotificationBell = () => {
                     <div className="max-h-80 overflow-y-auto">
                         {isLoading ? (
                             <div className="flex justify-center py-8">
-                                <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                                <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
                             </div>
                         ) : notifications.length === 0 ? (
                             <div className="flex flex-col items-center gap-3 py-10 text-slate-400">
@@ -324,7 +324,7 @@ const NotificationBell = () => {
                                     navigate("/orders");
                                     setIsOpen(false);
                                 }}
-                                className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
+                                className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
                             >
                                 View all orders <FiChevronRight size={11} />
                             </button>

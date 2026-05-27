@@ -45,8 +45,8 @@ export const getStatusStyle = (status) => {
     const statusMap = {
         [ORDER_STATUSES.PENDING]: "bg-yellow-50 text-yellow-700",
         [ORDER_STATUSES.CONFIRMED]: "bg-blue-50 text-blue-700",
-        [ORDER_STATUSES.PRODUCTION]: "bg-indigo-50 text-indigo-700",
-        [ORDER_STATUSES.PACKED]: "bg-purple-50 text-purple-700",
+        [ORDER_STATUSES.PRODUCTION]: "bg-fuchsia-50 text-fuchsia-700",
+        [ORDER_STATUSES.PACKED]: "bg-teal-50 text-teal-700",
         [ORDER_STATUSES.INVOICE]: "bg-cyan-50 text-cyan-700",
         [ORDER_STATUSES.SHIPPED]: "bg-orange-50 text-orange-700",
         [ORDER_STATUSES.DELIVERED]: "bg-green-50 text-green-700",

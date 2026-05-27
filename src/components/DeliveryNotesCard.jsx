@@ -14,11 +14,11 @@ const ROLE_LABELS = {
 
 /* ── Role badge Tailwind classes ── */
 const ROLE_BADGE_CLASSES = {
-    ROLE_SUPER_ADMIN: "bg-violet-50  text-violet-700  border-violet-200",
+    ROLE_SUPER_ADMIN: "bg-amber-50  text-amber-700  border-amber-200",
     ROLE_ADMIN: "bg-blue-50    text-blue-700    border-blue-200",
-    ROLE_MANAGER: "bg-indigo-50  text-indigo-700  border-indigo-200",
+    ROLE_MANAGER: "bg-blue-50  text-blue-700  border-blue-200",
     ROLE_SALESMAN: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    ROLE_PRODUCTION: "bg-orange-50  text-orange-700  border-orange-200",
+    ROLE_PRODUCTION: "bg-blue-50  text-blue-700  border-blue-200",
     ROLE_PACKING: "bg-pink-50    text-pink-700    border-pink-200",
     ROLE_ACCOUNTS: "bg-cyan-50    text-cyan-700    border-cyan-200",
     ROLE_DELIVERY: "bg-amber-50   text-amber-700   border-amber-200",
@@ -30,7 +30,7 @@ const DEFAULT_BADGE = "bg-slate-100 text-slate-600 border-slate-200";
 const THEME_DOTS = {
     blue: "bg-blue-500",
     teal: "bg-teal-500",
-    purple: "bg-violet-500",
+    purple: "bg-amber-500",
     amber: "bg-amber-500",
 };
 

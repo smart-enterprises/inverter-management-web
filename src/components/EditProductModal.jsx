@@ -88,7 +88,7 @@ const FieldLabel = memo(({ children, required, htmlFor }) => (
 
 const inputBase =
     "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 " +
-    "placeholder-slate-300 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 " +
+    "placeholder-slate-300 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 " +
     "transition-all duration-150 disabled:opacity-40 disabled:bg-slate-50 disabled:cursor-not-allowed";
 
 const TextInput = memo(({ id, label, required, hint, ...props }) => (
@@ -217,7 +217,7 @@ const AlertBanner = memo(({ type, message }) => {
     );
 });
 
-const SectionHeader = memo(({ icon: Icon, title, accentClass = "text-violet-500" }) => (
+const SectionHeader = memo(({ icon: Icon, title, accentClass = "text-amber-500" }) => (
     <div className="flex items-center gap-2 mb-4">
         {Icon && (
             <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-50 border border-slate-100">
@@ -494,8 +494,8 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                     {/* ── Header ── */}
                     <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-100">
-                                <FiEdit3 size={16} className="text-violet-600" aria-hidden />
+                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-100">
+                                <FiEdit3 size={16} className="text-amber-600" aria-hidden />
                             </div>
                             <div>
                                 <h2
@@ -728,7 +728,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                                     type="submit"
                                     form="edit-product-form"
                                     disabled={loading}
-                                    className="px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-sm shadow-violet-200 flex items-center gap-2"
+                                    className="px-5 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-sm shadow-amber-200 flex items-center gap-2"
                                 >
                                     {loading ? (
                                         <>
