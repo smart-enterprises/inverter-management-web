@@ -1317,7 +1317,7 @@ const CreateOrder = () => {
                       onChange={handleChange}
                       options={salespersons.map((s) => ({
                         value: s.employee_id,
-                        label: capitalizeFirstLetter(s.employee_name),
+                        label: formatName(s.employee_name),
                       }))}
                       placeholder="Select Salesman"
                       searchable
@@ -1338,7 +1338,7 @@ const CreateOrder = () => {
                         value: d.employee_id,
                         label: d.town
                           ? `${capitalizeFirstLetter(d.shop_name)} — ${capitalizeFirstLetter(d.town)}`
-                          : capitalizeFirstLetter(d.shop_name) || capitalizeFirstLetter(d.employee_name),
+                          : capitalizeFirstLetter(d.shop_name) || formatName(d.employee_name),
                         subLabel: d.employee_phone ? String(d.employee_phone) : null,
                       }))}
                       placeholder={loadingDealers ? "Loading dealers…" : "Select Dealer"}

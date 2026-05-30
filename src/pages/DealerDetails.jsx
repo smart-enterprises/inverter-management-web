@@ -22,7 +22,7 @@ import {
   getPriorityStyle, getStatusStyle,
   ORDER_STATUS_LIST, PRIORITY_OPTIONS,
 } from "../utils/status";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import { canManageDiscounts } from "../utils/discountPermissions";
 import { useRouteAccess } from "../hooks/useRouteAccess";
 import { fetchUsers } from "../api/user";
@@ -1773,7 +1773,7 @@ const DealerDetails = () => {
               <InfoItem
                 icon={<FiUser size={14} />}
                 label="Full Name"
-                value={capitalizeFirstLetter(dealer.employee_name)}
+                value={formatName(dealer.employee_name)}
               />
               <InfoItem
                 icon={<FiMail size={14} />}

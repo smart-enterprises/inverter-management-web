@@ -11,7 +11,7 @@ import CustomSelect from "../components/CustomSelect";
 import { createUser, fetchUsers, fetchUserById, updateUser, deleteUser } from "../api/user";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES, getRoleLabel } from "../utils/roles";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import { errorsToMap, validateEmployeeFields } from "../utils/validationUtils";
 import ManageDealersModal from "../components/ManageDealersModal";
 
@@ -741,11 +741,11 @@ const User = () => {
                             <div
                               className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold text-sm border ${getRoleColor(u.role)}`}
                             >
-                              {capitalizeFirstLetter(u.employee_name)?.charAt(0).toUpperCase()}
+                              {formatName(u.employee_name)?.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex flex-col leading-tight">
                               <p className="text-sm font-semibold text-slate-900">
-                                {capitalizeFirstLetter(u.employee_name)}
+                                {formatName(u.employee_name)}
                               </p>
                               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                 <span className="text-[10px] font-mono text-slate-400">

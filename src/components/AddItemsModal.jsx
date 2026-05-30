@@ -8,7 +8,7 @@ import { getBrandsByDealer } from "../api/brands";
 import { fetchProductsByBrands } from "../api/products";
 import { addItemsToOrder } from "../api/orders";
 import { toastSuccess } from "../utils/toast";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 
 const todayISO = () => new Date().toISOString().split("T")[0];
 
@@ -183,7 +183,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
               <FiPlus size={16} className="text-blue-500" /> Add Items
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Order <span className="font-mono">{order?.order_number}</span> · Dealer {capitalizeFirstLetter(order?.dealer?.employee_name) || dealerId}
+              Order <span className="font-mono">{order?.order_number}</span> · Dealer {formatName(order?.dealer?.employee_name) || dealerId}
             </p>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-all">

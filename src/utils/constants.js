@@ -66,6 +66,14 @@ export const capitalizeFirstLetter = (value) => {
     return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
+export const formatName = (value) => {
+    if (typeof value !== "string" || value.length === 0) return "";
+    return value
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 export const STOCK_ACTIONS = {
     STOCK_ADD: 'ADD',
     STOCK_RETURN: 'RETURN',

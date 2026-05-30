@@ -10,7 +10,7 @@ import { TbBuildingStore } from "react-icons/tb";
 import Swal from "sweetalert2";
 import { fetchDealers } from "../api/dealer";
 import { fetchUsers, updateUser } from "../api/user";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 
 const getDealerId = (dealer) =>
     String(dealer?.employee_id ?? dealer?._id ?? dealer?.id ?? "");
@@ -202,7 +202,7 @@ const DealerRow = React.memo(({ dealer, isChecked, wasOriginal, userMap, onToggl
             <DealerAvatar name={dealer.employee_name} active={isChecked} />
             <div className="flex flex-col leading-tight flex-1 min-w-0">
                 <span className="text-[13px] font-semibold text-slate-800 truncate tracking-tight">
-                    {capitalizeFirstLetter(dealer.employee_name)}
+                    {formatName(dealer.employee_name)}
                 </span>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     {dealer.shop_name && (
@@ -229,7 +229,7 @@ const AssignedChip = ({ dealer, onRemove }) => (
     <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 group hover:border-blue-300 hover:bg-blue-100/70 transition-all">
         <DealerAvatar name={dealer.employee_name} active size="sm" />
         <span className="text-[11px] font-semibold text-blue-800 leading-none max-w-[90px] truncate">
-            {capitalizeFirstLetter(dealer.employee_name)}
+            {formatName(dealer.employee_name)}
         </span>
         <button
             type="button"
@@ -479,7 +479,7 @@ const ManageDealersModal = ({
         <ModalShell>
             <ModalHeader
                 title="Manage Dealer Assignments"
-                subtitle={capitalizeFirstLetter(salesman.employee_name)}
+                subtitle={formatName(salesman.employee_name)}
                 assignedCount={loading ? undefined : assignedIds.size}
                 onClose={!saving ? onClose : undefined}
             />

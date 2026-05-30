@@ -16,7 +16,7 @@ import { fetchDealers, fetchDealerById, createDealer, updateDealer, deleteDealer
 import { getAllBrands } from "../api/brands";
 import { useAuth } from "../hooks/useAuth";
 import { fetchUsers } from "../api/user";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED PRIMITIVES — defined at module level so they never re-mount and
@@ -881,7 +881,7 @@ const Dealers = () => {
                             {dealer.employee_name?.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 text-sm">{capitalizeFirstLetter(dealer.employee_name)}</p>
+                            <p className="font-bold text-slate-900 text-sm">{formatName(dealer.employee_name)}</p>
                             <span className="text-[9px] font-mono text-slate-400">{dealer.employee_id}</span>
                           </div>
                         </div>

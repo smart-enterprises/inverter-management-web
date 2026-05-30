@@ -17,7 +17,7 @@ import { useAuth } from "../hooks/useAuth";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrderById, updateOrderStatus } from "../api/orders";
 import { fetchUsers } from "../api/user";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import { formatDealerDiscountNotes, formatDeliveryNotes, formatStockNotes } from "../utils/notesUtils";
 import { ORDER_STATUS_LIST, ORDER_STATUSES, PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
 import { useUpdateOrderPermissions } from "../hooks/useUpdateOrderPermissions";
@@ -1493,7 +1493,7 @@ const OrderDetails = () => {
       const res = await fetchUsers({ page: 1, limit: 500, status: "active", includePassword: false, includeDealers: false });
       if (res?.success && Array.isArray(res?.data?.employees)) {
         setUserMap(res.data.employees.reduce((acc, u) => {
-          if (u?.employee_id) acc[u.employee_id] = capitalizeFirstLetter(u.employee_name);
+          if (u?.employee_id) acc[u.employee_id] = formatName(u.employee_name);
           return acc;
         }, {}));
       }
@@ -1680,7 +1680,7 @@ const OrderDetails = () => {
       {userCanViewDealerInfo && (
         <SectionCard title="Dealer Information" subtitle="Profile">
           <div className="grid sm:grid-cols-2 gap-1">
-            <InfoCell icon={<FiUser />} label="Dealer Name">{order?.dealer?.employee_name ? capitalizeFirstLetter(order.dealer.employee_name) : null}</InfoCell>
+            <InfoCell icon={<FiUser />} label="Dealer Name">{order?.dealer?.employee_name ? formatName(order.dealer.employee_name) : null}</InfoCell>
             <InfoCell icon={<FiBox />} label="Shop Name">{order?.dealer?.shop_name ? capitalizeFirstLetter(order.dealer.shop_name) : null}</InfoCell>
             {userCanViewFullDealerInfo && (
               <>

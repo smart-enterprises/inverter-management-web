@@ -24,7 +24,7 @@ import { HiOutlineSparkles } from "react-icons/hi2";
 import Swal from "sweetalert2";
 import { fetchUserById, fetchUsers } from "../api/user";
 import { getRoleLabel, ROLES } from "../utils/roles";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
 import ManageDealersModal from "../components/ManageDealersModal";
 
@@ -361,7 +361,7 @@ const UserDetails = () => {
             <p className="text-sm text-gray-500 mt-0.5">
               Detailed overview of{" "}
               <span className="font-semibold text-gray-700">
-                {capitalizeFirstLetter(userData?.employee_name)}
+                {formatName(userData?.employee_name)}
               </span>
               's account
             </p>
@@ -402,7 +402,7 @@ const UserDetails = () => {
         {/* Info grid */}
         <div className="px-8 py-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            <Info icon={<FiUser size={14} />} label="Full Name" value={capitalizeFirstLetter(userData?.employee_name)} />
+            <Info icon={<FiUser size={14} />} label="Full Name" value={formatName(userData?.employee_name)} />
             <Info icon={<FiMail size={14} />} label="Email Address" value={userData?.employee_email || "N/A"} />
             <Info icon={<FiPhone size={14} />} label="Phone Number" value={userData?.employee_phone || "N/A"} />
             <Info icon={<FiShield size={14} />} label="Role" value={getRoleLabel(userData?.role)} />
