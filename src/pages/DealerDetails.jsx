@@ -1815,7 +1815,7 @@ const DealerDetails = () => {
                 label="Created By"
                 value={
                   dealer?.created_by
-                    ? userMap[dealer.created_by] || dealer.created_by
+                    ? formatName(userMap[dealer.created_by] || dealer.created_by)
                     : "N/A"
                 }
               />

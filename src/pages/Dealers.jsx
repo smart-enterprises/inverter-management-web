@@ -899,7 +899,7 @@ const Dealers = () => {
                         </span>
                       </td>
                       <td className="px-5 py-4 text-slate-500 font-medium text-xs">
-                        {userMap[dealer.created_by] || dealer.created_by}
+                        {formatName(userMap[dealer.created_by] || dealer.created_by)}
                       </td>
                       <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
                         {dealer.created_at ? new Date(dealer.created_at).toLocaleDateString() : ""}

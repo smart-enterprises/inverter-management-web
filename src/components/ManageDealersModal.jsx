@@ -214,7 +214,7 @@ const DealerRow = React.memo(({ dealer, isChecked, wasOriginal, userMap, onToggl
                     {dealer.created_by && (
                         <span className="inline-flex items-center gap-1 text-[10px] text-slate-400">
                             <FiTag size={8} />
-                            {userMap[dealer.created_by] ?? dealer.created_by}
+                            {formatName(userMap[dealer.created_by] ?? dealer.created_by)}
                         </span>
                     )}
                 </div>

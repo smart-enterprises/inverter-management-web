@@ -413,9 +413,8 @@ const UserDetails = () => {
               icon={<FiUserCheck size={14} />}
               label="Created By"
               value={
-                userMap[userData?.created_by]?.employee_name
-                ?? userData?.created_by
-                ?? "N/A"
+                formatName(userMap[userData?.created_by]?.employee_name ?? userData?.created_by)
+                || "N/A"
               }
             />
             <Info

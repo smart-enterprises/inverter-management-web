@@ -12,7 +12,7 @@ import {
     FiPackage
 } from "react-icons/fi";
 
-import { STOCK_ACTIONS, STOCK_TYPES } from "../utils/constants";
+import { STOCK_ACTIONS, STOCK_TYPES, formatName } from "../utils/constants";
 
 /* ACTION BADGE */
 const getActionBadge = (action) => {
@@ -318,7 +318,7 @@ const StockHistoryModal = ({
                                                             <div className="flex flex-col">
 
                                                                 <span className="font-medium text-gray-900">
-                                                                    {userMap[item.created_by] || "Unknown"}
+                                                                    {formatName(userMap[item.created_by] || item.created_by) || "Unknown"}
                                                                 </span>
 
                                                                 <span className="text-xs text-gray-400 font-mono">
