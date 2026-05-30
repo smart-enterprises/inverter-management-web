@@ -21,7 +21,7 @@ import { toastSuccess } from "../utils/toast";
 import { PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
 import { canSelectSalesman, ROLES } from "../utils/roles";
 import {
-  capitalizeFirstLetter, INITIAL_FORM_STATE, INITIAL_ORDER_ITEM,
+  capitalizeFirstLetter, formatName, INITIAL_FORM_STATE, INITIAL_ORDER_ITEM,
 } from "../utils/constants";
 
 /* ================================================================
