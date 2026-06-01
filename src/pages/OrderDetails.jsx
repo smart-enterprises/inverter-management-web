@@ -1461,10 +1461,9 @@ const OrderDetails = () => {
   const canAddItems = useMemo(() => {
     if (!order) return false;
     const statusOk = !ADD_ITEMS_BLOCKED_STATUSES.includes(String(order.status).toUpperCase());
-    const isCreator = !!user?.employee_id && order.created_by === user.employee_id;
     const isPrivileged = ADMIN_PRIVILEGED_ROLES.includes(user?.role);
-    return statusOk && (isCreator || isPrivileged);
-  }, [order, user?.employee_id, user?.role]);
+    return statusOk && isPrivileged;
+  }, [order, user?.role]);
 
   const openItemModal = useCallback((name, index, data) => setModal({ name, itemIndex: index, itemData: data }), []);
   const openOrderModal = useCallback((name) => setModal({ name, itemIndex: null, itemData: null }), []);
