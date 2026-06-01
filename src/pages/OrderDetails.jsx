@@ -87,8 +87,8 @@ const getRoleOrderPermissions = (role) => {
       };
     case ROLES.PACKING:
       return {
-        canUpdateStatus: false,
-        canUpdateDelivery: false,
+        canUpdateStatus: true,
+        canUpdateDelivery: true,
         canCancelOrder: false,
         canAddPayment: false,
         canUpdateItemStatus: true,
@@ -96,7 +96,7 @@ const getRoleOrderPermissions = (role) => {
         hideDeliveredQty: true,
         canCancelItem: false,
         allowedItemStatuses: ["PACKED", "SHIPPED", "DELIVERED"],
-        allowedOrderStatuses: [],
+        allowedOrderStatuses: ["SHIPPED"],
         hideProductionFlag: true,
         statusModalTitle: "Update Packing Status",
       };
