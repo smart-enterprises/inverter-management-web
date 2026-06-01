@@ -31,7 +31,7 @@ import AddItemsModal from "../components/AddItemsModal";
 import { ROLES } from "../utils/roles";
 
 const ADMIN_PRIVILEGED_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER];
-const ADD_ITEMS_BLOCKED_STATUSES = ["DELIVERED", "COMPLETED", "CANCELLED", "REJECTED"];
+const ADD_ITEMS_BLOCKED_STATUSES = ["PENDING", "DELIVERED", "COMPLETED", "CANCELLED", "REJECTED"];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RBAC HELPERS
