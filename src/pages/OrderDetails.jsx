@@ -31,7 +31,7 @@ import AddItemsModal from "../components/AddItemsModal";
 import { ROLES } from "../utils/roles";
 
 const ADMIN_PRIVILEGED_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER];
-const ADD_ITEMS_BLOCKED_STATUSES = ["DELIVERED", "COMPLETED", "CANCELLED", "REJECTED"];
+const ADD_ITEMS_BLOCKED_STATUSES = ["PENDING", "DELIVERED", "COMPLETED", "CANCELLED", "REJECTED"];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RBAC HELPERS
@@ -87,16 +87,15 @@ const getRoleOrderPermissions = (role) => {
       };
     case ROLES.PACKING:
       return {
-        canUpdateStatus: false,
-        canUpdateDelivery: false,
+        canUpdateStatus: true,
+        canUpdateDelivery: true,
         canCancelOrder: false,
         canAddPayment: false,
         canUpdateItemStatus: true,
-        canUpdateItemDelivery: true, // Date + note only (no qty)
-        hideDeliveredQty: true,
+        canUpdateItemDelivery: true,
         canCancelItem: false,
         allowedItemStatuses: ["PACKED", "SHIPPED", "DELIVERED"],
-        allowedOrderStatuses: [],
+        allowedOrderStatuses: ["SHIPPED"],
         hideProductionFlag: true,
         statusModalTitle: "Update Packing Status",
       };
@@ -1461,10 +1460,9 @@ const OrderDetails = () => {
   const canAddItems = useMemo(() => {
     if (!order) return false;
     const statusOk = !ADD_ITEMS_BLOCKED_STATUSES.includes(String(order.status).toUpperCase());
-    const isCreator = !!user?.employee_id && order.created_by === user.employee_id;
     const isPrivileged = ADMIN_PRIVILEGED_ROLES.includes(user?.role);
-    return statusOk && (isCreator || isPrivileged);
-  }, [order, user?.employee_id, user?.role]);
+    return statusOk && isPrivileged;
+  }, [order, user?.role]);
 
   const openItemModal = useCallback((name, index, data) => setModal({ name, itemIndex: index, itemData: data }), []);
   const openOrderModal = useCallback((name) => setModal({ name, itemIndex: null, itemData: null }), []);
