@@ -229,7 +229,7 @@ const Orders = () => {
 
   const deriveStatus = () => {
     if (routeState?.status) return routeState.status;
-    if (isProduction || isPacking) return "PRODUCTION";
+    if (isProduction || isPacking) return "ALL";
     if (isDelivery) return "SHIPPED";
     return "ALL";
   };
