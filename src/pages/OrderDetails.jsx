@@ -17,7 +17,7 @@ import { useAuth } from "../hooks/useAuth";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrderById, updateOrderStatus } from "../api/orders";
 import { fetchUsers } from "../api/user";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import { formatDealerDiscountNotes, formatDeliveryNotes, formatStockNotes } from "../utils/notesUtils";
 import { ORDER_STATUS_LIST, ORDER_STATUSES, PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
 import { useUpdateOrderPermissions } from "../hooks/useUpdateOrderPermissions";
@@ -839,7 +839,7 @@ const DeliveryUpdateModal = memo(({ isOpen, onClose, detail, onSubmit, submittin
           </FormField>
         )}
         {!rolePermissions?.hideDeliveredQty && (
-          <FormField label={`Delivered Quantity (Max: ${maxDeliverable})`} hint="Leave empty to skip quantity update"><EditInput type="number" min={0} max={maxDeliverable} value={form.delivered_qty} onChange={(e) => setField("delivered_qty", e.target.value)} placeholder={`0 – ${maxDeliverable}`} />{errors.delivered_qty && <FieldError msg={errors.delivered_qty} />}</FormField>
+          <FormField label={`Delivered Quantity (Max: ${maxDeliverable})`} hint="Leave empty to skip quantity update"><EditInput type="number" min={0} max={maxDeliverable} value={form.delivered_qty} onChange={(e) => setField("delivered_qty", e.target.value.replace(/[^0-9]/g, ""))} onKeyDown={(e) => { if (["e","E","+","-","."].includes(e.key)) e.preventDefault(); }} placeholder={`0 – ${maxDeliverable}`} />{errors.delivered_qty && <FieldError msg={errors.delivered_qty} />}</FormField>
         )}
       </div>
     </ModalShell>
@@ -924,7 +924,7 @@ const CancelItemModal = memo(({ isOpen, onClose, detail, onSubmit, submitting })
             {cancelAll && <FiAlertTriangle size={14} className="text-rose-500 mt-0.5 flex-shrink-0" />}
           </label>
           <FormField label={`Cancelled Quantity (Max: ${maxCancellable})`} required>
-            <EditInput type="number" min={1} max={maxCancellable} value={cancelQty} disabled={cancelAll} onChange={(e) => { setCancelQty(e.target.value); setErrors((p) => ({ ...p, cancelQty: undefined })); }} placeholder={cancelAll ? `${maxCancellable} (auto-filled)` : `1 – ${maxCancellable}`} />
+            <EditInput type="number" min={1} max={maxCancellable} value={cancelQty} disabled={cancelAll} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); setCancelQty(v); setErrors((p) => ({ ...p, cancelQty: undefined })); }} onKeyDown={(e) => { if (["e","E","+","-","."].includes(e.key)) e.preventDefault(); }} placeholder={cancelAll ? `${maxCancellable} (auto-filled)` : `1 – ${maxCancellable}`} />
             {!cancelAll && <button type="button" onClick={() => setCancelQty(String(maxCancellable))} className="text-[10px] font-bold text-rose-600 hover:text-rose-800 transition-colors mt-1">Set to max ({maxCancellable})</button>}
             {errors.cancelQty && <FieldError msg={errors.cancelQty} />}
           </FormField>
@@ -1126,7 +1126,7 @@ const AddPaymentModal = memo(({ isOpen, onClose, order, onSubmit, submitting }) 
           <>
             <FormField label="Payment Method" required><CustomSelect name="payment_method" value={form.payment_method} onChange={(e) => setField("payment_method", e.target.value)} options={PAYMENT_METHOD_OPTIONS} />{errors.payment_method && <FieldError msg={errors.payment_method} />}</FormField>
             <FormField label="Amount" required hint={`Max: ${formatCurrency(maxPayable)}`}>
-              <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">₹</span><EditInput type="number" min={1} max={maxPayable} value={form.amount_paid} onChange={(e) => setField("amount_paid", e.target.value)} className="pl-7" placeholder="0.00" /></div>
+              <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">₹</span><EditInput type="number" min={1} max={maxPayable} value={form.amount_paid} onChange={(e) => setField("amount_paid", e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))} onKeyDown={(e) => { if (["e","E","+","-"].includes(e.key)) e.preventDefault(); }} className="pl-7" placeholder="0.00" /></div>
               {errors.amount_paid && <FieldError msg={errors.amount_paid} />}
               <button type="button" onClick={() => setForm((p) => ({ ...p, amount_paid: String(maxPayable) }))} className="text-[10px] font-bold text-emerald-600 hover:text-emerald-800 transition-colors mt-1">Pay full balance ({formatCurrency(maxPayable)})</button>
             </FormField>
@@ -1493,7 +1493,7 @@ const OrderDetails = () => {
       const res = await fetchUsers({ page: 1, limit: 500, status: "active", includePassword: false, includeDealers: false });
       if (res?.success && Array.isArray(res?.data?.employees)) {
         setUserMap(res.data.employees.reduce((acc, u) => {
-          if (u?.employee_id) acc[u.employee_id] = capitalizeFirstLetter(u.employee_name);
+          if (u?.employee_id) acc[u.employee_id] = formatName(u.employee_name);
           return acc;
         }, {}));
       }
@@ -1666,7 +1666,7 @@ const OrderDetails = () => {
             <div className="flex flex-col"><span>{userMap[order?.salesman_id] || "Unknown"}</span>{order?.salesman_id && <span className="text-[9px] text-slate-400 font-mono font-normal mt-0.5">{order.salesman_id}</span>}</div>
           </InfoCell>
           <InfoCell icon={<FiUser />} label="Created By">
-            <div className="flex flex-col"><span>{userMap[order?.created_by] || "Unknown"}</span>{order?.created_by && <span className="text-[9px] text-slate-400 font-mono font-normal mt-0.5">{order.created_by}</span>}</div>
+            <div className="flex flex-col"><span>{formatName(userMap[order?.created_by] || order?.created_by) || "Unknown"}</span>{order?.created_by && <span className="text-[9px] text-slate-400 font-mono font-normal mt-0.5">{order.created_by}</span>}</div>
           </InfoCell>
         </div>
         {order?.order_note && (
@@ -1680,7 +1680,7 @@ const OrderDetails = () => {
       {userCanViewDealerInfo && (
         <SectionCard title="Dealer Information" subtitle="Profile">
           <div className="grid sm:grid-cols-2 gap-1">
-            <InfoCell icon={<FiUser />} label="Dealer Name">{order?.dealer?.employee_name ? capitalizeFirstLetter(order.dealer.employee_name) : null}</InfoCell>
+            <InfoCell icon={<FiUser />} label="Dealer Name">{order?.dealer?.employee_name ? formatName(order.dealer.employee_name) : null}</InfoCell>
             <InfoCell icon={<FiBox />} label="Shop Name">{order?.dealer?.shop_name ? capitalizeFirstLetter(order.dealer.shop_name) : null}</InfoCell>
             {userCanViewFullDealerInfo && (
               <>

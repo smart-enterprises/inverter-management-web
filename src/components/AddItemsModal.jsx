@@ -1,14 +1,15 @@
 // AddItemsModal.jsx — append new line items to an existing order
-// Uses the same Brand → Model → Product cascade as CreateOrder.
+// Uses the same Brand → Model → Product → Discount cascade as CreateOrder.
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { FiX, FiPlus, FiTrash2, FiAlertCircle, FiCalendar } from "react-icons/fi";
+import { FiX, FiPlus, FiTrash2, FiAlertCircle, FiCalendar, FiChevronDown } from "react-icons/fi";
 import CustomSelect from "./CustomSelect";
 import { getBrandsByDealer } from "../api/brands";
 import { fetchProductsByBrands } from "../api/products";
+import { fetchDealerDiscounts } from "../api/dealer";
 import { addItemsToOrder } from "../api/orders";
-import { toastSuccess } from "../utils/toast";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { toastSuccess, toastError } from "../utils/toast";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 
 const todayISO = () => new Date().toISOString().split("T")[0];
 
@@ -18,15 +19,143 @@ const emptyItem = () => ({
   product_id: "",
   qty_ordered: 1,
   delivery_date: todayISO(),
+  discount_price: 0,
+  dealer_discount_id: null,
 });
+
+// ─── Discount Field ───────────────────────────────────────────────────────────
+
+const DiscountField = ({ item, index, discountOptions, maxPrice, onDealerChange, onManualChange, onClear }) => {
+  const [mode, setMode] = useState(() =>
+    item.dealer_discount_id ? "dealer" : item.discount_price > 0 ? "manual" : "none"
+  );
+  const [dropOpen, setDropOpen] = useState(false);
+
+  const options = useMemo(() => discountOptions[index] || [], [discountOptions, index]);
+  const selected = options.find((o) => o.dealer_discount_id === item.dealer_discount_id);
+
+  const handleModeSwitch = (m) => {
+    setMode(m);
+    onClear(index);
+  };
+
+  const hasDiscount = item.dealer_discount_id || item.discount_price > 0;
+
+  return (
+    <div className="space-y-2">
+      {/* Mode tabs */}
+      <div className="flex gap-1.5">
+        {["none", "dealer", "manual"].map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => handleModeSwitch(m)}
+            className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all ${
+              mode === m
+                ? "bg-blue-600 text-white"
+                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+            }`}
+          >
+            {m === "none" ? "No Discount" : m === "dealer" ? "Dealer" : "Manual"}
+          </button>
+        ))}
+        {hasDiscount && (
+          <button
+            type="button"
+            onClick={() => { onClear(index); setMode("none"); }}
+            className="ml-auto px-2 py-1 rounded-lg text-[10px] font-bold text-rose-500 hover:bg-rose-50 transition-all"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Dealer discount dropdown */}
+      {mode === "dealer" && (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setDropOpen((p) => !p)}
+            className="w-full flex items-center justify-between px-3 py-2 border border-slate-200 rounded-lg bg-white text-xs font-semibold text-slate-700 hover:border-blue-300 transition-all"
+          >
+            <span className={selected ? "text-slate-800" : "text-slate-400"}>
+              {selected
+                ? `${selected.is_percentage ? `${selected.discount_value}%` : `₹ ${selected.discount_value}`} off`
+                : options.length === 0 ? "No discounts available" : "Pick discount…"}
+            </span>
+            <FiChevronDown size={12} className={`transition-transform ${dropOpen ? "rotate-180" : ""}`} />
+          </button>
+          {dropOpen && options.length > 0 && (
+            <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+              {options.map((opt) => (
+                <button
+                  key={opt.dealer_discount_id}
+                  type="button"
+                  onClick={() => { onDealerChange(index, opt.dealer_discount_id); setDropOpen(false); }}
+                  className={`w-full px-3 py-2.5 text-left text-xs font-semibold border-b border-slate-50 last:border-0 transition-colors ${
+                    item.dealer_discount_id === opt.dealer_discount_id
+                      ? "bg-blue-50 text-blue-700"
+                      : "hover:bg-slate-50 text-slate-700"
+                  }`}
+                >
+                  <span className="font-black">
+                    {opt.is_percentage ? `${opt.discount_value}%` : `₹ ${opt.discount_value}`}
+                  </span>
+                  {opt.description && (
+                    <span className="ml-2 text-slate-400 font-medium">{opt.description}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Manual discount */}
+      {mode === "manual" && (
+        <div>
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder={maxPrice ? `Max ₹${Number(maxPrice).toLocaleString("en-IN")}` : "Enter discount amount (₹)"}
+            value={item.discount_price || ""}
+            onKeyDown={(e) => {
+              const nav = ["Backspace","Delete","ArrowLeft","ArrowRight","Home","End","Tab"];
+              if (nav.includes(e.key)) return;
+              if (/^[0-9]$/.test(e.key)) return;
+              if (e.key === "." && !e.target.value.includes(".")) return;
+              if ((e.ctrlKey || e.metaKey) && ["a","c","v","x"].includes(e.key.toLowerCase())) return;
+              e.preventDefault();
+            }}
+            onChange={(e) => {
+              let val = e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1");
+              if (maxPrice && val !== "" && parseFloat(val) > Number(maxPrice)) {
+                val = String(Number(maxPrice));
+              }
+              onManualChange(index, val);
+            }}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+          />
+          {maxPrice && (
+            <p className="text-[10px] text-slate-400 mt-1">Max discount: ₹{Number(maxPrice).toLocaleString("en-IN")}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Main Modal ───────────────────────────────────────────────────────────────
 
 const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
   const [items, setItems] = useState([emptyItem()]);
-  const [brands, setBrands] = useState([]);   // [{brand_name, brand_models: [..]}]
-  const [products, setProducts] = useState([]); // [{product_id, brand, model, ...}]
+  const [brands, setBrands] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [discountOptions, setDiscountOptions] = useState({});
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const dealerId = order?.dealer_id;
 
@@ -60,10 +189,9 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
   }, [isOpen, dealerId]);
 
   useEffect(() => {
-    if (isOpen) { setItems([emptyItem()]); setError(""); }
+    if (isOpen) { setItems([emptyItem()]); setDiscountOptions({}); setError(""); setFieldErrors({}); }
   }, [isOpen]);
 
-  /* Lookups */
   const brandOptions = useMemo(
     () => brands.map((b) => ({ value: b.brand_name, label: b.brand_name })),
     [brands]
@@ -93,7 +221,6 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
         subLabel: `${p.brand} · ${p.model} · ₹${Number(p.price || 0).toLocaleString("en-IN")}`,
       }));
 
-  /* Mutators */
   const updateRow = useCallback((index, patch) => {
     setItems((prev) => {
       const next = [...prev];
@@ -103,16 +230,54 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
   }, []);
 
   const handleBrandChange = (index, brand) => {
-    updateRow(index, { brand, model: "", product_id: "" });
+    updateRow(index, { brand, model: "", product_id: "", discount_price: 0, dealer_discount_id: null });
+    setDiscountOptions((prev) => { const n = { ...prev }; delete n[index]; return n; });
   };
 
   const handleModelChange = (index, model) => {
-    updateRow(index, { model, product_id: "" });
+    updateRow(index, { model, product_id: "", discount_price: 0, dealer_discount_id: null });
+    setDiscountOptions((prev) => { const n = { ...prev }; delete n[index]; return n; });
+  };
+
+  const handleProductChange = useCallback(async (index, productId) => {
+    updateRow(index, { product_id: productId, discount_price: 0, dealer_discount_id: null });
+    setDiscountOptions((prev) => { const n = { ...prev }; delete n[index]; return n; });
+    if (productId && dealerId) {
+      const res = await fetchDealerDiscounts({ dealer_id: dealerId, product_id: productId });
+      setDiscountOptions((prev) => ({
+        ...prev,
+        [index]: res?.success && res?.data?.length ? res.data : [],
+      }));
+    }
+  }, [dealerId, updateRow]);
+
+  const handleDealerDiscount = (index, dealerDiscountId) => {
+    updateRow(index, { dealer_discount_id: dealerDiscountId || null, discount_price: 0 });
+  };
+
+  const handleManualDiscount = (index, value) => {
+    updateRow(index, { discount_price: Number(value) || 0, dealer_discount_id: null });
+  };
+
+  const handleClearDiscount = (index) => {
+    updateRow(index, { dealer_discount_id: null, discount_price: 0 });
   };
 
   const addRow = () => setItems((prev) => [...prev, emptyItem()]);
-  const removeRow = (index) =>
-    setItems((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== index)));
+
+  const removeRow = (index) => {
+    setItems((prev) => prev.length === 1 ? prev : prev.filter((_, i) => i !== index));
+    setDiscountOptions((prev) => {
+      const n = { ...prev };
+      delete n[index];
+      const out = {};
+      Object.entries(n).forEach(([k, v]) => {
+        const ki = Number(k);
+        out[ki > index ? ki - 1 : ki] = v;
+      });
+      return out;
+    });
+  };
 
   const totalPreview = useMemo(() => {
     return items.reduce((sum, it) => {
@@ -123,33 +288,58 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
   }, [items, productMap]);
 
   const validate = () => {
-    if (!items.length) return "Add at least one item.";
-    for (const [i, it] of items.entries()) {
-      if (!it.brand) return `Row ${i + 1}: pick a brand.`;
-      if (!it.model) return `Row ${i + 1}: pick a model.`;
-      if (!it.product_id) return `Row ${i + 1}: pick a product.`;
-      const qty = Number(it.qty_ordered);
-      if (!Number.isInteger(qty) || qty < 1) return `Row ${i + 1}: qty must be a positive integer.`;
-      if (!it.delivery_date) return `Row ${i + 1}: delivery date is required.`;
-    }
-    return null;
+    const errs = {};
+    items.forEach((it, i) => {
+      const row = {};
+      if (!it.brand) row.brand = "Select a brand";
+      if (!it.model) row.model = "Select a model";
+      if (!it.product_id) row.product_id = "Select a product";
+      const qty = parseInt(String(it.qty_ordered).replace(/[^0-9]/g, ""), 10);
+      if (!qty || qty < 1) row.qty_ordered = "Enter a valid quantity";
+      if (!it.delivery_date) row.delivery_date = "Select a delivery date";
+      if (Object.keys(row).length) errs[i] = row;
+    });
+    return errs;
+  };
+
+  const clearFieldError = (index, field) => {
+    setFieldErrors((prev) => {
+      if (!prev[index]?.[field]) return prev;
+      const next = { ...prev, [index]: { ...prev[index] } };
+      delete next[index][field];
+      if (!Object.keys(next[index]).length) delete next[index];
+      return next;
+    });
   };
 
   const handleSubmit = async () => {
-    const v = validate();
-    if (v) { setError(v); return; }
+    const errs = validate();
+    if (Object.keys(errs).length) {
+      setFieldErrors(errs);
+      toastError("Please fill in all required fields.");
+      return;
+    }
 
     setSubmitting(true);
     setError("");
     try {
-      const res = await addItemsToOrder(
-        order.order_number,
-        items.map((it) => ({
+      const payload = items.map((it) => {
+        const qty = parseInt(String(it.qty_ordered).replace(/[^0-9]/g, ""), 10);
+        const p = {
           product_id: it.product_id,
-          qty_ordered: Number(it.qty_ordered),
+          qty_ordered: qty,
           delivery_date: it.delivery_date,
-        }))
-      );
+        };
+        if (it.dealer_discount_id) {
+          p.dealer_discount_id = it.dealer_discount_id;
+        } else {
+          const disc = parseFloat(String(it.discount_price).replace(/[^0-9.]/g, ""));
+          if (!isNaN(disc) && disc > 0) p.discount_price = disc;
+        }
+        return p;
+      });
+
+      const res = await addItemsToOrder(order.order_number, payload);
 
       if (res?.success) {
         toastSuccess(`✅ ${items.length} item${items.length === 1 ? "" : "s"} added.`);
@@ -159,9 +349,9 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
         setError(res?.message || "Failed to add items.");
       }
     } catch (e) {
-      const fieldErrors = e?.response?.data?.errors;
-      if (fieldErrors?.length) {
-        setError(fieldErrors.map((f) => `${f.field}: ${f.message}`).join(" • "));
+      const apiErrors = e?.response?.data?.errors;
+      if (apiErrors?.length) {
+        setError(apiErrors.map((f) => `${f.field}: ${f.message}`).join(" • "));
       } else {
         setError(e?.response?.data?.message || e?.message || "Failed to add items.");
       }
@@ -183,7 +373,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
               <FiPlus size={16} className="text-blue-500" /> Add Items
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Order <span className="font-mono">{order?.order_number}</span> · Dealer {capitalizeFirstLetter(order?.dealer?.employee_name) || dealerId}
+              Order <span className="font-mono">{order?.order_number}</span> · Dealer {formatName(order?.dealer?.employee_name) || dealerId}
             </p>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-all">
@@ -212,8 +402,10 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
               const modelOpts = getModelOptions(item.brand);
               const productOpts = getProductOptions(item.brand, item.model);
 
+              const rowErr = fieldErrors[index] || {};
+
               return (
-                <div key={index} className="border border-slate-200 rounded-xl p-3.5 bg-slate-50/40 space-y-2.5">
+                <div key={index} className={`border rounded-xl p-3.5 bg-slate-50/40 space-y-2.5 ${Object.keys(rowErr).length ? "border-rose-300" : "border-slate-200"}`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                       Item {index + 1}
@@ -225,7 +417,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                     )}
                   </div>
 
-                  {/* Brand → Model → Product cascade */}
+                  {/* Brand → Model → Product */}
                   <div className="space-y-2">
                     <div>
                       <label className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Brand</label>
@@ -233,12 +425,13 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                         <CustomSelect
                           name={`brand_${index}`}
                           value={item.brand}
-                          onChange={(e) => handleBrandChange(index, e.target.value)}
+                          onChange={(e) => { handleBrandChange(index, e.target.value); clearFieldError(index, "brand"); }}
                           options={brandOptions}
                           placeholder="Select brand"
                           searchable
                         />
                       </div>
+                      {rowErr.brand && <p className="text-xs text-rose-500 font-semibold mt-1">{rowErr.brand}</p>}
                     </div>
 
                     <div>
@@ -247,13 +440,14 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                         <CustomSelect
                           name={`model_${index}`}
                           value={item.model}
-                          onChange={(e) => handleModelChange(index, e.target.value)}
+                          onChange={(e) => { handleModelChange(index, e.target.value); clearFieldError(index, "model"); }}
                           options={modelOpts}
                           placeholder={item.brand ? "Select model" : "Pick a brand first"}
                           searchable
                           disabled={!item.brand}
                         />
                       </div>
+                      {rowErr.model && <p className="text-xs text-rose-500 font-semibold mt-1">{rowErr.model}</p>}
                     </div>
 
                     <div>
@@ -262,7 +456,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                         <CustomSelect
                           name={`product_${index}`}
                           value={item.product_id}
-                          onChange={(e) => updateRow(index, { product_id: e.target.value })}
+                          onChange={(e) => { handleProductChange(index, e.target.value); clearFieldError(index, "product_id"); }}
                           options={productOpts}
                           placeholder={
                             !item.brand ? "Pick a brand first"
@@ -274,19 +468,33 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                           disabled={!item.brand || !item.model || productOpts.length === 0}
                         />
                       </div>
+                      {rowErr.product_id && <p className="text-xs text-rose-500 font-semibold mt-1">{rowErr.product_id}</p>}
                     </div>
                   </div>
 
-                  {/* Qty + delivery */}
+                  {/* Qty + Delivery Date */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Qty</label>
                       <input
-                        type="number" min={1} step={1}
+                        type="text"
+                        inputMode="numeric"
                         value={item.qty_ordered}
-                        onChange={(e) => updateRow(index, { qty_ordered: e.target.value })}
-                        className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                        onKeyDown={(e) => {
+                          const nav = ["Backspace","Delete","ArrowLeft","ArrowRight","Home","End","Tab"];
+                          if (nav.includes(e.key)) return;
+                          if (/^[0-9]$/.test(e.key)) return;
+                          if ((e.ctrlKey || e.metaKey) && ["a","c","v","x"].includes(e.key.toLowerCase())) return;
+                          e.preventDefault();
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, "");
+                          updateRow(index, { qty_ordered: val === "" ? "" : Math.max(1, parseInt(val, 10)) });
+                          clearFieldError(index, "qty_ordered");
+                        }}
+                        className={`w-full mt-1 px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 ${rowErr.qty_ordered ? "border-rose-400" : "border-slate-200"}`}
                       />
+                      {rowErr.qty_ordered && <p className="text-xs text-rose-500 font-semibold mt-1">{rowErr.qty_ordered}</p>}
                     </div>
                     <div>
                       <label className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Delivery Date</label>
@@ -296,15 +504,33 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                           type="date"
                           min={todayISO()}
                           value={item.delivery_date}
-                          onChange={(e) => updateRow(index, { delivery_date: e.target.value })}
-                          className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                          onChange={(e) => { updateRow(index, { delivery_date: e.target.value }); clearFieldError(index, "delivery_date"); }}
+                          className={`w-full pl-8 pr-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 ${rowErr.delivery_date ? "border-rose-400" : "border-slate-200"}`}
                         />
                       </div>
+                      {rowErr.delivery_date && <p className="text-xs text-rose-500 font-semibold mt-1">{rowErr.delivery_date}</p>}
                     </div>
                   </div>
 
+                  {/* Discount */}
+                  {item.product_id && (
+                    <div>
+                      <label className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-1.5 block">Discount</label>
+                      <DiscountField
+                        item={item}
+                        index={index}
+                        discountOptions={discountOptions}
+                        maxPrice={product?.price}
+                        onDealerChange={handleDealerDiscount}
+                        onManualChange={handleManualDiscount}
+                        onClear={handleClearDiscount}
+                      />
+                    </div>
+                  )}
+
+                  {/* Row total */}
                   {product && (
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
                       <span>{product.product_type || "—"}</span>
                       <span className="font-semibold text-slate-700">
                         ₹{(Number(product.price) * Number(item.qty_ordered || 0)).toLocaleString("en-IN")}
@@ -317,9 +543,19 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
           )}
 
           {!loading && brands.length > 0 && (
-            <button onClick={addRow} className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:text-blue-600 hover:border-blue-300 transition flex items-center justify-center gap-1.5">
+            <button
+              onClick={addRow}
+              className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:text-blue-600 hover:border-blue-300 transition flex items-center justify-center gap-1.5"
+            >
               <FiPlus size={12} /> Add another item
             </button>
+          )}
+
+          {Object.keys(fieldErrors).length > 0 && (
+            <div className="flex items-start gap-2 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs font-semibold">
+              <FiAlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+              Fill in all required fields highlighted in red before submitting.
+            </div>
           )}
 
           {error && (

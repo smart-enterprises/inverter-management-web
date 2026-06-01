@@ -11,7 +11,7 @@ import CustomSelect from "../components/CustomSelect";
 import { createUser, fetchUsers, fetchUserById, updateUser, deleteUser } from "../api/user";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES, getRoleLabel } from "../utils/roles";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import { errorsToMap, validateEmployeeFields } from "../utils/validationUtils";
 import ManageDealersModal from "../components/ManageDealersModal";
 
@@ -229,7 +229,7 @@ const PasswordCell = ({ employee, isAllowed, isRevealed, onToggleReveal }) => {
 
 // ─── User Actions ─────────────────────────────────────────────────────────────
 
-const UserActions = React.memo(({ user: u, onView, onEdit, onDelete, onManageDealers, canManageDealers }) => {
+const UserActions = React.memo(({ user: u, onView, onEdit, onDelete, onManageDealers, canManageDealers, editFetching, deleteFetching }) => {
   if (!u || u?.status?.toLowerCase() === "deleted") return null;
   const isSalesman = (u.role || "").toUpperCase() === ROLES.SALESMAN;
 
@@ -257,18 +257,24 @@ const UserActions = React.memo(({ user: u, onView, onEdit, onDelete, onManageDea
       <button
         type="button"
         onClick={onEdit}
-        className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all"
+        disabled={editFetching}
+        className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all disabled:opacity-50"
         aria-label="Edit user"
       >
-        <FiEdit2 size={14} />
+        {editFetching
+          ? <svg className="animate-spin h-3.5 w-3.5 text-sky-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+          : <FiEdit2 size={14} />}
       </button>
       <button
         type="button"
         onClick={onDelete}
-        className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
+        disabled={deleteFetching}
+        className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all disabled:opacity-50"
         aria-label="Delete user"
       >
-        <FiTrash2 size={14} />
+        {deleteFetching
+          ? <svg className="animate-spin h-3.5 w-3.5 text-rose-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+          : <FiTrash2 size={14} />}
       </button>
     </div>
   );
@@ -323,6 +329,8 @@ const User = () => {
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [editFetching, setEditFetching] = useState(false);
+  const [deleteFetching, setDeleteFetching] = useState(false);
   const [originalData, setOriginalData] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({});
@@ -388,9 +396,32 @@ const User = () => {
 
   useEffect(() => {
     loadUsers();
+  }, [loadUsers]);
+
+  useEffect(() => {
     document.body.style.overflow =
       isModalOpen || editingUser || dealersSalesman ? "hidden" : "auto";
-  }, [loadUsers, isModalOpen, editingUser, dealersSalesman]);
+  }, [isModalOpen, editingUser, dealersSalesman]);
+
+  // ── Modal open/close helpers (reset stale form state) ────────────────────
+
+  const openCreateModal = useCallback(() => {
+    setFormData({});
+    setOriginalData(null);
+    setIsModalOpen(true);
+  }, []);
+
+  const closeCreateModal = useCallback(() => {
+    setIsModalOpen(false);
+    setFormData({});
+    setOriginalData(null);
+  }, []);
+
+  const closeEditModal = useCallback(() => {
+    setEditingUser(null);
+    setFormData({});
+    setOriginalData(null);
+  }, []);
 
   // ── Password Reveal Toggle ────────────────────────────────────────────────
 
@@ -452,8 +483,7 @@ const User = () => {
         text: res.message || "User created successfully!",
         confirmButtonColor: "#4f46e5",
       });
-      setFormData({});
-      setIsModalOpen(false);
+      closeCreateModal();
       loadUsers();
     } catch (err) {
       Swal.fire("Error", err.message, "error");
@@ -464,7 +494,7 @@ const User = () => {
 
   const handleEdit = async (id) => {
     try {
-      setLoading(true);
+      setEditFetching(true);
       const res = await fetchUserById(id);
       if (!res?.success) throw new Error(res?.message || "Failed to fetch user");
       setFormData(res.data);
@@ -473,7 +503,7 @@ const User = () => {
     } catch (err) {
       Swal.fire("Error", err.message, "error");
     } finally {
-      setLoading(false);
+      setEditFetching(false);
     }
   };
 
@@ -498,7 +528,7 @@ const User = () => {
       const res = await updateUser(editingUser, payload);
       if (!res?.success) throw new Error(res?.message || "Update failed");
       Swal.fire("Success", "User updated successfully", "success");
-      setEditingUser(null);
+      closeEditModal();
       loadUsers();
     } catch (err) {
       Swal.fire("Error", err.message, "error");
@@ -521,7 +551,7 @@ const User = () => {
     });
     if (!isConfirmed) return;
     try {
-      setLoading(true);
+      setDeleteFetching(true);
       const res = await deleteUser(id, reason.trim());
       if (!res?.success) throw new Error(res?.message || "Delete failed");
       Swal.fire("Deleted!", "User deleted successfully", "success");
@@ -529,7 +559,7 @@ const User = () => {
     } catch (err) {
       Swal.fire("Error", err.message, "error");
     } finally {
-      setLoading(false);
+      setDeleteFetching(false);
     }
   };
 
@@ -565,7 +595,7 @@ const User = () => {
           {canCreateUser && (
             <button
               type="button"
-              onClick={() => setIsModalOpen(true)}
+              onClick={openCreateModal}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 cursor-pointer"
             >
               <FiPlus size={14} /> Add New User
@@ -711,11 +741,11 @@ const User = () => {
                             <div
                               className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold text-sm border ${getRoleColor(u.role)}`}
                             >
-                              {capitalizeFirstLetter(u.employee_name)?.charAt(0).toUpperCase()}
+                              {formatName(u.employee_name)?.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex flex-col leading-tight">
                               <p className="text-sm font-semibold text-slate-900">
-                                {capitalizeFirstLetter(u.employee_name)}
+                                {formatName(u.employee_name)}
                               </p>
                               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                 <span className="text-[10px] font-mono text-slate-400">
@@ -793,6 +823,8 @@ const User = () => {
                             onDelete={() => handleDelete(u.employee_id)}
                             onManageDealers={() => setDealersSalesman(u)}
                             canManageDealers={canManageDealers}
+                            editFetching={editFetching}
+                            deleteFetching={deleteFetching}
                           />
                         </td>
                       </tr>
@@ -812,7 +844,7 @@ const User = () => {
         <>
           <div
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
-            onClick={() => setIsModalOpen(false)}
+            onClick={closeCreateModal}
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
             <div
@@ -833,7 +865,7 @@ const User = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeCreateModal}
                   className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
                 >
                   <FiX size={16} />
@@ -929,7 +961,7 @@ const User = () => {
         <>
           <div
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
-            onClick={() => setEditingUser(null)}
+            onClick={closeEditModal}
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
             <div
@@ -950,7 +982,7 @@ const User = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setEditingUser(null)}
+                  onClick={closeEditModal}
                   className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
                 >
                   <FiX size={16} />
@@ -1007,7 +1039,7 @@ const User = () => {
               <div className="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0">
                 <button
                   type="button"
-                  onClick={() => setEditingUser(null)}
+                  onClick={closeEditModal}
                   className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all"
                 >
                   Cancel

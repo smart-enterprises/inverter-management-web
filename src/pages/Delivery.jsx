@@ -12,7 +12,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrders } from "../api/orders";
 import { getFilteredStatusOptions, ORDER_STATUSES, PRIORITY_OPTIONS } from "../utils/status";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
 import ProductionStatusBadge from "../components/ProductionStatusBadge";
@@ -527,7 +527,7 @@ const Delivery = () => {
                         className="hover:bg-slate-50/60 transition-colors duration-100"
                       >
                         <td className="px-5 py-4">
-                          <p className="font-bold text-slate-900">{capitalizeFirstLetter(order.dealer?.employee_name)}</p>
+                          <p className="font-bold text-slate-900">{formatName(order.dealer?.employee_name)}</p>
                           <p className="text-[10px] font-mono text-slate-400 mt-0.5">{order.order_number}</p>
                         </td>
                         <td className="px-5 py-4 text-slate-600 font-medium">

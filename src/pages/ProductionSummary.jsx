@@ -6,7 +6,7 @@ import {
   FiChevronRight, FiChevronDown, FiUsers, FiHash,
 } from "react-icons/fi";
 import { fetchProductionSummary } from "../api/orders";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 
 const TRACKED_STATUSES = ["PRODUCTION", "PACKED", "INVOICE", "SHIPPED"];
 
@@ -324,7 +324,7 @@ const ProductionSummary = () => {
                                       <div className="flex flex-wrap items-center justify-between gap-3 bg-white rounded-lg border border-blue-100/70 px-3.5 py-2.5 mt-2">
                                         <div className="min-w-0 flex-1">
                                           <p className="text-sm font-semibold text-slate-800 truncate">
-                                            {capitalizeFirstLetter(d.dealer_name) || d.dealer_id || "—"}
+                                            {formatName(d.dealer_name) || d.dealer_id || "—"}
                                           </p>
                                           <p className="text-[10px] text-slate-400 mt-0.5 truncate">
                                             {capitalizeFirstLetter(d.shop_name) || "—"}

@@ -8,7 +8,7 @@ import {
 } from "react-icons/fi";
 import { fetchOrders } from "../api/orders";
 import { fetchDealers } from "../api/dealer";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import CustomSelect from "../components/CustomSelect";
 
 /* ================================================================
@@ -488,7 +488,7 @@ const PurchaseAnalytics = () => {
                                 { value: "ALL", label: "All Dealers" },
                                 ...dealers.map((d) => ({
                                     value: d.employee_id,
-                                    label: `${capitalizeFirstLetter(d.employee_name)} — ${capitalizeFirstLetter(d.shop_name || "")}`,
+                                    label: `${formatName(d.employee_name)} — ${capitalizeFirstLetter(d.shop_name || "")}`,
                                 })),
                             ]}
                             searchable
@@ -807,7 +807,7 @@ const PurchaseAnalytics = () => {
                                         <tr key={o.order_number} className="hover:bg-slate-50/60 transition-colors">
                                             <td className="px-5 py-3.5 font-mono font-bold text-slate-900 text-xs">{o.order_number}</td>
                                             <td className="px-5 py-3.5">
-                                                <p className="font-bold text-slate-900 text-xs">{capitalizeFirstLetter(o.dealer?.employee_name)}</p>
+                                                <p className="font-bold text-slate-900 text-xs">{formatName(o.dealer?.employee_name)}</p>
                                                 <p className="text-[10px] text-slate-400">{capitalizeFirstLetter(o.dealer?.shop_name || "")}</p>
                                             </td>
                                             <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap">

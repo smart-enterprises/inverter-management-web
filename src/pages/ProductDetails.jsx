@@ -390,7 +390,7 @@ const ProductDetails = () => {
                         {/* Created By */}
                         <InfoCard icon={<FiUser size={15} />} label="Created By">
                             <div className="flex flex-col">
-                                <span>{userMap[created_by] || "Unknown"}</span>
+                                <span>{formatName(userMap[created_by] || created_by) || "Unknown"}</span>
                                 {created_by && (
                                     <span className="text-[10px] font-mono text-slate-400">{created_by}</span>
                                 )}

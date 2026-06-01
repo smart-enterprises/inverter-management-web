@@ -21,7 +21,7 @@ import { toastSuccess } from "../utils/toast";
 import { PAYMENT_METHOD_OPTIONS, PRIORITY_OPTIONS } from "../utils/status";
 import { canSelectSalesman, ROLES } from "../utils/roles";
 import {
-  capitalizeFirstLetter, INITIAL_FORM_STATE, INITIAL_ORDER_ITEM,
+  capitalizeFirstLetter, formatName, INITIAL_FORM_STATE, INITIAL_ORDER_ITEM,
 } from "../utils/constants";
 
 /* ================================================================
@@ -403,7 +403,8 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
       <div className="relative">
         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">₹</span>
         <StyledInput type="number" value={item.discount_price ?? ""}
-          onChange={(e) => { const v = e.target.value; onManualChange(index, v === "" ? "" : Number(v)); }}
+          onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"); onManualChange(index, v === "" ? "" : Number(v)); }}
+          onKeyDown={(e) => { if (["e","E","+","-"].includes(e.key)) e.preventDefault(); }}
           className="pl-6 text-right text-xs" placeholder="0" min={0} />
         {item.discount_price > 0 && (
           <button type="button" onClick={() => onManualChange(index, 0)}
@@ -1115,6 +1116,10 @@ const CreateOrder = () => {
   /* ---- Item field change ---- */
   const handleItemChange = async (index, field, value) => {
     const updatedItems = [...formData.order_details];
+    if (field === "qty_ordered") {
+      value = value.replace(/[^0-9]/g, "");
+      if (value !== "" ) value = Math.max(1, parseInt(value, 10));
+    }
     updatedItems[index][field] = value;
 
     if (field === "product_id") {
@@ -1201,8 +1206,9 @@ const CreateOrder = () => {
 
     try {
       const validItems = formData.order_details
-        .filter((i) => i.product_id && Number(i.qty_ordered) > 0 && i.delivery_date)
+        .filter((i) => i.product_id && i.delivery_date)
         .map((item) => {
+          const qty = parseInt(String(item.qty_ordered).replace(/[^0-9]/g, ""), 10);
           const p = {
             product_id: item.product_id,
             product_brand: item.product_brand,
@@ -1210,14 +1216,19 @@ const CreateOrder = () => {
             product_model: item.product_model,
             product_type: item.product_type,
             product_price: item.product_price,
-            qty_ordered: Number(item.qty_ordered),
+            qty_ordered: qty,
             delivery_date: item.delivery_date,
             is_product_scheme: item.is_product_scheme,
           };
-          if (item.dealer_discount_id) p.dealer_discount_id = item.dealer_discount_id;
-          else if (item.discount_price > 0) p.discount_price = Number(item.discount_price);
+          if (item.dealer_discount_id) {
+            p.dealer_discount_id = item.dealer_discount_id;
+          } else {
+            const disc = parseFloat(String(item.discount_price).replace(/[^0-9.]/g, ""));
+            if (!isNaN(disc) && disc > 0) p.discount_price = disc;
+          }
           return p;
-        });
+        })
+        .filter((i) => i.qty_ordered > 0);
 
       if (!validItems.length) {
         setError("Add at least one valid product");
@@ -1317,7 +1328,7 @@ const CreateOrder = () => {
                       onChange={handleChange}
                       options={salespersons.map((s) => ({
                         value: s.employee_id,
-                        label: capitalizeFirstLetter(s.employee_name),
+                        label: formatName(s.employee_name),
                       }))}
                       placeholder="Select Salesman"
                       searchable
@@ -1338,7 +1349,7 @@ const CreateOrder = () => {
                         value: d.employee_id,
                         label: d.town
                           ? `${capitalizeFirstLetter(d.shop_name)} — ${capitalizeFirstLetter(d.town)}`
-                          : capitalizeFirstLetter(d.shop_name) || capitalizeFirstLetter(d.employee_name),
+                          : capitalizeFirstLetter(d.shop_name) || formatName(d.employee_name),
                         subLabel: d.employee_phone ? String(d.employee_phone) : null,
                       }))}
                       placeholder={loadingDealers ? "Loading dealers…" : "Select Dealer"}

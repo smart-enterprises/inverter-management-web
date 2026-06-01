@@ -12,7 +12,7 @@ import { ROLES } from "../utils/roles";
 import { fetchOrders } from "../api/orders";
 import { fetchLowStockProducts, fetchProducts } from "../api/products";
 import { getAllBrands } from "../api/brands";
-import { capitalizeFirstLetter, ONGOING_STATUSES } from "../utils/constants";
+import { capitalizeFirstLetter, formatName, ONGOING_STATUSES } from "../utils/constants";
 import { useRouteAccess } from "../hooks/useRouteAccess";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -246,7 +246,7 @@ const RecentOrdersCard = ({ orders, loading, onViewAll, onRowClick, canNavigate 
             {orders.map(({ order }) => {
               if (!order) return null;
               const dealerName = order.dealer?.employee_name
-                ? capitalizeFirstLetter(order.dealer.employee_name)
+                ? formatName(order.dealer.employee_name)
                 : "Unknown Dealer";
               const pill = STATUS_PILL[order.status] ?? "bg-slate-50 text-slate-600 border-slate-200";
               return (
@@ -542,7 +542,7 @@ const Dashboard = () => {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Dashboard Overview</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Welcome{user?.employee_name ? `, ${capitalizeFirstLetter(user.employee_name)}` : ""}. Monitor orders, production and delivery from here. <span className="text-slate-400">· {formatMonthLabel()}</span>
+            Welcome{user?.employee_name ? `, ${formatName(user.employee_name)}` : ""}. Monitor orders, production and delivery from here. <span className="text-slate-400">· {formatMonthLabel()}</span>
           </p>
         </div>
         <button

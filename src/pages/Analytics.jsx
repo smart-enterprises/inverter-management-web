@@ -33,7 +33,7 @@ import {
     fetchSalesmanAchievement,
 } from "../api/analytics";
 import { fetchDealers } from "../api/dealer";
-import { capitalizeFirstLetter } from "../utils/constants";
+import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import CustomSelect from "../components/CustomSelect";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
@@ -693,7 +693,7 @@ const Analytics = () => {
                                 { value: "ALL", label: "All Dealers" },
                                 ...dealers.map((d) => ({
                                     value: d.employee_id,
-                                    label: `${capitalizeFirstLetter(d.employee_name || "")}${d.shop_name ? ` — ${capitalizeFirstLetter(d.shop_name)}` : ""}${d.district ? ` · ${capitalizeFirstLetter(d.district)}` : ""}`,
+                                    label: `${formatName(d.employee_name || "")}${d.shop_name ? ` — ${capitalizeFirstLetter(d.shop_name)}` : ""}${d.district ? ` · ${capitalizeFirstLetter(d.district)}` : ""}`,
                                 })),
                             ]}
                         />
@@ -1105,7 +1105,7 @@ const Analytics = () => {
                                                     </td>
                                                     <td className="px-3 py-3">
                                                         <p className="font-bold text-slate-900">
-                                                            {capitalizeFirstLetter(d.dealer_name || "—")}
+                                                            {formatName(d.dealer_name || "—")}
                                                         </p>
                                                         <p className="text-[10px] text-slate-400 font-medium mt-0.5">
                                                             {d.shop_name ? capitalizeFirstLetter(d.shop_name) : ""}
@@ -1179,7 +1179,7 @@ const Analytics = () => {
                                                 </td>
                                                 <td className="px-3 py-3">
                                                     <p className="font-bold text-slate-900">
-                                                        {capitalizeFirstLetter(s.salesman_name || "—")}
+                                                        {formatName(s.salesman_name || "—")}
                                                     </p>
                                                     {s.district && (
                                                         <p className="text-[10px] text-slate-400 font-medium mt-0.5">
