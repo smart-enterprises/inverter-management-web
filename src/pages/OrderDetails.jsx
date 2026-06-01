@@ -92,8 +92,7 @@ const getRoleOrderPermissions = (role) => {
         canCancelOrder: false,
         canAddPayment: false,
         canUpdateItemStatus: true,
-        canUpdateItemDelivery: true, // Date + note only (no qty)
-        hideDeliveredQty: true,
+        canUpdateItemDelivery: true,
         canCancelItem: false,
         allowedItemStatuses: ["PACKED", "SHIPPED", "DELIVERED"],
         allowedOrderStatuses: ["SHIPPED"],
