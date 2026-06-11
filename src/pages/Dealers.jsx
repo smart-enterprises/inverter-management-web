@@ -642,11 +642,9 @@ const Dealers = () => {
   const canCreateDealer = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role), [user?.role]);
   const canUpdateDealer = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role), [user?.role]);
   const canDeleteDealer = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role), [user?.role]);
-  const canViewPasswords = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(user?.role), [user?.role]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [includePassword, setIncludePassword] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [totalPages, setTotalPages] = useState(1);
   const [dealers, setDealers] = useState([]);
@@ -660,7 +658,6 @@ const Dealers = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [showPasswordMap, setShowPasswordMap] = useState({});
   const [error, setError] = useState("");
 
   const fetchDealersList = useCallback(async () => {
@@ -670,7 +667,6 @@ const Dealers = () => {
       const res = await fetchDealers({
         page: currentPage, limit: 10, role: "ROLE_DEALER",
         search: searchQuery,
-        includePassword: canViewPasswords && includePassword,
         includeDealers: true,
         status: selectedStatus !== "ALL" ? selectedStatus.toLowerCase() : undefined,
       });
@@ -687,11 +683,11 @@ const Dealers = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchQuery, selectedStatus, canViewPasswords, includePassword]);
+  }, [currentPage, searchQuery, selectedStatus]);
 
   const fetchUsersForCreatedByMap = useCallback(async () => {
     try {
-      const response = await fetchUsers({ page: 1, limit: 500, status: "active", includePassword: false, includeDealers: false });
+      const response = await fetchUsers({ page: 1, limit: 500, status: "active", includeDealers: false });
       if (response?.success && response?.data?.employees) {
         const map = {};
         response.data.employees.forEach((u) => { map[u.employee_id] = u.employee_name; });
@@ -802,17 +798,6 @@ const Dealers = () => {
                     options={["ALL", "Active", "Inactive", "Deleted"]}
                   />
                 </div>
-                {canViewPasswords && (
-                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={includePassword}
-                      onChange={(e) => setIncludePassword(e.target.checked)}
-                      className="accent-blue-600 w-3.5 h-3.5"
-                    />
-                    Show Passwords
-                  </label>
-                )}
               </div>
             </div>
           </div>
@@ -847,7 +832,6 @@ const Dealers = () => {
                     {[
                       "Dealer", "Shop", "Phone", "District", "Status",
                       "Created By", "Created Date",
-                      ...(includePassword && canViewPasswords ? ["Password"] : []),
                       "",
                     ].map((h, i, arr) => (
                       <th
@@ -904,24 +888,6 @@ const Dealers = () => {
                       <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
                         {dealer.created_at ? new Date(dealer.created_at).toLocaleDateString() : ""}
                       </td>
-                      {includePassword && canViewPasswords && (
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type={showPasswordMap[dealer.employee_id] ? "text" : "password"}
-                              value={dealer.password || ""}
-                              readOnly
-                              className="w-24 px-2 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50"
-                            />
-                            <button
-                              onClick={() => setShowPasswordMap((prev) => ({ ...prev, [dealer.employee_id]: !prev[dealer.employee_id] }))}
-                              className="text-slate-400 hover:text-slate-700 transition-colors"
-                            >
-                              {showPasswordMap[dealer.employee_id] ? <FiEyeOff size={13} /> : <FiEye size={13} />}
-                            </button>
-                          </div>
-                        </td>
-                      )}
                       <td className="px-5 py-4">
                         <DealerActions
                           dealerId={dealer.employee_id}

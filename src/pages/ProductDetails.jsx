@@ -12,6 +12,7 @@ import { fetchProductById } from "../api/products";
 import EditProductModal from "../components/EditProductModal.jsx";
 import StockUpdateModal from "../components/StockUpdateModal.jsx";
 import { fetchUsers } from "../api/user";
+import { formatName } from "../utils/constants";
 import StockHistoryModal from "../components/StockHistoryModal.jsx";
 import {
     canEditProduct,
@@ -150,7 +151,7 @@ const ProductDetails = () => {
         try {
             const res = await fetchUsers({
                 page: 1, limit: 500, status: "active",
-                includePassword: false, includeDealers: false,
+                includeDealers: false,
             });
             if (res?.success && Array.isArray(res?.data?.employees)) {
                 const map = res.data.employees.reduce((acc, u) => {

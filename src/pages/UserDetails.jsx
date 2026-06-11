@@ -294,7 +294,6 @@ const UserDetails = () => {
         page: 1,
         limit: 5000,
         status: "active",
-        includePassword: false,
         includeDealers: true,
       });
 

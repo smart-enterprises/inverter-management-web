@@ -7,7 +7,6 @@ export const fetchDealers = ({
   role = "ROLE_DEALER",
   search = "",
   status = "",
-  includePassword = false,
   includeDealers = true,
   scope = "ASSIGNED_ONLY",
   salesmanIds = [],
@@ -21,7 +20,6 @@ export const fetchDealers = ({
   if (search.trim()) query.set("search", search.trim());
   if (status) query.set("status", status);
 
-  query.set("includePassword", String(Boolean(includePassword)));
   query.set("includeDealers", String(Boolean(includeDealers)));
   query.set("scope", scope);
 

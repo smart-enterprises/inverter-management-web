@@ -1601,7 +1601,6 @@ const DealerDetails = () => {
         page: 1,
         limit: 5000,
         status: "active",
-        includePassword: false,
         includeDealers: true,
       });
       if (res?.success && res?.data?.employees) {
