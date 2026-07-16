@@ -1,7 +1,7 @@
 // users.jsx
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
-  FiSearch, FiEye, FiEyeOff, FiEdit2, FiChevronLeft, FiChevronRight,
+  FiSearch, FiEye, FiEdit2, FiChevronLeft, FiChevronRight,
   FiX, FiTrash2, FiPlus, FiUsers, FiFilter, FiLink,
 } from "react-icons/fi";
 import { TbBuildingStore } from "react-icons/tb";
@@ -11,7 +11,7 @@ import CustomSelect from "../components/CustomSelect";
 import { createUser, fetchUsers, fetchUserById, updateUser, deleteUser } from "../api/user";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES, getRoleLabel } from "../utils/roles";
-import { capitalizeFirstLetter, formatName } from "../utils/constants";
+import { formatName } from "../utils/constants";
 import { errorsToMap, validateEmployeeFields } from "../utils/validationUtils";
 import ManageDealersModal from "../components/ManageDealersModal";
 
@@ -24,14 +24,7 @@ const STATUS_OPTIONS = [
   { label: "Deleted", value: "deleted" },
 ];
 
-const PASSWORD_COLUMN_ROLES = new Set([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER]);
 const DEALER_MANAGER_ROLES = new Set([ROLES.SUPER_ADMIN, ROLES.ADMIN]);
-
-const PASSWORD_SHIELD_MAP = {
-  [ROLES.SUPER_ADMIN]: new Set(),
-  [ROLES.ADMIN]: new Set([ROLES.SUPER_ADMIN]),
-  [ROLES.MANAGER]: new Set([ROLES.SUPER_ADMIN, ROLES.ADMIN]),
-};
 
 // ─── RBAC ─────────────────────────────────────────────────────────────────────
 
@@ -84,16 +77,6 @@ const ROLE_CONFIG = {
 
 const getRoleColor = (role) =>
   ROLE_CONFIG[role]?.badge || "bg-slate-50 text-slate-600 border-slate-200";
-
-// ─── Password Visibility ──────────────────────────────────────────────────────
-
-const canViewPassword = (viewerRole, targetRole, viewerEmployeeId, targetEmployeeId) => {
-  const viewer = (viewerRole || "").toUpperCase();
-  const target = (targetRole || "").toUpperCase();
-  if (Object.prototype.hasOwnProperty.call(PASSWORD_SHIELD_MAP, viewer))
-    return !PASSWORD_SHIELD_MAP[viewer].has(target);
-  return viewerEmployeeId === targetEmployeeId;
-};
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
 
@@ -194,39 +177,6 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// ─── Password Cell ────────────────────────────────────────────────────────────
-
-const PasswordCell = ({ employee, isAllowed, isRevealed, onToggleReveal }) => {
-  if (!isAllowed)
-    return (
-      <span
-        className="text-slate-300 text-xs font-medium select-none"
-        title="Access restricted"
-        aria-label="Password access restricted"
-      >
-        ••••••••
-      </span>
-    );
-  const password = employee.password;
-  if (!password) return <span className="text-slate-300 text-xs">—</span>;
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-xs font-mono text-slate-700 max-w-[120px] truncate">
-        {isRevealed ? password : "••••••••"}
-      </span>
-      <button
-        type="button"
-        onClick={() => onToggleReveal(employee.employee_id)}
-        className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all flex-shrink-0"
-        title={isRevealed ? "Hide password" : "Show password"}
-        aria-label={isRevealed ? "Hide password" : "Show password"}
-      >
-        {isRevealed ? <FiEyeOff size={12} /> : <FiEye size={12} />}
-      </button>
-    </div>
-  );
-};
-
 // ─── User Actions ─────────────────────────────────────────────────────────────
 
 const UserActions = React.memo(({ user: u, onView, onEdit, onDelete, onManageDealers, canManageDealers, editFetching, deleteFetching }) => {
@@ -304,7 +254,6 @@ const User = () => {
   const { state: routeState } = useLocation();
 
   const viewerRole = (user?.role || "").toUpperCase();
-  const viewerEmployeeId = user?.employee_id;
 
   // ── RBAC ──────────────────────────────────────────────────────────────────
 
@@ -314,7 +263,6 @@ const User = () => {
 
   const canCreateUser = useMemo(() => [ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(viewerRole), [viewerRole]);
   const canManageDealers = useMemo(() => DEALER_MANAGER_ROLES.has(viewerRole), [viewerRole]);
-  const showPasswordColumn = useMemo(() => PASSWORD_COLUMN_ROLES.has(viewerRole), [viewerRole]);
 
   // ── State ─────────────────────────────────────────────────────────────────
 
@@ -323,7 +271,6 @@ const User = () => {
   const [selectedRole, setSelectedRole] = useState(routeState?.role || "ALL");
   const [status, setStatus] = useState(routeState?.status || "ALL");
   const [search, setSearch] = useState(routeState?.search || "");
-  const [includePassword, setIncludePassword] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -334,7 +281,6 @@ const User = () => {
   const [originalData, setOriginalData] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({});
-  const [revealedPasswords, setRevealedPasswords] = useState(new Set());
 
   /** Salesman row currently targeted by the Manage Dealers modal (null = closed) */
   const [dealersSalesman, setDealersSalesman] = useState(null);
@@ -358,7 +304,6 @@ const User = () => {
         ...(selectedRole !== "ALL" && { role: selectedRole }),
         ...(search.trim() && { search: search.trim() }),
         ...(status !== "ALL" && { status: status.toLowerCase() }),
-        includePassword: showPasswordColumn && includePassword,
         includeDealers: false,
       });
 
@@ -367,7 +312,6 @@ const User = () => {
       }
       const { employees = [], pages = 1 } = usersResponse.data || {};
 
-      setRevealedPasswords(new Set());
       setUsers(employees);
       setTotalPages(pages);
 
@@ -375,7 +319,6 @@ const User = () => {
         page: 1,
         limit: 5000,
         status: "active",
-        includePassword: false,
         includeDealers: true,
       });
 
@@ -392,7 +335,7 @@ const User = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedRole, search, status, includePassword, showPasswordColumn, limit]);
+  }, [page, selectedRole, search, status, limit]);
 
   useEffect(() => {
     loadUsers();
@@ -421,17 +364,6 @@ const User = () => {
     setEditingUser(null);
     setFormData({});
     setOriginalData(null);
-  }, []);
-
-  // ── Password Reveal Toggle ────────────────────────────────────────────────
-
-  const handleToggleReveal = useCallback((employeeId) => {
-    setRevealedPasswords((prev) => {
-      const next = new Set(prev);
-      if (next.has(employeeId)) next.delete(employeeId);
-      else next.add(employeeId);
-      return next;
-    });
   }, []);
 
   // ── CRUD Handlers ─────────────────────────────────────────────────────────
@@ -566,16 +498,8 @@ const User = () => {
   // ── Table Headers ─────────────────────────────────────────────────────────
 
   const tableHeaders = useMemo(
-    () => [
-      "User",
-      "Email",
-      "Role",
-      "Status",
-      "Created",
-      ...(includePassword && showPasswordColumn ? ["Password"] : []),
-      "",
-    ],
-    [includePassword, showPasswordColumn]
+    () => ["User", "Email", "Role", "Status", "Created", ""],
+    []
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -666,17 +590,6 @@ const User = () => {
                     options={STATUS_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
                   />
                 </div>
-                {showPasswordColumn && (
-                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={includePassword}
-                      onChange={(e) => setIncludePassword(e.target.checked)}
-                      className="accent-blue-600 w-3.5 h-3.5 rounded"
-                    />
-                    Show Passwords
-                  </label>
-                )}
               </div>
             </div>
           </div>
@@ -722,9 +635,6 @@ const User = () => {
                   </tr>
                 ) : (
                   users.map((u) => {
-                    const isPasswordAllowed = canViewPassword(
-                      viewerRole, u.role, viewerEmployeeId, u.employee_id
-                    );
                     const isSalesman = (u.role || "").toUpperCase() === ROLES.SALESMAN;
                     const dealerCount = isSalesman
                       ? (Array.isArray(u.dealers) ? u.dealers.length : u.dealer_count ?? undefined)
@@ -801,18 +711,6 @@ const User = () => {
                         <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
                           {new Date(u.created_at).toLocaleDateString()}
                         </td>
-
-                        {/* ── Password (optional) ── */}
-                        {includePassword && showPasswordColumn && (
-                          <td className="px-5 py-4">
-                            <PasswordCell
-                              employee={u}
-                              isAllowed={isPasswordAllowed}
-                              isRevealed={revealedPasswords.has(u.employee_id)}
-                              onToggleReveal={handleToggleReveal}
-                            />
-                          </td>
-                        )}
 
                         {/* ── Actions ── */}
                         <td className="px-5 py-4">

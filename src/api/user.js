@@ -22,11 +22,10 @@ export const fetchUsers = async ({
   role,
   search,
   status,
-  includePassword = false,
   includeDealers = false,
   scope = "ALL",
 } = {}) => {
-  const query = buildQuery({ page, limit, role, search, status, includePassword, includeDealers, scope });
+  const query = buildQuery({ page, limit, role, search, status, includeDealers, scope });
 
   return apiRequest(`/employees?${query}`, {
     method: "GET",
@@ -98,11 +97,3 @@ export const resetOwnPassword = async (payload) =>
     body: JSON.stringify(payload),
   });
 
-export const fetchEmployeesWithPassword = async (page = 1, limit = 10) => {
-
-  const query = buildQuery({ page, limit });
-
-  return apiRequest(`/employees/get/employees-password?${query}`, {
-    method: "GET",
-  });
-};

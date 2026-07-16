@@ -1488,7 +1488,7 @@ const OrderDetails = () => {
 
   const fetchUsersForMap = useCallback(async () => {
     try {
-      const res = await fetchUsers({ page: 1, limit: 500, status: "active", includePassword: false, includeDealers: false });
+      const res = await fetchUsers({ page: 1, limit: 500, status: "active", includeDealers: false });
       if (res?.success && Array.isArray(res?.data?.employees)) {
         setUserMap(res.data.employees.reduce((acc, u) => {
           if (u?.employee_id) acc[u.employee_id] = formatName(u.employee_name);
