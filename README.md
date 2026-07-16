@@ -2,7 +2,7 @@
 
 Internal web app for Smart Enterprises' B2B inverter business. Frontend for the [API](https://github.com/smart-enterprises/inverter-management-api). Built with React + Vite + Tailwind.
 
-Production: <https://erp.smartenterprises.online>
+Production: <https://app.warriorpower.in>
 
 ## What the project is
 
