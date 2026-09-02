@@ -1,6 +1,8 @@
 // ChangePasswordModal.jsx — Integrated into Navbar
 import React, { useState } from "react";
-import { FiLock, FiEye, FiEyeOff, FiX, FiCheck, FiAlertCircle, FiShield } from "react-icons/fi";
+import { MdLockOutline, MdVisibility, MdVisibilityOff, MdClose, MdCheck, MdErrorOutline, MdShield } from "react-icons/md";
+import { Button, IconButton, Banner } from "./m3";
+import { T } from "./m3/tokens";
 import { resetOwnPassword } from "../api/user";
 
 /* ── Strength meter ───────────────────────────────────────── */
@@ -12,13 +14,15 @@ const getStrength = (pw) => {
     if (/[a-z]/.test(pw)) score++;
     if (/\d/.test(pw)) score++;
     if (/[^A-Za-z0-9]/.test(pw)) score++;
+    /* Strength is also spelled out in words beside the bar, so the
+       colour is reinforcement rather than the only signal. */
     const map = [
         { label: "", color: "" },
-        { label: "Very Weak", color: "#ef4444" },
-        { label: "Weak", color: "#f97316" },
-        { label: "Fair", color: "#eab308" },
-        { label: "Strong", color: "#22c55e" },
-        { label: "Very Strong", color: "#10b981" },
+        { label: "Very Weak", color: "var(--md-sys-color-error)" },
+        { label: "Weak", color: "var(--md-sys-color-error)" },
+        { label: "Fair", color: "var(--md-sys-color-warning)" },
+        { label: "Strong", color: "var(--md-sys-color-success)" },
+        { label: "Very Strong", color: "var(--md-sys-color-success)" },
     ];
     return { score, ...map[score] };
 };
@@ -28,12 +32,12 @@ const PwInput = ({ label, value, onChange, placeholder, name, error }) => {
     const [show, setShow] = useState(false);
     return (
         <div className="space-y-1.5">
-            <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                {label} <span className="text-rose-400">*</span>
+            <label className="block m3-label-medium" style={{ color: T.onSurfaceVariant }}>
+                {label} <span style={{ color: T.error }}>*</span>
             </label>
             <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    <FiLock size={13} />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.onSurfaceVariant }}>
+                    <MdLockOutline size={18} />
                 </div>
                 <input
                     type={show ? "text" : "password"}
@@ -42,22 +46,27 @@ const PwInput = ({ label, value, onChange, placeholder, name, error }) => {
                     onChange={onChange}
                     placeholder={placeholder}
                     autoComplete="new-password"
-                    className={`w-full pl-9 pr-10 py-2.5 border rounded-xl text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 transition-all ${error
-                        ? "border-rose-300 focus:ring-rose-100 focus:border-rose-400"
-                        : "border-slate-200 focus:ring-blue-100 focus:border-blue-400 hover:border-slate-300"
-                        }`}
+                    className="w-full pl-11 pr-11 h-12 m3-body-medium focus:outline-none"
+                    style={{
+                        border: `1px solid ${error ? T.error : T.outline}`,
+                        borderRadius: T.cornerExtraSmall,
+                        backgroundColor: T.surface,
+                        color: T.onSurface,
+                    }}
                 />
                 <button
                     type="button"
                     onClick={() => setShow((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    aria-label={show ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    style={{ color: T.onSurfaceVariant }}
                 >
-                    {show ? <FiEyeOff size={13} /> : <FiEye size={13} />}
+                    {show ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
                 </button>
             </div>
             {error && (
-                <p className="flex items-center gap-1 text-[11px] text-rose-500 font-semibold">
-                    <FiAlertCircle size={10} /> {error}
+                <p className="flex items-center gap-1 m3-body-small" style={{ color: T.error }}>
+                    <MdErrorOutline size={14} /> {error}
                 </p>
             )}
         </div>
@@ -140,57 +149,74 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
         <>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50"
+                className="fixed inset-0 z-50"
+                style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
                 onClick={handleClose}
             />
 
             {/* Modal */}
             <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
                 <div
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden"
+                    className="w-full max-w-md overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
-                    style={{ animation: "nb-dropdown-in 160ms cubic-bezier(0.4,0,0.2,1) forwards" }}
+                    style={{
+                        backgroundColor: "var(--md-sys-color-surface-container-high)",
+                        borderRadius: T.cornerExtraLarge,
+                        boxShadow: T.elevation3,
+                        animation: "nb-dropdown-in 160ms cubic-bezier(0.2,0,0,1) forwards",
+                    }}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-blue-50/60 to-white">
+                    <div
+                        className="flex items-center justify-between px-6 py-5"
+                        style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+                    >
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-100 border border-blue-200 text-blue-600">
-                                <FiShield size={16} />
+                            <div
+                                className="w-10 h-10 flex items-center justify-center"
+                                style={{
+                                    borderRadius: T.cornerFull,
+                                    backgroundColor: T.primaryContainer,
+                                    color: T.onPrimaryContainer,
+                                }}
+                            >
+                                <MdShield size={20} />
                             </div>
                             <div>
-                                <h2 className="text-sm font-bold text-slate-900">Change Password</h2>
-                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+                                <h2 className="m3-title-medium" style={{ color: T.onSurface }}>Change Password</h2>
+                                <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>
                                     Update your account security
                                 </p>
                             </div>
                         </div>
-                        <button
-                            onClick={handleClose}
-                            className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
-                        >
-                            <FiX size={16} />
-                        </button>
+                        <IconButton icon={MdClose} onClick={handleClose} aria-label="Close dialog" />
                     </div>
 
                     {/* Success state */}
                     {success ? (
                         <div className="px-6 py-12 flex flex-col items-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center">
-                                <FiCheck size={28} className="text-emerald-600" />
+                            <div
+                                className="w-16 h-16 flex items-center justify-center"
+                                style={{
+                                    borderRadius: T.cornerFull,
+                                    backgroundColor: T.successContainer,
+                                    color: T.onSuccessContainer,
+                                }}
+                            >
+                                <MdCheck size={32} />
                             </div>
                             <div className="text-center">
-                                <p className="text-base font-bold text-slate-900">Password Updated!</p>
-                                <p className="text-sm text-slate-400 mt-1">Your password has been changed successfully.</p>
+                                <p className="m3-title-medium" style={{ color: T.onSurface }}>Password Updated</p>
+                                <p className="m3-body-medium mt-1" style={{ color: T.onSurfaceVariant }}>
+                                    Your password has been changed successfully.
+                                </p>
                             </div>
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
                             {/* API Error */}
                             {apiError && (
-                                <div className="flex items-center gap-2.5 px-4 py-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-semibold">
-                                    <FiAlertCircle size={14} className="flex-shrink-0" />
-                                    {apiError}
-                                </div>
+                                <Banner tone="error">{apiError}</Banner>
                             )}
 
                             <PwInput
@@ -247,8 +273,11 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                             />
 
                             {/* Requirements hint */}
-                            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1.5">
+                            <div
+                                className="p-3 space-y-1"
+                                style={{ backgroundColor: T.surfaceContainerLow, borderRadius: T.cornerMedium }}
+                            >
+                                <p className="m3-label-medium mb-1.5" style={{ color: T.onSurfaceVariant }}>
                                     Requirements
                                 </p>
                                 {[
@@ -260,14 +289,18 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                                 ].map(([text, met]) => (
                                     <div key={text} className="flex items-center gap-2">
                                         <div
-                                            className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${met ? "bg-emerald-500" : "bg-slate-200"
-                                                }`}
+                                            className="w-4 h-4 flex items-center justify-center flex-shrink-0 transition-all"
+                                            style={{
+                                                borderRadius: T.cornerFull,
+                                                backgroundColor: met ? T.success : T.surfaceContainerHighest,
+                                                color: met ? T.onPrimary : T.onSurfaceVariant,
+                                            }}
                                         >
-                                            {met && <FiCheck size={8} className="text-white" />}
+                                            {met && <MdCheck size={11} />}
                                         </div>
                                         <span
-                                            className={`text-xs font-medium transition-colors ${met ? "text-emerald-700" : "text-slate-400"
-                                                }`}
+                                            className="m3-body-small transition-colors"
+                                            style={{ color: met ? T.success : T.onSurfaceVariant }}
                                         >
                                             {text}
                                         </span>
@@ -276,31 +309,23 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
                             </div>
 
                             {/* Actions */}
-                            <div className="flex gap-3 pt-1">
-                                <button
-                                    type="button"
-                                    onClick={handleClose}
-                                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all"
-                                >
+                            <div className="flex justify-end gap-2 pt-1">
+                                <Button variant="text" type="button" onClick={handleClose}>
                                     Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-blue-200"
-                                >
+                                </Button>
+                                <Button variant="filled" type="submit" disabled={loading}>
                                     {loading ? (
                                         <>
-                                            <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                            <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                                             Updating…
                                         </>
                                     ) : (
                                         <>
-                                            <FiShield size={13} />
+                                            <MdShield size={18} />
                                             Update Password
                                         </>
                                     )}
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     )}

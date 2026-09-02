@@ -1,6 +1,8 @@
 // edit-product-modal.jsx
 import React, { useEffect, useState, useCallback, useRef, memo } from "react";
-import { FiX, FiBox, FiEdit3, FiTag, FiAlertCircle, FiDollarSign, FiInfo } from "react-icons/fi";
+import { MdClose, MdInventory2, MdEdit, MdSell, MdErrorOutline, MdCurrencyRupee, MdInfoOutline } from "react-icons/md";
+import { Button, IconButton, Banner } from "./m3";
+import { T } from "./m3/tokens";
 import Swal from "sweetalert2";
 
 import CustomSelect from "../components/CustomSelect";
@@ -75,31 +77,37 @@ const validate = (data, { priceChanged, costChanged }) => {
 const FieldLabel = memo(({ children, required, htmlFor }) => (
     <label
         htmlFor={htmlFor}
-        className="block text-xs font-semibold text-slate-500 mb-1.5 tracking-wide uppercase"
+        className="block m3-label-medium mb-1.5"
+        style={{ color: "var(--md-sys-color-on-surface-variant)" }}
     >
         {children}
         {required && (
-            <span className="text-rose-400 ml-0.5" aria-hidden="true">
+            <span className="ml-0.5" style={{ color: "var(--md-sys-color-error)" }} aria-hidden="true">
                 *
             </span>
         )}
     </label>
 ));
 
-const inputBase =
-    "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 " +
-    "placeholder-slate-300 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 " +
-    "transition-all duration-150 disabled:opacity-40 disabled:bg-slate-50 disabled:cursor-not-allowed";
+const inputBase = "w-full px-3.5 h-11 m3-body-medium focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed";
+
+/* Applied alongside inputBase so the field colours come from the tokens. */
+const inputStyle = {
+    border: `1px solid ${T.outline}`,
+    borderRadius: T.cornerExtraSmall,
+    backgroundColor: T.surface,
+    color: T.onSurface,
+};
 
 const TextInput = memo(({ id, label, required, hint, ...props }) => (
     <div>
         <FieldLabel required={required} htmlFor={id}>
             {label}
         </FieldLabel>
-        <input id={id} className={inputBase} {...props} />
+        <input id={id} className={inputBase} style={inputStyle} {...props} />
         {hint && (
-            <p className="mt-1.5 text-xs text-slate-400 flex items-center gap-1">
-                <FiInfo size={11} aria-hidden />
+            <p className="mt-1.5 m3-body-small flex items-center gap-1" style={{ color: T.onSurfaceVariant }}>
+                <MdInfoOutline size={14} aria-hidden />
                 {hint}
             </p>
         )}
@@ -113,20 +121,21 @@ const NumberInput = memo(({ id, label, required, hint, prefix, ...props }) => (
         </FieldLabel>
         <div className="relative">
             {prefix && (
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none select-none">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 m3-body-medium pointer-events-none select-none" style={{ color: T.onSurfaceVariant }}>
                     {prefix}
                 </span>
             )}
             <input
                 id={id}
                 type="number"
-                className={cls(inputBase, prefix && "pl-7")}
+                className={cls(inputBase, prefix && "pl-8")}
+                style={inputStyle}
                 {...props}
             />
         </div>
         {hint && (
-            <p className="mt-1.5 text-xs text-slate-400 flex items-center gap-1">
-                <FiInfo size={11} aria-hidden />
+            <p className="mt-1.5 m3-body-small flex items-center gap-1" style={{ color: T.onSurfaceVariant }}>
+                <MdInfoOutline size={14} aria-hidden />
                 {hint}
             </p>
         )}
@@ -145,8 +154,8 @@ const TextareaInput = memo(({ id, label, required, hint, rows = 2, ...props }) =
             {...props}
         />
         {hint && (
-            <p className="mt-1.5 text-xs text-slate-400 flex items-center gap-1">
-                <FiInfo size={11} aria-hidden />
+            <p className="mt-1.5 m3-body-small flex items-center gap-1" style={{ color: T.onSurfaceVariant }}>
+                <MdInfoOutline size={14} aria-hidden />
                 {hint}
             </p>
         )}
@@ -165,8 +174,8 @@ const ComboInput = memo(({ id, label, required, listId, options, hint, ...props 
             ))}
         </datalist>
         {hint && (
-            <p className="mt-1.5 text-xs text-slate-400 flex items-center gap-1">
-                <FiInfo size={11} aria-hidden />
+            <p className="mt-1.5 m3-body-small flex items-center gap-1" style={{ color: T.onSurfaceVariant }}>
+                <MdInfoOutline size={14} aria-hidden />
                 {hint}
             </p>
         )}
@@ -178,8 +187,8 @@ const SelectField = memo(({ label, required, hint, ...props }) => (
         <FieldLabel required={required}>{label}</FieldLabel>
         <CustomSelect {...props} />
         {hint && (
-            <p className="mt-1.5 text-xs text-slate-400 flex items-center gap-1">
-                <FiInfo size={11} aria-hidden />
+            <p className="mt-1.5 m3-body-small flex items-center gap-1" style={{ color: T.onSurfaceVariant }}>
+                <MdInfoOutline size={14} aria-hidden />
                 {hint}
             </p>
         )}
@@ -188,53 +197,46 @@ const SelectField = memo(({ label, required, hint, ...props }) => (
 
 const AlertBanner = memo(({ type, message }) => {
     if (!message) return null;
-    const config = {
-        error: {
-            wrapper: "bg-rose-50 border-rose-200 text-rose-700",
-            icon: "text-rose-400",
-        },
-        success: {
-            wrapper: "bg-emerald-50 border-emerald-200 text-emerald-700",
-            icon: "text-emerald-400",
-        },
-        info: {
-            wrapper: "bg-blue-50 border-blue-200 text-blue-700",
-            icon: "text-blue-400",
-        },
-    };
-    const { wrapper, icon } = config[type] ?? config.info;
-    return (
-        <div
-            role="alert"
-            className={cls(
-                "flex items-start gap-2.5 px-4 py-3 rounded-xl border text-sm",
-                wrapper
-            )}
-        >
-            <FiAlertCircle size={15} className={cls("flex-shrink-0 mt-0.5", icon)} aria-hidden />
-            <span>{message}</span>
-        </div>
-    );
+    /* "info" has no M3 status role of its own; it borrows the success
+       container, which is the calm end of the scale. */
+    const tone = type === "error" ? "error" : type === "success" ? "success" : "success";
+    return <Banner tone={tone}>{message}</Banner>;
 });
 
-const SectionHeader = memo(({ icon: Icon, title, accentClass = "text-blue-600" }) => (
+const SectionHeader = memo(({ icon: Icon, title }) => (
     <div className="flex items-center gap-2 mb-4">
         {Icon && (
-            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-50 border border-slate-100">
-                <Icon size={13} className={accentClass} aria-hidden />
+            <div
+                className="flex items-center justify-center w-8 h-8"
+                style={{
+                    borderRadius: T.cornerFull,
+                    backgroundColor: T.primaryContainer,
+                    color: T.onPrimaryContainer,
+                }}
+            >
+                <Icon size={16} aria-hidden />
             </div>
         )}
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">{title}</h3>
+        <h3 className="m3-title-small" style={{ color: T.onSurface }}>{title}</h3>
     </div>
 ));
 
-const Divider = () => <div className="border-t border-slate-100 my-6" />;
+const Divider = () => (
+    <div className="my-6" style={{ borderTop: `1px solid ${T.outlineVariant}` }} />
+);
 
 const ChangeReasonBanner = memo(({ field, originalValue, currentValue, visible }) => {
     if (!visible) return null;
     return (
-        <div className="col-span-full flex items-start gap-2 px-3.5 py-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700">
-            <FiAlertCircle size={13} className="flex-shrink-0 mt-0.5 text-amber-500" aria-hidden />
+        <div
+            className="col-span-full flex items-start gap-2 px-3.5 py-3 m3-body-small"
+            style={{
+                backgroundColor: T.warningContainer,
+                color: T.onWarningContainer,
+                borderRadius: T.cornerMedium,
+            }}
+        >
+            <MdErrorOutline size={16} className="flex-shrink-0 mt-0.5" aria-hidden />
             <span>
                 {field} changed from{" "}
                 <strong className="font-semibold">₹{originalValue}</strong> to{" "}
@@ -475,7 +477,8 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
         <>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 animate-in fade-in duration-200"
+                className="fixed inset-0 z-40 animate-in fade-in duration-200"
+                style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
                 onClick={onClose}
                 aria-hidden="true"
             />
@@ -488,36 +491,40 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                 aria-labelledby="edit-product-title"
             >
                 <div
-                    className="bg-white rounded-2xl shadow-2xl shadow-slate-200/80 w-full max-w-2xl border border-slate-100 flex flex-col max-h-[90vh]"
+                    className="w-full max-w-2xl flex flex-col max-h-[90vh]"
+                    style={{
+                        backgroundColor: "var(--md-sys-color-surface-container-high)",
+                        borderRadius: T.cornerExtraLarge,
+                        boxShadow: T.elevation3,
+                    }}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* ── Header ── */}
-                    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0">
+                    <div
+                        className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+                        style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+                    >
                         <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-200">
-                                <FiEdit3 size={16} aria-hidden />
+                            <div
+                                className="flex items-center justify-center w-10 h-10"
+                                style={{
+                                    borderRadius: T.cornerFull,
+                                    backgroundColor: T.secondaryContainer,
+                                    color: T.onSecondaryContainer,
+                                }}
+                            >
+                                <MdEdit size={20} aria-hidden />
                             </div>
                             <div>
-                                <h2
-                                    id="edit-product-title"
-                                    className="text-base font-bold text-slate-900 leading-tight"
-                                >
+                                <h2 id="edit-product-title" className="m3-title-medium" style={{ color: T.onSurface }}>
                                     Edit Product
                                 </h2>
-                                <p className="text-xs text-slate-400 mt-0.5">
+                                <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>
                                     Update product details below
                                 </p>
                             </div>
                         </div>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            aria-label="Close modal"
-                            disabled={loading}
-                            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all duration-150 disabled:opacity-40"
-                        >
-                            <FiX size={18} />
-                        </button>
+                        <IconButton icon={MdClose} onClick={onClose} aria-label="Close modal" disabled={loading} className="disabled:opacity-40" />
                     </div>
 
                     {/* ── Form ── */}
@@ -532,7 +539,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
 
                             {/* ── Product Information ── */}
                             <section aria-labelledby="section-product-info">
-                                <SectionHeader icon={FiBox} title="Product Information" />
+                                <SectionHeader icon={MdInventory2} title="Product Information" />
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <SelectField
@@ -598,7 +605,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
 
                             {/* ── Pricing ── */}
                             <section aria-labelledby="section-pricing">
-                                <SectionHeader icon={FiTag} title="Pricing" />
+                                <SectionHeader icon={MdSell} title="Pricing" />
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {/* Selling Price */}
@@ -679,7 +686,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
 
                             {/* ── Status ── */}
                             <section aria-labelledby="section-status">
-                                <SectionHeader icon={FiBox} title="Status" />
+                                <SectionHeader icon={MdInventory2} title="Status" />
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <SelectField
@@ -710,55 +717,28 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                         </div>
 
                         {/* ── Footer ── */}
-                        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/60 rounded-b-2xl flex-shrink-0">
-                            <p className="text-xs text-slate-400">
-                                <span className="text-rose-400 mr-0.5">*</span>
+                        <div
+                            className="flex items-center justify-between gap-3 px-6 py-4 flex-shrink-0"
+                            style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+                        >
+                            <p className="m3-body-small" style={{ color: T.onSurfaceVariant }}>
+                                <span className="mr-0.5" style={{ color: T.error }}>*</span>
                                 Required fields
                             </p>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    disabled={loading}
-                                    className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-all duration-150 disabled:opacity-40"
-                                >
+                            <div className="flex items-center gap-2">
+                                <Button variant="text" type="button" onClick={onClose} disabled={loading}>
                                     Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    form="edit-product-form"
-                                    disabled={loading}
-                                    className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-sm shadow-blue-200 flex items-center gap-2"
-                                >
+                                </Button>
+                                <Button variant="filled" type="submit" form="edit-product-form" disabled={loading}>
                                     {loading ? (
                                         <>
-                                            <svg
-                                                className="animate-spin h-4 w-4 text-white"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                aria-hidden="true"
-                                            >
-                                                <circle
-                                                    className="opacity-25"
-                                                    cx="12"
-                                                    cy="12"
-                                                    r="10"
-                                                    stroke="currentColor"
-                                                    strokeWidth="4"
-                                                />
-                                                <path
-                                                    className="opacity-75"
-                                                    fill="currentColor"
-                                                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                                />
-                                            </svg>
+                                            <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" aria-hidden="true" />
                                             Updating…
                                         </>
                                     ) : (
                                         "Update Product"
                                     )}
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </form>

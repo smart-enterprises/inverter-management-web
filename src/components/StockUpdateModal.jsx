@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FiX, FiPackage, FiZap } from "react-icons/fi";
+import { MdClose, MdInventory, MdBolt } from "react-icons/md";
+import { Button, IconButton, Banner } from "./m3";
+import { T } from "./m3/tokens";
 import Swal from "sweetalert2";
 import { updateProductStock } from "../api/products";
 import { useAuth } from "../hooks/useAuth";
@@ -162,55 +164,66 @@ const StockUpdateModal = ({
         <>
             {/* BACKDROP */}
             <div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+                className="fixed inset-0 z-40"
+                style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
                 onClick={onClose}
             />
 
             {/* MODAL */}
             <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
                 <div
-                    className="bg-white rounded-xl shadow-sm w-full max-w-lg"
+                    className="w-full max-w-lg"
+                    style={{
+                        backgroundColor: "var(--md-sys-color-surface-container-high)",
+                        borderRadius: T.cornerExtraLarge,
+                        boxShadow: T.elevation3,
+                    }}
                     onClick={(e) => e.stopPropagation()}
                 >
 
                     {/* HEADER */}
-                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                    <div
+                        className="flex items-center justify-between p-6"
+                        style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+                    >
                         <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-green-50">
-                                <FiPackage className="text-green-600" size={18} />
+                            <div
+                                className="flex items-center justify-center w-10 h-10"
+                                style={{
+                                    borderRadius: T.cornerFull,
+                                    backgroundColor: T.successContainer,
+                                    color: T.onSuccessContainer,
+                                }}
+                            >
+                                <MdInventory size={20} />
                             </div>
 
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900">
+                                <h2 className="m3-title-medium" style={{ color: T.onSurface }}>
                                     Update Stock
                                 </h2>
-                                <p className="text-sm text-gray-500 mt-0.5">
+                                <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>
                                     {productName}
                                 </p>
                             </div>
                         </div>
 
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-gray-50 rounded-lg transition"
-                        >
-                            <FiX className="text-gray-500" size={20} />
-                        </button>
+                        <IconButton icon={MdClose} onClick={onClose} aria-label="Close dialog" />
                     </div>
 
                     {/* FORM */}
                     <form onSubmit={handleSubmit} className="p-6">
 
                         {error && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
-                                {error}
+                            <div className="mb-4">
+                                <Banner tone="error">{error}</Banner>
                             </div>
                         )}
 
                         {/* 🔥 BATTERY WARNING */}
                         {isBatteryCategory(category) && (
-                            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold mb-3">
-                                <FiZap size={12} /> Battery products only use packed stock
+                            <div className="mb-3">
+                                <Banner tone="warning">Battery products only use packed stock</Banner>
                             </div>
                         )}
 
@@ -220,7 +233,7 @@ const StockUpdateModal = ({
                             {!isBatteryCategory(category) && canUnpacked && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label className="block m3-label-large mb-1.5" style={{ color: T.onSurfaceVariant }}>
                                             Unpacked Stock Quantity
                                         </label>
                                         <input
@@ -229,13 +242,19 @@ const StockUpdateModal = ({
                                             value={formData.unpackedStock}
                                             onChange={handleChange}
                                             min="0"
-                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                                            className="w-full px-4 h-12 m3-body-medium focus:outline-none"
+                                            style={{
+                                                border: `1px solid ${T.outline}`,
+                                                borderRadius: T.cornerExtraSmall,
+                                                backgroundColor: T.surface,
+                                                color: T.onSurface,
+                                            }}
                                         />
                                     </div>
 
                                     {formData.unpackedStock > 0 && (
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            <label className="block m3-label-large mb-1.5" style={{ color: T.onSurfaceVariant }}>
                                                 Unpacked Notes (Optional)
                                             </label>
                                             <input
@@ -244,7 +263,13 @@ const StockUpdateModal = ({
                                                 value={formData.unpackedNotes}
                                                 onChange={handleChange}
                                                 placeholder="e.g. New stock addition"
-                                                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                                                className="w-full px-4 h-12 m3-body-medium focus:outline-none"
+                                            style={{
+                                                border: `1px solid ${T.outline}`,
+                                                borderRadius: T.cornerExtraSmall,
+                                                backgroundColor: T.surface,
+                                                color: T.onSurface,
+                                            }}
                                             />
                                         </div>
                                     )}
@@ -255,7 +280,7 @@ const StockUpdateModal = ({
                             {canPacked && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <label className="block m3-label-large mb-1.5" style={{ color: T.onSurfaceVariant }}>
                                             Packed Stock Quantity
                                         </label>
                                         <input
@@ -264,13 +289,19 @@ const StockUpdateModal = ({
                                             value={formData.packedStock}
                                             onChange={handleChange}
                                             min="0"
-                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                                            className="w-full px-4 h-12 m3-body-medium focus:outline-none"
+                                            style={{
+                                                border: `1px solid ${T.outline}`,
+                                                borderRadius: T.cornerExtraSmall,
+                                                backgroundColor: T.surface,
+                                                color: T.onSurface,
+                                            }}
                                         />
                                     </div>
 
                                     {formData.packedStock > 0 && (
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            <label className="block m3-label-large mb-1.5" style={{ color: T.onSurfaceVariant }}>
                                                 Packed Notes (Optional)
                                             </label>
                                             <input
@@ -279,7 +310,13 @@ const StockUpdateModal = ({
                                                 value={formData.packedNotes}
                                                 onChange={handleChange}
                                                 placeholder="e.g. New stock addition"
-                                                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-gray-300 focus:ring-1 focus:ring-gray-300 text-sm"
+                                                className="w-full px-4 h-12 m3-body-medium focus:outline-none"
+                                            style={{
+                                                border: `1px solid ${T.outline}`,
+                                                borderRadius: T.cornerExtraSmall,
+                                                backgroundColor: T.surface,
+                                                color: T.onSurface,
+                                            }}
                                             />
                                         </div>
                                     )}
@@ -289,23 +326,16 @@ const StockUpdateModal = ({
                         </div>
 
                         {/* FOOTER */}
-                        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                disabled={loading}
-                                className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition text-sm font-medium"
-                            >
+                        <div
+                            className="flex items-center justify-end gap-2 mt-6 pt-4"
+                            style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+                        >
+                            <Button variant="text" type="button" onClick={onClose} disabled={loading}>
                                 Cancel
-                            </button>
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="px-6 py-2.5 rounded-lg bg-[#9333EA] text-white hover:bg-[#8829DD] transition text-sm font-medium"
-                            >
-                                {loading ? "Updating..." : "Update Stock"}
-                            </button>
+                            </Button>
+                            <Button variant="filled" type="submit" disabled={loading}>
+                                {loading ? "Updating…" : "Update Stock"}
+                            </Button>
                         </div>
 
                     </form>

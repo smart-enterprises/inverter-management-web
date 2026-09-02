@@ -1,45 +1,45 @@
 // ManageDealersModal.jsx
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
-    FiSearch, FiX, FiCheck, FiTag,
-    FiLink2, FiUsers, FiChevronDown, FiChevronUp,
-    FiGrid, FiList,
-} from "react-icons/fi";
-import { HiOutlineSparkles } from "react-icons/hi2";
-import { TbBuildingStore } from "react-icons/tb";
+    MdSearch, MdClose, MdCheck, MdSell,
+    MdLink, MdGroup, MdExpandMore, MdExpandLess,
+    MdGridView, MdViewList, MdAutoAwesome, MdStorefront,
+} from "react-icons/md";
 import Swal from "sweetalert2";
 import { fetchDealers } from "../api/dealer";
 import { fetchUsers, updateUser } from "../api/user";
-import { capitalizeFirstLetter, formatName } from "../utils/constants";
+import { formatName } from "../utils/constants";
+import { Button, IconButton, Banner, Chip, EmptyState as M3EmptyState } from "./m3";
+import { T, CHIP_TONES } from "./m3/tokens";
 
 const getDealerId = (dealer) =>
     String(dealer?.employee_id ?? dealer?._id ?? dealer?.id ?? "");
 
-const COLOR_PALETTE = [
-    ["#6366f1", "#a5b4fc"],
-    ["#0891b2", "#67e8f9"],
-    ["#059669", "#6ee7b7"],
-    ["#d97706", "#fcd34d"],
-    ["#dc2626", "#fca5a5"],
-    ["#7c3aed", "#c4b5fd"],
-    ["#0284c7", "#7dd3fc"],
-    ["#be185d", "#f9a8d4"],
-];
+/* Avatars vary by initial across the M3 tonal containers instead of an
+   eight-hue gradient palette. The name sits beside every avatar, so the
+   colour is decoration, not identification. */
+const AVATAR_TONES = ["primary", "secondary", "tertiary", "success", "warning"];
 
-const getAvatarColors = (letter) =>
-    COLOR_PALETTE[(letter?.charCodeAt(0) ?? 0) % COLOR_PALETTE.length];
+const getAvatarTone = (letter) =>
+    CHIP_TONES[AVATAR_TONES[(letter?.charCodeAt(0) ?? 0) % AVATAR_TONES.length]];
 
 const ModalShell = ({ children }) => (
     <>
-        <div className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-md" />
+        <div
+            className="fixed inset-0 z-40"
+            style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
+        />
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
             <div
-                className="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden"
-                style={{ maxHeight: "92vh" }}
+                className="relative w-full max-w-2xl flex flex-col overflow-hidden"
+                style={{
+                    maxHeight: "92vh",
+                    backgroundColor: "var(--md-sys-color-surface-container-high)",
+                    borderRadius: T.cornerExtraLarge,
+                    boxShadow: T.elevation3,
+                }}
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Top gradient bar */}
-                <div className="h-1 w-full flex-shrink-0 bg-gradient-to-r from-amber-500 via-blue-500 to-blue-500" />
                 {children}
             </div>
         </div>
@@ -47,64 +47,54 @@ const ModalShell = ({ children }) => (
 );
 
 const ModalHeader = ({ title, subtitle, onClose, assignedCount }) => (
-    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0 bg-gradient-to-r from-slate-50/80 to-white">
+    <div
+        className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+        style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+    >
         <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-amber-600 shadow-md shadow-blue-200 flex-shrink-0">
-                <FiLink2 size={16} className="text-white" />
+            <div
+                className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+                style={{
+                    borderRadius: T.cornerFull,
+                    backgroundColor: T.primaryContainer,
+                    color: T.onPrimaryContainer,
+                }}
+            >
+                <MdLink size={20} />
             </div>
             <div>
-                <h2 className="text-base font-bold text-slate-900 tracking-tight leading-none">
-                    {title}
-                </h2>
+                <h2 className="m3-title-medium" style={{ color: T.onSurface }}>{title}</h2>
                 {subtitle && (
-                    <p className="text-xs text-slate-500 font-medium mt-1 leading-none flex items-center gap-2">
+                    <p className="m3-body-small mt-1 flex items-center gap-2" style={{ color: T.onSurfaceVariant }}>
                         {subtitle}
                         {assignedCount !== undefined && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black">
-                                {assignedCount} assigned
-                            </span>
+                            <Chip tone="primary">{assignedCount} assigned</Chip>
                         )}
                     </p>
                 )}
             </div>
         </div>
-        {onClose && (
-            <button
-                type="button"
-                onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all"
-                aria-label="Close"
-            >
-                <FiX size={15} />
-            </button>
-        )}
+        {onClose && <IconButton icon={MdClose} onClick={onClose} aria-label="Close" />}
     </div>
 );
 
 const AlertBanner = ({ message }) =>
     message ? (
-        <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
-            <div className="w-5 h-5 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
-                <FiX size={11} className="text-rose-500" />
-            </div>
-            {message}
-        </div>
+        <Banner tone="error">{message}</Banner>
     ) : null;
 
 const DealerAvatar = ({ name, active, size = "md" }) => {
     const letter = name?.trim()[0]?.toUpperCase() ?? "?";
-    const [from, to] = getAvatarColors(letter);
+    const tone = getAvatarTone(letter);
     const dim = size === "sm" ? "w-7 h-7 text-[10px]" : "w-9 h-9 text-xs";
 
     return (
         <div
-            className={`${dim} rounded-xl flex items-center justify-center font-black flex-shrink-0 transition-all duration-200`}
+            className={`${dim} flex items-center justify-center font-medium flex-shrink-0 transition-all duration-200`}
             style={{
-                background: active
-                    ? `linear-gradient(135deg, ${from}, ${to})`
-                    : "linear-gradient(135deg,#f1f5f9,#e2e8f0)",
-                color: active ? "#fff" : "#94a3b8",
-                boxShadow: active ? `0 3px 10px ${from}55` : "none",
+                borderRadius: T.cornerFull,
+                backgroundColor: active ? tone.bg : T.surfaceContainerHighest,
+                color: active ? tone.fg : T.onSurfaceVariant,
             }}
         >
             {letter}
@@ -134,18 +124,14 @@ const Checkbox = ({ checked, indeterminate = false, onChange, size = 16 }) => {
             <div
                 className="w-full h-full rounded-md border-2 flex items-center justify-center transition-all duration-150"
                 style={{
-                    background: checked
-                        ? "linear-gradient(135deg,#6366f1,#7c3aed)"
-                        : indeterminate
-                            ? "#eef2ff"
-                            : "#fff",
-                    borderColor: checked || indeterminate ? "#6366f1" : "#e2e8f0",
-                    boxShadow: checked ? "0 1px 6px #6366f140" : "none",
+                    background: checked ? T.primary : "transparent",
+                    borderColor: checked || indeterminate ? T.primary : T.outline,
+                    borderRadius: "2px",
                 }}
             >
-                {checked && <FiCheck size={size * 0.58} strokeWidth={3} color="#fff" />}
+                {checked && <MdCheck size={size * 0.72} color="var(--md-sys-color-on-primary)" />}
                 {!checked && indeterminate && (
-                    <div className="w-[45%] h-[2px] rounded-full bg-blue-500" />
+                    <div className="w-[45%] h-[2px]" style={{ backgroundColor: T.primary }} />
                 )}
             </div>
         </label>
@@ -153,18 +139,14 @@ const Checkbox = ({ checked, indeterminate = false, onChange, size = 16 }) => {
 };
 
 const STATUS_CONFIG = {
-    added: { label: "+ New", cls: "bg-blue-50 text-blue-600 border-blue-200" },
-    removed: { label: "− Remove", cls: "bg-rose-50 text-rose-600 border-rose-200" },
-    active: { label: "Active", cls: "bg-emerald-50 text-emerald-600 border-emerald-200" },
+    added: { label: "+ New", tone: "primary" },
+    removed: { label: "− Remove", tone: "error" },
+    active: { label: "Active", tone: "success" },
 };
 
 const StatusBadge = ({ type }) => {
-    const { label, cls } = STATUS_CONFIG[type];
-    return (
-        <span className={`px-2 py-0.5 text-[9px] font-black border rounded-full tracking-wide uppercase flex-shrink-0 ${cls}`}>
-            {label}
-        </span>
-    );
+    const { label, tone } = STATUS_CONFIG[type];
+    return <Chip tone={tone} className="flex-shrink-0">{label}</Chip>;
 };
 
 const DealerRow = React.memo(({ dealer, isChecked, wasOriginal, userMap, onToggle }) => {
@@ -189,31 +171,30 @@ const DealerRow = React.memo(({ dealer, isChecked, wasOriginal, userMap, onToggl
             tabIndex={0}
             onClick={handleClick}
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleClick()}
-            className={[
-                "group flex items-center gap-3 px-4 py-3 rounded-2xl border cursor-pointer",
-                "transition-all duration-150 select-none outline-none",
-                "focus-visible:ring-2 focus-visible:ring-blue-200",
-                isChecked
-                    ? "bg-blue-50 border-blue-200 shadow-sm"
-                    : "bg-white border-slate-100 hover:bg-slate-50 hover:border-slate-200 hover:shadow-sm",
-            ].join(" ")}
+            className="group flex items-center gap-3 px-4 py-3 cursor-pointer select-none outline-none m3-state-layer m3-focus"
+            style={{
+                borderRadius: T.cornerMedium,
+                backgroundColor: isChecked ? T.secondaryContainer : T.surface,
+                color: isChecked ? T.onSecondaryContainer : T.onSurface,
+                border: `1px solid ${isChecked ? "transparent" : T.outlineVariant}`,
+            }}
         >
             <Checkbox checked={isChecked} onChange={handleClick} size={15} />
             <DealerAvatar name={dealer.employee_name} active={isChecked} />
             <div className="flex flex-col leading-tight flex-1 min-w-0">
-                <span className="text-[13px] font-semibold text-slate-800 truncate tracking-tight">
+                <span className="m3-body-medium truncate">
                     {formatName(dealer.employee_name)}
                 </span>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     {dealer.shop_name && (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium">
-                            <TbBuildingStore size={9} />
+                        <span className="inline-flex items-center gap-1 m3-body-small" style={{ color: T.onSurfaceVariant }}>
+                            <MdStorefront size={12} />
                             <span className="truncate max-w-[130px]">{dealer.shop_name}</span>
                         </span>
                     )}
                     {dealer.created_by && (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-slate-400">
-                            <FiTag size={8} />
+                        <span className="inline-flex items-center gap-1 m3-body-small" style={{ color: T.onSurfaceVariant }}>
+                            <MdSell size={12} />
                             {formatName(userMap[dealer.created_by] ?? dealer.created_by)}
                         </span>
                     )}
@@ -226,9 +207,16 @@ const DealerRow = React.memo(({ dealer, isChecked, wasOriginal, userMap, onToggl
 DealerRow.displayName = "DealerRow";
 
 const AssignedChip = ({ dealer, onRemove }) => (
-    <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 group hover:border-blue-300 hover:bg-blue-100/70 transition-all">
+    <div
+        className="inline-flex items-center gap-1.5 px-2 py-1 group"
+        style={{
+            borderRadius: T.cornerFull,
+            backgroundColor: T.secondaryContainer,
+            color: T.onSecondaryContainer,
+        }}
+    >
         <DealerAvatar name={dealer.employee_name} active size="sm" />
-        <span className="text-[11px] font-semibold text-blue-800 leading-none max-w-[90px] truncate">
+        <span className="m3-label-medium leading-none max-w-[90px] truncate">
             {formatName(dealer.employee_name)}
         </span>
         <button
@@ -237,10 +225,10 @@ const AssignedChip = ({ dealer, onRemove }) => (
                 e.stopPropagation();
                 onRemove(getDealerId(dealer));
             }}
-            className="ml-0.5 w-3.5 h-3.5 flex items-center justify-center rounded-full text-blue-300 hover:text-white hover:bg-rose-400 transition-all opacity-0 group-hover:opacity-100"
+            className="ml-0.5 w-4 h-4 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
             aria-label={`Remove ${dealer.employee_name}`}
         >
-            <FiX size={8} />
+            <MdClose size={12} />
         </button>
     </div>
 );
@@ -248,53 +236,56 @@ const AssignedChip = ({ dealer, onRemove }) => (
 const LoadingSpinner = ({ label = "Loading…" }) => (
     <div className="flex flex-col items-center justify-center py-16 gap-4">
         <div className="relative w-10 h-10">
-            <div className="absolute inset-0 border-[3px] border-slate-100 rounded-full" />
-            <div className="absolute inset-0 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-0 border-[3px] rounded-full" style={{ borderColor: T.surfaceContainerHighest }} />
+            <div
+                className="absolute inset-0 border-[3px] border-t-transparent rounded-full animate-spin"
+                style={{ borderLeftColor: T.primary, borderRightColor: T.primary, borderBottomColor: T.primary }}
+            />
         </div>
-        <p className="text-xs text-slate-400 font-medium tracking-wide">{label}</p>
+        <p className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>{label}</p>
     </div>
 );
 
 const EmptyState = ({ searching }) => (
-    <div className="flex flex-col items-center gap-4 py-16">
-        <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
-            <FiUsers size={22} className="text-slate-400" />
-        </div>
-        <div className="text-center">
-            <p className="text-sm font-bold text-slate-600">No dealers found</p>
-            {searching && (
-                <p className="text-xs text-slate-400 mt-1">Try adjusting your search terms</p>
-            )}
-        </div>
+    <div>
+        <M3EmptyState icon={MdGroup} label="No dealers found" />
+        {searching && (
+            <p className="m3-body-small text-center -mt-8 pb-8" style={{ color: T.onSurfaceVariant }}>
+                Try adjusting your search terms
+            </p>
+        )}
     </div>
 );
 
 const StatsBar = ({ total, assigned, pendingAdd, pendingRemove }) => (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-100">
+    <div
+        className="flex items-center gap-3 px-4 py-3"
+        style={{ backgroundColor: T.surfaceContainerLow, borderRadius: T.cornerMedium }}
+    >
         <div className="flex-1 text-center">
-            <p className="text-[18px] font-black text-slate-800 leading-none">{total}</p>
-            <p className="text-[10px] text-slate-400 font-semibold mt-0.5 uppercase tracking-wide">Total</p>
+            <p className="m3-title-large m3-numeric" style={{ color: T.onSurface }}>{total}</p>
+            <p className="m3-label-medium mt-0.5" style={{ color: T.onSurfaceVariant }}>Total</p>
         </div>
-        <div className="w-px h-8 bg-slate-200" />
+        <div className="w-px h-8" style={{ backgroundColor: T.outlineVariant }} />
         <div className="flex-1 text-center">
-            <p className="text-[18px] font-black text-blue-600 leading-none">{assigned}</p>
-            <p className="text-[10px] text-slate-400 font-semibold mt-0.5 uppercase tracking-wide">Assigned</p>
+            <p className="m3-title-large m3-numeric" style={{ color: T.primary }}>{assigned}</p>
+            <p className="m3-label-medium mt-0.5" style={{ color: T.onSurfaceVariant }}>Assigned</p>
         </div>
         {pendingAdd > 0 && (
             <>
-                <div className="w-px h-8 bg-slate-200" />
+                <div className="w-px h-8" style={{ backgroundColor: T.outlineVariant }} />
                 <div className="flex-1 text-center">
-                    <p className="text-[18px] font-black text-emerald-600 leading-none">+{pendingAdd}</p>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5 uppercase tracking-wide">Adding</p>
+                    <p className="m3-title-large m3-numeric" style={{ color: T.success }}>+{pendingAdd}</p>
+                    <p className="m3-label-medium mt-0.5" style={{ color: T.onSurfaceVariant }}>Adding</p>
                 </div>
             </>
         )}
         {pendingRemove > 0 && (
             <>
-                <div className="w-px h-8 bg-slate-200" />
+                <div className="w-px h-8" style={{ backgroundColor: T.outlineVariant }} />
                 <div className="flex-1 text-center">
-                    <p className="text-[18px] font-black text-rose-500 leading-none">−{pendingRemove}</p>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5 uppercase tracking-wide">Removing</p>
+                    <p className="m3-title-large m3-numeric" style={{ color: T.error }}>−{pendingRemove}</p>
+                    <p className="m3-label-medium mt-0.5" style={{ color: T.onSurfaceVariant }}>Removing</p>
                 </div>
             </>
         )}
@@ -502,28 +493,30 @@ const ManageDealersModal = ({
                 {!loading && assignedDealers.length > 0 && (
                     <section className="space-y-2.5">
                         <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 flex items-center gap-2">
+                            <p className="m3-label-medium flex items-center gap-2" style={{ color: T.onSurfaceVariant }}>
                                 Currently Assigned
-                                <span className="px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded-full font-black text-[9px]">
-                                    {assignedDealers.length}
-                                </span>
+                                <Chip tone="primary">{assignedDealers.length}</Chip>
                             </p>
                             {hasMoreChips && (
                                 <button
                                     type="button"
                                     onClick={() => setChipsExpanded((p) => !p)}
-                                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 hover:text-blue-600 transition-colors"
+                                    className="inline-flex items-center gap-1 m3-label-medium"
+                                    style={{ color: T.primary }}
                                 >
                                     {chipsExpanded ? (
-                                        <><FiChevronUp size={11} /> Collapse</>
+                                        <><MdExpandLess size={16} /> Collapse</>
                                     ) : (
-                                        <><FiChevronDown size={11} /> Show all {assignedDealers.length}</>
+                                        <><MdExpandMore size={16} /> Show all {assignedDealers.length}</>
                                     )}
                                 </button>
                             )}
                         </div>
 
-                        <div className="flex flex-wrap gap-1.5 p-3 rounded-2xl bg-slate-50/60 border border-slate-100">
+                        <div
+                            className="flex flex-wrap gap-1.5 p-3"
+                            style={{ backgroundColor: T.surfaceContainerLow, borderRadius: T.cornerMedium }}
+                        >
                             {visibleChips.map((dealer) => (
                                 <AssignedChip
                                     key={getDealerId(dealer)}
@@ -535,7 +528,12 @@ const ManageDealersModal = ({
                                 <button
                                     type="button"
                                     onClick={() => setChipsExpanded(true)}
-                                    className="inline-flex items-center px-2.5 py-1.5 rounded-full bg-slate-200/70 text-slate-500 text-[11px] font-bold hover:bg-slate-200 transition-colors"
+                                    className="inline-flex items-center px-2.5 py-1.5 m3-label-medium m3-state-layer"
+                                    style={{
+                                        borderRadius: T.cornerFull,
+                                        backgroundColor: T.surfaceContainerHighest,
+                                        color: T.onSurfaceVariant,
+                                    }}
                                 >
                                     +{assignedDealers.length - CHIPS_COLLAPSED_MAX} more
                                 </button>
@@ -546,30 +544,37 @@ const ManageDealersModal = ({
 
                 {/* ── Search & Controls ── */}
                 <section className="space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                    <p className="m3-label-medium" style={{ color: T.onSurfaceVariant }}>
                         Select Dealers to Assign
                     </p>
 
                     <div className="relative">
-                        <FiSearch
-                            size={13}
-                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                        <MdSearch
+                            size={20}
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                            style={{ color: T.onSurfaceVariant }}
                         />
                         <input
                             type="text"
                             placeholder="Search by dealer name or shop name…"
                             value={dealerSearch}
                             onChange={(e) => setDealerSearch(e.target.value)}
-                            className="w-full pl-9 pr-9 py-2.5 text-[13px] border border-slate-200 rounded-xl bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all shadow-sm"
+                            className="w-full pl-11 pr-11 h-10 m3-body-medium focus:outline-none"
+                            style={{
+                                backgroundColor: T.surfaceContainerHigh,
+                                borderRadius: T.cornerFull,
+                                color: T.onSurface,
+                            }}
                         />
                         {dealerSearch && (
                             <button
                                 type="button"
                                 onClick={() => setDealerSearch("")}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 text-slate-500 transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
+                                style={{ color: T.onSurfaceVariant }}
                                 aria-label="Clear search"
                             >
-                                <FiX size={10} />
+                                <MdClose size={16} />
                             </button>
                         )}
                     </div>
@@ -580,7 +585,8 @@ const ManageDealersModal = ({
                             <button
                                 type="button"
                                 onClick={handleSelectAll}
-                                className="inline-flex items-center gap-2 text-[12px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                                className="inline-flex items-center gap-2 m3-label-large"
+                                style={{ color: T.primary }}
                             >
                                 <Checkbox
                                     checked={allFilteredSelected}
@@ -628,35 +634,40 @@ const ManageDealersModal = ({
             </div>
 
             {/* ── Footer ── */}
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/60 flex gap-3 flex-shrink-0">
-                <button
+            <div
+                className="px-6 py-4 flex gap-2 flex-shrink-0"
+                style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+            >
+                <Button
+                    variant="text"
                     type="button"
                     onClick={!saving ? onClose : undefined}
                     disabled={saving}
-                    className="flex-1 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-100 transition-all disabled:opacity-40"
+                    className="flex-1"
                 >
                     Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                    variant="filled"
                     type="button"
                     onClick={handleSave}
                     disabled={saving || loading || !hasPendingChanges}
-                    className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-amber-600 text-white rounded-xl text-sm font-bold hover:from-blue-700 hover:to-amber-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-200/60 inline-flex items-center justify-center gap-2"
+                    className="flex-1"
                 >
                     {saving ? (
                         <>
-                            <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                            <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                             Saving…
                         </>
                     ) : hasPendingChanges ? (
                         <>
-                            <HiOutlineSparkles size={14} />
+                            <MdAutoAwesome size={18} />
                             Save Changes ({pendingAdd + pendingRemove})
                         </>
                     ) : (
                         "No Changes"
                     )}
-                </button>
+                </Button>
             </div>
         </ModalShell>
     );
