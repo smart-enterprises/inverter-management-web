@@ -2,15 +2,15 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useParams } from "react-router-dom";
 import {
-  FiArrowLeft, FiUser, FiMapPin, FiPhone, FiMail, FiBox,
-  FiCalendar, FiTruck, FiCreditCard, FiEdit2,
-  FiSave, FiX, FiCheckCircle, FiXCircle, FiShoppingCart,
-  FiPackage, FiAlertCircle, FiActivity,
-  FiChevronRight, FiLayers, FiTrendingDown, FiBarChart2,
-  FiPrinter, FiInfo, FiPlus,
-  FiRefreshCw, FiCheck, FiAlertTriangle, FiFlag,
-  FiArrowRight, FiClock, FiSlash,
-} from "react-icons/fi";
+  MdArrowBack, MdPersonOutline, MdLocationOn, MdPhone, MdMailOutline, MdInventory2,
+  MdCalendarMonth, MdLocalShipping, MdCreditCard, MdEdit,
+  MdSave, MdClose, MdCheckCircle, MdCancel, MdShoppingCart,
+  MdInventory, MdErrorOutline, MdOutlineInsights,
+  MdChevronRight, MdLayers, MdTrendingDown, MdBarChart,
+  MdPrint, MdInfoOutline, MdAdd,
+  MdRefresh, MdCheck, MdWarningAmber, MdFlag,
+  MdArrowForward, MdSchedule, MdBlock,
+} from "react-icons/md";
 import Swal from "sweetalert2";
 import { toastSuccess } from "../utils/toast";
 import { useAuth } from "../hooks/useAuth";
@@ -28,6 +28,10 @@ import { canPrintOrder, canViewOrderPrice, canViewDealerInformation, canViewFull
 import DeliveryNotesCard from "../components/DeliveryNotesCard";
 import ProductionStatusBadge from "../components/ProductionStatusBadge";
 import AddItemsModal from "../components/AddItemsModal";
+import {
+  Surface, Button, IconButton, Chip, StatusChip, Banner, EmptyState,
+} from "../components/m3";
+import { T, STATUS_COLOR, CHIP_TONES } from "../components/m3/tokens";
 import { ROLES } from "../utils/roles";
 
 const ADMIN_PRIVILEGED_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER];
@@ -153,13 +157,15 @@ const ITEM_STATUS_OPTIONS = [
   { value: "DELIVERED", label: "Mark as Delivered", color: "emerald" },
 ];
 
+/* The radio rows below label every option in words, so these tones are
+   reinforcement rather than the carrier of meaning. */
 const STATUS_COLOR_MAP = {
-  blue: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", dot: "bg-blue-500", ring: "ring-blue-200" },
-  rose: { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-700", dot: "bg-rose-500", ring: "ring-rose-200" },
-  cyan: { bg: "bg-cyan-50", border: "border-cyan-200", text: "text-cyan-700", dot: "bg-cyan-500", ring: "ring-cyan-200" },
-  slate: { bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-600", dot: "bg-slate-400", ring: "ring-slate-200" },
-  orange: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", dot: "bg-blue-500", ring: "ring-blue-200" },
-  emerald: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", dot: "bg-emerald-500", ring: "ring-emerald-200" },
+  blue: { container: T.primaryContainer, onContainer: T.onPrimaryContainer, dot: T.primary },
+  rose: { container: T.errorContainer, onContainer: T.onErrorContainer, dot: T.error },
+  cyan: { container: T.secondaryContainer, onContainer: T.onSecondaryContainer, dot: T.secondary },
+  slate: { container: T.surfaceContainerHighest, onContainer: T.onSurfaceVariant, dot: T.outline },
+  orange: { container: T.tertiaryContainer, onContainer: T.onTertiaryContainer, dot: T.tertiary },
+  emerald: { container: T.successContainer, onContainer: T.onSuccessContainer, dot: T.success },
 };
 
 const MODAL = {
@@ -196,65 +202,29 @@ const formatCurrency = (value) => {
 // STYLE HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STATUS_HEX = {
-  PENDING: "#d97706", CONFIRMED: "#2563eb", PRODUCTION: "#c026d3",
-  PACKED: "#14b8a6", INVOICE: "#0891b2", SHIPPED: "#f97316",
-  DELIVERED: "#16a34a", COMPLETED: "#059669", CANCELLED: "#e11d48",
-  REJECTED: "#e11d48",
-};
+/* Shared with the Analytics pipeline chart so a stage is the same
+   colour wherever it appears. */
+const STATUS_HEX = STATUS_COLOR;
 
-const getOrderStatusStyle = (status) => {
-  const map = {
-    PENDING: "bg-amber-50 text-amber-700 border-amber-200",
-    CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
-    PRODUCTION: "bg-blue-50 text-blue-700 border-blue-200",
-    PACKED: "bg-amber-50 text-amber-700 border-amber-200",
-    INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
-    SHIPPED: "bg-blue-50 text-blue-700 border-blue-200",
-    DELIVERED: "bg-green-50 text-green-700 border-green-200",
-    COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
-    REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
-  };
-  return map[status?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
-};
+/* Every badge below prints its value as text, so these tones are
+   reinforcement. Order status reuses the kit's shared mapping. */
+const getPriorityTone = (p) =>
+  ({ HIGH: "error", MEDIUM: "warning", LOW: "success" })[p?.toUpperCase()] ?? "neutral";
 
-const getPriorityStyle = (p) => {
-  const map = {
-    HIGH: "bg-rose-50 text-rose-700 border-rose-200",
-    MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
-    LOW: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  };
-  return map[p?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
-};
+const getPaymentStatusTone = (v) =>
+  ({ PAID: "success", UNPAID: "error", PARTIAL: "warning", REFUNDED: "primary" })[v?.toUpperCase()] ?? "neutral";
 
-const getPaymentStatusStyle = (s) => {
-  const map = {
-    PAID: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    UNPAID: "bg-rose-50 text-rose-700 border-rose-200",
-    PARTIAL: "bg-amber-50 text-amber-700 border-amber-200",
-    REFUNDED: "bg-blue-50 text-blue-700 border-blue-200",
-  };
-  return map[s?.toUpperCase()] || "bg-slate-50 text-slate-600 border-slate-200";
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ROLE BADGE HELPER
-// ─────────────────────────────────────────────────────────────────────────────
-
-const getRoleBadgeStyle = (role) => {
-  const map = {
-    ROLE_SUPER_ADMIN: "bg-amber-50 text-amber-700 border-amber-200",
-    ROLE_ADMIN: "bg-blue-50 text-blue-700 border-blue-200",
-    ROLE_MANAGER: "bg-blue-50 text-blue-700 border-blue-200",
-    ROLE_SALESMAN: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    ROLE_PRODUCTION: "bg-blue-50 text-blue-700 border-blue-200",
-    ROLE_PACKING: "bg-pink-50 text-pink-700 border-pink-200",
-    ROLE_ACCOUNTS: "bg-cyan-50 text-cyan-700 border-cyan-200",
-    ROLE_DELIVERY: "bg-teal-50 text-teal-700 border-teal-200",
-  };
-  return map[role] || "bg-slate-50 text-slate-600 border-slate-200";
-};
+const getRoleTone = (role) =>
+  ({
+    ROLE_SUPER_ADMIN: "warning",
+    ROLE_ADMIN: "primary",
+    ROLE_MANAGER: "secondary",
+    ROLE_SALESMAN: "success",
+    ROLE_PRODUCTION: "tertiary",
+    ROLE_PACKING: "neutral",
+    ROLE_ACCOUNTS: "primary",
+    ROLE_DELIVERY: "secondary",
+  })[role] ?? "neutral";
 
 const formatRoleLabel = (role) =>
   (role || "").replace("ROLE_", "").replace(/_/g, " ");
@@ -332,13 +302,13 @@ const generateOrderPDF = (order, companyInfo) => {
 
 const FormField = memo(({ label, required, children, hint }) => (
   <div className="space-y-1.5">
-    <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-      {label}{required && <span className="text-rose-400 ml-0.5">*</span>}
+    <label className="block m3-label-medium" style={{ color: T.onSurfaceVariant }}>
+      {label}{required && <span className="ml-0.5" style={{ color: T.error }}>*</span>}
     </label>
     {children}
     {hint && (
-      <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-        <FiInfo size={10} />{hint}
+      <p className="m3-body-small flex items-center gap-1" style={{ color: T.onSurfaceVariant }}>
+        <MdInfoOutline size={14} />{hint}
       </p>
     )}
   </div>
@@ -347,31 +317,54 @@ const FormField = memo(({ label, required, children, hint }) => (
 const EditInput = memo(({ className = "", ...props }) => (
   <input
     {...props}
-    className={`w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${className}`}
+    className={`w-full px-3 h-11 m3-body-medium focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+    style={{
+      border: `1px solid ${T.outline}`,
+      borderRadius: T.cornerExtraSmall,
+      backgroundColor: T.surface,
+      color: T.onSurface,
+    }}
   />
 ));
 
 const InfoCell = memo(({ icon, label, children }) => (
-  <div className="flex items-start gap-3 p-4 rounded-xl hover:bg-slate-50 transition-colors group">
-    <div className="mt-0.5 p-1.5 rounded-lg bg-blue-50 text-blue-500 border border-blue-100 group-hover:border-blue-200 transition-colors flex-shrink-0">
-      {React.cloneElement(icon, { size: 12 })}
+  <div className="flex items-start gap-3 p-4 group" style={{ borderRadius: T.cornerMedium }}>
+    <div
+      className="mt-0.5 p-2 flex-shrink-0"
+      style={{
+        borderRadius: T.cornerFull,
+        backgroundColor: T.primaryContainer,
+        color: T.onPrimaryContainer,
+      }}
+    >
+      {React.cloneElement(icon, { size: 16 })}
     </div>
     <div className="flex-1 min-w-0">
-      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-0.5">{label}</p>
-      <div className="text-sm font-semibold text-slate-800 leading-snug">
-        {children || <span className="text-slate-300 font-normal italic text-xs">N/A</span>}
+      <p className="m3-label-medium mb-0.5" style={{ color: T.onSurfaceVariant }}>{label}</p>
+      <div className="m3-body-medium" style={{ color: T.onSurface }}>
+        {children || <span className="italic" style={{ color: T.onSurfaceVariant }}>N/A</span>}
       </div>
     </div>
   </div>
 ));
 
 const SectionCard = memo(({ title, subtitle, action, children, className = "", editHighlight = false, headerExtra }) => (
-  <section className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${editHighlight ? "border-blue-200 ring-1 ring-blue-100" : "border-slate-200"} ${className}`}>
+  <section
+    className={`overflow-hidden ${className}`}
+    style={{
+      backgroundColor: T.surface,
+      border: `1px solid ${editHighlight ? T.primary : T.outlineVariant}`,
+      borderRadius: T.cornerMedium,
+    }}
+  >
     {(title || action) && (
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+      <div
+        className="flex items-center justify-between px-6 py-4"
+        style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+      >
         <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-bold text-slate-800 tracking-tight">{title}</h2>
-          {subtitle && <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">{subtitle}</p>}
+          <h2 className="m3-title-medium" style={{ color: T.onSurface }}>{title}</h2>
+          {subtitle && <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>{subtitle}</p>}
           {headerExtra}
         </div>
         {action}
@@ -386,26 +379,32 @@ const QtyTracker = memo(({ ordered, delivered, cancelled }) => {
   const pct = ordered > 0 ? Math.min(((delivered + cancelled) / ordered) * 100, 100) : 0;
   return (
     <div className="space-y-2.5">
-      <div className="flex items-center justify-between text-xs font-semibold">
-        <span className="text-slate-500">Progress</span>
-        <span className={`font-bold ${balance === 0 ? "text-emerald-600" : "text-slate-700"}`}>{Math.round(pct)}%</span>
+      <div className="flex items-center justify-between">
+        <span className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>Progress</span>
+        <span className="m3-label-large m3-numeric" style={{ color: balance === 0 ? T.success : T.onSurface }}>
+          {Math.round(pct)}%
+        </span>
       </div>
-      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+      <div className="m3-progress-track">
         <div
-          className={`h-full rounded-full transition-all duration-700 ${balance === 0 ? "bg-emerald-500" : "bg-blue-500"}`}
-          style={{ width: `${pct}%` }}
+          className="m3-progress-bar"
+          style={{ width: `${pct}%`, backgroundColor: balance === 0 ? T.success : T.primary }}
         />
       </div>
       <div className="grid grid-cols-4 gap-1 text-center">
         {[
-          { label: "Ordered", value: ordered, cls: "text-slate-800" },
-          { label: "Delivered", value: delivered, cls: "text-emerald-600" },
-          { label: "Cancelled", value: cancelled, cls: "text-rose-600" },
-          { label: "Balance", value: balance, cls: balance === 0 ? "text-emerald-600" : "text-amber-600" },
-        ].map(({ label, value, cls }) => (
-          <div key={label} className="bg-slate-50 rounded-lg py-2 px-1">
-            <p className="text-[8px] uppercase tracking-[0.1em] text-slate-400 font-black">{label}</p>
-            <p className={`text-sm font-black tabular-nums mt-0.5 ${cls}`}>{value}</p>
+          { label: "Ordered", value: ordered, color: T.onSurface },
+          { label: "Delivered", value: delivered, color: T.success },
+          { label: "Cancelled", value: cancelled, color: T.error },
+          { label: "Balance", value: balance, color: balance === 0 ? T.success : T.warning },
+        ].map(({ label, value, color }) => (
+          <div
+            key={label}
+            className="py-2 px-1"
+            style={{ backgroundColor: T.surfaceContainerLow, borderRadius: T.cornerSmall }}
+          >
+            <p className="m3-label-medium" style={{ color: T.onSurfaceVariant }}>{label}</p>
+            <p className="m3-title-small m3-numeric mt-0.5" style={{ color }}>{value}</p>
           </div>
         ))}
       </div>
@@ -415,13 +414,13 @@ const QtyTracker = memo(({ ordered, delivered, cancelled }) => {
 
 const NotesList = memo(({ title, notes, variant = "default" }) => {
   if (!notes?.length) return null;
-  const styles = variant === "purple"
-    ? "bg-blue-50/70 border-blue-100 text-blue-700"
-    : "bg-slate-50 border-slate-100 text-slate-600";
+  const tone = variant === "purple"
+    ? { bg: T.primaryContainer, fg: T.onPrimaryContainer }
+    : { bg: T.surfaceContainerLow, fg: T.onSurfaceVariant };
   return (
-    <div className={`mt-2 border rounded-lg p-3 ${styles}`}>
-      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-1.5 opacity-60">{title}</p>
-      <ul className="space-y-1 text-xs text-slate-700">
+    <div className="mt-2 p-3" style={{ backgroundColor: tone.bg, color: tone.fg, borderRadius: T.cornerSmall }}>
+      <p className="m3-label-medium mb-1.5 opacity-70">{title}</p>
+      <ul className="space-y-1 m3-body-small">
         {notes.map((note, idx) => (
           <li key={idx} className="flex items-start gap-2">
             <span className="mt-1.5 w-1 h-1 rounded-full bg-current opacity-40 flex-shrink-0" />
@@ -434,16 +433,16 @@ const NotesList = memo(({ title, notes, variant = "default" }) => {
 });
 
 const FieldError = ({ msg }) => (
-  <p className="text-[11px] text-rose-500 font-semibold mt-1 flex items-center gap-1">
-    <FiAlertCircle size={10} />{msg}
+  <p className="m3-body-small mt-1 flex items-center gap-1" style={{ color: T.error }}>
+    <MdErrorOutline size={14} />{msg}
   </p>
 );
 
 const ModalDivider = ({ label }) => (
   <div className="flex items-center gap-3 my-1">
-    <div className="flex-1 h-px bg-slate-100" />
-    {label && <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 flex-shrink-0">{label}</span>}
-    <div className="flex-1 h-px bg-slate-100" />
+    <div className="flex-1 h-px" style={{ backgroundColor: T.outlineVariant }} />
+    {label && <span className="m3-label-medium flex-shrink-0" style={{ color: T.onSurfaceVariant }}>{label}</span>}
+    <div className="flex-1 h-px" style={{ backgroundColor: T.outlineVariant }} />
   </div>
 );
 
@@ -457,20 +456,20 @@ const CancellationHistoryCard = memo(({ history = [], userMap = {} }) => {
   return (
     <div className="mt-3 border border-rose-100 rounded-xl overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 border-b border-rose-100">
-        <FiSlash size={11} className="text-rose-500" />
+        <MdBlock size={14} className="text-rose-500" />
         <p className="text-[9px] font-black uppercase tracking-[0.12em] text-rose-600">
           Cancellation History ({history.length})
         </p>
       </div>
       <div className="divide-y divide-rose-50">
         {history.map((entry, idx) => (
-          <div key={idx} className="px-3 py-3 bg-white hover:bg-rose-50/30 transition-colors">
+          <div key={idx} className="px-3 py-3 m3-surface-bg hover:bg-rose-50/30 transition-colors">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-2.5 flex-1 min-w-0">
                 {/* Timeline dot */}
                 <div className="flex-shrink-0 mt-0.5">
                   <div className="w-5 h-5 rounded-full bg-rose-100 border border-rose-200 flex items-center justify-center">
-                    <FiXCircle size={10} className="text-rose-500" />
+                    <MdCancel size={14} className="text-rose-500" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -479,18 +478,18 @@ const CancellationHistoryCard = memo(({ history = [], userMap = {} }) => {
                       {entry.cancelled_qty} unit{entry.cancelled_qty !== 1 ? "s" : ""} cancelled
                     </span>
                     {entry.cancelled_by_role && (
-                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black border uppercase tracking-wide ${getRoleBadgeStyle(entry.cancelled_by_role)}`}>
+                      <Chip tone={getRoleTone(entry.cancelled_by_role)}>
                         {formatRoleLabel(entry.cancelled_by_role)}
-                      </span>
+                      </Chip>
                     )}
                   </div>
                   {entry.reason && (
-                    <p className="text-xs text-slate-600 font-medium leading-relaxed bg-slate-50 border border-slate-100 rounded-lg px-2.5 py-1.5 mt-1">
+                    <p className="text-xs m3-on-surface-variant font-medium leading-relaxed m3-surface-container-low-bg border m3-outline-variant-border rounded-lg px-2.5 py-1.5 mt-1">
                       "{entry.reason}"
                     </p>
                   )}
                   {entry.cancelled_by && userMap[entry.cancelled_by] && (
-                    <p className="text-[10px] text-slate-400 font-medium mt-1">
+                    <p className="text-[10px] m3-on-surface-variant font-medium mt-1">
                       By: {userMap[entry.cancelled_by]}
                     </p>
                   )}
@@ -498,8 +497,8 @@ const CancellationHistoryCard = memo(({ history = [], userMap = {} }) => {
               </div>
               <div className="flex-shrink-0 text-right">
                 {entry.cancelled_at && (
-                  <span className="inline-flex items-center gap-1 text-[9px] text-slate-400 font-medium whitespace-nowrap">
-                    <FiClock size={9} />
+                  <span className="inline-flex items-center gap-1 text-[9px] m3-on-surface-variant font-medium whitespace-nowrap">
+                    <MdSchedule size={14} />
                     {formatDateShort(entry.cancelled_at)}
                   </span>
                 )}
@@ -518,7 +517,7 @@ const CancellationHistoryCard = memo(({ history = [], userMap = {} }) => {
 
 const ModalShell = memo(({
   isOpen, onClose, title, subtitle, icon,
-  accentClass = "bg-blue-600", children, footer, width = "max-w-lg",
+  accentTone = "primary", children, footer, width = "max-w-lg",
 }) => {
   useEffect(() => {
     if (!isOpen) return;
@@ -536,32 +535,53 @@ const ModalShell = memo(({
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-50" onClick={onClose} aria-hidden />
+      <div
+        className="fixed inset-0 z-50"
+        style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
+        onClick={onClose}
+        aria-hidden
+      />
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6" role="dialog" aria-modal="true">
         <div
-          className={`bg-white rounded-2xl shadow-2xl w-full ${width} border border-slate-200 flex flex-col`}
-          style={{ maxHeight: "90vh" }}
+          className={`w-full ${width} flex flex-col`}
+          style={{
+            maxHeight: "90vh",
+            backgroundColor: "var(--md-sys-color-surface-container-high)",
+            borderRadius: T.cornerExtraLarge,
+            boxShadow: T.elevation3,
+          }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+          <div
+            className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+            style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+          >
             <div className="flex items-center gap-3.5">
-              <div className={`p-2.5 rounded-xl ${accentClass} text-white shadow-sm flex-shrink-0`}>
+              <div
+                className="p-2.5 flex-shrink-0"
+                style={{
+                  borderRadius: T.cornerFull,
+                  backgroundColor: (CHIP_TONES[accentTone] ?? CHIP_TONES.primary).bg,
+                  color: (CHIP_TONES[accentTone] ?? CHIP_TONES.primary).fg,
+                }}
+              >
                 {icon}
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900 leading-tight">{title}</h2>
+                <h2 className="m3-title-medium" style={{ color: T.onSurface }}>{title}</h2>
                 {subtitle && (
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.12em] mt-0.5">{subtitle}</p>
+                  <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>{subtitle}</p>
                 )}
               </div>
             </div>
-            <button onClick={onClose} aria-label="Close" className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all">
-              <FiX size={16} />
-            </button>
+            <IconButton icon={MdClose} onClick={onClose} aria-label="Close" />
           </div>
           <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
           {footer && (
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex gap-3 flex-shrink-0">
+            <div
+              className="px-6 py-4 flex justify-end gap-2 flex-shrink-0"
+              style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+            >
               {footer}
             </div>
           )}
@@ -579,23 +599,25 @@ const StatusRadioRow = memo(({ option, isSelected, isDisabled, onChange }) => {
   const colors = STATUS_COLOR_MAP[option.color] || STATUS_COLOR_MAP.slate;
   return (
     <label
-      className={`
-        group flex items-center gap-3.5 px-4 py-3.5 rounded-xl border cursor-pointer transition-all select-none
-        ${isSelected
-          ? `${colors.bg} ${colors.border} ring-1 ${colors.ring}`
-          : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/60"
-        }
-        ${isDisabled ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}
-      `}
+      className={`group flex items-center gap-3.5 px-4 py-3.5 cursor-pointer select-none m3-state-layer ${isDisabled ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
+      style={{
+        borderRadius: T.cornerMedium,
+        backgroundColor: isSelected ? colors.container : T.surface,
+        color: isSelected ? colors.onContainer : T.onSurface,
+        border: `1px solid ${isSelected ? "transparent" : T.outlineVariant}`,
+      }}
     >
-      <div className={`relative w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${isSelected ? `border-current ${colors.text}` : "border-slate-300"}`}>
-        {isSelected && <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />}
+      <div
+        className="relative w-5 h-5 border-2 flex items-center justify-center flex-shrink-0 transition-all"
+        style={{ borderRadius: T.cornerFull, borderColor: isSelected ? colors.dot : T.outline }}
+      >
+        {isSelected && (
+          <div className="w-2.5 h-2.5" style={{ borderRadius: T.cornerFull, backgroundColor: colors.dot }} />
+        )}
         <input type="radio" name="item_status" value={option.value} checked={isSelected} disabled={isDisabled} onChange={() => onChange(option.value)} className="sr-only" />
       </div>
-      <span className={`text-sm font-semibold transition-colors ${isSelected ? colors.text : "text-slate-700"}`}>
-        {option.label}
-      </span>
-      {isSelected && <FiCheckCircle size={14} className={`ml-auto flex-shrink-0 ${colors.text}`} />}
+      <span className="m3-body-large">{option.label}</span>
+      {isSelected && <MdCheckCircle size={18} className="ml-auto flex-shrink-0" />}
     </label>
   );
 });
@@ -607,19 +629,19 @@ const CheckboxToggleRow = memo(({ label, description, checked, onChange, disable
       ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
       ${checked
         ? "bg-amber-50 border-amber-200 ring-1 ring-amber-100"
-        : "bg-white border-slate-200 hover:border-amber-200 hover:bg-amber-50/30"
+        : "m3-surface-bg m3-outline-variant-border hover:border-amber-200 hover:bg-amber-50/30"
       }
     `}
   >
-    <div className={`relative mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? "bg-amber-600 border-amber-600" : "border-slate-300 bg-white"}`}>
-      {checked && <FiCheck size={11} className="text-white" strokeWidth={3} />}
+    <div className={`relative mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? "bg-amber-600 border-amber-600" : "m3-outline-border m3-surface-bg"}`}>
+      {checked && <MdCheck size={14} className="text-white" strokeWidth={3} />}
       <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
     </div>
     <div className="flex-1 min-w-0">
-      <span className={`text-sm font-semibold block ${checked ? "text-amber-700" : "text-slate-700"}`}>{label}</span>
-      {description && <span className="text-[10px] text-slate-400 font-medium block mt-0.5">{description}</span>}
+      <span className={`text-sm font-semibold block ${checked ? "text-amber-700" : "m3-on-surface"}`}>{label}</span>
+      {description && <span className="text-[10px] m3-on-surface-variant font-medium block mt-0.5">{description}</span>}
     </div>
-    {checked && <FiCheckCircle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />}
+    {checked && <MdCheckCircle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />}
   </label>
 ));
 
@@ -686,40 +708,36 @@ const ItemStatusModal = memo(({ isOpen, onClose, detail, onSubmit, submitting, r
       isOpen={isOpen} onClose={onClose}
       title={modalTitle}
       subtitle={isProduction ? "Production milestones" : "Status · Production milestones"}
-      icon={<FiFlag size={14} />}
-      accentClass="bg-blue-600"
+      icon={<MdFlag size={20} />}
+      accentTone="primary"
       footer={
         <>
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
+          <button onClick={onClose} className="m3-button m3-button-text m3-state-layer m3-focus flex-1">Cancel</button>
           <button
             onClick={handleSubmit}
             disabled={submitting || !hasChanges}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+            className="m3-button m3-button-filled m3-state-layer m3-focus flex-1"
           >
             {submitting
               ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</>
-              : <><FiSave size={13} />Apply Changes</>
+              : <><MdSave size={14} />Apply Changes</>
             }
           </button>
         </>
       }
     >
       <div className="space-y-5">
-        <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl">
+        <div className="flex items-center gap-3 px-4 py-3 m3-surface-container-low-bg border m3-outline-variant-border rounded-xl">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">Current Status</p>
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(currentStatus)}`}>
-              {currentStatus || "—"}
-            </span>
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant mb-1">Current Status</p>
+            <StatusChip status={String(currentStatus || "").toUpperCase()} />
           </div>
           {!isProduction && isStatusChanged && (
             <>
-              <FiArrowRight size={14} className="text-slate-300 mx-1" />
+              <MdArrowForward size={14} className="m3-on-surface-variant mx-1" />
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">New Status</p>
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(selectedStatus)}`}>
-                  {selectedStatus}
-                </span>
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant mb-1">New Status</p>
+                <StatusChip status={String(selectedStatus || "").toUpperCase()} />
               </div>
             </>
           )}
@@ -727,7 +745,7 @@ const ItemStatusModal = memo(({ isOpen, onClose, detail, onSubmit, submitting, r
 
         {showStatusList && (
           <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Select New Status</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant">Select New Status</p>
             <div className="space-y-2">
               {visibleStatusOptions.map((opt) => (
                 <StatusRadioRow key={opt.value} option={opt} isSelected={selectedStatus === opt.value} isDisabled={false} onChange={setSelectedStatus} />
@@ -737,7 +755,7 @@ const ItemStatusModal = memo(({ isOpen, onClose, detail, onSubmit, submitting, r
         )}
 
         {!showStatusList && !hasProductionFlags && (
-          <p className="text-xs text-slate-400 font-medium italic px-1 py-4 text-center">
+          <p className="text-xs m3-on-surface-variant font-medium italic px-1 py-4 text-center">
             No status transitions available for your role.
           </p>
         )}
@@ -746,8 +764,8 @@ const ItemStatusModal = memo(({ isOpen, onClose, detail, onSubmit, submitting, r
           <>
             <ModalDivider label="Production Milestones" />
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                Mark stages for <span className="text-slate-600 normal-case font-bold">{capitalizeFirstLetter(detail?.product_name)}</span>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant">
+                Mark stages for <span className="m3-on-surface-variant normal-case font-bold">{capitalizeFirstLetter(detail?.product_name)}</span>
               </p>
               <div className="space-y-2">
                 {showUnpackedCheckbox && (
@@ -814,26 +832,27 @@ const DeliveryUpdateModal = memo(({ isOpen, onClose, detail, onSubmit, submittin
   };
 
   return (
-    <ModalShell isOpen={isOpen} onClose={onClose} title="Update Delivery Details" subtitle="Schedule & delivery quantity" icon={<FiTruck size={14} />} accentClass="bg-emerald-600"
+    <ModalShell isOpen={isOpen} onClose={onClose} title="Update Delivery Details" subtitle="Schedule & delivery quantity" icon={<MdLocalShipping size={20} />} accentTone="success"
       footer={
         <>
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm">
-            {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</> : <><FiSave size={13} />Save Delivery</>}
+          <button onClick={onClose} className="m3-button m3-button-text m3-state-layer m3-focus flex-1">Cancel</button>
+          <button onClick={handleSubmit} disabled={submitting} className="m3-button m3-button-filled m3-state-layer m3-focus flex-1" style={{ backgroundColor: T.success, color: T.onPrimary }}>
+            {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</> : <><MdSave size={14} />Save Delivery</>}
           </button>
         </>
       }
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs">
-          {[{ label: "Ordered", value: totalOrdered, cls: "text-slate-800" }, { label: "Already Delivered", value: alreadyDelivered, cls: "text-emerald-600" }, { label: "Cancelled", value: cancelled, cls: "text-rose-600" }, { label: "Max Deliverable", value: maxDeliverable, cls: "text-amber-600" }].map(({ label, value, cls }) => (
-            <div key={label}><span className="text-slate-400 font-semibold block mb-0.5">{label}</span><span className={`font-black ${cls}`}>{value}</span></div>
+        <div className="grid grid-cols-2 gap-3 px-4 py-3 m3-surface-container-low-bg border m3-outline-variant-border rounded-xl text-xs">
+          {[{ label: "Ordered", value: totalOrdered, cls: "m3-on-surface" }, { label: "Already Delivered", value: alreadyDelivered, cls: "text-emerald-600" }, { label: "Cancelled", value: cancelled, cls: "text-rose-600" }, { label: "Max Deliverable", value: maxDeliverable, cls: "text-amber-600" }].map(({ label, value, cls }) => (
+            <div key={label}><span className="m3-on-surface-variant font-semibold block mb-0.5">{label}</span><span className={`font-black ${cls}`}>{value}</span></div>
           ))}
         </div>
         <FormField label="Delivery Date" required><EditInput type="datetime-local" value={form.delivery_date} onChange={(e) => setField("delivery_date", e.target.value)} />{errors.delivery_date && <FieldError msg={errors.delivery_date} />}</FormField>
         {isDateChanged && (
           <FormField label="Delivery Note" required hint="Required when updating delivery date">
-            <textarea rows={2} value={form.delivery_note} onChange={(e) => setField("delivery_note", e.target.value)} placeholder="Reason for delivery date change…" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all resize-none" />
+            <textarea rows={2} value={form.delivery_note} onChange={(e) => setField("delivery_note", e.target.value)} placeholder="Reason for delivery date change…" className="w-full m3-body-medium px-3 py-2.5 focus:outline-none resize-none"
+              style={{ border: `1px solid ${T.outline}`, borderRadius: T.cornerExtraSmall, backgroundColor: T.surface, color: T.onSurface }} />
             {errors.delivery_note && <FieldError msg={errors.delivery_note} />}
           </FormField>
         )}
@@ -880,8 +899,8 @@ const CancelItemModal = memo(({ isOpen, onClose, detail, onSubmit, submitting })
     const { isConfirmed } = await Swal.fire({
       title: isFullCancellation ? "Cancel All Remaining Items?" : "Confirm Cancellation",
       html: isFullCancellation
-        ? `<p class="text-sm text-slate-600 leading-relaxed">This will cancel the <strong>remaining ${maxCancellable} unit(s)</strong>.<br/><strong class="text-rose-600">This action cannot be undone.</strong></p>`
-        : `<p class="text-sm text-slate-600">Cancel <strong>${qty} unit(s)</strong> of this item?</p>`,
+        ? `<p class="text-sm m3-on-surface-variant leading-relaxed">This will cancel the <strong>remaining ${maxCancellable} unit(s)</strong>.<br/><strong class="text-rose-600">This action cannot be undone.</strong></p>`
+        : `<p class="text-sm m3-on-surface-variant">Cancel <strong>${qty} unit(s)</strong> of this item?</p>`,
       icon: "warning", showCancelButton: true,
       confirmButtonText: isFullCancellation ? "Yes, Cancel All" : "Confirm",
       cancelButtonText: "Go Back", confirmButtonColor: "#e11d48",
@@ -892,35 +911,40 @@ const CancelItemModal = memo(({ isOpen, onClose, detail, onSubmit, submitting })
   };
 
   return (
-    <ModalShell isOpen={isOpen} onClose={onClose} title="Cancel Order Item" subtitle="Partial or full item cancellation" icon={<FiXCircle size={14} />} accentClass="bg-rose-600"
+    <ModalShell isOpen={isOpen} onClose={onClose} title="Cancel Order Item" subtitle="Partial or full item cancellation" icon={<MdCancel size={20} />} accentTone="error"
       footer={
         <>
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Go Back</button>
-          <button onClick={handleSubmit} disabled={submitting || maxCancellable === 0} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-bold hover:bg-rose-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm">
-            {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Cancelling…</> : <><FiXCircle size={13} />Cancel Items</>}
+          <button onClick={onClose} className="m3-button m3-button-text m3-state-layer m3-focus flex-1">Go Back</button>
+          <button onClick={handleSubmit} disabled={submitting || maxCancellable === 0} className="m3-button m3-button-filled m3-state-layer m3-focus flex-1" style={{ backgroundColor: T.error, color: T.onError }}>
+            {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Cancelling…</> : <><MdCancel size={14} />Cancel Items</>}
           </button>
         </>
       }
     >
       {maxCancellable === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-8 text-slate-400"><FiCheckCircle size={24} className="text-emerald-500" /><p className="text-sm font-semibold text-slate-600">No units available for cancellation</p></div>
+        <div className="flex flex-col items-center gap-3 py-8 m3-on-surface-variant"><MdCheckCircle size={24} className="text-emerald-500" /><p className="text-sm font-semibold m3-on-surface-variant">No units available for cancellation</p></div>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 px-4 py-3 bg-rose-50 border border-rose-100 rounded-xl text-xs">
-            {[{ label: "Ordered", value: totalOrdered, cls: "text-slate-800" }, { label: "Delivered", value: delivered, cls: "text-emerald-600" }, { label: "Already Cancelled", value: alreadyCancelled, cls: "text-rose-600" }, { label: "Max Cancellable", value: maxCancellable, cls: "text-amber-700" }].map(({ label, value, cls }) => (
-              <div key={label}><span className="text-slate-400 font-semibold block mb-0.5">{label}</span><span className={`font-black ${cls}`}>{value}</span></div>
+            {[{ label: "Ordered", value: totalOrdered, cls: "m3-on-surface" }, { label: "Delivered", value: delivered, cls: "text-emerald-600" }, { label: "Already Cancelled", value: alreadyCancelled, cls: "text-rose-600" }, { label: "Max Cancellable", value: maxCancellable, cls: "text-amber-700" }].map(({ label, value, cls }) => (
+              <div key={label}><span className="m3-on-surface-variant font-semibold block mb-0.5">{label}</span><span className={`font-black ${cls}`}>{value}</span></div>
             ))}
           </div>
-          <label className={`flex items-start gap-3 px-4 py-3.5 rounded-xl border cursor-pointer transition-all select-none ${cancelAll ? "bg-rose-50 border-rose-200 ring-1 ring-rose-100" : "bg-white border-slate-200 hover:border-rose-200 hover:bg-rose-50/30"}`}>
-            <div className={`relative mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${cancelAll ? "bg-rose-600 border-rose-600" : "border-slate-300 bg-white"}`}>
-              {cancelAll && <FiCheck size={11} className="text-white" strokeWidth={3} />}
+          <label className={`flex items-start gap-3 px-4 py-3.5 rounded-xl border cursor-pointer transition-all select-none ${cancelAll ? "bg-rose-50 border-rose-200 ring-1 ring-rose-100" : "m3-surface-bg m3-outline-variant-border hover:border-rose-200 hover:bg-rose-50/30"}`}>
+            <div className="relative mt-0.5 w-5 h-5 border-2 flex items-center justify-center flex-shrink-0 transition-all"
+              style={{
+                borderRadius: "2px",
+                backgroundColor: cancelAll ? T.error : "transparent",
+                borderColor: cancelAll ? T.error : T.outline,
+              }}>
+              {cancelAll && <MdCheck size={14} className="text-white" strokeWidth={3} />}
               <input type="checkbox" checked={cancelAll} onChange={(e) => setCancelAll(e.target.checked)} className="sr-only" />
             </div>
             <div className="flex-1">
-              <span className={`text-sm font-bold block ${cancelAll ? "text-rose-700" : "text-slate-700"}`}>Cancel All Items</span>
-              <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Auto-set quantity to remaining balance ({maxCancellable})</span>
+              <span className={`text-sm font-bold block ${cancelAll ? "text-rose-700" : "m3-on-surface"}`}>Cancel All Items</span>
+              <span className="text-[10px] m3-on-surface-variant font-medium block mt-0.5">Auto-set quantity to remaining balance ({maxCancellable})</span>
             </div>
-            {cancelAll && <FiAlertTriangle size={14} className="text-rose-500 mt-0.5 flex-shrink-0" />}
+            {cancelAll && <MdWarningAmber size={14} className="text-rose-500 mt-0.5 flex-shrink-0" />}
           </label>
           <FormField label={`Cancelled Quantity (Max: ${maxCancellable})`} required>
             <EditInput type="number" min={1} max={maxCancellable} value={cancelQty} disabled={cancelAll} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); setCancelQty(v); setErrors((p) => ({ ...p, cancelQty: undefined })); }} onKeyDown={(e) => { if (["e","E","+","-","."].includes(e.key)) e.preventDefault(); }} placeholder={cancelAll ? `${maxCancellable} (auto-filled)` : `1 – ${maxCancellable}`} />
@@ -928,10 +952,11 @@ const CancelItemModal = memo(({ isOpen, onClose, detail, onSubmit, submitting })
             {errors.cancelQty && <FieldError msg={errors.cancelQty} />}
           </FormField>
           {Number(cancelQty) === maxCancellable && maxCancellable > 0 && (
-            <div className="flex items-start gap-2.5 px-3 py-3 bg-rose-50 border border-rose-200 rounded-xl"><FiAlertTriangle size={14} className="text-rose-500 flex-shrink-0 mt-0.5" /><p className="text-xs font-semibold text-rose-700">This will fully cancel the remaining balance for this item.</p></div>
+            <div className="flex items-start gap-2.5 px-3 py-3 bg-rose-50 border border-rose-200 rounded-xl"><MdWarningAmber size={14} className="text-rose-500 flex-shrink-0 mt-0.5" /><p className="text-xs font-semibold text-rose-700">This will fully cancel the remaining balance for this item.</p></div>
           )}
           <FormField label="Reason for Cancellation" required>
-            <textarea rows={3} value={reason} onChange={(e) => { setReason(e.target.value); setErrors((p) => ({ ...p, reason: undefined })); }} placeholder="Explain the reason for cancellation…" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 transition-all resize-none" />
+            <textarea rows={3} value={reason} onChange={(e) => { setReason(e.target.value); setErrors((p) => ({ ...p, reason: undefined })); }} placeholder="Explain the reason for cancellation…" className="w-full m3-body-medium px-3 py-2.5 focus:outline-none resize-none"
+              style={{ border: `1px solid ${T.outline}`, borderRadius: T.cornerExtraSmall, backgroundColor: T.surface, color: T.onSurface }} />
             {errors.reason && <FieldError msg={errors.reason} />}
           </FormField>
         </div>
@@ -989,32 +1014,32 @@ const OrderStatusModal = memo(({ isOpen, onClose, order, onSubmit, submitting, r
   };
 
   return (
-    <ModalShell isOpen={isOpen} onClose={onClose} title="Update Order Status & Priority" subtitle="Change workflow state and urgency" icon={<FiActivity size={14} />} accentClass="bg-blue-600"
+    <ModalShell isOpen={isOpen} onClose={onClose} title="Update Order Status & Priority" subtitle="Change workflow state and urgency" icon={<MdOutlineInsights size={20} />} accentTone="primary"
       footer={
         <>
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting || !hasChanges} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm">
-            {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</> : <><FiSave size={13} />Apply Changes</>}
+          <button onClick={onClose} className="m3-button m3-button-text m3-state-layer m3-focus flex-1">Cancel</button>
+          <button onClick={handleSubmit} disabled={submitting || !hasChanges} className="m3-button m3-button-filled m3-state-layer m3-focus flex-1">
+            {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</> : <><MdSave size={14} />Apply Changes</>}
           </button>
         </>
       }
     >
       <div className="space-y-5">
-        <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl">
+        <div className="flex items-center gap-3 px-4 py-3 m3-surface-container-low-bg border m3-outline-variant-border rounded-xl">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">Current Status</p>
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(order?.status)}`}>{order?.status || "—"}</span>
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant mb-1">Current Status</p>
+            <StatusChip status={String(order?.status || "").toUpperCase()} />
           </div>
           {isStatusChanged && (
-            <><FiArrowRight size={14} className="text-slate-300 mx-1" /><div><p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">New Status</p><span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(selectedStatus)}`}>{selectedStatus}</span></div></>
+            <><MdArrowForward size={14} className="m3-on-surface-variant mx-1" /><div><p className="text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant mb-1">New Status</p><StatusChip status={String(selectedStatus || "").toUpperCase()} /></div></>
           )}
         </div>
         <div className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Order Status</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant">Order Status</p>
           {statusOptions.length > 0 ? (
             <div className="space-y-2">{statusOptions.map((opt) => <StatusRadioRow key={opt.value} option={opt} isSelected={selectedStatus === opt.value} isDisabled={false} onChange={setSelectedStatus} />)}</div>
           ) : (
-            <p className="text-xs text-slate-400 font-medium italic px-1">No further status transitions available for your role.</p>
+            <p className="text-xs m3-on-surface-variant font-medium italic px-1">No further status transitions available for your role.</p>
           )}
         </div>
         <ModalDivider label="Priority" />
@@ -1056,12 +1081,12 @@ const OrderDeliveryModal = memo(({ isOpen, onClose, order, onSubmit, submitting 
   };
 
   return (
-    <ModalShell isOpen={isOpen} onClose={onClose} title="Update Delivery Schedule" subtitle="Promised delivery date and notes" icon={<FiCalendar size={14} />} accentClass="bg-teal-600"
+    <ModalShell isOpen={isOpen} onClose={onClose} title="Update Delivery Schedule" subtitle="Promised delivery date and notes" icon={<MdCalendarMonth size={20} />} accentTone="secondary"
       footer={
         <>
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
-          <button onClick={() => validate() && onSubmit(form)} disabled={submitting} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold hover:bg-teal-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm">
-            {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</> : <><FiSave size={13} />Update Schedule</>}
+          <button onClick={onClose} className="m3-button m3-button-text m3-state-layer m3-focus flex-1">Cancel</button>
+          <button onClick={() => validate() && onSubmit(form)} disabled={submitting} className="m3-button m3-button-tonal m3-state-layer m3-focus flex-1">
+            {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</> : <><MdSave size={14} />Update Schedule</>}
           </button>
         </>
       }
@@ -1069,7 +1094,8 @@ const OrderDeliveryModal = memo(({ isOpen, onClose, order, onSubmit, submitting 
       <div className="space-y-4">
         <FormField label="Promised Delivery Date" required><EditInput type="datetime-local" value={form.promised_delivery_date} onChange={(e) => setField("promised_delivery_date", e.target.value)} />{errors.promised_delivery_date && <FieldError msg={errors.promised_delivery_date} />}</FormField>
         <FormField label="Delivery Note" required={isDateChanged} hint={isDateChanged ? "Required when changing delivery date" : "Optional"}>
-          <textarea rows={3} value={form.delivery_note} onChange={(e) => setField("delivery_note", e.target.value)} placeholder="Notes about delivery schedule change…" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-400 transition-all resize-none" />
+          <textarea rows={3} value={form.delivery_note} onChange={(e) => setField("delivery_note", e.target.value)} placeholder="Notes about delivery schedule change…" className="w-full m3-body-medium px-3 py-2.5 focus:outline-none resize-none"
+              style={{ border: `1px solid ${T.outline}`, borderRadius: T.cornerExtraSmall, backgroundColor: T.surface, color: T.onSurface }} />
           {errors.delivery_note && <FieldError msg={errors.delivery_note} />}
         </FormField>
       </div>
@@ -1103,29 +1129,29 @@ const AddPaymentModal = memo(({ isOpen, onClose, order, onSubmit, submitting }) 
   };
 
   return (
-    <ModalShell isOpen={isOpen} onClose={onClose} title="Add Payment" subtitle="Record a payment against this order" icon={<FiCreditCard size={14} />} accentClass="bg-emerald-600"
+    <ModalShell isOpen={isOpen} onClose={onClose} title="Add Payment" subtitle="Record a payment against this order" icon={<MdCreditCard size={20} />} accentTone="success"
       footer={
         <>
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">Cancel</button>
-          <button onClick={() => validate() && onSubmit(form)} disabled={submitting || maxPayable === 0} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 shadow-sm">
-            {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Recording…</> : <><FiPlus size={13} />Add Payment</>}
+          <button onClick={onClose} className="m3-button m3-button-text m3-state-layer m3-focus flex-1">Cancel</button>
+          <button onClick={() => validate() && onSubmit(form)} disabled={submitting || maxPayable === 0} className="m3-button m3-button-filled m3-state-layer m3-focus flex-1" style={{ backgroundColor: T.success, color: T.onPrimary }}>
+            {submitting ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Recording…</> : <><MdAdd size={14} />Add Payment</>}
           </button>
         </>
       }
     >
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-3 px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-xl text-xs">
-          {[{ label: "Order Total", value: formatCurrency(totalAmount), cls: "text-slate-800" }, { label: "Paid", value: formatCurrency(amountAlreadyPaid), cls: "text-emerald-600" }, { label: "Balance", value: formatCurrency(maxPayable), cls: "text-rose-600" }].map(({ label, value, cls }) => (
-            <div key={label}><span className="text-slate-400 font-semibold block mb-0.5">{label}</span><span className={`font-black ${cls}`}>{value}</span></div>
+          {[{ label: "Order Total", value: formatCurrency(totalAmount), cls: "m3-on-surface" }, { label: "Paid", value: formatCurrency(amountAlreadyPaid), cls: "text-emerald-600" }, { label: "Balance", value: formatCurrency(maxPayable), cls: "text-rose-600" }].map(({ label, value, cls }) => (
+            <div key={label}><span className="m3-on-surface-variant font-semibold block mb-0.5">{label}</span><span className={`font-black ${cls}`}>{value}</span></div>
           ))}
         </div>
         {maxPayable === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-6 text-slate-400"><FiCheckCircle size={24} className="text-emerald-500" /><p className="text-sm font-semibold text-slate-600">Order is fully paid</p></div>
+          <div className="flex flex-col items-center gap-3 py-6 m3-on-surface-variant"><MdCheckCircle size={24} className="text-emerald-500" /><p className="text-sm font-semibold m3-on-surface-variant">Order is fully paid</p></div>
         ) : (
           <>
             <FormField label="Payment Method" required><CustomSelect name="payment_method" value={form.payment_method} onChange={(e) => setField("payment_method", e.target.value)} options={PAYMENT_METHOD_OPTIONS} />{errors.payment_method && <FieldError msg={errors.payment_method} />}</FormField>
             <FormField label="Amount" required hint={`Max: ${formatCurrency(maxPayable)}`}>
-              <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400 pointer-events-none">₹</span><EditInput type="number" min={1} max={maxPayable} value={form.amount_paid} onChange={(e) => setField("amount_paid", e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))} onKeyDown={(e) => { if (["e","E","+","-"].includes(e.key)) e.preventDefault(); }} className="pl-7" placeholder="0.00" /></div>
+              <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold m3-on-surface-variant pointer-events-none">₹</span><EditInput type="number" min={1} max={maxPayable} value={form.amount_paid} onChange={(e) => setField("amount_paid", e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"))} onKeyDown={(e) => { if (["e","E","+","-"].includes(e.key)) e.preventDefault(); }} className="pl-7" placeholder="0.00" /></div>
               {errors.amount_paid && <FieldError msg={errors.amount_paid} />}
               <button type="button" onClick={() => setForm((p) => ({ ...p, amount_paid: String(maxPayable) }))} className="text-[10px] font-bold text-emerald-600 hover:text-emerald-800 transition-colors mt-1">Pay full balance ({formatCurrency(maxPayable)})</button>
             </FormField>
@@ -1156,12 +1182,12 @@ const FinancialSummary = memo(({ order, onAddPayment, canViewPrice, canAddPaymen
   }[order?.payment_status] || "bg-rose-50 text-rose-600 border-rose-200";
 
   return (
-    <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="h-0.5 bg-gradient-to-r from-blue-400 via-amber-400 to-blue-400" />
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+    <section className="m3-surface-bg rounded-2xl border m3-outline-variant-border shadow-sm overflow-hidden">
+      <div className="h-0.5" style={{ backgroundColor: T.primary }} />
+      <div className="flex items-center justify-between px-6 py-4 border-b m3-outline-variant-border">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100"><FiBarChart2 size={14} /></div>
-          <div><h2 className="text-sm font-bold text-slate-800">Bill Breakdown</h2><p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">Financial Overview</p></div>
+          <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100"><MdBarChart size={14} /></div>
+          <div><h2 className="text-sm font-bold m3-on-surface">Bill Breakdown</h2><p className="text-[9px] font-black uppercase tracking-[0.12em] m3-on-surface-variant mt-0.5">Financial Overview</p></div>
         </div>
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${paymentStatusStyle}`}>
@@ -1169,21 +1195,21 @@ const FinancialSummary = memo(({ order, onAddPayment, canViewPrice, canAddPaymen
             {order?.payment_status}
           </span>
           {!isPaid && canAddPayment && (
-            <button onClick={onAddPayment} disabled={submitting} className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-sm shadow-emerald-200 disabled:opacity-50">
-              <FiPlus size={12} />Add Payment
+            <button onClick={onAddPayment} disabled={submitting} className="m3-button m3-button-filled m3-button-with-icon m3-state-layer m3-focus" style={{ height: 36, backgroundColor: T.success, color: T.onPrimary }}>
+              <MdAdd size={14} />Add Payment
             </button>
           )}
         </div>
       </div>
       <div className="px-6 py-5">
-        <div className="max-w-md ml-auto space-y-0 divide-y divide-slate-50">
-          <div className="flex justify-between items-center py-3"><span className="flex items-center gap-2 text-sm text-slate-500 font-medium"><span className="w-4 h-4 rounded-md bg-slate-100 flex items-center justify-center"><FiLayers size={9} className="text-slate-400" /></span>Gross Total</span><span className="text-sm font-bold text-slate-700">{formatCurrency(grossAmount)}</span></div>
-          {discountAmount > 0 && <div className="flex justify-between items-center py-3"><span className="flex items-center gap-2 text-sm text-slate-500 font-medium"><span className="w-4 h-4 rounded-md bg-rose-50 flex items-center justify-center"><FiTrendingDown size={9} className="text-rose-400" /></span>Savings</span><span className="text-sm font-bold text-rose-500">− {formatCurrency(discountAmount)}</span></div>}
-          <div className="py-3"><div className="flex justify-between items-baseline"><span className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">You Pay</span><span className="text-2xl font-black text-slate-900 tabular-nums">{formatCurrency(totalAmount)}</span></div></div>
-          {amountReceived > 0 && <div className="flex justify-between items-center py-3"><span className="flex items-center gap-2 text-sm text-slate-500 font-medium"><span className="w-4 h-4 rounded-md bg-blue-50 flex items-center justify-center"><FiCreditCard size={9} className="text-blue-400" /></span>Total Paid</span><span className="text-sm font-bold text-blue-600">{formatCurrency(amountReceived)}</span></div>}
+        <div className="max-w-md ml-auto space-y-0 divide-y m3-divide-outline-variant">
+          <div className="flex justify-between items-center py-3"><span className="flex items-center gap-2 text-sm m3-on-surface-variant font-medium"><span className="w-4 h-4 rounded-md m3-surface-container-high-bg flex items-center justify-center"><MdLayers size={14} className="m3-on-surface-variant" /></span>Gross Total</span><span className="text-sm font-bold m3-on-surface">{formatCurrency(grossAmount)}</span></div>
+          {discountAmount > 0 && <div className="flex justify-between items-center py-3"><span className="flex items-center gap-2 text-sm m3-on-surface-variant font-medium"><span className="w-4 h-4 rounded-md bg-rose-50 flex items-center justify-center"><MdTrendingDown size={14} className="text-rose-400" /></span>Savings</span><span className="text-sm font-bold text-rose-500">− {formatCurrency(discountAmount)}</span></div>}
+          <div className="py-3"><div className="flex justify-between items-baseline"><span className="text-xs font-black uppercase tracking-[0.1em] m3-on-surface-variant">You Pay</span><span className="text-2xl font-black m3-on-surface tabular-nums">{formatCurrency(totalAmount)}</span></div></div>
+          {amountReceived > 0 && <div className="flex justify-between items-center py-3"><span className="flex items-center gap-2 text-sm m3-on-surface-variant font-medium"><span className="w-4 h-4 rounded-md bg-blue-50 flex items-center justify-center"><MdCreditCard size={14} className="text-blue-400" /></span>Total Paid</span><span className="text-sm font-bold text-blue-600">{formatCurrency(amountReceived)}</span></div>}
           <div className="pt-3">
             <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl border ${isPaid ? "bg-emerald-50/80 border-emerald-200" : "bg-rose-50/80 border-rose-200"}`}>
-              <div><p className={`text-[10px] font-black uppercase tracking-[0.1em] ${isPaid ? "text-emerald-600" : "text-rose-500"}`}>{isPaid ? "Fully Paid" : "Balance Due"}</p><p className="text-[10px] text-slate-500 font-medium mt-0.5">{isPaid ? "No dues remaining" : "To be collected"}</p></div>
+              <div><p className={`text-[10px] font-black uppercase tracking-[0.1em] ${isPaid ? "text-emerald-600" : "text-rose-500"}`}>{isPaid ? "Fully Paid" : "Balance Due"}</p><p className="text-[10px] m3-on-surface-variant font-medium mt-0.5">{isPaid ? "No dues remaining" : "To be collected"}</p></div>
               <span className={`text-xl font-black tabular-nums ${isPaid ? "text-emerald-600" : "text-rose-600"}`}>{formatCurrency(Math.abs(outstandingBalance))}</span>
             </div>
           </div>
@@ -1200,14 +1226,14 @@ const FinancialSummary = memo(({ order, onAddPayment, canViewPrice, canAddPaymen
 const PriceCard = memo(({ label, value, note, strikethrough, variant = "default" }) => {
   const isSuccess = variant === "success";
   return (
-    <div className={`relative overflow-hidden rounded-xl border p-4 hover:shadow-sm transition-all ${isSuccess ? "bg-emerald-50 border-emerald-200 hover:border-emerald-300" : "bg-white border-slate-200 hover:border-slate-300"}`}>
+    <div className={`relative overflow-hidden rounded-xl border p-4 hover:shadow-sm transition-all ${isSuccess ? "bg-emerald-50 border-emerald-200 hover:border-emerald-300" : "m3-surface-bg m3-outline-variant-border hover:m3-outline-border"}`}>
       <div className={`absolute top-0 inset-x-0 h-0.5 rounded-t-xl ${isSuccess ? "bg-emerald-500" : "bg-blue-500"}`} />
-      <p className={`text-[10px] font-black uppercase tracking-[0.12em] mb-2 ${isSuccess ? "text-emerald-700" : "text-slate-400"}`}>{label}</p>
+      <p className={`text-[10px] font-black uppercase tracking-[0.12em] mb-2 ${isSuccess ? "text-emerald-700" : "m3-on-surface-variant"}`}>{label}</p>
       <div className="flex items-baseline gap-2">
-        <p className={`text-lg font-black tabular-nums ${isSuccess ? "text-emerald-700" : "text-slate-900"}`}>{value}</p>
-        {strikethrough && <span className="text-xs text-slate-400 line-through tabular-nums">{strikethrough}</span>}
+        <p className={`text-lg font-black tabular-nums ${isSuccess ? "text-emerald-700" : "m3-on-surface"}`}>{value}</p>
+        {strikethrough && <span className="text-xs m3-on-surface-variant line-through tabular-nums">{strikethrough}</span>}
       </div>
-      {note && <p className={`text-[10px] font-medium mt-1 ${isSuccess ? "text-emerald-600" : "text-slate-400"}`}>{note}</p>}
+      {note && <p className={`text-[10px] font-medium mt-1 ${isSuccess ? "text-emerald-600" : "m3-on-surface-variant"}`}>{note}</p>}
     </div>
   );
 });
@@ -1249,34 +1275,34 @@ const OrderItemCard = memo(({
     canShowItemStatus && {
       key: "status",
       label: "Update Item Status",
-      icon: <FiFlag size={11} />,
+      icon: <MdFlag size={14} />,
       colorClass: "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100",
       onClick: () => onItemStatusUpdate(index, d),
     },
     canShowDeliveryUpdate && {
       key: "delivery",
       label: "Update Delivery",
-      icon: <FiTruck size={11} />,
+      icon: <MdLocalShipping size={14} />,
       colorClass: "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100",
       onClick: () => onDeliveryUpdate(index, d),
     },
     canCancelItem && {
       key: "cancel",
       label: "Cancel Item",
-      icon: <FiXCircle size={11} />,
+      icon: <MdCancel size={14} />,
       colorClass: "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100",
       onClick: () => onCancelItem(index, d),
     },
   ].filter(Boolean);
 
   return (
-    <div className={`bg-white border rounded-2xl overflow-hidden shadow-sm transition-all duration-200 ${isLocked ? "border-slate-200 opacity-80" : "border-slate-200 hover:border-blue-200 hover:shadow-md"}`}>
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+    <div className={`m3-surface-bg border rounded-2xl overflow-hidden shadow-sm transition-all duration-200 ${isLocked ? "m3-outline-variant-border opacity-80" : "m3-outline-variant-border hover:border-blue-200 hover:shadow-md"}`}>
+      <div className="flex items-center justify-between px-5 py-4 border-b m3-outline-variant-border m3-surface-container-low-bg">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0"><FiPackage size={14} className="text-blue-500" /></div>
+          <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0"><MdInventory size={14} className="text-blue-500" /></div>
           <div className="min-w-0">
-            <p className="font-bold text-slate-900 text-sm truncate">{capitalizeFirstLetter(d.product_name)}</p>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">{[d.product_category, d.product_brand, d.product_model].filter(Boolean).map(capitalizeFirstLetter).join(" · ")}</p>
+            <p className="font-bold m3-on-surface text-sm truncate">{capitalizeFirstLetter(d.product_name)}</p>
+            <p className="text-xs m3-on-surface-variant font-medium mt-0.5">{[d.product_category, d.product_brand, d.product_model].filter(Boolean).map(capitalizeFirstLetter).join(" · ")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 ml-3">
@@ -1284,9 +1310,9 @@ const OrderItemCard = memo(({
           {showProductionBadge ? (
             <ProductionStatusBadge status="Production" subLine={hasUnpacked ? "Ready for packing" : null} variant="detail" />
           ) : (
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(d?.status)}`}>{d?.status || "Unknown"}</span>
+            <StatusChip status={String(d?.status || "").toUpperCase()} />
           )}
-          <span className="text-[9px] font-mono text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md hidden sm:inline">{d.product_id}</span>
+          <span className="text-[9px] font-mono m3-on-surface-variant m3-surface-container-high-bg border m3-outline-variant-border px-1.5 py-0.5 rounded-md hidden sm:inline">{d.product_id}</span>
         </div>
       </div>
 
@@ -1302,10 +1328,10 @@ const OrderItemCard = memo(({
         )}
 
         {parsedDelivery && (
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5">
-            <FiCalendar size={11} className="text-slate-400" />
-            <span className="font-black text-slate-400 uppercase text-[9px] tracking-[0.1em]">Delivery Date</span>
-            <span className="ml-auto font-semibold text-slate-700">{parsedDelivery.date} · {parsedDelivery.time}</span>
+          <div className="flex items-center gap-2 text-xs m3-on-surface-variant font-medium m3-surface-container-low-bg border m3-outline-variant-border rounded-xl px-4 py-2.5">
+            <MdCalendarMonth size={14} className="m3-on-surface-variant" />
+            <span className="font-black m3-on-surface-variant uppercase text-[9px] tracking-[0.1em]">Delivery Date</span>
+            <span className="ml-auto font-semibold m3-on-surface">{parsedDelivery.date} · {parsedDelivery.time}</span>
           </div>
         )}
 
@@ -1319,8 +1345,8 @@ const OrderItemCard = memo(({
         )}
 
         {!isLocked && !isPendingOrder && actionBtns.length > 0 && (
-          <div className="border-t border-slate-100 pt-4">
-            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-3">Item Actions</p>
+          <div className="border-t m3-outline-variant-border pt-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant mb-3">Item Actions</p>
             <div className="flex flex-wrap gap-2">
               {actionBtns.map((btn) => (
                 <button key={btn.key} onClick={btn.onClick} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-bold transition-all active:scale-95 ${btn.colorClass}`}>
@@ -1332,8 +1358,8 @@ const OrderItemCard = memo(({
         )}
 
         {!isLocked && !isPendingOrder && actionBtns.length === 0 && rolePermissions && (
-          <div className="border-t border-slate-100 pt-3">
-            <p className="text-[10px] text-slate-400 font-medium italic text-center">View only — no actions available for your role</p>
+          <div className="border-t m3-outline-variant-border pt-3">
+            <p className="text-[10px] m3-on-surface-variant font-medium italic text-center">View only — no actions available for your role</p>
           </div>
         )}
       </div>
@@ -1357,24 +1383,24 @@ const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusM
 
   return (
     <div className="flex items-start sm:items-center gap-4 flex-wrap">
-      <button type="button" onClick={() => window.history.back()} className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm group flex-shrink-0">
-        <FiArrowLeft size={15} className="text-slate-400 group-hover:text-slate-700 transition-colors" />
+      <button type="button" onClick={() => window.history.back()} className="p-2 rounded-xl border m3-outline-variant-border hover:m3-surface-container-low-bg hover:m3-outline-border transition-all shadow-sm group flex-shrink-0">
+        <MdArrowBack size={15} className="m3-on-surface-variant group-hover:m3-on-surface transition-colors" />
       </button>
 
       <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-lg font-black text-slate-900 tracking-tight">Order <span className="text-blue-600 font-mono">{order?.order_number}</span></h1>
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getPriorityStyle(order?.priority)}`}>{order?.priority || "Normal"}</span>
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getOrderStatusStyle(order?.status)}`}>{order?.status || "Unknown"}</span>
+            <h1 className="text-lg font-black m3-on-surface tracking-tight">Order <span className="text-blue-600 font-mono">{order?.order_number}</span></h1>
+            <Chip tone={getPriorityTone(order?.priority)}>{order?.priority || "Normal"}</Chip>
+            <StatusChip status={String(order?.status || "").toUpperCase()} />
           </div>
-          <p className="text-xs text-slate-400 mt-1 font-medium">Created {order?.created_at ? formatDate(order.created_at) : "—"}</p>
+          <p className="text-xs m3-on-surface-variant mt-1 font-medium">Created {order?.created_at ? formatDate(order.created_at) : "—"}</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           {userCanPrint && (
-            <button type="button" onClick={onPrint} disabled={pdfLoading} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all disabled:opacity-50 shadow-sm">
-              {pdfLoading ? <><div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />Generating…</> : <><FiPrinter size={13} />Print / PDF</>}
+            <button type="button" onClick={onPrint} disabled={pdfLoading} className="m3-button m3-button-outlined m3-button-with-icon m3-state-layer m3-focus">
+              {pdfLoading ? <><span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />Generating…</> : <><MdPrint size={14} />Print / PDF</>}
             </button>
           )}
 
@@ -1382,27 +1408,27 @@ const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusM
             <>
               {/* Status & Priority: shown only when PENDING (mandatory), or when role allows + not production badge */}
               {rolePermissions?.canUpdateStatus && (isPending || !showProductionBadge) && (
-                <button onClick={openStatusModal} disabled={submitting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 disabled:opacity-50">
-                  <FiActivity size={13} />
+                <button onClick={openStatusModal} disabled={submitting} className="m3-button m3-button-filled m3-button-with-icon m3-state-layer m3-focus">
+                  <MdOutlineInsights size={14} />
                   {isPending ? "Confirm Order" : "Status & Priority"}
                 </button>
               )}
 
               {rolePermissions?.canUpdateDelivery && !isPending && (
-                <button onClick={openDelivery} disabled={submitting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 text-white text-sm font-bold rounded-xl hover:bg-teal-700 active:scale-95 transition-all shadow-sm shadow-teal-200 disabled:opacity-50">
-                  <FiCalendar size={13} />Delivery Schedule
+                <button onClick={openDelivery} disabled={submitting} className="m3-button m3-button-tonal m3-button-with-icon m3-state-layer m3-focus">
+                  <MdCalendarMonth size={14} />Delivery Schedule
                 </button>
               )}
 
               {canAddItems && (
-                <button onClick={openAddItems} disabled={submitting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-sm shadow-emerald-200 disabled:opacity-50">
-                  <FiPlus size={13} />Add Items
+                <button onClick={openAddItems} disabled={submitting} className="m3-button m3-button-filled m3-button-with-icon m3-state-layer m3-focus" style={{ backgroundColor: T.success, color: T.onPrimary }}>
+                  <MdAdd size={14} />Add Items
                 </button>
               )}
 
               {rolePermissions?.canCancelOrder && !isPending && (
-                <button onClick={openCancelOrder} disabled={submitting} className="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-600 text-white text-sm font-bold rounded-xl hover:bg-rose-700 active:scale-95 transition-all shadow-sm shadow-rose-200 disabled:opacity-50">
-                  <FiXCircle size={13} />Cancel Order
+                <button onClick={openCancelOrder} disabled={submitting} className="m3-button m3-button-filled m3-button-with-icon m3-state-layer m3-focus" style={{ backgroundColor: T.error, color: T.onError }}>
+                  <MdCancel size={14} />Cancel Order
                 </button>
               )}
             </>
@@ -1420,7 +1446,7 @@ const PageHeader = memo(({ order, userCanPrint, pdfLoading, onPrint, openStatusM
 const confirmCancelOrder = async () => {
   const { isConfirmed } = await Swal.fire({
     title: "Cancel Order",
-    html: `<p class="text-sm text-slate-600 leading-relaxed">Are you sure you want to cancel this entire order?<br/><strong class="text-rose-600">This action cannot be undone.</strong></p>`,
+    html: `<p class="text-sm m3-on-surface-variant leading-relaxed">Are you sure you want to cancel this entire order?<br/><strong class="text-rose-600">This action cannot be undone.</strong></p>`,
     icon: "warning", showCancelButton: true,
     confirmButtonText: "Yes, Cancel Order", cancelButtonText: "Go Back",
     confirmButtonColor: "#e11d48", customClass: { popup: "rounded-2xl" },
@@ -1605,20 +1631,20 @@ const OrderDetails = () => {
   if (loading) return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
       <div className="relative w-10 h-10"><div className="absolute inset-0 border-4 border-blue-100 rounded-full" /><div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
-      <p className="text-sm text-slate-400 font-medium">Loading order details…</p>
+      <p className="text-sm m3-on-surface-variant font-medium">Loading order details…</p>
     </div>
   );
 
   if (error) return (
     <div className="min-h-[40vh] flex flex-col items-center justify-center gap-3">
-      <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100"><FiAlertCircle size={24} className="text-rose-500" /></div>
+      <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100"><MdErrorOutline size={24} className="text-rose-500" /></div>
       <p className="text-sm font-semibold text-rose-600">{error}</p>
     </div>
   );
 
   if (!order) return (
     <div className="min-h-[40vh] flex items-center justify-center">
-      <p className="text-sm text-slate-400">Order not found</p>
+      <p className="text-sm m3-on-surface-variant">Order not found</p>
     </div>
   );
 
@@ -1651,26 +1677,26 @@ const OrderDetails = () => {
 
       <SectionCard title="Order Summary" subtitle="Overview">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-1">
-          <InfoCell icon={<FiCalendar />} label="Created">{formatDate(order?.created_at)}</InfoCell>
-          <InfoCell icon={<FiCalendar />} label="Updated">{formatDate(order?.updated_at)}</InfoCell>
-          <InfoCell icon={<FiTruck />} label="Promised Delivery">{formatDate(order?.promised_delivery_date)}</InfoCell>
-          <InfoCell icon={<FiCreditCard />} label="Payment Status">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide ${getPaymentStatusStyle(order?.payment_status)}`}>{order?.payment_status || "Unknown"}</span>
+          <InfoCell icon={<MdCalendarMonth />} label="Created">{formatDate(order?.created_at)}</InfoCell>
+          <InfoCell icon={<MdCalendarMonth />} label="Updated">{formatDate(order?.updated_at)}</InfoCell>
+          <InfoCell icon={<MdLocalShipping />} label="Promised Delivery">{formatDate(order?.promised_delivery_date)}</InfoCell>
+          <InfoCell icon={<MdCreditCard />} label="Payment Status">
+            <Chip tone={getPaymentStatusTone(order?.payment_status)}>{order?.payment_status || "Unknown"}</Chip>
           </InfoCell>
-          <InfoCell icon={<FiCreditCard />} label="Payment Type">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide bg-slate-50 text-slate-600 border-slate-200">{order?.payment_type || "Unknown"}</span>
+          <InfoCell icon={<MdCreditCard />} label="Payment Type">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wide m3-surface-container-low-bg m3-on-surface-variant m3-outline-variant-border">{order?.payment_type || "Unknown"}</span>
           </InfoCell>
-          <InfoCell icon={<FiUser />} label="Salesman">
-            <div className="flex flex-col"><span>{userMap[order?.salesman_id] || "Unknown"}</span>{order?.salesman_id && <span className="text-[9px] text-slate-400 font-mono font-normal mt-0.5">{order.salesman_id}</span>}</div>
+          <InfoCell icon={<MdPersonOutline />} label="Salesman">
+            <div className="flex flex-col"><span>{userMap[order?.salesman_id] || "Unknown"}</span>{order?.salesman_id && <span className="text-[9px] m3-on-surface-variant font-mono font-normal mt-0.5">{order.salesman_id}</span>}</div>
           </InfoCell>
-          <InfoCell icon={<FiUser />} label="Created By">
-            <div className="flex flex-col"><span>{formatName(userMap[order?.created_by] || order?.created_by) || "Unknown"}</span>{order?.created_by && <span className="text-[9px] text-slate-400 font-mono font-normal mt-0.5">{order.created_by}</span>}</div>
+          <InfoCell icon={<MdPersonOutline />} label="Created By">
+            <div className="flex flex-col"><span>{formatName(userMap[order?.created_by] || order?.created_by) || "Unknown"}</span>{order?.created_by && <span className="text-[9px] m3-on-surface-variant font-mono font-normal mt-0.5">{order.created_by}</span>}</div>
           </InfoCell>
         </div>
         {order?.order_note && (
-          <div className="mt-5 mx-2 pt-5 border-t border-slate-100">
-            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mb-2">Order Note</p>
-            <p className="text-sm text-slate-700 leading-relaxed bg-amber-50/60 border border-amber-100 rounded-xl px-4 py-3">{order.order_note}</p>
+          <div className="mt-5 mx-2 pt-5 border-t m3-outline-variant-border">
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] m3-on-surface-variant mb-2">Order Note</p>
+            <p className="text-sm m3-on-surface leading-relaxed bg-amber-50/60 border border-amber-100 rounded-xl px-4 py-3">{order.order_note}</p>
           </div>
         )}
       </SectionCard>
@@ -1678,13 +1704,13 @@ const OrderDetails = () => {
       {userCanViewDealerInfo && (
         <SectionCard title="Dealer Information" subtitle="Profile">
           <div className="grid sm:grid-cols-2 gap-1">
-            <InfoCell icon={<FiUser />} label="Dealer Name">{order?.dealer?.employee_name ? formatName(order.dealer.employee_name) : null}</InfoCell>
-            <InfoCell icon={<FiBox />} label="Shop Name">{order?.dealer?.shop_name ? capitalizeFirstLetter(order.dealer.shop_name) : null}</InfoCell>
+            <InfoCell icon={<MdPersonOutline />} label="Dealer Name">{order?.dealer?.employee_name ? formatName(order.dealer.employee_name) : null}</InfoCell>
+            <InfoCell icon={<MdInventory2 />} label="Shop Name">{order?.dealer?.shop_name ? capitalizeFirstLetter(order.dealer.shop_name) : null}</InfoCell>
             {userCanViewFullDealerInfo && (
               <>
-                <InfoCell icon={<FiMail />} label="Email">{order?.dealer?.employee_email}</InfoCell>
-                <InfoCell icon={<FiPhone />} label="Phone">{order?.dealer?.employee_phone}</InfoCell>
-                <InfoCell icon={<FiMapPin />} label="Address">{order?.dealer?.address ? capitalizeFirstLetter(order.dealer.address) : null}</InfoCell>
+                <InfoCell icon={<MdMailOutline />} label="Email">{order?.dealer?.employee_email}</InfoCell>
+                <InfoCell icon={<MdPhone />} label="Phone">{order?.dealer?.employee_phone}</InfoCell>
+                <InfoCell icon={<MdLocationOn />} label="Address">{order?.dealer?.address ? capitalizeFirstLetter(order.dealer.address) : null}</InfoCell>
               </>
             )}
           </div>
@@ -1693,8 +1719,8 @@ const OrderDetails = () => {
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <div><h2 className="text-sm font-bold text-slate-800 tracking-tight">Order Items</h2><p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mt-0.5">Products &amp; Details</p></div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wide"><FiPackage size={10} />{totalUnits} {totalUnits === 1 ? "Unit" : "Units"}</span>
+          <div><h2 className="text-sm font-bold m3-on-surface tracking-tight">Order Items</h2><p className="text-[9px] font-black uppercase tracking-[0.12em] m3-on-surface-variant mt-0.5">Products &amp; Details</p></div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black m3-surface-container-high-bg m3-on-surface-variant border m3-outline-variant-border uppercase tracking-wide"><MdInventory size={14} />{totalUnits} {totalUnits === 1 ? "Unit" : "Units"}</span>
         </div>
         <div className="space-y-4">
           {order.order_details?.map((d, index) => (
@@ -1727,8 +1753,8 @@ const OrderDetails = () => {
         <SectionCard title="Payment Notes" subtitle="Transaction History">
           <ul className="space-y-2">
             {order.payment_notes.map((note, index) => (
-              <li key={index} className="flex items-start gap-3 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm text-slate-700 hover:bg-slate-100/60 hover:border-slate-200 transition-all">
-                <FiChevronRight size={13} className="text-slate-400 mt-0.5 flex-shrink-0" />
+              <li key={index} className="flex items-start gap-3 m3-surface-container-low-bg border m3-outline-variant-border rounded-xl px-4 py-3 text-sm m3-on-surface hover:m3-surface-container-high-bg/60 hover:m3-outline-variant-border transition-all">
+                <MdChevronRight size={14} className="m3-on-surface-variant mt-0.5 flex-shrink-0" />
                 {capitalizeFirstLetter(note)}
               </li>
             ))}

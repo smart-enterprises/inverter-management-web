@@ -290,3 +290,26 @@
     outline: 3px solid var(--md-sys-color-primary);
     outline-offset: 2px;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   TOKEN UTILITIES
+   Class equivalents of the common role lookups, for markup that
+   is easier to read as classes than as inline style objects.
+   ───────────────────────────────────────────────────────────── */
+.m3-on-surface { color: var(--md-sys-color-on-surface); }
+.m3-on-surface-variant { color: var(--md-sys-color-on-surface-variant); }
+.m3-primary-text { color: var(--md-sys-color-primary); }
+.m3-error-text { color: var(--md-sys-color-error); }
+.m3-success-text { color: var(--md-sys-color-success); }
+.m3-warning-text { color: var(--md-sys-color-warning); }
+
+.m3-surface-bg { background-color: var(--md-sys-color-surface); }
+.m3-surface-container-low-bg { background-color: var(--md-sys-color-surface-container-low); }
+.m3-surface-container-bg { background-color: var(--md-sys-color-surface-container); }
+.m3-surface-container-high-bg { background-color: var(--md-sys-color-surface-container-high); }
+
+.m3-outline-border { border-color: var(--md-sys-color-outline); }
+.m3-outline-variant-border { border-color: var(--md-sys-color-outline-variant); }
+.m3-divide-outline-variant > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--md-sys-color-outline-variant);
+}
