@@ -1,3 +1,6 @@
+import { StatusChip as M3StatusChip } from "./m3";
+import { T } from "./m3/tokens";
+
 const PackageReadyIcon = ({ size = 12, color }) => (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
         <path d="M2.5 4.5L8 2L13.5 4.5V11.5L8 14L2.5 11.5V4.5Z" stroke={color} strokeWidth="1.3" strokeLinejoin="round" fill="none" />
@@ -31,26 +34,11 @@ const DeliveryCheckIcon = ({ size = 12, color }) => (
     </svg>
 );
 
-const StatusBadge = ({ status }) => {
-    const map = {
-        PENDING: "bg-amber-50 text-amber-700 border-amber-200",
-        CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
-        PRODUCTION: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
-        PACKED: "bg-teal-50 text-teal-700 border-teal-200",
-        INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
-        SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
-        DELIVERED: "bg-green-50 text-green-700 border-green-200",
-        COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
-        REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
-    };
-    const key = status?.toUpperCase();
-    return (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
-            {status}
-        </span>
-    );
-};
+/* The order-status palette lives in the M3 kit, so this badge and the
+   plain chips on Orders/Dashboard can never drift apart. */
+const StatusBadge = ({ status }) => (
+    <M3StatusChip status={status?.toUpperCase()} />
+);
 
 const ICON_MAP = {
     package: PackageReadyIcon,
@@ -59,19 +47,12 @@ const ICON_MAP = {
     delivery: DeliveryCheckIcon,
 };
 
+/* Sub-line tones map onto the M3 roles. The icons are drawn with
+   currentColor so they follow the text rather than a second palette. */
 const TONE_MAP = {
-    amber: {
-        detail: { wrapper: "bg-amber-50 text-amber-900", iconColor: "#92400e" },
-        table: { text: "text-amber-700", iconColor: "#b45309" },
-    },
-    green: {
-        detail: { wrapper: "bg-emerald-50 text-emerald-900", iconColor: "#065f46" },
-        table: { text: "text-emerald-700", iconColor: "#047857" },
-    },
-    fuchsia: {
-        detail: { wrapper: "bg-fuchsia-50 text-fuchsia-900", iconColor: "#86198f" },
-        table: { text: "text-fuchsia-700", iconColor: "#a21caf" },
-    },
+    amber: { container: T.warningContainer, onContainer: T.onWarningContainer, text: T.warning },
+    green: { container: T.successContainer, onContainer: T.onSuccessContainer, text: T.success },
+    fuchsia: { container: T.tertiaryContainer, onContainer: T.onTertiaryContainer, text: T.tertiary },
 };
 
 const SubLine = ({ text, icon = "package", tone = "amber", variant = "table" }) => {
@@ -79,15 +60,22 @@ const SubLine = ({ text, icon = "package", tone = "amber", variant = "table" }) 
     const t = TONE_MAP[tone] || TONE_MAP.amber;
     if (variant === "detail") {
         return (
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium ${t.detail.wrapper}`}>
-                <Icon size={12} color={t.detail.iconColor} />
+            <span
+                className="inline-flex items-center gap-1.5 px-3 py-1 m3-body-small"
+                style={{
+                    backgroundColor: t.container,
+                    color: t.onContainer,
+                    borderRadius: T.cornerSmall,
+                }}
+            >
+                <Icon size={12} color="currentColor" />
                 {text}
             </span>
         );
     }
     return (
-        <span className={`inline-flex items-center gap-1 text-xs font-medium pl-0.5 ${t.table.text}`}>
-            <Icon size={11} color={t.table.iconColor} />
+        <span className="inline-flex items-center gap-1 m3-body-small pl-0.5" style={{ color: t.text }}>
+            <Icon size={12} color="currentColor" />
             {text}
         </span>
     );

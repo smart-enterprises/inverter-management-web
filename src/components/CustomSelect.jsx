@@ -1,6 +1,7 @@
-// customSelect.jsx
+// CustomSelect.jsx — Material Design 3
 import React, { useState, useEffect, useRef } from 'react';
-import { FiChevronDown, FiSearch } from 'react-icons/fi';
+import { MdExpandMore, MdSearch } from 'react-icons/md';
+import { T } from './m3/tokens';
 
 /* ── inject scrollbar styles once ── */
 if (typeof document !== 'undefined' && !document.getElementById('cs-scroll-styles')) {
@@ -9,9 +10,9 @@ if (typeof document !== 'undefined' && !document.getElementById('cs-scroll-style
   s.textContent = `
     .cs-scroll::-webkit-scrollbar { width: 4px; }
     .cs-scroll::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
-    .cs-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 8px; }
-    .cs-scroll::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
-    .cs-scroll { scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
+    .cs-scroll::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline-variant); border-radius: 8px; }
+    .cs-scroll::-webkit-scrollbar-thumb:hover { background: var(--md-sys-color-outline); }
+    .cs-scroll { scrollbar-width: thin; scrollbar-color: var(--md-sys-color-outline-variant) transparent; }
   `;
   document.head.appendChild(s);
 }
@@ -125,20 +126,20 @@ const CustomSelect = ({
           isOpen ? (setIsOpen(false), setSearchQuery('')) : openPanel();
         }}
         disabled={disabled}
-        className={`w-full px-4 py-2.5 bg-white border rounded-lg text-left text-sm flex items-center justify-between transition-all ${disabled
-          ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-200'
-          : isOpen
-            ? 'border-[#3B82F6] ring-2 ring-[#3B82F6]/20 outline-none'
-            : 'border-gray-200 hover:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20'
-          }`}
+        className={`w-full px-4 h-11 text-left m3-body-medium flex items-center justify-between focus:outline-none ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        style={{
+          border: `1px solid ${isOpen ? T.primary : T.outline}`,
+          borderRadius: T.cornerExtraSmall,
+          backgroundColor: T.surface,
+        }}
       >
-        <span className={value ? 'text-gray-900' : 'text-gray-400 text-sm'}>
+        <span style={{ color: value ? T.onSurface : T.onSurfaceVariant }}>
           {selectedLabel}
         </span>
-        <FiChevronDown
-          size={14}
-          className={`text-gray-400 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
-            }`}
+        <MdExpandMore
+          size={20}
+          className={`flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          style={{ color: T.onSurfaceVariant }}
         />
       </button>
 
@@ -146,16 +147,22 @@ const CustomSelect = ({
       {isOpen && !disabled && (
         <div
           ref={panelRef}
-          style={panelStyle}
-          className="bg-white border border-gray-200 rounded-xl shadow-[0_16px_48px_-8px_rgba(0,0,0,0.14)] overflow-hidden"
+          style={{
+            ...panelStyle,
+            backgroundColor: 'var(--md-sys-color-surface-container)',
+            borderRadius: T.cornerSmall,
+            boxShadow: T.elevation2,
+          }}
+          className="overflow-hidden"
         >
           {/* Search */}
           {searchable && (
-            <div className="px-2.5 pt-2.5 pb-2 border-b border-gray-100">
+            <div className="px-2.5 pt-2.5 pb-2" style={{ borderBottom: `1px solid ${T.outlineVariant}` }}>
               <div className="relative">
-                <FiSearch
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={13}
+                <MdSearch
+                  className="absolute left-3 top-1/2 -translate-y-1/2"
+                  size={18}
+                  style={{ color: T.onSurfaceVariant }}
                 />
                 <input
                   ref={searchRef}
@@ -163,7 +170,12 @@ const CustomSelect = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search..."
-                  className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#3B82F6]/40 focus:border-[#3B82F6] placeholder-gray-300"
+                  className="w-full pl-10 pr-3 h-10 m3-body-medium focus:outline-none"
+                  style={{
+                    backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                    borderRadius: T.cornerFull,
+                    color: T.onSurface,
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>
@@ -179,7 +191,13 @@ const CustomSelect = ({
               isGrouped ? (
                 filteredOptions.map((group, groupIndex) => (
                   <div key={group.group || groupIndex}>
-                    <div className="px-4 py-1.5 text-[9px] font-black text-gray-400 uppercase tracking-[0.14em] bg-gray-50 sticky top-0 whitespace-nowrap border-b border-gray-100">
+                    <div
+                      className="px-4 py-2 m3-label-medium sticky top-0 whitespace-nowrap"
+                      style={{
+                        color: T.onSurfaceVariant,
+                        backgroundColor: 'var(--md-sys-color-surface-container-high)',
+                      }}
+                    >
                       {group.group || group.label}
                     </div>
                     {(group.options || []).map((option) => {
@@ -193,14 +211,15 @@ const CustomSelect = ({
                             setIsOpen(false);
                             setSearchQuery('');
                           }}
-                          className={`w-full px-6 py-2.5 text-sm text-left transition-colors border-b border-gray-50 last:border-0 ${value === getOptionValue(option)
-                            ? 'bg-[#3B82F6]/8 text-[#3B82F6] font-semibold'
-                            : 'text-gray-700 hover:bg-gray-50'
-                            }`}
+                          className="w-full px-6 py-2.5 text-left m3-body-large m3-state-layer"
+                          style={{
+                            backgroundColor: value === getOptionValue(option) ? T.secondaryContainer : 'transparent',
+                            color: value === getOptionValue(option) ? T.onSecondaryContainer : T.onSurface,
+                          }}
                         >
                           <div>{getOptionLabel(option)}</div>
                           {sub && (
-                            <div className="text-[11px] text-gray-400 font-normal mt-0.5">{sub}</div>
+                            <div className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>{sub}</div>
                           )}
                         </button>
                       );
@@ -219,21 +238,22 @@ const CustomSelect = ({
                         setIsOpen(false);
                         setSearchQuery('');
                       }}
-                      className={`w-full px-4 py-2.5 text-sm text-left transition-colors border-b border-gray-50 last:border-0 ${value === getOptionValue(option)
-                        ? 'bg-[#3B82F6]/10 text-[#3B82F6] font-semibold'
-                        : 'text-gray-700 hover:bg-gray-50'
-                        }`}
+                      className="w-full px-4 py-2.5 text-left m3-body-large m3-state-layer"
+                      style={{
+                        backgroundColor: value === getOptionValue(option) ? T.secondaryContainer : 'transparent',
+                        color: value === getOptionValue(option) ? T.onSecondaryContainer : T.onSurface,
+                      }}
                     >
                       <div>{getOptionLabel(option)}</div>
                       {sub && (
-                        <div className="text-[11px] text-gray-400 font-normal mt-0.5">{sub}</div>
+                        <div className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>{sub}</div>
                       )}
                     </button>
                   );
                 })
               )
             ) : (
-              <div className="px-4 py-6 text-sm text-gray-400 text-center font-medium">
+              <div className="px-4 py-6 m3-body-medium text-center" style={{ color: T.onSurfaceVariant }}>
                 No options found
               </div>
             )}

@@ -609,13 +609,15 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
-    border-radius: 10px;
-    border: 1px solid #dbeafe;
-    background: #eff6ff;
-    color: #1d4ed8;
-    font-size: 0.75rem;
-    font-weight: 700;
+    padding: 6px 16px;
+    height: 32px;
+    border-radius: var(--md-sys-shape-corner-full);
+    border: none;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.1px;
     font-family: var(--font-body);
     cursor: pointer;
     transition: background var(--duration-fast) var(--ease-default),
@@ -625,8 +627,7 @@ body {
 }
 
 .nb-quick-btn:hover {
-    background: #dbeafe;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18);
+    filter: brightness(0.96);
 }
 
 .nb-quick-btn:active {

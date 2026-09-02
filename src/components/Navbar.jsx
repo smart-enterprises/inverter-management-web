@@ -1,35 +1,36 @@
 // src/components/Navbar.jsx
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
-  FiBell,
-  FiLogOut,
-  FiChevronDown,
-  FiShield,
-  FiSettings,
-  FiUser,
-  FiHash,
-  FiUploadCloud,
-  FiLock,
-} from "react-icons/fi";
+  MdLogout,
+  MdExpandMore,
+  MdShield,
+  MdSettings,
+  MdPersonOutline,
+  MdTag,
+  MdCloudUpload,
+  MdLockOutline,
+} from "react-icons/md";
+import { T, CHIP_TONES } from "./m3/tokens";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getRoleLabel, ROLES } from "../utils/roles";
 import ChangePasswordModal from "./Changepasswordmodal";
 import NotificationBell from "./NotificationBell";
 
-const ROLE_ACCENTS = {
-  [ROLES.SUPER_ADMIN]: { badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", avatarFrom: "#3b82f6", avatarTo: "#1d4ed8", glow: "rgba(59,130,246,0.35)" },
-  [ROLES.ADMIN]: { badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", avatarFrom: "#3b82f6", avatarTo: "#1d4ed8", glow: "rgba(59,130,246,0.35)" },
-  [ROLES.MANAGER]: { badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", avatarFrom: "#f97316", avatarTo: "#c2410c", glow: "rgba(249,115,22,0.35)" },
-  [ROLES.SALESMAN]: { badge: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", avatarFrom: "#10b981", avatarTo: "#059669", glow: "rgba(16,185,129,0.35)" },
-  [ROLES.PRODUCTION]: { badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500", avatarFrom: "#f97316", avatarTo: "#ea580c", glow: "rgba(249,115,22,0.35)" },
-  [ROLES.PACKING]: { badge: "bg-pink-50 text-pink-700 border-pink-200", dot: "bg-pink-500", avatarFrom: "#ec4899", avatarTo: "#db2777", glow: "rgba(236,72,153,0.35)" },
-  [ROLES.ACCOUNTS]: { badge: "bg-cyan-50 text-cyan-700 border-cyan-200", dot: "bg-cyan-500", avatarFrom: "#06b6d4", avatarTo: "#0891b2", glow: "rgba(6,182,212,0.35)" },
-  [ROLES.DELIVERY]: { badge: "bg-teal-50 text-teal-700 border-teal-200", dot: "bg-teal-500", avatarFrom: "#14b8a6", avatarTo: "#0d9488", glow: "rgba(20,184,166,0.35)" },
+/* Same role→tone mapping the Users page uses, so a person's colour is
+   the same wherever they appear. */
+const ROLE_TONE = {
+  [ROLES.SUPER_ADMIN]: "warning",
+  [ROLES.ADMIN]: "primary",
+  [ROLES.MANAGER]: "secondary",
+  [ROLES.SALESMAN]: "success",
+  [ROLES.PRODUCTION]: "tertiary",
+  [ROLES.PACKING]: "neutral",
+  [ROLES.ACCOUNTS]: "primary",
+  [ROLES.DELIVERY]: "secondary",
 };
 
-const getAccent = (role) =>
-  ROLE_ACCENTS[role] ?? { badge: "bg-slate-50 text-slate-600 border-slate-200", dot: "bg-slate-400", avatarFrom: "#64748b", avatarTo: "#475569", glow: "rgba(100,116,139,0.25)" };
+const getAccent = (role) => CHIP_TONES[ROLE_TONE[role] ?? "neutral"];
 
 const Avatar = ({ initials, role, size = "sm" }) => {
   const accent = getAccent(role);
@@ -39,7 +40,15 @@ const Avatar = ({ initials, role, size = "sm" }) => {
 
   return (
     <div
-      style={{ width: d, height: d, minWidth: d, background: `linear-gradient(135deg, ${accent.avatarFrom}, ${accent.avatarTo})`, boxShadow: `0 3px 10px ${accent.glow}`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: fonts[size], letterSpacing: "0.02em", flexShrink: 0, outline: "2px solid rgba(255,255,255,0.9)", outlineOffset: "-1px", userSelect: "none" }}
+      style={{
+        width: d, height: d, minWidth: d,
+        backgroundColor: accent.bg,
+        color: accent.fg,
+        borderRadius: "var(--md-sys-shape-corner-full)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontWeight: 500, fontSize: fonts[size], letterSpacing: "0.1px",
+        flexShrink: 0, userSelect: "none",
+      }}
       aria-hidden="true"
     >
       {initials}
@@ -115,14 +124,14 @@ const Navbar = () => {
           <div className="nb-bar__right">
             {canAccessDataUpload && (
               <button type="button" onClick={() => navigate("/data-upload")} className="nb-quick-btn" title="Data Upload" aria-label="Go to Data Upload">
-                <FiUploadCloud size={14} />
-                <span className="hidden sm:inline-block text-xs font-semibold">Data Upload</span>
+                <MdCloudUpload size={18} />
+                <span className="hidden sm:inline-block m3-label-large">Data Upload</span>
               </button>
             )}
 
             <NotificationBell />
 
-            <div className="w-px h-5 bg-slate-200 mx-1.5" aria-hidden="true" />
+            <div className="w-px h-5 mx-1.5" style={{ backgroundColor: T.outlineVariant }} aria-hidden="true" />
 
             <div className="relative" ref={dropdownRef}>
               <button
@@ -130,79 +139,84 @@ const Navbar = () => {
                 onClick={() => setShowMenu((p) => !p)}
                 aria-haspopup="true"
                 aria-expanded={showMenu}
-                className={`flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${showMenu ? "bg-slate-100 border-slate-300" : "bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300 hover:shadow-sm cursor-pointer"}`}
+                className="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 m3-state-layer m3-focus cursor-pointer"
+                style={{
+                  borderRadius: "var(--md-sys-shape-corner-full)",
+                  backgroundColor: showMenu ? T.surfaceContainerHigh : "transparent",
+                  color: T.onSurface,
+                }}
               >
                 <Avatar initials={initials} role={user?.role} size="sm" />
                 <div className="hidden sm:flex flex-col items-start">
-                  <span className="text-[13px] font-bold text-slate-800 leading-tight whitespace-nowrap">{displayName || "User"}</span>
-                  <span className="text-[10px] font-semibold text-slate-400 leading-tight mt-[1px]">{getRoleLabel(user?.role)}</span>
+                  <span className="m3-label-large whitespace-nowrap" style={{ color: T.onSurface }}>{displayName || "User"}</span>
+                  <span className="m3-body-small" style={{ color: T.onSurfaceVariant }}>{getRoleLabel(user?.role)}</span>
                 </div>
-                <FiChevronDown size={12} className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${showMenu ? "rotate-180" : ""}`} aria-hidden="true" />
+                <MdExpandMore size={18} className={`flex-shrink-0 transition-transform duration-200 ${showMenu ? "rotate-180" : ""}`} style={{ color: T.onSurfaceVariant }} aria-hidden="true" />
               </button>
 
               {showMenu && (
-                <div role="menu" aria-label="Profile menu" className="absolute right-0 top-[calc(100%+8px)] w-[272px] bg-white rounded-2xl border border-slate-200/80 z-50 overflow-hidden" style={{ boxShadow: "0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)", animation: "nb-dropdown-in 160ms cubic-bezier(0.4,0,0.2,1) forwards" }}>
+                <div role="menu" aria-label="Profile menu" className="absolute right-0 top-[calc(100%+8px)] w-[272px] z-50 overflow-hidden" style={{ backgroundColor: "var(--md-sys-color-surface-container)", borderRadius: T.cornerLarge, boxShadow: T.elevation2, animation: "nb-dropdown-in 160ms cubic-bezier(0.2,0,0,1) forwards" }}>
                   <div className="p-4 pb-3">
                     <div className="flex items-center gap-3">
                       <Avatar initials={initials} role={user?.role} size="md" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900 truncate">{displayName}</p>
-                        <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">{user?.employee_email}</p>
+                        <p className="m3-title-small truncate" style={{ color: T.onSurface }}>{displayName}</p>
+                        <p className="m3-body-small truncate mt-0.5" style={{ color: T.onSurfaceVariant }}>{user?.employee_email}</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 mt-3">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-black uppercase tracking-[0.07em] ${accent.badge}`}>
-                        <FiShield size={9} aria-hidden="true" />
+                      <span className="m3-chip" style={{ backgroundColor: accent.bg, color: accent.fg }}>
+                        <MdShield size={14} aria-hidden="true" />
                         {getRoleLabel(user?.role)}
                       </span>
                       {user?.employee_id && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-[10px] font-mono font-semibold text-slate-500">
-                          <FiHash size={8} aria-hidden="true" />
+                        <span className="m3-chip font-mono" style={{ backgroundColor: T.surfaceContainerHighest, color: T.onSurfaceVariant }}>
+                          <MdTag size={14} aria-hidden="true" />
                           {user.employee_id}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="h-px bg-slate-100 mx-3" />
+                  <div className="h-px mx-3" style={{ backgroundColor: T.outlineVariant }} />
 
                   <div className="p-2 space-y-0.5">
-                    <button type="button" onClick={() => handleNavigate(`/users/${user?.employee_id}`)} role="menuitem" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer">
-                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0"><FiUser size={13} /></div>
+                    <button type="button" onClick={() => handleNavigate(`/users/${user?.employee_id}`)} role="menuitem" className="w-full flex items-center gap-3 px-3 h-12 m3-body-large m3-state-layer cursor-pointer" style={{ borderRadius: T.cornerFull, color: T.onSurface }}>
+                      <div className="w-7 h-7 flex items-center justify-center flex-shrink-0" style={{ borderRadius: "var(--md-sys-shape-corner-full)", backgroundColor: "var(--md-sys-color-surface-container-highest)", color: "var(--md-sys-color-on-surface-variant)" }}><MdPersonOutline size={18} /></div>
                       My Profile
                     </button>
 
-                    <button type="button" onClick={() => { setShowMenu(false); setShowChangePassword(true); }} role="menuitem" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer">
-                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0"><FiLock size={13} /></div>
+                    <button type="button" onClick={() => { setShowMenu(false); setShowChangePassword(true); }} role="menuitem" className="w-full flex items-center gap-3 px-3 h-12 m3-body-large m3-state-layer cursor-pointer" style={{ borderRadius: T.cornerFull, color: T.onSurface }}>
+                      <div className="w-7 h-7 flex items-center justify-center flex-shrink-0" style={{ borderRadius: "var(--md-sys-shape-corner-full)", backgroundColor: "var(--md-sys-color-surface-container-highest)", color: "var(--md-sys-color-on-surface-variant)" }}><MdLockOutline size={18} /></div>
                       Change Password
                     </button>
 
                     {canAccessDataUpload && (
-                      <button type="button" onClick={() => handleNavigate("/data-upload")} role="menuitem" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer">
-                        <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0"><FiUploadCloud size={13} /></div>
+                      <button type="button" onClick={() => handleNavigate("/data-upload")} role="menuitem" className="w-full flex items-center gap-3 px-3 h-12 m3-body-large m3-state-layer cursor-pointer" style={{ borderRadius: T.cornerFull, color: T.onSurface }}>
+                        <div className="w-7 h-7 flex items-center justify-center flex-shrink-0" style={{ borderRadius: "var(--md-sys-shape-corner-full)", backgroundColor: "var(--md-sys-color-surface-container-highest)", color: "var(--md-sys-color-on-surface-variant)" }}><MdCloudUpload size={18} /></div>
                         Data Upload
                       </button>
                     )}
 
                     {canAccessSettings && (
-                      <button type="button" onClick={() => handleNavigate("/company-details")} role="menuitem" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all duration-150 cursor-pointer">
-                        <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500 flex-shrink-0"><FiSettings size={13} /></div>
+                      <button type="button" onClick={() => handleNavigate("/company-details")} role="menuitem" className="w-full flex items-center gap-3 px-3 h-12 m3-body-large m3-state-layer cursor-pointer" style={{ borderRadius: T.cornerFull, color: T.onSurface }}>
+                        <div className="w-7 h-7 flex items-center justify-center flex-shrink-0" style={{ borderRadius: "var(--md-sys-shape-corner-full)", backgroundColor: "var(--md-sys-color-surface-container-highest)", color: "var(--md-sys-color-on-surface-variant)" }}><MdSettings size={18} /></div>
                         Company Settings
                       </button>
                     )}
                   </div>
 
-                  <div className="h-px bg-slate-100 mx-3" />
+                  <div className="h-px mx-3" style={{ backgroundColor: T.outlineVariant }} />
 
                   <div className="p-2">
-                    <button type="button" onClick={handleLogout} role="menuitem" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-all duration-150 cursor-pointer">
-                      <div className="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-500 flex-shrink-0"><FiLogOut size={13} /></div>
+                    <button type="button" onClick={handleLogout} role="menuitem" className="w-full flex items-center gap-3 px-3 h-12 m3-body-large m3-state-layer cursor-pointer" style={{ borderRadius: T.cornerFull, color: T.error }}>
+                      <div className="w-7 h-7 flex items-center justify-center flex-shrink-0" style={{ borderRadius: "var(--md-sys-shape-corner-full)", backgroundColor: T.errorContainer, color: T.onErrorContainer }}><MdLogout size={18} /></div>
                       Sign Out
                     </button>
                   </div>
 
-                  <div className="px-4 py-2 bg-slate-50 border-t border-slate-100">
-                    <p className="text-[10px] text-slate-400 font-medium text-center tracking-wide">Smart Enterprises · v1.0</p>
+                  <div className="px-4 py-2" style={{ borderTop: `1px solid ${T.outlineVariant}` }}>
+                    <p className="m3-body-small text-center" style={{ color: T.onSurfaceVariant }}>Smart Enterprises · v1.0</p>
                   </div>
                 </div>
               )}
