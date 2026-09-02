@@ -233,7 +233,7 @@ const RecentOrdersCard = ({ orders, loading, onViewAll, onRowClick, canNavigate 
                 key={order.order_number}
                 onClick={canNavigate ? () => onRowClick(order.order_number) : undefined}
               >
-                <Td className="font-mono">{order.order_number}</Td>
+                <Td className="font-mono whitespace-nowrap">{order.order_number}</Td>
                 <Td muted>{dealerName}</Td>
                 <Td><StatusChip status={order.status} /></Td>
                 <Td align="right" numeric>
