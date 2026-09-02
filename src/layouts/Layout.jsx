@@ -27,16 +27,26 @@ export default function Layout() {
         />
       )}
 
-      <div className={`fixed lg:relative ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} transition-transform duration-300 ease-in-out z-30`}>
-        <Sidebar
-          isCollapsed={isCollapsed}
-          setIsCollapsed={setIsCollapsed}
-          isMobileMenuOpen={isMobileMenuOpen}
-          setIsMobileMenuOpen={setIsMobileMenuOpen}
-        />
-      </div>
+      {/* Sidebar owns its own position:fixed + translate-x — it used to be
+          wrapped in a second fixed/transformed div here, and the two fought
+          over where it actually sat, leaving it stuck on-screen on mobile
+          with no way to dismiss it. */}
+      <Sidebar
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
 
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed && !isMobileMenuOpen ? "lg:ml-20" : "lg:ml-64"} ${isMobileMenuOpen ? "ml-64" : ""} lg:min-h-screen`}>
+      {/* The sidebar is always an overlay on mobile (never part of the flex
+          flow), so only the lg+ margin should ever apply. */}
+      {/* min-w-0 overrides flexbox's default min-width:auto — without it,
+          this flex-1 column refuses to shrink below its content's natural
+          width (any unwrapped row inside, like a filter bar or table),
+          which forced the whole column — and the sticky navbar inside it —
+          wider than the viewport on mobile, clipped invisibly by the root's
+          overflow-hidden. The bell and profile menu were unreachable. */}
+      <div className={`flex flex-col flex-1 min-w-0 transition-all duration-300 ${isCollapsed && !isMobileMenuOpen ? "lg:ml-20" : "lg:ml-64"} lg:min-h-screen`}>
         <Navbar
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}

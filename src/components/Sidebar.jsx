@@ -87,7 +87,7 @@ const toDisplayName = (raw) =>
 /* ─────────────────────────────────────────────────────────────
    Sidebar — drawer when expanded, navigation rail when collapsed
    ───────────────────────────────────────────────────────────── */
-const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
+const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const location = useLocation();
   const { user } = useAuth();
   const role = user?.role;
@@ -111,12 +111,19 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
     [setIsCollapsed]
   );
 
+  // Tapping a nav item on mobile should close the drawer, same as tapping
+  // the scrim. Desktop ignores this (isMobileMenuOpen never matters there).
+  const closeMobileMenu = useCallback(
+    () => setIsMobileMenuOpen?.(false),
+    [setIsMobileMenuOpen]
+  );
+
   const displayName = toDisplayName(user?.employee_name);
   const initial = displayName ? displayName[0] : "?";
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-20 h-screen flex flex-col transition-[width] duration-300 ${widthClass}`}
+      className={`fixed left-0 top-0 z-30 h-screen flex flex-col transition-[transform,width] duration-300 ${widthClass} ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       style={{
         backgroundColor: "var(--md-sys-color-surface-container-low)",
         transitionTimingFunction: "var(--md-sys-motion-easing-emphasized)",
@@ -197,6 +204,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
                   to={item.path}
                   active={isPathActive(location.pathname, item.path)}
                   collapsed={collapsed}
+                  onNavigate={closeMobileMenu}
                 />
               ))}
             </div>
@@ -250,13 +258,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
    Expanded → 56dp drawer item with a full-corner active pill.
    Collapsed → navigation rail: 56x32 indicator above the label.
    ───────────────────────────────────────────────────────────── */
-const NavItem = memo(({ icon: Icon, iconActive: IconActive, label, to, active, collapsed }) => {
+const NavItem = memo(({ icon: Icon, iconActive: IconActive, label, to, active, collapsed, onNavigate }) => {
   const ActiveIcon = active ? (IconActive ?? Icon) : Icon;
 
   if (collapsed) {
     return (
       <Link
         to={to}
+        onClick={onNavigate}
         title={label}
         aria-current={active ? "page" : undefined}
         className="flex flex-col items-center gap-1 py-1 m3-focus"
@@ -286,6 +295,7 @@ const NavItem = memo(({ icon: Icon, iconActive: IconActive, label, to, active, c
   return (
     <Link
       to={to}
+      onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={`m3-nav-item m3-state-layer m3-focus gap-3 px-4 ${active ? "m3-nav-item-active" : ""}`}
     >

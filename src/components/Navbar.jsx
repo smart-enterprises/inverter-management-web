@@ -9,6 +9,7 @@ import {
   MdTag,
   MdCloudUpload,
   MdLockOutline,
+  MdMenu,
 } from "react-icons/md";
 import { T, CHIP_TONES } from "./m3/tokens";
 import { useAuth } from "../hooks/useAuth";
@@ -56,7 +57,7 @@ const Avatar = ({ initials, role, size = "sm" }) => {
   );
 };
 
-const Navbar = () => {
+const Navbar = ({ isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,6 +110,15 @@ const Navbar = () => {
       <header className="nb-header">
         <div className="nb-bar">
           <div className="nb-bar__left">
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen?.((prev) => !prev)}
+              aria-label={isMobileMenuOpen ? "Close navigation" : "Open navigation"}
+              aria-expanded={isMobileMenuOpen}
+              className="m3-icon-button m3-state-layer m3-focus lg:hidden flex-shrink-0 mr-1"
+            >
+              <MdMenu size={22} />
+            </button>
             <span className="nb-brand" id="nb-brand-el" onClick={handleBrandClick}>
               <span className="nb-brand__text">Smart Enterprises</span>
               <span className="nb-brand__tiger" />
