@@ -1,20 +1,31 @@
-// brands.jsx
+// Brands.jsx — Material Design 3
 import { useState, useEffect, useCallback } from "react";
 import {
-  FiPlus, FiSearch, FiBox, FiX, FiChevronLeft, FiChevronRight,
-  FiTrash2, FiEdit2, FiAlertCircle, FiRefreshCw, FiFilter, FiTag,
-} from "react-icons/fi";
+  MdAdd, MdSearch, MdInventory2, MdClose, MdChevronLeft, MdChevronRight,
+  MdDeleteOutline, MdEdit, MdRefresh, MdFilterList, MdSell, MdErrorOutline,
+} from "react-icons/md";
 import CustomSelect from "../components/CustomSelect";
 import { getAllBrands, updateBrand, createBrands } from "../api/brands";
 import Swal from "sweetalert2";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
+import {
+  Surface, Button, IconButton, Chip, Banner, EmptyState,
+  Table, Thead, Th, Tr, Td,
+} from "../components/m3";
+import { T } from "../components/m3/tokens";
 
 //  SHARED INPUT
 const BrandInput = ({ className = "", ...props }) => (
   <input
     {...props}
-    className={`w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all ${className}`}
+    className={`w-full m3-body-medium px-3.5 h-11 focus:outline-none ${className}`}
+    style={{
+      border: `1px solid ${T.outline}`,
+      borderRadius: T.cornerExtraSmall,
+      backgroundColor: T.surface,
+      color: T.onSurface,
+    }}
   />
 );
 
@@ -64,37 +75,52 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" onClick={onClose} />
+      <div
+        className="fixed inset-0 z-40"
+        style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
+        onClick={onClose}
+      />
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl border 
-              border-slate-200 flex flex-col
-            "
-          style={{ maxHeight: "90vh" }}
+        <div className="w-full max-w-3xl flex flex-col"
+          style={{
+            maxHeight: "90vh",
+            backgroundColor: "var(--md-sys-color-surface-container-high)",
+            borderRadius: T.cornerExtraLarge,
+            boxShadow: T.elevation3,
+          }}
           onClick={(e) => e.stopPropagation()}
         >
 
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+          <div
+            className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+            style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+          >
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-                <FiTag size={14} />
+              <div
+                className="p-2.5"
+                style={{
+                  borderRadius: T.cornerFull,
+                  backgroundColor: T.primaryContainer,
+                  color: T.onPrimaryContainer,
+                }}
+              >
+                <MdSell size={20} />
               </div>
 
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Create Brands</h2>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">Add inverter & solar brands to inventory</p>
+                <h2 className="m3-title-medium" style={{ color: T.onSurface }}>Create Brands</h2>
+                <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>Add inverter & solar brands to inventory</p>
               </div>
 
             </div>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"><FiX size={16} /></button>
+            <IconButton icon={MdClose} onClick={onClose} aria-label="Close dialog" />
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} id="brand-form" className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
             {error && (
-              <div className="flex items-center gap-2.5 px-4 py-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-semibold">
-                <FiAlertCircle size={14} className="flex-shrink-0" />{error}
-              </div>
+              <Banner tone="error">{error}</Banner>
             )}
 
             {brands.map((brand, brandIndex) => (
@@ -107,7 +133,7 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
                     <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Brand {brandIndex + 1}</p>
                   </div>
                   {brands.length > 1 && (
-                    <button type="button" onClick={() => removeBrand(brandIndex)} className="p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"><FiTrash2 size={13} /></button>
+                    <button type="button" onClick={() => removeBrand(brandIndex)} className="m3-icon-button m3-state-layer m3-focus flex-shrink-0" style={{ color: T.error, width: 32, height: 32 }}><MdDeleteOutline size={18} /></button>
                   )}
                 </div>
 
@@ -149,7 +175,7 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
                       <div key={modelIndex} className="flex gap-2">
                         <BrandInput type="text" value={model} onChange={(e) => updateModel(brandIndex, modelIndex, e.target.value)} placeholder="e.g. BC 1145, WL 1456" required />
                         {brand.brand_models.length > 1 && (
-                          <button type="button" onClick={() => removeModel(brandIndex, modelIndex)} className="p-2 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 flex-shrink-0 transition-all"><FiTrash2 size={13} /></button>
+                          <button type="button" onClick={() => removeModel(brandIndex, modelIndex)} className="m3-icon-button m3-state-layer m3-focus flex-shrink-0" style={{ color: T.error, width: 32, height: 32 }}><MdDeleteOutline size={18} /></button>
                         )}
                       </div>
                     ))}
@@ -161,18 +187,26 @@ const CreateBrandModal = ({ isOpen, onClose, onBrandCreated }) => {
             <button
               type="button"
               onClick={addBrand}
-              className="w-full py-3.5 border-2 border-dashed border-slate-200 rounded-xl text-sm font-bold text-slate-400 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50/30 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 m3-label-large m3-state-layer flex items-center justify-center gap-2"
+              style={{
+                border: `1px dashed ${T.outline}`,
+                borderRadius: T.cornerMedium,
+                color: T.primary,
+              }}
             >
-              <FiPlus size={14} />Add Another Brand
+              <MdAdd size={18} />Add Another Brand
             </button>
           </form>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex-shrink-0">
-            <button type="button" onClick={onClose} disabled={loading} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-all disabled:opacity-50">Cancel</button>
-            <button type="submit" form="brand-form" disabled={loading} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-blue-200">
-              {loading ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Creating…</> : <><FiPlus size={13} />Create Brands</>}
-            </button>
+          <div
+            className="flex items-center justify-end gap-3 px-6 py-4 flex-shrink-0"
+            style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+          >
+            <Button variant="text" onClick={onClose} disabled={loading}>Cancel</Button>
+            <Button variant="filled" type="submit" form="brand-form" disabled={loading}>
+              {loading ? <><span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />Creating…</> : <><MdAdd size={18} />Create Brands</>}
+            </Button>
           </div>
         </div>
       </div>
@@ -250,27 +284,29 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" onClick={onClose} />
+      <div
+        className="fixed inset-0 z-40"
+        style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
+        onClick={onClose}
+      />
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 flex flex-col" style={{ maxHeight: "90vh" }} onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-sky-50 text-sky-600 border border-sky-100"><FiEdit2 size={14} /></div>
+              <div className="p-2 rounded-xl bg-sky-50 text-sky-600 border border-sky-100"><MdEdit size={20} /></div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Edit Brand</h2>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">Update: {brandData.brand_name}</p>
+                <h2 className="m3-title-medium" style={{ color: T.onSurface }}>Edit Brand</h2>
+                <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>Update: {brandData.brand_name}</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"><FiX size={16} /></button>
+            <IconButton icon={MdClose} onClick={onClose} aria-label="Close dialog" />
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} id="edit-brand-form" className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
             {error && (
-              <div className="flex items-center gap-2.5 px-4 py-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-semibold">
-                <FiAlertCircle size={14} className="flex-shrink-0" />{error}
-              </div>
+              <Banner tone="error">{error}</Banner>
             )}
 
             <div className="space-y-1.5">
@@ -312,7 +348,7 @@ const EditBrandModal = ({ isOpen, onClose, onBrandUpdated, brandData }) => {
                   <div key={index} className="flex gap-2">
                     <BrandInput type="text" value={model} onChange={(e) => updateModel(index, e.target.value)} placeholder="e.g. BC 1145, WL 1456" required />
                     {formData.brand_models.length > 1 && (
-                      <button type="button" onClick={() => removeModel(index)} className="p-2 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all flex-shrink-0"><FiTrash2 size={13} /></button>
+                      <button type="button" onClick={() => removeModel(index)} className="m3-icon-button m3-state-layer m3-focus flex-shrink-0" style={{ color: T.error, width: 32, height: 32 }}><MdDeleteOutline size={18} /></button>
                     )}
                   </div>
                 ))}
@@ -353,32 +389,52 @@ const BrandsPagination = ({ currentPage, totalPages, onPageChange }) => {
   const visiblePages = pages.filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1);
 
   return (
-    <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100">
-      <p className="text-xs text-slate-400 font-medium hidden sm:block">
-        Page <span className="font-bold text-slate-600">{currentPage}</span> of{" "}
-        <span className="font-bold text-slate-600">{totalPages}</span>
+    <div
+      className="flex items-center justify-between px-5 py-4"
+      style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+    >
+      <p className="m3-body-small hidden sm:block" style={{ color: T.onSurfaceVariant }}>
+        Page {currentPage} of {totalPages}
       </p>
       <div className="flex items-center gap-1.5 ml-auto">
-        <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-          <FiChevronLeft size={13} />
-        </button>
+        <IconButton
+          icon={MdChevronLeft}
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          aria-label="Previous page"
+          className="disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ width: 32, height: 32 }}
+        />
         {visiblePages.map((page, index) => {
           const showDots = index > 0 && page - visiblePages[index - 1] > 1;
+          const current = page === currentPage;
           return (
             <div key={page} className="flex items-center">
-              {showDots && <span className="px-1.5 text-slate-300 text-xs">…</span>}
-              <button onClick={() => onPageChange(page)}
-                className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === currentPage ? "bg-blue-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}>
+              {showDots && <span className="px-1.5 m3-body-small" style={{ color: T.onSurfaceVariant }}>…</span>}
+              <button
+                type="button"
+                onClick={() => onPageChange(page)}
+                aria-current={current ? "page" : undefined}
+                className="m3-label-large m3-state-layer m3-focus min-w-[32px] h-8 px-2.5 flex items-center justify-center"
+                style={{
+                  borderRadius: T.cornerFull,
+                  backgroundColor: current ? T.secondaryContainer : "transparent",
+                  color: current ? T.onSecondaryContainer : T.onSurfaceVariant,
+                }}
+              >
                 {page}
               </button>
             </div>
           );
         })}
-        <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-          <FiChevronRight size={13} />
-        </button>
+        <IconButton
+          icon={MdChevronRight}
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          aria-label="Next page"
+          className="disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ width: 32, height: 32 }}
+        />
       </div>
     </div>
   );
@@ -429,7 +485,7 @@ const Brands = () => {
   const handleBrandUpdated = () => { fetchBrandsList(); setSelectedBrand(null); };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{ backgroundColor: T.surface }}>
       <div className="max-w-screen-2xl mx-auto space-y-5">
 
         {/* Header */}
@@ -441,40 +497,48 @@ const Brands = () => {
             </p>
           </div>
           <div className="flex items-center gap-2.5">
-            <button onClick={fetchBrandsList} disabled={loading} title="Refresh"
-              className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50">
-              <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            </button>
+            <IconButton
+              icon={MdRefresh}
+              onClick={fetchBrandsList}
+              disabled={loading}
+              title="Refresh"
+              aria-label="Refresh"
+              className={`disabled:opacity-50 ${loading ? "[&>svg]:animate-spin" : ""}`}
+            />
             {canManageBrands && (
-              <button onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 cursor-pointer">
-                <FiPlus size={14} />Create Brand
-              </button>
+              <Button variant="filled" icon={MdAdd} onClick={() => setIsModalOpen(true)}>
+                Create Brand
+              </Button>
             )}
           </div>
         </div>
 
         {/* Main Card */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <Surface className="overflow-hidden">
           {/* Filters */}
-          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/40">
+          <div className="px-5 py-4" style={{ borderBottom: `1px solid ${T.outlineVariant}` }}>
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               {/* Search */}
               <div className="relative flex-1 sm:max-w-xs">
-                <FiSearch size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <MdSearch size={20} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.onSurfaceVariant }} />
                 <input
                   type="text"
                   placeholder="Search by name, ID or models…"
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                  className="m3-body-medium w-full pl-11 pr-4 h-10 focus:outline-none"
+                  style={{
+                    backgroundColor: T.surfaceContainerHigh,
+                    borderRadius: T.cornerFull,
+                    color: T.onSurface,
+                  }}
                 />
               </div>
 
               {/* Filter */}
               <div className="flex items-center gap-2.5">
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                  <FiFilter size={10} />Filter
+                <span className="flex items-center gap-1.5 m3-label-medium" style={{ color: T.onSurfaceVariant }}>
+                  <MdFilterList size={16} />Filter
                 </span>
                 <div className="w-36">
                   <CustomSelect name="status" value={selectedStatus} onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }} options={["All Status", "Active", "Inactive"]} />
@@ -487,105 +551,105 @@ const Brands = () => {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
               <div className="relative w-10 h-10">
-                <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
-                <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <div className="absolute inset-0 border-4 rounded-full" style={{ borderColor: T.surfaceContainerHighest }} />
+                <div
+                  className="absolute inset-0 border-4 border-t-transparent rounded-full animate-spin"
+                  style={{ borderLeftColor: T.primary, borderRightColor: T.primary, borderBottomColor: T.primary }}
+                />
               </div>
-              <p className="text-sm text-slate-400 font-medium">Loading brands…</p>
+              <p className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>Loading brands…</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100"><FiAlertCircle size={22} className="text-rose-500" /></div>
-              <p className="text-sm font-semibold text-rose-600">{error}</p>
-              <button onClick={fetchBrandsList} className="flex items-center gap-1.5 text-sm text-blue-600 font-bold hover:text-blue-700 transition-colors">
-                <FiRefreshCw size={12} />Try Again
-              </button>
+              <div className="p-4" style={{ backgroundColor: T.errorContainer, borderRadius: T.cornerFull }}>
+                <MdErrorOutline size={24} style={{ color: T.onErrorContainer }} />
+              </div>
+              <p className="m3-body-medium" style={{ color: T.error }}>{error}</p>
+              <Button variant="text" icon={MdRefresh} iconSize={16} onClick={fetchBrandsList}>Try Again</Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/50">
-                    {["Brand", "Models", "Created", "Status", ...(!canManageBrands ? [""] : [])].map((h, i, arr) => (
-                      <th key={i}
-                        className={`px-5 py-3.5 text-[10px] font-black uppercase 
-                          tracking-[0.1em] text-slate-400 whitespace-nowrap 
-                          ${!canManageBrands && i === arr.length - 1 ? "text-right" : "text-left"}`
-                        }
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
+            <Table>
+                <Thead>
+                  {["Brand", "Models", "Created", "Status", ...(!canManageBrands ? [""] : [])].map((h, i, arr) => (
+                    <Th key={i} align={!canManageBrands && i === arr.length - 1 ? "right" : "left"}>{h}</Th>
+                  ))}
+                </Thead>
+                <tbody>
                   {currentBrands.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-20 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="p-5 bg-slate-100 rounded-2xl"><FiTag size={24} className="text-slate-400" /></div>
-                          <p className="text-sm font-semibold text-slate-500">{brands.length === 0 ? "No brands available" : "No brands match your criteria"}</p>
-                        </div>
+                      <td colSpan={5}>
+                        <EmptyState
+                          icon={MdSell}
+                          label={brands.length === 0 ? "No brands available" : "No brands match your criteria"}
+                        />
                       </td>
                     </tr>
                   ) : currentBrands.map((brand) => (
-                    <tr key={brand.brand_id} className="hover:bg-slate-50/60 transition-colors duration-100">
+                    <Tr key={brand.brand_id}>
                       {/* Brand */}
-                      <td className="px-5 py-4">
+                      <Td>
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 text-blue-700 font-black text-sm border border-blue-100 flex-shrink-0">
+                          <div
+                            className="w-9 h-9 flex items-center justify-center m3-label-large flex-shrink-0"
+                            style={{
+                              borderRadius: T.cornerFull,
+                              backgroundColor: T.primaryContainer,
+                              color: T.onPrimaryContainer,
+                            }}
+                          >
                             {brand.brand_name?.charAt(0)?.toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900">{brand.brand_name}</p>
-                            <span className="text-[9px] font-mono text-slate-400">{brand.brand_id}</span>
+                            <p className="m3-body-medium" style={{ color: T.onSurface }}>{brand.brand_name}</p>
+                            <span className="m3-body-small font-mono" style={{ color: T.onSurfaceVariant }}>{brand.brand_id}</span>
                           </div>
                         </div>
-                      </td>
+                      </Td>
 
                       {/* Models */}
-                      <td className="px-5 py-4">
+                      <Td>
                         <div className="flex flex-wrap gap-1.5 max-w-[320px] max-h-[64px] overflow-y-auto pr-1">
                           {brand.brand_models.map((model, index) => (
-                            <span key={index} className="px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors whitespace-nowrap">
-                              {model}
-                            </span>
+                            <Chip key={index} tone="neutral" className="whitespace-nowrap">{model}</Chip>
                           ))}
                         </div>
-                      </td>
+                      </Td>
 
                       {/* Created */}
-                      <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
+                      <Td muted className="whitespace-nowrap">
                         {new Date(brand.created_at).toLocaleDateString()}
-                      </td>
+                      </Td>
 
                       {/* Status */}
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wide ${brand.status === "active" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${brand.status === "active" ? "bg-emerald-500" : "bg-slate-400"}`} />
+                      <Td>
+                        <Chip tone={brand.status === "active" ? "success" : "neutral"}>
+                          <span
+                            className="w-1.5 h-1.5 flex-shrink-0"
+                            style={{
+                              borderRadius: T.cornerFull,
+                              backgroundColor: brand.status === "active" ? T.success : T.outline,
+                            }}
+                          />
                           {brand.status.charAt(0).toUpperCase() + brand.status.slice(1)}
-                        </span>
-                      </td>
+                        </Chip>
+                      </Td>
 
                       {/* Actions */}
                       {canManageBrands && (
-                        <td className="px-5 py-4 text-right">
-                          <button onClick={() => handleEditBrand(brand)} title="Edit Brand"
-                            className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all">
-                            <FiEdit2 size={14} />
-                          </button>
-                        </td>
+                        <Td align="right">
+                          <IconButton icon={MdEdit} onClick={() => handleEditBrand(brand)} title="Edit Brand" aria-label="Edit brand" />
+                        </Td>
                       )}
-                    </tr>
+                    </Tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </Table>
           )}
 
           {!loading && !error && filteredBrands.length > 0 && (
             <BrandsPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           )}
-        </div>
+        </Surface>
       </div>
 
       {canManageBrands && (
