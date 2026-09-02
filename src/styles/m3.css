@@ -313,3 +313,32 @@
 .m3-divide-outline-variant > :not([hidden]) ~ :not([hidden]) {
     border-color: var(--md-sys-color-outline-variant);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   TONE UTILITIES
+   Flat equivalents of the kit's <Chip tone="…">, for markup that
+   bulk-converts from a hard-coded Tailwind badge triad
+   (bg-X-50 text-X-700 border-X-200) without importing the
+   component. Same six roles as CHIP_TONES in tokens.js.
+   ───────────────────────────────────────────────────────────── */
+.m3-tone-primary   { background-color: var(--md-sys-color-primary-container);   color: var(--md-sys-color-on-primary-container);   border-color: transparent; }
+.m3-tone-secondary { background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border-color: transparent; }
+.m3-tone-tertiary  { background-color: var(--md-sys-color-tertiary-container);  color: var(--md-sys-color-on-tertiary-container);  border-color: transparent; }
+.m3-tone-success   { background-color: var(--md-sys-color-success-container);   color: var(--md-sys-color-on-success-container);   border-color: transparent; }
+.m3-tone-warning   { background-color: var(--md-sys-color-warning-container);   color: var(--md-sys-color-on-warning-container);   border-color: transparent; }
+.m3-tone-error     { background-color: var(--md-sys-color-error-container);     color: var(--md-sys-color-on-error-container);     border-color: transparent; }
+.m3-tone-neutral   { background-color: var(--md-sys-color-surface-container-highest); color: var(--md-sys-color-on-surface-variant); border-color: transparent; }
+
+/* Filled solid buttons — bulk equivalent of <Button variant="filled">. */
+.m3-solid-primary { background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+.m3-solid-success { background-color: var(--md-sys-color-success); color: var(--md-sys-color-on-primary); }
+.m3-solid-error   { background-color: var(--md-sys-color-error);   color: var(--md-sys-color-on-error); }
+.m3-solid-primary:hover, .m3-solid-success:hover, .m3-solid-error:hover { filter: brightness(0.92); }
+
+/* Rings — use for the old focus/selected ring utilities. */
+.m3-ring-primary { --tw-ring-color: var(--md-sys-color-primary); }
+
+/* Modal scrim and elevation, for bulk-converted dialogs that still use
+   the Tailwind shadow-2xl / bg-slate-900/opacity backdrop utilities. */
+.m3-scrim { background-color: color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent); }
+.m3-elevation-3 { box-shadow: var(--md-sys-elevation-3); }

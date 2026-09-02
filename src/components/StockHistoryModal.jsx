@@ -1,16 +1,16 @@
 import React, { useMemo } from "react";
 import {
-    FiX,
-    FiUser,
-    FiClock,
-    FiTrendingUp,
-    FiTrendingDown,
-    FiCornerDownLeft,
-    FiBox,
-    FiArrowUpRight,
-    FiArrowDownRight,
-    FiPackage
-} from "react-icons/fi";
+  MdClose,
+  MdInventory,
+  MdInventory2,
+  MdNorthEast,
+  MdPersonOutline,
+  MdSchedule,
+  MdSouthEast,
+  MdSubdirectoryArrowLeft,
+  MdTrendingDown,
+  MdTrendingUp,
+} from "react-icons/md";
 
 import { STOCK_ACTIONS, STOCK_TYPES, formatName } from "../utils/constants";
 
@@ -21,27 +21,27 @@ const getActionBadge = (action) => {
             return {
                 label: "Added",
                 className: "bg-emerald-100 text-emerald-700",
-                icon: <FiTrendingUp size={12} />
+                icon: <MdTrendingUp size={12} />
             };
 
         case STOCK_ACTIONS.STOCK_SALE:
             return {
                 label: "Sale",
                 className: "bg-rose-100 text-rose-700",
-                icon: <FiTrendingDown size={12} />
+                icon: <MdTrendingDown size={12} />
             };
 
         case STOCK_ACTIONS.STOCK_RETURN:
             return {
                 label: "Return",
                 className: "bg-sky-100 text-sky-700",
-                icon: <FiCornerDownLeft size={12} />
+                icon: <MdSubdirectoryArrowLeft size={12} />
             };
 
         default:
             return {
                 label: action,
-                className: "bg-gray-100 text-gray-700",
+                className: "m3-surface-container-high-bg m3-on-surface",
                 icon: null
             };
     }
@@ -55,7 +55,7 @@ const getStockTypeBadge = (type) => {
     if (type === STOCK_TYPES.STOCK_UNPACKED)
         return "bg-blue-100 text-blue-700";
 
-    return "bg-gray-100 text-gray-700";
+    return "m3-surface-container-high-bg m3-on-surface";
 };
 
 const formatNotes = (notes) => {
@@ -113,7 +113,7 @@ const StockHistoryModal = ({
         <>
             {/* BACKDROP */}
             <div
-                className="fixed inset-0 bg-black/60 backdrop-blur-lg z-40"
+                className="fixed inset-0 m3-scrim backdrop-blur-lg z-40"
                 onClick={onClose}
             />
 
@@ -121,7 +121,7 @@ const StockHistoryModal = ({
             <div className="fixed inset-0 flex items-center justify-center z-50 p-6">
 
                 <div
-                    className="bg-white/90 backdrop-blur-xl border border-gray-200
+                    className="m3-surface-bg/90 backdrop-blur-xl border m3-outline-variant-border
                         rounded-3xl shadow-[0_20px_70px_rgba(0,0,0,0.15)]
                         w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden
                     "
@@ -129,19 +129,19 @@ const StockHistoryModal = ({
                 >
 
                     {/* HEADER */}
-                    <div className="flex items-center justify-between px-8 py-6 bg-white/70 backdrop-blur">
+                    <div className="flex items-center justify-between px-8 py-6 m3-surface-bg/70 backdrop-blur">
 
                         <div className="flex items-center gap-4">
 
                             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow">
-                                <FiClock />
+                                <MdSchedule />
                             </div>
 
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900">
+                                <h2 className="text-xl font-semibold m3-on-surface">
                                     Stock History
                                 </h2>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm m3-on-surface-variant">
                                     Inventory movements & stock analytics
                                 </p>
                             </div>
@@ -150,41 +150,41 @@ const StockHistoryModal = ({
 
                         <button
                             onClick={onClose}
-                            className="p-2 rounded-lg hover:bg-gray-100 transition"
+                            className="p-2 rounded-lg hover:m3-surface-container-high-bg transition"
                         >
-                            <FiX size={20} />
+                            <MdClose size={20} />
                         </button>
 
                     </div>
 
                     {/* SUMMARY */}
-                    <div className="grid grid-cols-4 gap-6 p-8 bg-gray-50 ">
+                    <div className="grid grid-cols-4 gap-6 p-8 m3-surface-container-low-bg ">
 
                         <SummaryCard
                             label="Stock Added"
                             value={summary.added}
-                            icon={<FiTrendingUp />}
+                            icon={<MdTrendingUp />}
                             color="emerald"
                         />
 
                         <SummaryCard
                             label="Stock Sold"
                             value={summary.sold}
-                            icon={<FiTrendingDown />}
+                            icon={<MdTrendingDown />}
                             color="rose"
                         />
 
                         <SummaryCard
                             label="Returned"
                             value={summary.returned}
-                            icon={<FiCornerDownLeft />}
+                            icon={<MdSubdirectoryArrowLeft />}
                             color="sky"
                         />
 
                         <SummaryCard
                             label="Current Inventory"
                             value={summary.currentStock}
-                            icon={<FiBox />}
+                            icon={<MdInventory2 />}
                             color="indigo"
                         />
 
@@ -201,7 +201,7 @@ const StockHistoryModal = ({
 
                                 <table className="w-full text-sm">
 
-                                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+                                    <thead className="m3-surface-container-low-bg text-xs uppercase tracking-wide m3-on-surface-variant">
 
                                         <tr>
                                             <th className="px-6 py-4 text-left">Action</th>
@@ -234,7 +234,7 @@ const StockHistoryModal = ({
 
                                                 <tr
                                                     key={item.stock_history_id}
-                                                    className="hover:bg-gray-50 transition"
+                                                    className="hover:m3-surface-container-low-bg transition"
                                                 >
 
                                                     {/* ACTION */}
@@ -255,7 +255,7 @@ const StockHistoryModal = ({
                                                         <span
                                                             className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStockTypeBadge(item.stock_type)}`}
                                                         >
-                                                            <FiPackage size={12} />
+                                                            <MdInventory size={12} />
                                                             {item.stock_type}
                                                         </span>
 
@@ -266,7 +266,7 @@ const StockHistoryModal = ({
 
                                                         <div className="flex flex-col">
 
-                                                            <span className="font-medium text-gray-800">
+                                                            <span className="font-medium m3-on-surface">
                                                                 {item.previous_stock} → {item.new_stock}
                                                             </span>
 
@@ -275,9 +275,9 @@ const StockHistoryModal = ({
                                                                     ${isUp ? "text-emerald-600" : "text-rose-600"}`}
                                                             >
                                                                 {isUp ? (
-                                                                    <FiArrowUpRight />
+                                                                    <MdNorthEast />
                                                                 ) : (
-                                                                    <FiArrowDownRight />
+                                                                    <MdSouthEast />
                                                                 )}
 
                                                                 {isUp ? `+${diff}` : diff}
@@ -289,18 +289,18 @@ const StockHistoryModal = ({
                                                     </td>
 
                                                     {/* QTY */}
-                                                    <td className="px-6 py-4 font-semibold text-gray-900">
+                                                    <td className="px-6 py-4 font-semibold m3-on-surface">
                                                         {item.quantity}
                                                     </td>
 
                                                     {/* ORDER */}
-                                                    <td className="px-6 py-4 text-gray-600">
+                                                    <td className="px-6 py-4 m3-on-surface-variant">
                                                         {showOrder ? item.order_number || "—" : "—"}
                                                     </td>
 
                                                     {/* NOTES */}
                                                     <td
-                                                        className="px-6 py-4 max-w-[220px] truncate text-gray-600"
+                                                        className="px-6 py-4 max-w-[220px] truncate m3-on-surface-variant"
                                                         title={formatNotes(item.notes)}
                                                     >
                                                         {formatNotes(item.notes)}
@@ -311,17 +311,17 @@ const StockHistoryModal = ({
 
                                                         <div className="flex items-center gap-3">
 
-                                                            <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
-                                                                <FiUser className="text-gray-500" />
+                                                            <div className="w-9 h-9 rounded-full m3-surface-container-high-bg flex items-center justify-center">
+                                                                <MdPersonOutline className="m3-on-surface-variant" />
                                                             </div>
 
                                                             <div className="flex flex-col">
 
-                                                                <span className="font-medium text-gray-900">
+                                                                <span className="font-medium m3-on-surface">
                                                                     {formatName(userMap[item.created_by] || item.created_by) || "Unknown"}
                                                                 </span>
 
-                                                                <span className="text-xs text-gray-400 font-mono">
+                                                                <span className="text-xs m3-on-surface-variant font-mono">
                                                                     {item.created_by}
                                                                 </span>
 
@@ -332,7 +332,7 @@ const StockHistoryModal = ({
                                                     </td>
 
                                                     {/* DATE */}
-                                                    <td className="px-6 py-4 text-xs text-gray-500">
+                                                    <td className="px-6 py-4 text-xs m3-on-surface-variant">
                                                         {formatDate(item.created_at)}
                                                     </td>
 
@@ -381,11 +381,11 @@ const SummaryCard = ({ label, value, icon, color }) => {
 
             <div>
 
-                <p className="text-xs uppercase text-gray-500 font-medium">
+                <p className="text-xs uppercase m3-on-surface-variant font-medium">
                     {label}
                 </p>
 
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold m3-on-surface">
                     {value}
                 </p>
 
@@ -400,9 +400,9 @@ const SummaryCard = ({ label, value, icon, color }) => {
 
 const EmptyState = () => (
 
-    <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+    <div className="flex flex-col items-center justify-center py-24 m3-on-surface-variant">
 
-        <FiClock size={52} className="mb-4 opacity-40" />
+        <MdSchedule size={52} className="mb-4 opacity-40" />
 
         <p className="text-lg font-semibold">
             No stock history yet

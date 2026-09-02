@@ -2,10 +2,19 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-    FiArrowLeft, FiBox, FiTag, FiLayers, FiDollarSign,
-    FiPackage, FiClock, FiUser, FiEdit3, FiAlertCircle,
-    FiTrendingUp, FiArchive,
-} from "react-icons/fi";
+  MdArchive,
+  MdArrowBack,
+  MdCurrencyRupee,
+  MdEdit,
+  MdErrorOutline,
+  MdInventory,
+  MdInventory2,
+  MdLayers,
+  MdPersonOutline,
+  MdSchedule,
+  MdSell,
+  MdTrendingUp,
+} from "react-icons/md";
 
 import { useAuth } from "../hooks/useAuth";
 import { fetchProductById } from "../api/products";
@@ -58,8 +67,8 @@ const StatusBadge = ({ status }) => {
     return (
         <span
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide border ${isActive
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                : "bg-rose-50 text-rose-700 border-rose-200"
+                ? "m3-tone-success"
+                : "m3-tone-error"
                 }`}
         >
             <span
@@ -74,18 +83,18 @@ const StatusBadge = ({ status }) => {
 /* ─────────────────────────────────────────────────────────────────────
    INFO CARD
 ───────────────────────────────────────────────────────────────────────*/
-const InfoCard = ({ icon, label, iconBg = "bg-slate-100 text-slate-600", children }) => (
-    <div className="flex items-start gap-3.5 p-4 rounded-xl bg-slate-50/60 border border-slate-100 hover:border-slate-200 hover:bg-white transition-all duration-150">
+const InfoCard = ({ icon, label, iconBg = "m3-surface-container-high-bg m3-on-surface-variant", children }) => (
+    <div className="flex items-start gap-3.5 p-4 rounded-xl m3-surface-container-low-bg border m3-outline-variant-border hover:m3-outline-variant-border hover:m3-surface-bg transition-all duration-150">
         <div
             className={`flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 ${iconBg}`}
         >
             {icon}
         </div>
         <div className="flex-1 min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-1">
+            <p className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant mb-1">
                 {label}
             </p>
-            <div className="text-sm font-semibold text-slate-800 break-words">{children}</div>
+            <div className="text-sm font-semibold m3-on-surface break-words">{children}</div>
         </div>
     </div>
 );
@@ -195,12 +204,12 @@ const ProductDetails = () => {
         return (
             <div className="flex flex-col items-center justify-center py-32 gap-4">
                 <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
-                    <FiAlertCircle size={24} className="text-rose-500" />
+                    <MdErrorOutline size={24} className="text-rose-500" />
                 </div>
                 <p className="text-sm font-semibold text-rose-600">{error}</p>
                 <button
                     onClick={() => navigate(-1)}
-                    className="px-4 py-2 bg-slate-800 text-white text-sm font-bold rounded-lg hover:bg-slate-900 transition"
+                    className="px-4 py-2 m3-solid-primary text-sm font-bold rounded-lg transition"
                 >
                     Go Back
                 </button>
@@ -210,7 +219,7 @@ const ProductDetails = () => {
     if (!product)
         return (
             <div className="flex items-center justify-center py-32">
-                <p className="text-sm text-slate-400">Product not found.</p>
+                <p className="text-sm m3-on-surface-variant">Product not found.</p>
             </div>
         );
 
@@ -240,7 +249,7 @@ const ProductDetails = () => {
 
     /* ── Render ───────────────────────────────────────────────────────*/
     return (
-        <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="min-h-screen m3-surface-container-low-bg p-4 sm:p-6 lg:p-8 space-y-6">
             <div className="max-w-screen-xl mx-auto space-y-6">
 
                 {/* ── HEADER ──────────────────────────────────────────────── */}
@@ -248,19 +257,19 @@ const ProductDetails = () => {
                     <div className="flex items-center gap-3.5">
                         <button
                             onClick={() => navigate(-1)}
-                            className="p-2 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all group"
+                            className="p-2 rounded-xl border m3-outline-variant-border m3-surface-bg hover:m3-outline-border hover:shadow-sm transition-all group"
                             aria-label="Go back"
                         >
-                            <FiArrowLeft
+                            <MdArrowBack
                                 size={15}
-                                className="text-slate-400 group-hover:text-slate-700 transition-colors"
+                                className="m3-on-surface-variant group-hover:m3-on-surface transition-colors"
                             />
                         </button>
                         <div>
-                            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                            <h1 className="text-xl font-bold m3-on-surface tracking-tight">
                                 {product_name}
                             </h1>
-                            <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                            <span className="text-[10px] font-mono m3-on-surface-variant m3-surface-container-high-bg px-2 py-0.5 rounded-md">
                                 {product_id}
                             </span>
                         </div>
@@ -272,9 +281,9 @@ const ProductDetails = () => {
                         {userCanUpdateStock && status === "active" && (
                             <button
                                 onClick={() => setIsStockOpen(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-sm shadow-emerald-200"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 m3-solid-success text-sm font-bold rounded-xl active:scale-95 transition-all shadow-sm shadow-emerald-200"
                             >
-                                <FiPackage size={14} />
+                                <MdInventory size={14} />
                                 Update Stock
                             </button>
                         )}
@@ -282,9 +291,9 @@ const ProductDetails = () => {
                         {userCanEdit && (
                             <button
                                 onClick={() => setIsEditOpen(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 m3-solid-primary text-sm font-bold rounded-xl active:scale-95 transition-all shadow-sm shadow-blue-200"
                             >
-                                <FiEdit3 size={14} />
+                                <MdEdit size={14} />
                                 Edit Product
                             </button>
                         )}
@@ -292,45 +301,45 @@ const ProductDetails = () => {
                 </div>
 
                 {/* ── PRODUCT SUMMARY ─────────────────────────────────────── */}
-                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                <div className="m3-surface-bg border m3-outline-variant-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-6 py-5 border-b m3-outline-variant-border m3-surface-container-low-bg">
                         <div>
-                            <h2 className="text-sm font-bold text-slate-800">Product Summary</h2>
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+                            <h2 className="text-sm font-bold m3-on-surface">Product Summary</h2>
+                            <p className="text-[10px] font-semibold m3-on-surface-variant uppercase tracking-[0.1em] mt-0.5">
                                 Overview & specifications
                             </p>
                         </div>
                         <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-                            <FiBox size={14} />
+                            <MdInventory2 size={14} />
                         </div>
                     </div>
 
                     <div className="p-6 grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
 
                         {/* Brand */}
-                        <InfoCard icon={<FiTag size={15} />} label="Brand">
+                        <InfoCard icon={<MdSell size={15} />} label="Brand">
                             {brand || "—"}
                         </InfoCard>
 
                         {/* Model */}
-                        <InfoCard icon={<FiLayers size={15} />} label="Model">
+                        <InfoCard icon={<MdLayers size={15} />} label="Model">
                             {model || "—"}
                         </InfoCard>
 
                         {/* Product Type */}
-                        <InfoCard icon={<FiBox size={15} />} label="Product Type">
+                        <InfoCard icon={<MdInventory2 size={15} />} label="Product Type">
                             {product_type || "—"}
                         </InfoCard>
 
                         {/* Product Category */}
-                        <InfoCard icon={<FiArchive size={15} />} label="Product Category">
+                        <InfoCard icon={<MdArchive size={15} />} label="Product Category">
                             {product_category || "—"}
                         </InfoCard>
 
                         {/* Price — visible to roles allowed by canViewProductPrice */}
                         {userCanViewPrice && (
                             <InfoCard
-                                icon={<FiDollarSign size={15} />}
+                                icon={<MdCurrencyRupee size={15} />}
                                 label="Selling Price"
                                 iconBg="bg-amber-50 text-amber-600"
                             >
@@ -342,10 +351,10 @@ const ProductDetails = () => {
                                     {userCanViewPriceHistory && (
                                         <button
                                             onClick={() => setIsPriceHistoryOpen(true)}
-                                            className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                                            className="p-1.5 rounded-lg border m3-outline-variant-border m3-on-surface-variant hover:m3-surface-container-high-bg hover:m3-on-surface transition"
                                             title="View Price History"
                                         >
-                                            <FiClock size={13} />
+                                            <MdSchedule size={13} />
                                         </button>
                                     )}
                                 </div>
@@ -355,7 +364,7 @@ const ProductDetails = () => {
                         {/* Cost — SUPER_ADMIN / ADMIN ONLY via canViewProductCost */}
                         {userCanViewCost && (
                             <InfoCard
-                                icon={<FiTrendingUp size={15} />}
+                                icon={<MdTrendingUp size={15} />}
                                 label="Cost Price"
                                 iconBg="bg-amber-50 text-amber-600"
                             >
@@ -367,10 +376,10 @@ const ProductDetails = () => {
                                     {userCanViewPriceHistory && (
                                         <button
                                             onClick={() => setIsCostHistoryOpen(true)}
-                                            className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                                            className="p-1.5 rounded-lg border m3-outline-variant-border m3-on-surface-variant hover:m3-surface-container-high-bg hover:m3-on-surface transition"
                                             title="View Cost History"
                                         >
-                                            <FiClock size={13} />
+                                            <MdSchedule size={13} />
                                         </button>
                                     )}
                                 </div>
@@ -379,7 +388,7 @@ const ProductDetails = () => {
 
                         {/* Available Stock */}
                         <InfoCard
-                            icon={<FiPackage size={15} />}
+                            icon={<MdInventory size={15} />}
                             label="Available Stock"
                             iconBg="bg-blue-50 text-blue-600"
                         >
@@ -389,17 +398,17 @@ const ProductDetails = () => {
                         </InfoCard>
 
                         {/* Created By */}
-                        <InfoCard icon={<FiUser size={15} />} label="Created By">
+                        <InfoCard icon={<MdPersonOutline size={15} />} label="Created By">
                             <div className="flex flex-col">
                                 <span>{formatName(userMap[created_by] || created_by) || "Unknown"}</span>
                                 {created_by && (
-                                    <span className="text-[10px] font-mono text-slate-400">{created_by}</span>
+                                    <span className="text-[10px] font-mono m3-on-surface-variant">{created_by}</span>
                                 )}
                             </div>
                         </InfoCard>
 
                         {/* Created At */}
-                        <InfoCard icon={<FiClock size={15} />} label="Created At">
+                        <InfoCard icon={<MdSchedule size={15} />} label="Created At">
                             <span className="text-xs">{formatDate(created_at)}</span>
                         </InfoCard>
 
@@ -407,20 +416,20 @@ const ProductDetails = () => {
                 </div>
 
                 {/* ── STOCK DETAILS ────────────────────────────────────────── */}
-                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                <div className="m3-surface-bg border m3-outline-variant-border rounded-2xl shadow-sm overflow-hidden">
+                    <div className="flex items-center justify-between px-6 py-5 border-b m3-outline-variant-border m3-surface-container-low-bg">
                         <div>
-                            <h2 className="text-sm font-bold text-slate-800">Stock Details</h2>
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+                            <h2 className="text-sm font-bold m3-on-surface">Stock Details</h2>
+                            <p className="text-[10px] font-semibold m3-on-surface-variant uppercase tracking-[0.1em] mt-0.5">
                                 Current inventory breakdown
                             </p>
                         </div>
                         <button
                             onClick={() => setIsStockHistoryOpen(true)}
-                            className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all"
+                            className="p-2 rounded-xl border m3-outline-variant-border m3-on-surface-variant hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all"
                             title="View Stock History"
                         >
-                            <FiClock size={15} />
+                            <MdSchedule size={15} />
                         </button>
                     </div>
 

@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import {
-  FiClock,
-  FiCheckCircle,
-  FiSend,
-  FiEye,
-  FiDownload,
-  FiFileText,
-  FiSearch,
-  FiCalendar,
-} from "react-icons/fi";
+  MdCalendarMonth,
+  MdCheckCircle,
+  MdDescription,
+  MdDownload,
+  MdSchedule,
+  MdSearch,
+  MdSend,
+  MdVisibility,
+} from "react-icons/md";
 
 const Billing = () => {
   const [activeTab, setActiveTab] = useState("Pending Bills");
@@ -39,7 +39,7 @@ const Billing = () => {
   ];
 
   const renderTable = (bills, isSent = false) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="m3-surface-bg rounded-xl shadow-sm border m3-outline-variant-border overflow-hidden">
       <div className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex items-start gap-4">
@@ -48,16 +48,16 @@ const Billing = () => {
                 }`}
             >
               {isSent ? (
-                <FiCheckCircle className="text-green-500" size={24} />
+                <MdCheckCircle className="text-green-500" size={24} />
               ) : (
-                <FiClock className="text-blue-500" size={24} />
+                <MdSchedule className="text-blue-500" size={24} />
               )}
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+              <h2 className="text-lg sm:text-xl font-bold m3-on-surface">
                 {isSent ? "Sent Bills" : "Pending Bills"}
               </h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm m3-on-surface-variant mt-1">
                 {isSent
                   ? "Bills that have been successfully sent to dealers"
                   : "Bills that are ready to be sent to dealers"}
@@ -66,13 +66,13 @@ const Billing = () => {
           </div>
           <div className="w-full sm:w-auto mt-4 sm:mt-0">
             <div className="relative flex-1">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 m3-on-surface-variant" size={20} />
               <input
                 type="text"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                className="w-full sm:w-64 pl-10 pr-4 py-2.5 rounded-lg border m3-outline-variant-border focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
               />
             </div>
           </div>
@@ -81,26 +81,26 @@ const Billing = () => {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-y border-gray-200 bg-gray-50">
-              <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <tr className="border-y m3-outline-variant-border m3-surface-container-low-bg">
+              <th className="text-left py-3 px-6 text-xs font-semibold m3-on-surface-variant uppercase tracking-wider">
                 Bill ID
               </th>
-              <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-semibold m3-on-surface-variant uppercase tracking-wider">
                 Order ID
               </th>
-              <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-semibold m3-on-surface-variant uppercase tracking-wider">
                 Dealer
               </th>
-              <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-semibold m3-on-surface-variant uppercase tracking-wider">
                 Amount
               </th>
-              <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-semibold m3-on-surface-variant uppercase tracking-wider">
                 {isSent ? "Sent Date" : "Created Date"}
               </th>
-              <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-semibold m3-on-surface-variant uppercase tracking-wider">
                 Status
               </th>
-              <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="text-left py-3 px-6 text-xs font-semibold m3-on-surface-variant uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -114,12 +114,12 @@ const Billing = () => {
                   </span>
                 </td>
                 <td className="py-4 px-6 whitespace-nowrap">
-                  <span className="text-sm text-gray-600">{bill.orderId}</span>
+                  <span className="text-sm m3-on-surface-variant">{bill.orderId}</span>
                 </td>
                 <td className="py-4 px-6 whitespace-nowrap">
                   <div className="flex items-center gap-2">
-                    <FiFileText className="text-gray-400" />
-                    <span className="text-sm text-gray-800 font-medium">
+                    <MdDescription className="m3-on-surface-variant" />
+                    <span className="text-sm m3-on-surface font-medium">
                       {bill.dealer}
                     </span>
                   </div>
@@ -130,8 +130,8 @@ const Billing = () => {
                   </span>
                 </td>
                 <td className="py-4 px-6 whitespace-nowrap">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <FiCalendar />
+                  <div className="flex items-center gap-2 m3-on-surface-variant">
+                    <MdCalendarMonth />
                     <span className="text-sm">
                       {isSent ? bill.sentDate : bill.createdDate}
                     </span>
@@ -145,9 +145,9 @@ const Billing = () => {
                       }`}
                   >
                     {isSent ? (
-                      <FiCheckCircle size={14} />
+                      <MdCheckCircle size={14} />
                     ) : (
-                      <FiClock size={14} />
+                      <MdSchedule size={14} />
                     )}
                     {bill.status}
                   </span>
@@ -156,14 +156,14 @@ const Billing = () => {
                   <div className="flex items-center gap-2">
                     {!isSent && (
                       <button className="flex items-center gap-1.5 bg-[#9333EA] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#8829DD] transition-colors">
-                        <FiSend size={14} /> Send
+                        <MdSend size={14} /> Send
                       </button>
                     )}
-                    <button className="flex items-center gap-1.5 text-[#9333EA] bg-white px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-300 hover:bg-blue-50 transition-colors">
-                      <FiEye size={14} /> View
+                    <button className="flex items-center gap-1.5 text-[#9333EA] m3-surface-bg px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-300 hover:bg-blue-50 transition-colors">
+                      <MdVisibility size={14} /> View
                     </button>
-                    <button className="p-2 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors">
-                      <FiDownload size={16} />
+                    <button className="p-2 m3-surface-bg m3-on-surface rounded-lg text-sm font-medium border border-gray-300 hover:m3-surface-container-low-bg transition-colors">
+                      <MdDownload size={16} />
                     </button>
                   </div>
                 </td>
@@ -176,31 +176,31 @@ const Billing = () => {
   );
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 m3-surface-container-low-bg min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+            <h1 className="text-xl sm:text-2xl font-bold m3-on-surface">
               Billing Management
             </h1>
           </div>
         </div>
 
         <div className="flex justify-start sm:justify-center overflow-x-auto mb-6">
-          <div className="inline-flex items-center p-1 bg-gray-100 rounded-xl">
+          <div className="inline-flex items-center p-1 m3-surface-container-high-bg rounded-xl">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab
-                  ? "bg-white text-gray-700 shadow-sm"
-                  : "text-gray-500 hover:bg-white/60"
+                  ? "m3-surface-bg m3-on-surface shadow-sm"
+                  : "m3-on-surface-variant hover:m3-surface-bg/60"
                   }`}
               >
                 {tab === "Pending Bills" ? (
-                  <FiClock className="text-blue-500" />
+                  <MdSchedule className="text-blue-500" />
                 ) : (
-                  <FiCheckCircle className="text-green-500" />
+                  <MdCheckCircle className="text-green-500" />
                 )}
                 {tab}
               </button>

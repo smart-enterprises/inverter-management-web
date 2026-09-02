@@ -1,6 +1,12 @@
 // UploadDetails.jsx
 import React, { useState, useMemo } from "react";
-import { FiCheckCircle, FiXCircle, FiChevronDown, FiChevronUp, FiSearch } from "react-icons/fi";
+import {
+  MdCancel,
+  MdCheckCircle,
+  MdExpandLess,
+  MdExpandMore,
+  MdSearch,
+} from "react-icons/md";
 
 // Constants
 const TABS = {
@@ -81,12 +87,12 @@ const DetailTable = ({ rows, variant }) => {
             <div className="detail-empty">
                 {variant === "failed" ? (
                     <>
-                        <FiCheckCircle size={24} className="detail-empty__icon detail-empty__icon--ok" />
+                        <MdCheckCircle size={24} className="detail-empty__icon detail-empty__icon--ok" />
                         <p>No errors — all rows processed successfully.</p>
                     </>
                 ) : (
                     <>
-                        <FiXCircle size={24} className="detail-empty__icon detail-empty__icon--muted" />
+                        <MdCancel size={24} className="detail-empty__icon detail-empty__icon--muted" />
                         <p>No records were created.</p>
                     </>
                 )}
@@ -98,7 +104,7 @@ const DetailTable = ({ rows, variant }) => {
         <div className="detail-table-wrap">
             {/* Search */}
             <div className="detail-search">
-                <FiSearch size={13} className="detail-search__icon" />
+                <MdSearch size={13} className="detail-search__icon" />
                 <input
                     type="text"
                     placeholder="Search rows…"
@@ -127,7 +133,7 @@ const DetailTable = ({ rows, variant }) => {
                                     <span className="detail-table__th-inner">
                                         {formatHeader(col)}
                                         {sortKey === col ? (
-                                            sortDir === "asc" ? <FiChevronUp size={11} /> : <FiChevronDown size={11} />
+                                            sortDir === "asc" ? <MdExpandLess size={11} /> : <MdExpandMore size={11} />
                                         ) : null}
                                     </span>
                                 </th>
@@ -227,7 +233,7 @@ const UploadDetails = ({ details }) => {
                     onClick={() => setActiveTab(TABS.FAILED)}
                     className={`upload-details__tab ${effectiveTab === TABS.FAILED ? "upload-details__tab--active upload-details__tab--failed" : ""}`}
                 >
-                    <FiXCircle size={13} />
+                    <MdCancel size={13} />
                     Failed Rows
                     <span className={`upload-details__count ${hasFailed ? "upload-details__count--danger" : "upload-details__count--muted"}`}>
                         {failed.length}
@@ -239,7 +245,7 @@ const UploadDetails = ({ details }) => {
                     onClick={() => setActiveTab(TABS.SUCCESS)}
                     className={`upload-details__tab ${effectiveTab === TABS.SUCCESS ? "upload-details__tab--active upload-details__tab--success" : ""}`}
                 >
-                    <FiCheckCircle size={13} />
+                    <MdCheckCircle size={13} />
                     Successful Rows
                     <span className={`upload-details__count ${hasSuccess ? "upload-details__count--ok" : "upload-details__count--muted"}`}>
                         {success.length}

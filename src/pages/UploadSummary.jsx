@@ -1,6 +1,12 @@
 // UploadSummary.jsx
 import React from "react";
-import { FiUsers, FiTag, FiPackage, FiCheckCircle, FiAlertCircle, FiDatabase } from "react-icons/fi";
+import {
+  MdCheckCircle,
+  MdErrorOutline,
+  MdGroup,
+  MdSell,
+  MdStorage,
+} from "react-icons/md";
 
 // Stat Card
 const StatCard = ({ icon: Icon, label, value, variant = "default" }) => (
@@ -43,9 +49,9 @@ const UploadSummary = ({ summary }) => {
 
             {/* Main stats row */}
             <div className="upload-summary__grid">
-                <StatCard icon={FiDatabase} label="Total Rows" value={totalRows} variant="neutral" />
-                <StatCard icon={FiCheckCircle} label="Succeeded" value={successCount} variant="success" />
-                <StatCard icon={FiAlertCircle} label="Failed" value={failedCount} variant={failedCount > 0 ? "danger" : "neutral"} />
+                <StatCard icon={MdStorage} label="Total Rows" value={totalRows} variant="neutral" />
+                <StatCard icon={MdCheckCircle} label="Succeeded" value={successCount} variant="success" />
+                <StatCard icon={MdErrorOutline} label="Failed" value={failedCount} variant={failedCount > 0 ? "danger" : "neutral"} />
             </div>
 
             {/* Entity breakdown */}
@@ -54,9 +60,9 @@ const UploadSummary = ({ summary }) => {
                     <div className="upload-summary__divider" />
                     <p className="upload-summary__section-label">Created / Updated</p>
                     <div className="upload-summary__entity-row">
-                        {dealers > 0 && <StatCard icon={FiUsers} label="Dealers" value={dealers} variant="brand" />}
-                        {users > 0 && <StatCard icon={FiUsers} label="Users" value={users} variant="brand" />}
-                        {brands > 0 && <StatCard icon={FiTag} label="Brands" value={brands} variant="brand" />}
+                        {dealers > 0 && <StatCard icon={MdGroup} label="Dealers" value={dealers} variant="brand" />}
+                        {users > 0 && <StatCard icon={MdGroup} label="Users" value={users} variant="brand" />}
+                        {brands > 0 && <StatCard icon={MdSell} label="Brands" value={brands} variant="brand" />}
                     </div>
                 </>
             )}

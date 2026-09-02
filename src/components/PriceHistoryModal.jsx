@@ -1,15 +1,15 @@
 // price-history-modal.jsx
 import React, { useMemo } from "react";
 import {
-    FiX,
-    FiUser,
-    FiClock,
-    FiTrendingUp,
-    FiTrendingDown,
-    FiDollarSign,
-    FiArrowUpRight,
-    FiArrowDownRight
-} from "react-icons/fi";
+  MdClose,
+  MdCurrencyRupee,
+  MdNorthEast,
+  MdPersonOutline,
+  MdSchedule,
+  MdSouthEast,
+  MdTrendingDown,
+  MdTrendingUp,
+} from "react-icons/md";
 
 const PriceHistoryModal = ({
     isOpen,
@@ -49,7 +49,7 @@ const PriceHistoryModal = ({
         <>
             {/* BACKDROP */}
             <div
-                className="fixed inset-0 bg-black/60 backdrop-blur-lg z-40"
+                className="fixed inset-0 m3-scrim backdrop-blur-lg z-40"
                 onClick={onClose}
             />
 
@@ -57,27 +57,27 @@ const PriceHistoryModal = ({
             <div className="fixed inset-0 flex items-center justify-center z-50 p-6">
 
                 <div
-                    className="bg-white/90 backdrop-blur-xl border border-gray-200
+                    className="m3-surface-bg/90 backdrop-blur-xl border m3-outline-variant-border
           rounded-3xl shadow-[0_20px_70px_rgba(0,0,0,0.15)]
           w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                 >
 
                     {/* HEADER */}
-                    <div className="flex items-center justify-between px-8 py-6 bg-white/70 backdrop-blur">
+                    <div className="flex items-center justify-between px-8 py-6 m3-surface-bg/70 backdrop-blur">
 
                         <div className="flex items-center gap-4">
 
                             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white shadow">
-                                <FiDollarSign />
+                                <MdCurrencyRupee />
                             </div>
 
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900">
+                                <h2 className="text-xl font-semibold m3-on-surface">
                                     Price History
                                 </h2>
 
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm m3-on-surface-variant">
                                     Historical price movements for this product
                                 </p>
                             </div>
@@ -86,41 +86,41 @@ const PriceHistoryModal = ({
 
                         <button
                             onClick={onClose}
-                            className="p-2 rounded-lg hover:bg-gray-100 transition"
+                            className="p-2 rounded-lg hover:m3-surface-container-high-bg transition"
                         >
-                            <FiX size={20} />
+                            <MdClose size={20} />
                         </button>
 
                     </div>
 
                     {/* ANALYTICS CARDS */}
-                    <div className="grid grid-cols-4 gap-6 p-8 bg-gray-50">
+                    <div className="grid grid-cols-4 gap-6 p-8 m3-surface-container-low-bg">
 
                         <AnalyticsCard
                             label="Highest Price"
                             value={formatCurrency(analytics.max)}
-                            icon={<FiTrendingUp />}
+                            icon={<MdTrendingUp />}
                             color="emerald"
                         />
 
                         <AnalyticsCard
                             label="Lowest Price"
                             value={formatCurrency(analytics.min)}
-                            icon={<FiTrendingDown />}
+                            icon={<MdTrendingDown />}
                             color="rose"
                         />
 
                         <AnalyticsCard
                             label="Average Price"
                             value={formatCurrency(analytics.avg)}
-                            icon={<FiDollarSign />}
+                            icon={<MdCurrencyRupee />}
                             color="indigo"
                         />
 
                         <AnalyticsCard
                             label="Current Price"
                             value={formatCurrency(analytics.current)}
-                            icon={<FiDollarSign />}
+                            icon={<MdCurrencyRupee />}
                             color="purple"
                         />
 
@@ -139,7 +139,7 @@ const PriceHistoryModal = ({
 
                                 <table className="w-full text-sm">
 
-                                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+                                    <thead className="m3-surface-container-low-bg text-xs uppercase tracking-wide m3-on-surface-variant">
 
                                         <tr>
                                             <th className="px-6 py-4 text-left">Price Movement</th>
@@ -162,7 +162,7 @@ const PriceHistoryModal = ({
 
                                                 <tr
                                                     key={p.price_history_id}
-                                                    className="hover:bg-gray-50 transition"
+                                                    className="hover:m3-surface-container-low-bg transition"
                                                 >
 
                                                     {/* PRICE MOVEMENT */}
@@ -170,7 +170,7 @@ const PriceHistoryModal = ({
 
                                                         <div className="flex flex-col">
 
-                                                            <span className="font-medium text-gray-800">
+                                                            <span className="font-medium m3-on-surface">
                                                                 {formatCurrency(p.old_price)} → {formatCurrency(p.new_price)}
                                                             </span>
 
@@ -182,8 +182,8 @@ const PriceHistoryModal = ({
                                                                 }
                                                             >
                                                                 {isIncrease
-                                                                    ? <FiArrowUpRight />
-                                                                    : <FiArrowDownRight />
+                                                                    ? <MdNorthEast />
+                                                                    : <MdSouthEast />
                                                                 }
 
                                                                 {isIncrease ? `+${formatCurrency(diff)}` : formatCurrency(diff)}
@@ -206,11 +206,11 @@ const PriceHistoryModal = ({
                                                         >
                                                             {isIncrease ? (
                                                                 <>
-                                                                    <FiTrendingUp size={12} /> Increase
+                                                                    <MdTrendingUp size={12} /> Increase
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <FiTrendingDown size={12} /> Decrease
+                                                                    <MdTrendingDown size={12} /> Decrease
                                                                 </>
                                                             )}
                                                         </span>
@@ -219,7 +219,7 @@ const PriceHistoryModal = ({
 
                                                     {/* REASON */}
                                                     <td
-                                                        className="px-6 py-4 text-gray-600 max-w-[220px] truncate"
+                                                        className="px-6 py-4 m3-on-surface-variant max-w-[220px] truncate"
                                                         title={p.change_reason}
                                                     >
                                                         {p.change_reason || "Manual update"}
@@ -230,18 +230,18 @@ const PriceHistoryModal = ({
 
                                                         <div className="flex items-center gap-3">
 
-                                                            <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
-                                                                <FiUser className="text-gray-500" />
+                                                            <div className="w-9 h-9 rounded-full m3-surface-container-high-bg flex items-center justify-center">
+                                                                <MdPersonOutline className="m3-on-surface-variant" />
                                                             </div>
 
                                                             <div className="flex flex-col">
 
-                                                                <span className="font-medium text-gray-900">
+                                                                <span className="font-medium m3-on-surface">
                                                                     {userMap[p.changed_by] || "Unknown"}
                                                                 </span>
 
                                                                 {p.changed_by && (
-                                                                    <span className="text-xs text-gray-400 font-mono">
+                                                                    <span className="text-xs m3-on-surface-variant font-mono">
                                                                         {p.changed_by}
                                                                     </span>
                                                                 )}
@@ -253,7 +253,7 @@ const PriceHistoryModal = ({
                                                     </td>
 
                                                     {/* DATE */}
-                                                    <td className="px-6 py-4 text-xs text-gray-500">
+                                                    <td className="px-6 py-4 text-xs m3-on-surface-variant">
                                                         {formatDate(p.changed_at)}
                                                     </td>
 
@@ -295,7 +295,7 @@ const AnalyticsCard = ({ label, value, icon, color }) => {
             className={`flex items-center gap-4 border rounded-xl px-5 py-4 shadow-sm ${colors[color]}`}
         >
 
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white/60">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center m3-surface-bg/60">
                 {icon}
             </div>
 
@@ -321,9 +321,9 @@ const AnalyticsCard = ({ label, value, icon, color }) => {
 
 const EmptyState = () => (
 
-    <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+    <div className="flex flex-col items-center justify-center py-24 m3-on-surface-variant">
 
-        <FiClock size={52} className="mb-4 opacity-40" />
+        <MdSchedule size={52} className="mb-4 opacity-40" />
 
         <p className="text-lg font-semibold">
             No price changes recorded

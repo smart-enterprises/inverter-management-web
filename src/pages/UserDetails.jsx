@@ -2,25 +2,21 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  FiArrowLeft,
-  FiUser,
-  FiMail,
-  FiPhone,
-  FiMapPin,
-  FiCalendar,
-  FiShield,
-  FiLink,
-  FiPlus,
-  FiTag,
-  FiUserCheck,
-  FiPackage,
-  FiTrendingUp,
-  FiGrid,
-  FiSearch,
-  FiX,
-} from "react-icons/fi";
-import { TbBuildingStore, TbUsersGroup } from "react-icons/tb";
-import { HiOutlineSparkles } from "react-icons/hi2";
+  MdAdd,
+  MdArrowBack,
+  MdCalendarMonth,
+  MdClose,
+  MdLocationOn,
+  MdMailOutline,
+  MdPersonAddAlt,
+  MdPersonOutline,
+  MdPhone,
+  MdSearch,
+  MdSell,
+  MdShield,
+  MdTrendingUp,
+} from "react-icons/md";
+import { MdStorefront, MdGroups } from "react-icons/md";
 import Swal from "sweetalert2";
 import { fetchUserById, fetchUsers } from "../api/user";
 import { getRoleLabel, ROLES } from "../utils/roles";
@@ -33,13 +29,13 @@ const DEALER_MANAGER_ROLES = new Set([ROLES.SUPER_ADMIN, ROLES.ADMIN]);
 // ─── Info Card ────────────────────────────────────────────────────────────────
 
 const Info = ({ icon, label, value }) => (
-  <div className="group flex items-start gap-3 p-4 rounded-xl bg-gray-50 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 transition-all duration-200">
+  <div className="group flex items-start gap-3 p-4 rounded-xl m3-surface-container-low-bg hover:m3-surface-bg hover:shadow-sm border border-transparent hover:m3-outline-variant-border transition-all duration-200">
     <div className="text-[#9333EA] mt-0.5 flex-shrink-0 p-1.5 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
       {icon}
     </div>
     <div className="min-w-0">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
-      <p className="text-sm font-semibold text-gray-800 mt-0.5 truncate">{value}</p>
+      <p className="text-xs font-semibold m3-on-surface-variant uppercase tracking-wide">{label}</p>
+      <p className="text-sm font-semibold m3-on-surface mt-0.5 truncate">{value}</p>
     </div>
   </div>
 );
@@ -76,7 +72,7 @@ const DealerCard = ({ dealer, userMap }) => {
   const [from, to] = getAvatarColors(letter);
 
   return (
-    <div className="group relative flex items-start gap-3.5 px-4 py-4 rounded-2xl bg-white border border-slate-100 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-50/60 transition-all duration-200 overflow-hidden">
+    <div className="group relative flex items-start gap-3.5 px-4 py-4 rounded-2xl m3-surface-bg border m3-outline-variant-border hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-50/60 transition-all duration-200 overflow-hidden">
       {/* Subtle bg glow on hover */}
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/0 to-emerald-50/0 group-hover:from-emerald-50/30 group-hover:to-transparent transition-all duration-300 pointer-events-none rounded-2xl" />
 
@@ -92,27 +88,27 @@ const DealerCard = ({ dealer, userMap }) => {
       </div>
 
       <div className="flex flex-col gap-1 min-w-0 flex-1">
-        <span className="text-sm font-bold text-slate-800 leading-tight truncate">
+        <span className="text-sm font-bold m3-on-surface leading-tight truncate">
           {capitalizeFirstLetter(name)}
         </span>
 
         {shopName && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 leading-tight">
-            <TbBuildingStore size={11} className="flex-shrink-0" />
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium m3-on-surface-variant leading-tight">
+            <MdStorefront size={11} className="flex-shrink-0" />
             <span className="truncate">{shopName}</span>
           </span>
         )}
 
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           {dealerId && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg bg-slate-100 text-slate-500 border border-slate-200">
-              <FiTag size={8} />
+            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg m3-surface-container-high-bg m3-on-surface-variant border m3-outline-variant-border">
+              <MdSell size={8} />
               {dealerId}
             </span>
           )}
           {createdBy && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400">
-              <FiUserCheck size={9} />
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium m3-on-surface-variant">
+              <MdPersonAddAlt size={9} />
               {createdBy}
             </span>
           )}
@@ -146,18 +142,18 @@ const AssignedDealersSection = ({ userData, canManage, onManageDealers, userMap 
   });
 
   return (
-    <div className="border-t border-gray-100">
+    <div className="border-t m3-outline-variant-border">
       {/* ── Section Header ── */}
       <div className="px-8 py-5 bg-gradient-to-r from-emerald-50/70 via-white to-white flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-md shadow-emerald-200">
-            <TbUsersGroup size={16} className="text-white" />
+            <MdGroups size={16} className="text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+            <h3 className="text-sm font-bold m3-on-surface tracking-tight">
               Dealer Network
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs m3-on-surface-variant mt-0.5">
               All dealers assigned to this salesperson
             </p>
           </div>
@@ -165,10 +161,10 @@ const AssignedDealersSection = ({ userData, canManage, onManageDealers, userMap 
 
         <div className="flex items-center gap-3 flex-shrink-0">
           {/* Count badge */}
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 shadow-sm">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl m3-surface-bg border border-emerald-200 shadow-sm">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
             <span className="text-sm font-extrabold text-emerald-700">{dealerCount}</span>
-            <span className="text-xs text-gray-400 font-medium">
+            <span className="text-xs m3-on-surface-variant font-medium">
               {dealerCount === 1 ? "dealer" : "dealers"}
             </span>
           </div>
@@ -179,7 +175,7 @@ const AssignedDealersSection = ({ userData, canManage, onManageDealers, userMap 
               onClick={onManageDealers}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold hover:from-emerald-700 hover:to-teal-700 active:scale-95 transition-all shadow-md shadow-emerald-200"
             >
-              <FiPlus size={12} />
+              <MdAdd size={12} />
               Manage
             </button>
           )}
@@ -190,21 +186,21 @@ const AssignedDealersSection = ({ userData, canManage, onManageDealers, userMap 
       <div className="px-8 pb-8 pt-1">
         {dealerCount === 0 ? (
           /* Empty State */
-          <div className="flex flex-col items-center justify-center py-12 rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50/50">
-            <div className="w-14 h-14 rounded-3xl bg-white border border-gray-200 shadow-sm flex items-center justify-center mb-3">
-              <FiTrendingUp size={22} className="text-gray-400" />
+          <div className="flex flex-col items-center justify-center py-12 rounded-3xl border-2 border-dashed m3-outline-variant-border m3-surface-container-low-bg/50">
+            <div className="w-14 h-14 rounded-3xl m3-surface-bg border m3-outline-variant-border shadow-sm flex items-center justify-center mb-3">
+              <MdTrendingUp size={22} className="m3-on-surface-variant" />
             </div>
-            <p className="text-sm font-bold text-gray-500">No dealers assigned yet</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-sm font-bold m3-on-surface-variant">No dealers assigned yet</p>
+            <p className="text-xs m3-on-surface-variant mt-1">
               {canManage ? "Click Manage to add dealers" : "Contact your manager to assign dealers"}
             </p>
             {canManage && (
               <button
                 type="button"
                 onClick={onManageDealers}
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-sm shadow-emerald-200"
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl m3-solid-success text-xs font-bold active:scale-95 transition-all shadow-sm shadow-emerald-200"
               >
-                <FiPlus size={12} />
+                <MdAdd size={12} />
                 Assign Dealers
               </button>
             )}
@@ -214,24 +210,24 @@ const AssignedDealersSection = ({ userData, canManage, onManageDealers, userMap 
             {/* Search bar — only visible when there are multiple dealers */}
             {dealerCount > 4 && (
               <div className="relative mb-4">
-                <FiSearch
+                <MdSearch
                   size={13}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 m3-on-surface-variant pointer-events-none"
                 />
                 <input
                   type="text"
                   placeholder="Search dealers…"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-9 py-2.5 text-[13px] border border-slate-200 rounded-xl bg-slate-50 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all"
+                  className="w-full pl-9 pr-9 py-2.5 text-[13px] border m3-outline-variant-border rounded-xl m3-surface-container-low-bg placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all"
                 />
                 {searchTerm && (
                   <button
                     type="button"
                     onClick={() => setSearchTerm("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 text-slate-500 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 m3-on-surface-variant transition-colors"
                   >
-                    <FiX size={10} />
+                    <MdClose size={10} />
                   </button>
                 )}
               </div>
@@ -239,13 +235,13 @@ const AssignedDealersSection = ({ userData, canManage, onManageDealers, userMap 
 
             {/* Summary strip */}
             <div className="flex items-center gap-2 mb-4 px-1">
-              <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+              <div className="flex-1 h-1 rounded-full m3-surface-container-high-bg overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-500"
                   style={{ width: `${Math.min((filteredDealers.length / Math.max(dealerCount, 1)) * 100, 100)}%` }}
                 />
               </div>
-              <span className="text-[10px] font-bold text-slate-400 flex-shrink-0">
+              <span className="text-[10px] font-bold m3-on-surface-variant flex-shrink-0">
                 {searchTerm
                   ? `${filteredDealers.length} of ${dealerCount}`
                   : `${dealerCount} total`}
@@ -260,9 +256,9 @@ const AssignedDealersSection = ({ userData, canManage, onManageDealers, userMap 
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-3 py-10 rounded-2xl bg-slate-50 border border-slate-100">
-                <FiSearch size={20} className="text-slate-400" />
-                <p className="text-sm font-semibold text-slate-500">No dealers match your search</p>
+              <div className="flex flex-col items-center gap-3 py-10 rounded-2xl m3-surface-container-low-bg border m3-outline-variant-border">
+                <MdSearch size={20} className="m3-on-surface-variant" />
+                <p className="text-sm font-semibold m3-on-surface-variant">No dealers match your search</p>
               </div>
             )}
           </>
@@ -344,22 +340,22 @@ const UserDetails = () => {
   const isActive = userData?.status?.toLowerCase() === "active";
 
   return (
-    <div className="min-h-screen bg-gray-50 px-6 py-8">
+    <div className="min-h-screen m3-surface-container-low-bg px-6 py-8">
       {/* ── Page Header ── */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="p-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:shadow-sm transition-all duration-200"
+            className="p-3 rounded-xl border m3-outline-variant-border m3-surface-bg hover:m3-surface-container-low-bg hover:shadow-sm transition-all duration-200"
             aria-label="Go Back"
           >
-            <FiArrowLeft className="text-gray-600" size={18} />
+            <MdArrowBack className="m3-on-surface-variant" size={18} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">User Profile</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h1 className="text-2xl font-bold m3-on-surface tracking-tight">User Profile</h1>
+            <p className="text-sm m3-on-surface-variant mt-0.5">
               Detailed overview of{" "}
-              <span className="font-semibold text-gray-700">
+              <span className="font-semibold m3-on-surface">
                 {formatName(userData?.employee_name)}
               </span>
               's account
@@ -369,8 +365,8 @@ const UserDetails = () => {
 
         <div
           className={`self-start lg:self-auto px-4 py-1.5 rounded-full text-xs font-bold border shadow-sm tracking-wide ${isActive
-            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-            : "bg-red-50 text-red-700 border-red-200"
+            ? "m3-tone-success"
+            : "m3-tone-error"
             }`}
         >
           <span
@@ -382,18 +378,18 @@ const UserDetails = () => {
       </div>
 
       {/* ── Profile Card ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+      <div className="m3-surface-bg rounded-2xl border m3-outline-variant-border shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
         {/* Card header */}
-        <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 via-white to-blue-50/30">
+        <div className="px-8 py-6 border-b m3-outline-variant-border bg-gradient-to-r from-slate-50 via-white to-blue-50/30">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#9333EA] to-blue-400 flex items-center justify-center shadow-sm shadow-blue-200">
-              <FiUser size={16} className="text-white" />
+              <MdPersonOutline size={16} className="text-white" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900 tracking-tight">
+              <h2 className="text-base font-bold m3-on-surface tracking-tight">
                 Personal Information
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">Core account and contact details</p>
+              <p className="text-xs m3-on-surface-variant mt-0.5">Core account and contact details</p>
             </div>
           </div>
         </div>
@@ -401,15 +397,15 @@ const UserDetails = () => {
         {/* Info grid */}
         <div className="px-8 py-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            <Info icon={<FiUser size={14} />} label="Full Name" value={formatName(userData?.employee_name)} />
-            <Info icon={<FiMail size={14} />} label="Email Address" value={userData?.employee_email || "N/A"} />
-            <Info icon={<FiPhone size={14} />} label="Phone Number" value={userData?.employee_phone || "N/A"} />
-            <Info icon={<FiShield size={14} />} label="Role" value={getRoleLabel(userData?.role)} />
-            <Info icon={<FiMapPin size={14} />} label="District" value={userData?.district || "N/A"} />
-            <Info icon={<FiMapPin size={14} />} label="Town" value={userData?.town || "N/A"} />
-            <Info icon={<FiMapPin size={14} />} label="Address" value={userData?.address || "N/A"} />
+            <Info icon={<MdPersonOutline size={14} />} label="Full Name" value={formatName(userData?.employee_name)} />
+            <Info icon={<MdMailOutline size={14} />} label="Email Address" value={userData?.employee_email || "N/A"} />
+            <Info icon={<MdPhone size={14} />} label="Phone Number" value={userData?.employee_phone || "N/A"} />
+            <Info icon={<MdShield size={14} />} label="Role" value={getRoleLabel(userData?.role)} />
+            <Info icon={<MdLocationOn size={14} />} label="District" value={userData?.district || "N/A"} />
+            <Info icon={<MdLocationOn size={14} />} label="Town" value={userData?.town || "N/A"} />
+            <Info icon={<MdLocationOn size={14} />} label="Address" value={userData?.address || "N/A"} />
             <Info
-              icon={<FiUserCheck size={14} />}
+              icon={<MdPersonAddAlt size={14} />}
               label="Created By"
               value={
                 formatName(userMap[userData?.created_by]?.employee_name ?? userData?.created_by)
@@ -417,7 +413,7 @@ const UserDetails = () => {
               }
             />
             <Info
-              icon={<FiCalendar size={14} />}
+              icon={<MdCalendarMonth size={14} />}
               label="Created On"
               value={
                 userData?.created_at

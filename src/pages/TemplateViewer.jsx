@@ -2,9 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
-    FiDownload, FiGrid, FiInfo, FiLock, FiChevronDown,
-    FiChevronRight, FiLoader, FiAlertCircle,
-} from "react-icons/fi";
+  MdAutorenew,
+  MdChevronRight,
+  MdDownload,
+  MdErrorOutline,
+  MdExpandMore,
+  MdGridView,
+  MdInfoOutline,
+  MdLockOutline,
+} from "react-icons/md";
 import { fetchTemplate, downloadTemplate } from "../api/dataUpload";
 import { safeSheets } from "../utils/validationUtils";
 
@@ -72,19 +78,19 @@ const SheetItem = ({ sheet, defaultOpen = false }) => {
             >
                 <div className="template-sheet__toggle-left">
                     <span className="template-sheet__icon-wrap">
-                        <FiGrid size={13} />
+                        <MdGridView size={13} />
                     </span>
                     <span className="template-sheet__name">{sheet.name ?? sheet.sheetName ?? "Sheet"}</span>
                     <span className="template-sheet__col-count">{columns.length} columns</span>
                 </div>
-                {open ? <FiChevronDown size={14} className="template-sheet__arrow" /> : <FiChevronRight size={14} className="template-sheet__arrow" />}
+                {open ? <MdExpandMore size={14} className="template-sheet__arrow" /> : <MdChevronRight size={14} className="template-sheet__arrow" />}
             </button>
 
             {open && (
                 <div className="template-sheet__body">
                     {sheet.description && (
                         <p className="template-sheet__desc">
-                            <FiInfo size={12} className="template-sheet__desc-icon" />
+                            <MdInfoOutline size={12} className="template-sheet__desc-icon" />
                             {sheet.description}
                         </p>
                     )}
@@ -122,7 +128,7 @@ const PasswordRules = ({ rules }) => {
     return (
         <div className="template-pw-rules">
             <div className="template-pw-rules__header">
-                <FiLock size={13} />
+                <MdLockOutline size={13} />
                 <span>Password Rules</span>
             </div>
             <ul className="template-pw-rules__list">
@@ -203,9 +209,9 @@ const TemplateViewer = () => {
                     className="template-viewer__download-btn"
                 >
                     {loadingDL ? (
-                        <FiLoader size={14} className="spin" />
+                        <MdAutorenew size={14} className="spin" />
                     ) : (
-                        <FiDownload size={14} />
+                        <MdDownload size={14} />
                     )}
                     {loadingDL ? "Downloading…" : "Download Template"}
                 </button>
@@ -213,7 +219,7 @@ const TemplateViewer = () => {
 
             {dlError && (
                 <div className="template-viewer__alert template-viewer__alert--error">
-                    <FiAlertCircle size={13} /> {dlError}
+                    <MdErrorOutline size={13} /> {dlError}
                 </div>
             )}
 
@@ -222,11 +228,11 @@ const TemplateViewer = () => {
                 <TemplateSkeleton />
             ) : fetchError ? (
                 <div className="template-viewer__alert template-viewer__alert--error">
-                    <FiAlertCircle size={13} /> {fetchError}
+                    <MdErrorOutline size={13} /> {fetchError}
                 </div>
             ) : normalizedSheets.length === 0 ? (
                 <div className="template-viewer__empty">
-                    <FiInfo size={20} className="template-viewer__empty-icon" />
+                    <MdInfoOutline size={20} className="template-viewer__empty-icon" />
                     <p>No template structure available.</p>
                 </div>
             ) : (

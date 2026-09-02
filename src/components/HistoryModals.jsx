@@ -2,11 +2,22 @@
 // Exports: HistoryModal (base), PriceHistoryModal, CostHistoryModal
 import React, { useEffect, useMemo } from "react";
 import {
-    FiX, FiClock, FiTrendingUp, FiTrendingDown,
-    FiUser, FiCalendar, FiInbox, FiActivity,
-    FiArrowUp, FiArrowDown, FiMinus, FiDollarSign,
-    FiArrowUpRight, FiArrowDownRight, FiTag
-} from "react-icons/fi";
+  MdArrowDownward,
+  MdArrowUpward,
+  MdCalendarMonth,
+  MdClose,
+  MdCurrencyRupee,
+  MdInbox,
+  MdNorthEast,
+  MdOutlineInsights,
+  MdPersonOutline,
+  MdRemove,
+  MdSchedule,
+  MdSell,
+  MdSouthEast,
+  MdTrendingDown,
+  MdTrendingUp,
+} from "react-icons/md";
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
@@ -21,7 +32,7 @@ const CARD_COLORS = {
     violet: "bg-amber-50  border-amber-100  text-amber-700",
     amber: "bg-amber-50   border-amber-100   text-amber-700",
     purple: "bg-blue-50  border-blue-100  text-blue-700",
-    slate: "bg-slate-100  border-slate-200   text-slate-600",
+    slate: "m3-surface-container-high-bg  m3-outline-variant-border   m3-on-surface-variant",
 };
 
 // ─── Analytics Card ───────────────────────────────────────────────────────────
@@ -31,7 +42,7 @@ const AnalyticsCard = ({ label, value, icon, color = "slate" }) => (
         "flex items-center gap-4 border rounded-xl px-5 py-4 shadow-sm transition-shadow hover:shadow-md",
         CARD_COLORS[color] ?? CARD_COLORS.slate
     )}>
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white/60 flex-shrink-0 text-[18px]">
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center m3-surface-bg/60 flex-shrink-0 text-[18px]">
             {icon}
         </div>
         <div className="flex flex-col min-w-0">
@@ -51,8 +62,8 @@ const DeltaBadge = ({ diff }) => {
     if (diff == null || isNaN(diff)) return null;
 
     if (diff === 0) return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
-            <FiMinus size={10} aria-hidden /> No change
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold m3-surface-container-high-bg m3-on-surface-variant">
+            <MdRemove size={10} aria-hidden /> No change
         </span>
     );
 
@@ -63,7 +74,7 @@ const DeltaBadge = ({ diff }) => {
             "inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold",
             up ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
         )}>
-            {up ? <FiTrendingUp size={12} aria-hidden /> : <FiTrendingDown size={12} aria-hidden />}
+            {up ? <MdTrendingUp size={12} aria-hidden /> : <MdTrendingDown size={12} aria-hidden />}
             {up ? "Increase" : "Decrease"}
         </span>
     );
@@ -75,13 +86,13 @@ const MovementCell = ({ oldVal, newVal, format, upColor = "text-emerald-600", do
     const diff = newVal - oldVal;
     const isUp = diff > 0;
     const colorCls = isUp ? upColor : downColor;
-    const Icon = isUp ? FiArrowUpRight : FiArrowDownRight;
+    const Icon = isUp ? MdNorthEast : MdSouthEast;
 
     return (
         <div className="flex flex-col gap-0.5">
-            <span className="font-medium text-gray-800 text-sm">
+            <span className="font-medium m3-on-surface text-sm">
                 {format(oldVal)}
-                <span className="text-gray-400 mx-1.5">→</span>
+                <span className="m3-on-surface-variant mx-1.5">→</span>
                 {format(newVal)}
             </span>
             <span className={cls("text-xs font-semibold flex items-center gap-0.5", colorCls)}>
@@ -96,13 +107,13 @@ const MovementCell = ({ oldVal, newVal, format, upColor = "text-emerald-600", do
 
 const UserCell = ({ name, id }) => (
     <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
-            <FiUser size={13} className="text-gray-500" aria-hidden />
+        <div className="w-8 h-8 rounded-full m3-surface-container-high-bg border m3-outline-variant-border flex items-center justify-center flex-shrink-0">
+            <MdPersonOutline size={13} className="m3-on-surface-variant" aria-hidden />
         </div>
         <div className="flex flex-col min-w-0">
-            <span className="font-medium text-gray-900 text-sm truncate">{name}</span>
+            <span className="font-medium m3-on-surface text-sm truncate">{name}</span>
             {id && (
-                <span className="text-[11px] text-gray-400 font-mono truncate">{id}</span>
+                <span className="text-[11px] m3-on-surface-variant font-mono truncate">{id}</span>
             )}
         </div>
     </div>
@@ -111,29 +122,29 @@ const UserCell = ({ name, id }) => (
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
 const EmptyState = ({ title = "No records found", message }) => (
-    <div className="flex flex-col items-center justify-center py-20 text-gray-400 text-center px-6">
-        <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-            <FiInbox size={26} className="opacity-50" aria-hidden />
+    <div className="flex flex-col items-center justify-center py-20 m3-on-surface-variant text-center px-6">
+        <div className="w-14 h-14 rounded-2xl m3-surface-container-high-bg flex items-center justify-center mb-4">
+            <MdInbox size={26} className="opacity-50" aria-hidden />
         </div>
-        <p className="text-base font-semibold text-gray-500 mb-1">{title}</p>
-        {message && <p className="text-sm text-gray-400 max-w-xs leading-relaxed">{message}</p>}
+        <p className="text-base font-semibold m3-on-surface-variant mb-1">{title}</p>
+        {message && <p className="text-sm m3-on-surface-variant max-w-xs leading-relaxed">{message}</p>}
     </div>
 );
 
 // ─── Section Divider ──────────────────────────────────────────────────────────
 
 const SectionLabel = ({ label }) => (
-    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 mb-3 flex items-center gap-2">
-        <span className="flex-1 border-t border-gray-100" />
+    <p className="text-[10px] font-bold uppercase tracking-[0.12em] m3-on-surface-variant mb-3 flex items-center gap-2">
+        <span className="flex-1 border-t m3-outline-variant-border" />
         {label}
-        <span className="flex-1 border-t border-gray-100" />
+        <span className="flex-1 border-t m3-outline-variant-border" />
     </p>
 );
 
 // ─── Table Head ───────────────────────────────────────────────────────────────
 
 const TableHead = ({ columns }) => (
-    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+    <thead className="m3-surface-container-low-bg text-xs uppercase tracking-wide m3-on-surface-variant">
         <tr>
             {columns.map((col) => (
                 <th key={col.key} className="px-6 py-4 text-left font-semibold whitespace-nowrap">
@@ -177,7 +188,7 @@ export const HistoryModal = ({
         <>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 bg-black/60 backdrop-blur-lg z-40"
+                className="fixed inset-0 m3-scrim backdrop-blur-lg z-40"
                 onClick={onClose}
                 aria-hidden
             />
@@ -188,12 +199,12 @@ export const HistoryModal = ({
                     role="dialog"
                     aria-modal="true"
                     aria-label={title}
-                    className="bg-white/90 backdrop-blur-xl border border-gray-200 rounded-3xl shadow-[0_20px_70px_rgba(0,0,0,0.15)] w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden"
+                    className="m3-surface-bg/90 backdrop-blur-xl border m3-outline-variant-border rounded-3xl shadow-[0_20px_70px_rgba(0,0,0,0.15)] w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                 >
 
                     {/* ── Header ── */}
-                    <div className="flex items-center justify-between px-8 py-6 bg-white/70 backdrop-blur flex-shrink-0 border-b border-gray-100">
+                    <div className="flex items-center justify-between px-8 py-6 m3-surface-bg/70 backdrop-blur flex-shrink-0 border-b m3-outline-variant-border">
                         <div className="flex items-center gap-4">
                             <div className={cls(
                                 "w-11 h-11 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shadow-md text-lg",
@@ -202,18 +213,18 @@ export const HistoryModal = ({
                                 {headerIcon}
                             </div>
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+                                <h2 className="text-xl font-semibold m3-on-surface">{title}</h2>
                                 {subtitle && (
-                                    <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+                                    <p className="text-sm m3-on-surface-variant mt-0.5">{subtitle}</p>
                                 )}
                             </div>
                         </div>
                         <button
                             onClick={onClose}
                             aria-label="Close"
-                            className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-500 hover:text-gray-800"
+                            className="p-2 rounded-lg hover:m3-surface-container-high-bg transition m3-on-surface-variant hover:m3-on-surface"
                         >
-                            <FiX size={20} aria-hidden />
+                            <MdClose size={20} aria-hidden />
                         </button>
                     </div>
 
@@ -223,7 +234,7 @@ export const HistoryModal = ({
                             <>
                                 {/* Analytics Strip */}
                                 {analyticsCards.length > 0 && (
-                                    <div className="bg-gray-50 border-b border-gray-100 px-8 py-6">
+                                    <div className="m3-surface-container-low-bg border-b m3-outline-variant-border px-8 py-6">
                                         <SectionLabel label="Overview" />
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {analyticsCards.map((card, i) => (
@@ -240,14 +251,14 @@ export const HistoryModal = ({
                                     ) : (
                                         <>
                                             <SectionLabel label={`History · ${rows.length} ${rows.length === 1 ? "record" : "records"}`} />
-                                            <div className="rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                            <div className="rounded-2xl border m3-outline-variant-border shadow-sm overflow-hidden">
                                                 <table className="w-full text-sm">
                                                     {columns.length > 0 && <TableHead columns={columns} />}
                                                     <tbody className="divide-y divide-gray-100">
                                                         {rows.map((row) => (
                                                             <tr
                                                                 key={row.id}
-                                                                className="hover:bg-gray-50/80 transition-colors"
+                                                                className="hover:m3-surface-container-low-bg/80 transition-colors"
                                                             >
                                                                 {row.cells.map(({ key, content, className }) => (
                                                                     <td key={key} className={cls("px-6 py-4 align-middle", className)}>
@@ -268,13 +279,13 @@ export const HistoryModal = ({
 
                     {/* ── Footer ── */}
                     {rows.length > 0 && (
-                        <div className="flex-shrink-0 flex items-center justify-between px-8 py-4 border-t border-gray-100 bg-gray-50/60">
-                            <span className="text-xs text-gray-400 font-medium">
+                        <div className="flex-shrink-0 flex items-center justify-between px-8 py-4 border-t m3-outline-variant-border m3-surface-container-low-bg/60">
+                            <span className="text-xs m3-on-surface-variant font-medium">
                                 {rows.length} {rows.length === 1 ? "record" : "records"} total
                             </span>
                             <button
                                 onClick={onClose}
-                                className="text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100"
+                                className="text-xs font-semibold m3-on-surface-variant hover:m3-on-surface transition-colors px-3 py-1.5 rounded-lg hover:m3-surface-container-high-bg"
                             >
                                 Close
                             </button>
@@ -313,15 +324,15 @@ export const PriceHistoryModal = ({
         const firstOld = parseFloat(sorted[sorted.length - 1]?.old_price ?? 0);
         const net = current - firstOld;
         return [
-            { label: "Current Price", value: formatCurrency(current), icon: <FiTag />, color: "indigo" },
-            { label: "All-Time High", value: formatCurrency(highest), icon: <FiTrendingUp />, color: "emerald" },
-            { label: "All-Time Low", value: formatCurrency(lowest), icon: <FiArrowDown />, color: "rose" },
-            { label: "Average Price", value: formatCurrency(Math.round(avg)), icon: <FiDollarSign />, color: "amber" },
-            { label: "Total Changes", value: sorted.length, icon: <FiActivity />, color: "slate" },
+            { label: "Current Price", value: formatCurrency(current), icon: <MdSell />, color: "indigo" },
+            { label: "All-Time High", value: formatCurrency(highest), icon: <MdTrendingUp />, color: "emerald" },
+            { label: "All-Time Low", value: formatCurrency(lowest), icon: <MdArrowDownward />, color: "rose" },
+            { label: "Average Price", value: formatCurrency(Math.round(avg)), icon: <MdCurrencyRupee />, color: "amber" },
+            { label: "Total Changes", value: sorted.length, icon: <MdOutlineInsights />, color: "slate" },
             {
                 label: "Net Movement",
                 value: (net >= 0 ? "+" : "") + formatCurrency(Math.abs(net)),
-                icon: net >= 0 ? <FiArrowUp /> : <FiArrowDown />,
+                icon: net >= 0 ? <MdArrowUpward /> : <MdArrowDownward />,
                 color: net >= 0 ? "emerald" : "rose",
             },
         ];
@@ -362,7 +373,7 @@ export const PriceHistoryModal = ({
                     key: "reason",
                     content: (
                         <span
-                            className="text-gray-600 text-sm max-w-[180px] block truncate"
+                            className="m3-on-surface-variant text-sm max-w-[180px] block truncate"
                             title={entry.change_reason ?? entry.notes ?? ""}
                         >
                             {entry.change_reason ?? entry.notes ?? "Manual update"}
@@ -382,8 +393,8 @@ export const PriceHistoryModal = ({
                 {
                     key: "date",
                     content: (
-                        <span className="text-xs text-gray-500 whitespace-nowrap flex items-center gap-1.5">
-                            <FiCalendar size={11} className="text-gray-400" aria-hidden />
+                        <span className="text-xs m3-on-surface-variant whitespace-nowrap flex items-center gap-1.5">
+                            <MdCalendarMonth size={11} className="m3-on-surface-variant" aria-hidden />
                             {formatDate(entry.changed_at ?? entry.updated_at ?? entry.created_at)}
                         </span>
                     ),
@@ -399,7 +410,7 @@ export const PriceHistoryModal = ({
             onClose={onClose}
             title="Price History"
             subtitle="Historical price movements for this product"
-            headerIcon={<FiDollarSign />}
+            headerIcon={<MdCurrencyRupee />}
             headerIconClass="from-green-500 to-emerald-600"
             emptyMessage="Price updates will appear here when the product price changes."
             analyticsCards={analytics}
@@ -435,15 +446,15 @@ export const CostHistoryModal = ({
         const firstOld = parseFloat(sorted[sorted.length - 1]?.old_price ?? 0);
         const net = current - firstOld;
         return [
-            { label: "Current Cost", value: formatCurrency(current), icon: <FiTag />, color: "violet" },
-            { label: "Highest Cost", value: formatCurrency(highest), icon: <FiTrendingUp />, color: "rose" },
-            { label: "Lowest Cost", value: formatCurrency(lowest), icon: <FiArrowDown />, color: "emerald" },
-            { label: "Average Cost", value: formatCurrency(Math.round(avg)), icon: <FiDollarSign />, color: "amber" },
-            { label: "Total Changes", value: sorted.length, icon: <FiActivity />, color: "slate" },
+            { label: "Current Cost", value: formatCurrency(current), icon: <MdSell />, color: "violet" },
+            { label: "Highest Cost", value: formatCurrency(highest), icon: <MdTrendingUp />, color: "rose" },
+            { label: "Lowest Cost", value: formatCurrency(lowest), icon: <MdArrowDownward />, color: "emerald" },
+            { label: "Average Cost", value: formatCurrency(Math.round(avg)), icon: <MdCurrencyRupee />, color: "amber" },
+            { label: "Total Changes", value: sorted.length, icon: <MdOutlineInsights />, color: "slate" },
             {
                 label: "Net Movement",
                 value: (net >= 0 ? "+" : "") + formatCurrency(Math.abs(net)),
-                icon: net >= 0 ? <FiArrowUp /> : <FiArrowDown />,
+                icon: net >= 0 ? <MdArrowUpward /> : <MdArrowDownward />,
                 color: net >= 0 ? "rose" : "emerald",
             },
         ];
@@ -486,7 +497,7 @@ export const CostHistoryModal = ({
                     key: "reason",
                     content: (
                         <span
-                            className="text-gray-600 text-sm max-w-[180px] block truncate"
+                            className="m3-on-surface-variant text-sm max-w-[180px] block truncate"
                             title={entry.change_reason ?? entry.notes ?? ""}
                         >
                             {entry.change_reason ?? entry.notes ?? "Manual update"}
@@ -506,8 +517,8 @@ export const CostHistoryModal = ({
                 {
                     key: "date",
                     content: (
-                        <span className="text-xs text-gray-500 whitespace-nowrap flex items-center gap-1.5">
-                            <FiCalendar size={11} className="text-gray-400" aria-hidden />
+                        <span className="text-xs m3-on-surface-variant whitespace-nowrap flex items-center gap-1.5">
+                            <MdCalendarMonth size={11} className="m3-on-surface-variant" aria-hidden />
                             {formatDate(entry.changed_at ?? entry.updated_at ?? entry.created_at)}
                         </span>
                     ),
@@ -523,7 +534,7 @@ export const CostHistoryModal = ({
             onClose={onClose}
             title="Cost History"
             subtitle="Historical cost movements for this product"
-            headerIcon={<FiClock />}
+            headerIcon={<MdSchedule />}
             headerIconClass="from-amber-500 to-blue-600"
             emptyMessage="Cost updates will appear here when the product cost changes."
             analyticsCards={analytics}

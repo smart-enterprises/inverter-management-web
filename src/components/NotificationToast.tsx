@@ -1,16 +1,16 @@
 // src/components/NotificationToast.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    FiBell,
-    FiCheckCircle,
-    FiCreditCard,
-    FiTruck,
-    FiPackage,
-    FiSettings,
-    FiShoppingBag,
-    FiXCircle,
-    FiX,
-} from "react-icons/fi";
+  MdCancel,
+  MdCheckCircle,
+  MdClose,
+  MdCreditCard,
+  MdInventory,
+  MdLocalShipping,
+  MdNotificationsNone,
+  MdSettings,
+  MdShoppingBag,
+} from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../hooks/useNotifications";
 import {
@@ -45,7 +45,7 @@ const orderRoute = (payload: NotificationPayload): string | null => {
 
 const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
     [NOTIFICATION_TYPES.ORDER_CREATED_PENDING]: {
-        Icon: FiShoppingBag,
+        Icon: MdShoppingBag,
         iconBg: "bg-blue-100",
         iconColor: "text-blue-600",
         accent: "border-l-blue-500",
@@ -55,7 +55,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_CREATED_PRODUCTION]: {
-        Icon: FiSettings,
+        Icon: MdSettings,
         iconBg: "bg-blue-100",
         iconColor: "text-blue-600",
         accent: "border-l-blue-500",
@@ -65,7 +65,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_CREATED_PACKED]: {
-        Icon: FiPackage,
+        Icon: MdInventory,
         iconBg: "bg-emerald-100",
         iconColor: "text-emerald-600",
         accent: "border-l-emerald-500",
@@ -75,7 +75,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_CONFIRMED]: {
-        Icon: FiCheckCircle,
+        Icon: MdCheckCircle,
         iconBg: "bg-teal-100",
         iconColor: "text-teal-600",
         accent: "border-l-teal-500",
@@ -85,7 +85,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_PRODUCTION]: {
-        Icon: FiSettings,
+        Icon: MdSettings,
         iconBg: "bg-blue-100",
         iconColor: "text-blue-600",
         accent: "border-l-blue-400",
@@ -95,7 +95,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_PACKED]: {
-        Icon: FiPackage,
+        Icon: MdInventory,
         iconBg: "bg-emerald-100",
         iconColor: "text-emerald-600",
         accent: "border-l-emerald-400",
@@ -105,7 +105,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_INVOICE]: {
-        Icon: FiCreditCard,
+        Icon: MdCreditCard,
         iconBg: "bg-cyan-100",
         iconColor: "text-cyan-600",
         accent: "border-l-cyan-400",
@@ -115,7 +115,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_SHIPPED]: {
-        Icon: FiTruck,
+        Icon: MdLocalShipping,
         iconBg: "bg-blue-100",
         iconColor: "text-blue-600",
         accent: "border-l-blue-400",
@@ -125,7 +125,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_DELIVERED]: {
-        Icon: FiCheckCircle,
+        Icon: MdCheckCircle,
         iconBg: "bg-teal-100",
         iconColor: "text-teal-600",
         accent: "border-l-teal-400",
@@ -135,7 +135,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_COMPLETED]: {
-        Icon: FiCheckCircle,
+        Icon: MdCheckCircle,
         iconBg: "bg-teal-100",
         iconColor: "text-teal-600",
         accent: "border-l-teal-400",
@@ -145,7 +145,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_CANCELLED]: {
-        Icon: FiXCircle,
+        Icon: MdCancel,
         iconBg: "bg-rose-100",
         iconColor: "text-rose-600",
         accent: "border-l-rose-400",
@@ -155,7 +155,7 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
         route: orderRoute,
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_REJECTED]: {
-        Icon: FiXCircle,
+        Icon: MdCancel,
         iconBg: "bg-rose-100",
         iconColor: "text-rose-600",
         accent: "border-l-rose-400",
@@ -167,9 +167,9 @@ const TYPE_CONFIG: Partial<Record<NotificationType, ToastTypeConfig>> = {
 };
 
 const FALLBACK_CONFIG: ToastTypeConfig = {
-    Icon: FiBell,
-    iconBg: "bg-slate-100",
-    iconColor: "text-slate-600",
+    Icon: MdNotificationsNone,
+    iconBg: "m3-surface-container-high-bg",
+    iconColor: "m3-on-surface-variant",
     accent: "border-l-slate-400",
     progressColor: "bg-slate-500",
     pingColor: "bg-slate-400",
@@ -242,8 +242,8 @@ const SingleToast = ({ toast }: SingleToastProps) => {
     return (
         <div
             className={`
-        relative overflow-hidden w-80 bg-white rounded-2xl
-        shadow-2xl border border-slate-200 border-l-4 ${config.accent}
+        relative overflow-hidden w-80 m3-surface-bg rounded-2xl
+        m3-elevation-3 border m3-outline-variant-border border-l-4 ${config.accent}
         transition-all duration-300 hover:shadow-xl cursor-pointer
       `}
             style={{
@@ -256,7 +256,7 @@ const SingleToast = ({ toast }: SingleToastProps) => {
             role="alert"
             aria-live="polite"
         >
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-slate-100">
+            <div className="absolute top-0 left-0 right-0 h-0.5 m3-surface-container-high-bg">
                 <div
                     className={`h-full ${config.progressColor} transition-all duration-100`}
                     style={{ width: `${progress}%` }}
@@ -271,11 +271,11 @@ const SingleToast = ({ toast }: SingleToastProps) => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-900 leading-tight">
+                    <p className="text-sm font-bold m3-on-surface leading-tight">
                         {toast.title}
                     </p>
 
-                    <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">
+                    <p className="text-xs m3-on-surface-variant font-medium mt-0.5 leading-relaxed">
                         {toast.message}
                     </p>
 
@@ -296,14 +296,14 @@ const SingleToast = ({ toast }: SingleToastProps) => {
                             )}
 
                             {(toast.payload?.order_status || toast.payload?.status) && (
-                                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                                <span className="text-[10px] font-bold m3-on-surface-variant m3-surface-container-high-bg border m3-outline-variant-border px-2 py-0.5 rounded-full">
                                     {String(toast.payload.order_status || toast.payload.status)}
                                 </span>
                             )}
                         </div>
                     )}
 
-                    <p className="text-[10px] text-slate-400 font-medium mt-1.5">
+                    <p className="text-[10px] m3-on-surface-variant font-medium mt-1.5">
                         Click to view order
                     </p>
                 </div>
@@ -311,10 +311,10 @@ const SingleToast = ({ toast }: SingleToastProps) => {
                 <button
                     type="button"
                     onClick={handleDismiss}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all flex-shrink-0 cursor-pointer"
+                    className="p-1 rounded-lg m3-on-surface-variant hover:m3-on-surface hover:m3-surface-container-high-bg transition-all flex-shrink-0 cursor-pointer"
                     aria-label="Dismiss notification"
                 >
-                    <FiX size={13} />
+                    <MdClose size={13} />
                 </button>
             </div>
 

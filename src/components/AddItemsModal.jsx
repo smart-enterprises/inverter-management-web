@@ -2,7 +2,14 @@
 // Uses the same Brand → Model → Product → Discount cascade as CreateOrder.
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { FiX, FiPlus, FiTrash2, FiAlertCircle, FiCalendar, FiChevronDown } from "react-icons/fi";
+import {
+  MdAdd,
+  MdCalendarMonth,
+  MdClose,
+  MdDeleteOutline,
+  MdErrorOutline,
+  MdExpandMore,
+} from "react-icons/md";
 import CustomSelect from "./CustomSelect";
 import { getBrandsByDealer } from "../api/brands";
 import { fetchProductsByBrands } from "../api/products";
@@ -52,8 +59,8 @@ const DiscountField = ({ item, index, discountOptions, maxPrice, onDealerChange,
             onClick={() => handleModeSwitch(m)}
             className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all ${
               mode === m
-                ? "bg-blue-600 text-white"
-                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                ? "m3-solid-primary"
+                : "m3-surface-container-high-bg m3-on-surface-variant hover:bg-slate-200"
             }`}
           >
             {m === "none" ? "No Discount" : m === "dealer" ? "Dealer" : "Manual"}
@@ -76,17 +83,17 @@ const DiscountField = ({ item, index, discountOptions, maxPrice, onDealerChange,
           <button
             type="button"
             onClick={() => setDropOpen((p) => !p)}
-            className="w-full flex items-center justify-between px-3 py-2 border border-slate-200 rounded-lg bg-white text-xs font-semibold text-slate-700 hover:border-blue-300 transition-all"
+            className="w-full flex items-center justify-between px-3 py-2 border m3-outline-variant-border rounded-lg m3-surface-bg text-xs font-semibold m3-on-surface hover:border-blue-300 transition-all"
           >
-            <span className={selected ? "text-slate-800" : "text-slate-400"}>
+            <span className={selected ? "m3-on-surface" : "m3-on-surface-variant"}>
               {selected
                 ? `${selected.is_percentage ? `${selected.discount_value}%` : `₹ ${selected.discount_value}`} off`
                 : options.length === 0 ? "No discounts available" : "Pick discount…"}
             </span>
-            <FiChevronDown size={12} className={`transition-transform ${dropOpen ? "rotate-180" : ""}`} />
+            <MdExpandMore size={12} className={`transition-transform ${dropOpen ? "rotate-180" : ""}`} />
           </button>
           {dropOpen && options.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+            <div className="absolute z-50 mt-1 w-full m3-surface-bg border m3-outline-variant-border rounded-xl shadow-xl overflow-hidden">
               {options.map((opt) => (
                 <button
                   key={opt.dealer_discount_id}
@@ -95,14 +102,14 @@ const DiscountField = ({ item, index, discountOptions, maxPrice, onDealerChange,
                   className={`w-full px-3 py-2.5 text-left text-xs font-semibold border-b border-slate-50 last:border-0 transition-colors ${
                     item.dealer_discount_id === opt.dealer_discount_id
                       ? "bg-blue-50 text-blue-700"
-                      : "hover:bg-slate-50 text-slate-700"
+                      : "hover:m3-surface-container-low-bg m3-on-surface"
                   }`}
                 >
                   <span className="font-black">
                     {opt.is_percentage ? `${opt.discount_value}%` : `₹ ${opt.discount_value}`}
                   </span>
                   {opt.description && (
-                    <span className="ml-2 text-slate-400 font-medium">{opt.description}</span>
+                    <span className="ml-2 m3-on-surface-variant font-medium">{opt.description}</span>
                   )}
                 </button>
               ))}
@@ -134,10 +141,10 @@ const DiscountField = ({ item, index, discountOptions, maxPrice, onDealerChange,
               }
               onManualChange(index, val);
             }}
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+            className="w-full px-3 py-2 text-sm border m3-outline-variant-border rounded-lg m3-surface-bg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
           />
           {maxPrice && (
-            <p className="text-[10px] text-slate-400 mt-1">Max discount: ₹{Number(maxPrice).toLocaleString("en-IN")}</p>
+            <p className="text-[10px] m3-on-surface-variant mt-1">Max discount: ₹{Number(maxPrice).toLocaleString("en-IN")}</p>
           )}
         </div>
       )}
@@ -363,34 +370,34 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center m3-scrim backdrop-blur-sm px-4">
+      <div className="m3-surface-bg border m3-outline-variant-border rounded-2xl m3-elevation-3 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-5 py-4 border-b m3-outline-variant-border flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <FiPlus size={16} className="text-blue-500" /> Add Items
+            <h2 className="text-base font-bold m3-on-surface flex items-center gap-2">
+              <MdAdd size={16} className="text-blue-500" /> Add Items
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs m3-on-surface-variant mt-0.5">
               Order <span className="font-mono">{order?.order_number}</span> · Dealer {formatName(order?.dealer?.employee_name) || dealerId}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-all">
-            <FiX size={16} />
+          <button onClick={onClose} className="p-2 rounded-lg m3-on-surface-variant hover:m3-surface-container-high-bg hover:m3-on-surface transition-all">
+            <MdClose size={16} />
           </button>
         </div>
 
         {/* Body */}
         <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3">
           {loading ? (
-            <div className="flex flex-col items-center gap-3 py-10 text-slate-400">
+            <div className="flex flex-col items-center gap-3 py-10 m3-on-surface-variant">
               <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
               <span className="text-xs font-semibold">Loading brands & products…</span>
             </div>
           ) : brands.length === 0 ? (
             <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
-              <FiAlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <MdErrorOutline size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="text-xs text-amber-700">
                 <p className="font-semibold">No brands available</p>
                 <p className="mt-0.5">{error || "This dealer has no assigned brands."}</p>
@@ -405,14 +412,14 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
               const rowErr = fieldErrors[index] || {};
 
               return (
-                <div key={index} className={`border rounded-xl p-3.5 bg-slate-50/40 space-y-2.5 ${Object.keys(rowErr).length ? "border-rose-300" : "border-slate-200"}`}>
+                <div key={index} className={`border rounded-xl p-3.5 m3-surface-container-low-bg space-y-2.5 ${Object.keys(rowErr).length ? "border-rose-300" : "m3-outline-variant-border"}`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                    <span className="text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant">
                       Item {index + 1}
                     </span>
                     {items.length > 1 && (
                       <button onClick={() => removeRow(index)} className="text-rose-500 hover:bg-rose-50 p-1 rounded transition">
-                        <FiTrash2 size={12} />
+                        <MdDeleteOutline size={12} />
                       </button>
                     )}
                   </div>
@@ -420,7 +427,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                   {/* Brand → Model → Product */}
                   <div className="space-y-2">
                     <div>
-                      <label className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Brand</label>
+                      <label className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">Brand</label>
                       <div className="mt-1">
                         <CustomSelect
                           name={`brand_${index}`}
@@ -435,7 +442,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                     </div>
 
                     <div>
-                      <label className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Model</label>
+                      <label className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">Model</label>
                       <div className="mt-1">
                         <CustomSelect
                           name={`model_${index}`}
@@ -451,7 +458,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                     </div>
 
                     <div>
-                      <label className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Product</label>
+                      <label className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">Product</label>
                       <div className="mt-1">
                         <CustomSelect
                           name={`product_${index}`}
@@ -475,7 +482,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                   {/* Qty + Delivery Date */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Qty</label>
+                      <label className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">Qty</label>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -492,20 +499,20 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                           updateRow(index, { qty_ordered: val === "" ? "" : Math.max(1, parseInt(val, 10)) });
                           clearFieldError(index, "qty_ordered");
                         }}
-                        className={`w-full mt-1 px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 ${rowErr.qty_ordered ? "border-rose-400" : "border-slate-200"}`}
+                        className={`w-full mt-1 px-3 py-2 text-sm border rounded-lg m3-surface-bg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 ${rowErr.qty_ordered ? "border-rose-400" : "m3-outline-variant-border"}`}
                       />
                       {rowErr.qty_ordered && <p className="text-xs text-rose-500 font-semibold mt-1">{rowErr.qty_ordered}</p>}
                     </div>
                     <div>
-                      <label className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Delivery Date</label>
+                      <label className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">Delivery Date</label>
                       <div className="relative mt-1">
-                        <FiCalendar size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        <MdCalendarMonth size={12} className="absolute left-3 top-1/2 -translate-y-1/2 m3-on-surface-variant pointer-events-none" />
                         <input
                           type="date"
                           min={todayISO()}
                           value={item.delivery_date}
                           onChange={(e) => { updateRow(index, { delivery_date: e.target.value }); clearFieldError(index, "delivery_date"); }}
-                          className={`w-full pl-8 pr-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 ${rowErr.delivery_date ? "border-rose-400" : "border-slate-200"}`}
+                          className={`w-full pl-8 pr-3 py-2 text-sm border rounded-lg m3-surface-bg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 ${rowErr.delivery_date ? "border-rose-400" : "m3-outline-variant-border"}`}
                         />
                       </div>
                       {rowErr.delivery_date && <p className="text-xs text-rose-500 font-semibold mt-1">{rowErr.delivery_date}</p>}
@@ -515,7 +522,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                   {/* Discount */}
                   {item.product_id && (
                     <div>
-                      <label className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 mb-1.5 block">Discount</label>
+                      <label className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant mb-1.5 block">Discount</label>
                       <DiscountField
                         item={item}
                         index={index}
@@ -530,9 +537,9 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
 
                   {/* Row total */}
                   {product && (
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-[11px] m3-on-surface-variant pt-1 border-t m3-outline-variant-border">
                       <span>{product.product_type || "—"}</span>
-                      <span className="font-semibold text-slate-700">
+                      <span className="font-semibold m3-on-surface">
                         ₹{(Number(product.price) * Number(item.qty_ordered || 0)).toLocaleString("en-IN")}
                       </span>
                     </div>
@@ -545,44 +552,44 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
           {!loading && brands.length > 0 && (
             <button
               onClick={addRow}
-              className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-500 hover:text-blue-600 hover:border-blue-300 transition flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 border-2 border-dashed m3-outline-variant-border rounded-xl text-xs font-bold m3-on-surface-variant hover:text-blue-600 hover:border-blue-300 transition flex items-center justify-center gap-1.5"
             >
-              <FiPlus size={12} /> Add another item
+              <MdAdd size={12} /> Add another item
             </button>
           )}
 
           {Object.keys(fieldErrors).length > 0 && (
             <div className="flex items-start gap-2 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs font-semibold">
-              <FiAlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+              <MdErrorOutline size={13} className="flex-shrink-0 mt-0.5" />
               Fill in all required fields highlighted in red before submitting.
             </div>
           )}
 
           {error && (
             <div className="flex items-start gap-2 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs font-semibold">
-              <FiAlertCircle size={13} className="flex-shrink-0 mt-0.5" />{error}
+              <MdErrorOutline size={13} className="flex-shrink-0 mt-0.5" />{error}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="text-xs text-slate-500">
+        <div className="px-5 py-3 border-t m3-outline-variant-border flex items-center justify-between m3-surface-container-low-bg">
+          <div className="text-xs m3-on-surface-variant">
             <span className="font-semibold">{items.length}</span> {items.length === 1 ? "item" : "items"} · est.{" "}
-            <span className="font-bold text-slate-700">₹{totalPreview.toLocaleString("en-IN")}</span>
+            <span className="font-bold m3-on-surface">₹{totalPreview.toLocaleString("en-IN")}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
               disabled={submitting}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition disabled:opacity-50"
+              className="px-4 py-2 text-xs font-bold m3-on-surface-variant hover:m3-surface-container-high-bg rounded-lg transition disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={submitting || loading || brands.length === 0}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-95 transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold m3-solid-primary rounded-lg active:scale-95 transition disabled:opacity-50"
             >
               {submitting ? (
                 <>
@@ -590,7 +597,7 @@ const AddItemsModal = ({ isOpen, onClose, order, onSuccess }) => {
                   Adding…
                 </>
               ) : (
-                <><FiPlus size={12} /> Add to order</>
+                <><MdAdd size={12} /> Add to order</>
               )}
             </button>
           </div>

@@ -1,9 +1,13 @@
 // BulkUpload.jsx
 import React, { useState, useCallback } from "react";
 import {
-    FiUploadCloud, FiRefreshCw, FiCheckCircle,
-    FiAlertCircle, FiFileText, FiLoader,
-} from "react-icons/fi";
+  MdAutorenew,
+  MdCheckCircle,
+  MdCloudUpload,
+  MdDescription,
+  MdErrorOutline,
+  MdRefresh,
+} from "react-icons/md";
 import { uploadExcel, validateExcelFile } from "../api/dataUpload";
 import UploadBox from "./UploadBox";
 import UploadSummary from "./UploadSummary";
@@ -41,7 +45,7 @@ const Toast = ({ toasts }) => (
     <div className="toast-container" aria-live="polite">
         {toasts.map((t) => (
             <div key={t.id} className={`toast toast--${t.type}`}>
-                {t.type === "success" ? <FiCheckCircle size={14} /> : <FiAlertCircle size={14} />}
+                {t.type === "success" ? <MdCheckCircle size={14} /> : <MdErrorOutline size={14} />}
                 <span>{t.message}</span>
             </div>
         ))}
@@ -164,7 +168,7 @@ const DataUpload = () => {
             <div className="bulk-upload-page__header">
                 <div className="bulk-upload-page__title-group">
                     <div className="bulk-upload-page__icon-wrap">
-                        <FiUploadCloud size={20} />
+                        <MdCloudUpload size={20} />
                     </div>
                     <div>
                         <h1 className="bulk-upload-page__title">Bulk Upload</h1>
@@ -182,7 +186,7 @@ const DataUpload = () => {
                     onClick={() => setActiveTab(MAIN_TABS.UPLOAD)}
                     className={`bulk-upload-page__tab ${activeTab === MAIN_TABS.UPLOAD ? "bulk-upload-page__tab--active" : ""}`}
                 >
-                    <FiUploadCloud size={14} />
+                    <MdCloudUpload size={14} />
                     Upload File
                 </button>
                 <button
@@ -190,7 +194,7 @@ const DataUpload = () => {
                     onClick={() => setActiveTab(MAIN_TABS.TEMPLATE)}
                     className={`bulk-upload-page__tab ${activeTab === MAIN_TABS.TEMPLATE ? "bulk-upload-page__tab--active" : ""}`}
                 >
-                    <FiFileText size={14} />
+                    <MdDescription size={14} />
                     Template Guide
                 </button>
             </div>
@@ -221,7 +225,7 @@ const DataUpload = () => {
                                 {/* Error banner */}
                                 {isError && uploadError && (
                                     <div className="bulk-alert bulk-alert--error">
-                                        <FiAlertCircle size={14} />
+                                        <MdErrorOutline size={14} />
                                         <span>{uploadError}</span>
                                     </div>
                                 )}
@@ -229,7 +233,7 @@ const DataUpload = () => {
                                 {/* Success banner */}
                                 {isSuccess && (
                                     <div className="bulk-alert bulk-alert--success">
-                                        <FiCheckCircle size={14} />
+                                        <MdCheckCircle size={14} />
                                         <span>File processed successfully.</span>
                                     </div>
                                 )}
@@ -243,7 +247,7 @@ const DataUpload = () => {
                                         onClick={handleReset}
                                         className="bulk-btn bulk-btn--secondary"
                                     >
-                                        <FiRefreshCw size={13} />
+                                        <MdRefresh size={13} />
                                         Upload Another
                                     </button>
                                 )}
@@ -256,12 +260,12 @@ const DataUpload = () => {
                                     >
                                         {isLoading ? (
                                             <>
-                                                <FiLoader size={13} className="spin" />
+                                                <MdAutorenew size={13} className="spin" />
                                                 Uploading…
                                             </>
                                         ) : (
                                             <>
-                                                <FiUploadCloud size={13} />
+                                                <MdCloudUpload size={13} />
                                                 Upload File
                                             </>
                                         )}

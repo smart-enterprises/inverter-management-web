@@ -3,11 +3,31 @@ import React, {
 } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  FiArrowLeft, FiUser, FiMapPin, FiPhone, FiMail, FiBox, FiCalendar,
-  FiPackage, FiTruck, FiPercent, FiPlus, FiTrash2, FiSearch, FiEdit3,
-  FiChevronLeft, FiChevronRight, FiAlertCircle, FiTag, FiX, FiCheck,
-  FiChevronDown, FiRefreshCw, FiArrowRight, FiFilter, FiShield, FiUserCheck,
-} from "react-icons/fi";
+  MdAdd,
+  MdArrowBack,
+  MdArrowForward,
+  MdCalendarMonth,
+  MdCheck,
+  MdChevronLeft,
+  MdChevronRight,
+  MdClose,
+  MdDeleteOutline,
+  MdEdit,
+  MdErrorOutline,
+  MdExpandMore,
+  MdFilterList,
+  MdInventory,
+  MdLocationOn,
+  MdMailOutline,
+  MdPercent,
+  MdPersonAddAlt,
+  MdPersonOutline,
+  MdPhone,
+  MdRefresh,
+  MdSearch,
+  MdSell,
+  MdShield,
+} from "react-icons/md";
 import Swal from "sweetalert2";
 
 import {
@@ -74,21 +94,21 @@ const buildBrandModelMap = (brands = []) =>
 // ─────────────────────────────────────────────
 
 const inputCls =
-  "w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all disabled:bg-slate-50 disabled:text-slate-400";
+  "w-full border m3-outline-variant-border rounded-lg px-3.5 py-2.5 text-sm font-medium m3-on-surface placeholder-slate-300 m3-surface-bg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all disabled:m3-surface-container-low-bg disabled:m3-on-surface-variant";
 
 // ─────────────────────────────────────────────
 // Primitive UI Components
 // ─────────────────────────────────────────────
 
 const InfoItem = ({ icon, label, value }) => (
-  <div className="flex items-start gap-3.5 px-5 py-4 rounded-xl hover:bg-slate-50/60 transition-colors group">
+  <div className="flex items-start gap-3.5 px-5 py-4 rounded-xl hover:m3-surface-container-low-bg transition-colors group">
     <div className="mt-0.5 p-2 rounded-lg bg-blue-50 text-blue-500 border border-blue-100 group-hover:border-blue-200 transition-colors flex-shrink-0">
       {React.cloneElement(icon, { size: 13 })}
     </div>
     <div className="flex-1 min-w-0">
-      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 mb-1">{label}</p>
-      <p className="text-sm font-semibold text-slate-800 break-words">
-        {value || <span className="text-slate-300 font-normal">—</span>}
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] m3-on-surface-variant mb-1">{label}</p>
+      <p className="text-sm font-semibold m3-on-surface break-words">
+        {value || <span className="m3-on-surface-variant font-normal">—</span>}
       </p>
     </div>
   </div>
@@ -96,14 +116,14 @@ const InfoItem = ({ icon, label, value }) => (
 
 const FormField = ({ label, required, errorMsg, children }) => (
   <div className="space-y-1.5">
-    <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+    <label className="block text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant">
       {label}
       {required && <span className="text-rose-400 ml-0.5">*</span>}
     </label>
     {children}
     {errorMsg && (
       <p className="flex items-center gap-1 text-xs text-rose-500 font-semibold mt-1">
-        <FiAlertCircle size={11} />
+        <MdErrorOutline size={11} />
         {errorMsg}
       </p>
     )}
@@ -111,12 +131,12 @@ const FormField = ({ label, required, errorMsg, children }) => (
 );
 
 const SectionCard = ({ title, subtitle, action, children }) => (
-  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+  <div className="m3-surface-bg rounded-2xl border m3-outline-variant-border shadow-sm overflow-hidden">
+    <div className="flex items-center justify-between px-6 py-5 border-b m3-outline-variant-border m3-surface-container-low-bg">
       <div>
-        <h2 className="text-sm font-bold text-slate-800">{title}</h2>
+        <h2 className="text-sm font-bold m3-on-surface">{title}</h2>
         {subtitle && (
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+          <p className="text-[10px] font-semibold m3-on-surface-variant uppercase tracking-[0.1em] mt-0.5">
             {subtitle}
           </p>
         )}
@@ -136,7 +156,7 @@ const StatPill = ({ title, value, color }) => {
     emerald: "text-emerald-700 bg-emerald-50 border-emerald-200",
     rose: "text-rose-700 bg-rose-50 border-rose-200",
   };
-  const cls = palette[color] ?? "text-slate-700 bg-slate-50 border-slate-200";
+  const cls = palette[color] ?? "m3-on-surface m3-surface-container-low-bg m3-outline-variant-border";
   const [textCls, ...bgCls] = cls.split(" ");
   return (
     <div className={`rounded-xl border px-5 py-4 ${bgCls.join(" ")}`}>
@@ -165,19 +185,19 @@ const PriorityBadge = ({ priority }) => (
 const AlertBanner = ({ message }) =>
   message ? (
     <div className="flex items-center gap-2.5 px-4 py-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-semibold">
-      <FiAlertCircle size={14} className="flex-shrink-0" />
+      <MdErrorOutline size={14} className="flex-shrink-0" />
       {message}
     </div>
   ) : null;
 
 const PageLoader = ({ label = "Loading…" }) => (
-  <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
+  <div className="min-h-screen m3-surface-container-low-bg flex items-center justify-center">
     <div className="flex flex-col items-center gap-4">
       <div className="relative w-10 h-10">
         <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
         <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
-      <p className="text-sm text-slate-400 font-medium">{label}</p>
+      <p className="text-sm m3-on-surface-variant font-medium">{label}</p>
     </div>
   </div>
 );
@@ -192,10 +212,10 @@ const Spinner = ({ size = "w-3.5 h-3.5", border = "border-white/40 border-t-whit
 
 const ModalShell = ({ maxWidth = "max-w-xl", children }) => (
   <>
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" />
+    <div className="fixed inset-0 m3-scrim backdrop-blur-sm z-40" />
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
       <div
-        className={`w-full ${maxWidth} bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col`}
+        className={`w-full ${maxWidth} m3-surface-bg rounded-2xl m3-elevation-3 border m3-outline-variant-border flex flex-col`}
         style={{ maxHeight: "92vh" }}
       >
         {children}
@@ -205,17 +225,17 @@ const ModalShell = ({ maxWidth = "max-w-xl", children }) => (
 );
 
 const ModalHeader = ({ title, subtitle, onClose }) => (
-  <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0 flex items-start justify-between">
+  <div className="px-6 py-5 border-b m3-outline-variant-border m3-surface-container-low-bg flex-shrink-0 flex items-start justify-between">
     <div>
-      <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-      {subtitle && <p className="text-xs text-slate-400 font-medium mt-0.5">{subtitle}</p>}
+      <h3 className="text-sm font-bold m3-on-surface">{title}</h3>
+      {subtitle && <p className="text-xs m3-on-surface-variant font-medium mt-0.5">{subtitle}</p>}
     </div>
     <button
       onClick={onClose}
       aria-label="Close"
-      className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all flex-shrink-0 ml-4"
+      className="p-2 rounded-lg hover:m3-surface-container-high-bg m3-on-surface-variant hover:m3-on-surface-variant transition-all flex-shrink-0 ml-4"
     >
-      <FiX size={16} />
+      <MdClose size={16} />
     </button>
   </div>
 );
@@ -227,17 +247,17 @@ const ModalFooter = ({
   submitLabel = "Save",
   cancelLabel = "Cancel",
 }) => (
-  <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex gap-3 flex-shrink-0">
+  <div className="px-6 py-4 border-t m3-outline-variant-border m3-surface-container-low-bg flex gap-3 flex-shrink-0">
     <button
       onClick={onClose}
-      className="flex-1 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all"
+      className="flex-1 py-2.5 border m3-outline-variant-border rounded-xl m3-on-surface-variant text-sm font-semibold hover:m3-surface-container-low-bg transition-all"
     >
       {cancelLabel}
     </button>
     <button
       onClick={onSubmit}
       disabled={submitting}
-      className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-blue-200 inline-flex items-center justify-center gap-2"
+      className="flex-1 py-2.5 m3-solid-primary rounded-xl text-sm font-bold active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-blue-200 inline-flex items-center justify-center gap-2"
     >
       {submitting ? (
         <>
@@ -256,25 +276,25 @@ const ModalFooter = ({
 // ─────────────────────────────────────────────
 
 const DateRangeFilter = ({ startDate, endDate, onStartChange, onEndChange }) => (
-  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
-    <FiCalendar size={11} className="text-slate-400 flex-shrink-0" />
+  <div className="flex items-center gap-1.5 m3-surface-container-low-bg border m3-outline-variant-border rounded-lg px-2.5 py-1.5">
+    <MdCalendarMonth size={11} className="m3-on-surface-variant flex-shrink-0" />
     <div className="flex flex-col">
-      <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">From</span>
+      <span className="text-[8px] font-black uppercase tracking-widest m3-on-surface-variant">From</span>
       <input
         type="date"
         value={startDate}
         onChange={onStartChange}
-        className="text-[11px] font-medium text-slate-700 bg-transparent outline-none cursor-pointer min-w-[110px]"
+        className="text-[11px] font-medium m3-on-surface bg-transparent outline-none cursor-pointer min-w-[110px]"
       />
     </div>
-    <FiArrowRight size={10} className="text-slate-300 flex-shrink-0" />
+    <MdArrowForward size={10} className="m3-on-surface-variant flex-shrink-0" />
     <div className="flex flex-col">
-      <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">To</span>
+      <span className="text-[8px] font-black uppercase tracking-widest m3-on-surface-variant">To</span>
       <input
         type="date"
         value={endDate}
         onChange={onEndChange}
-        className="text-[11px] font-medium text-slate-700 bg-transparent outline-none cursor-pointer min-w-[110px]"
+        className="text-[11px] font-medium m3-on-surface bg-transparent outline-none cursor-pointer min-w-[110px]"
       />
     </div>
     {(startDate || endDate) && (
@@ -295,20 +315,20 @@ const MiniPagination = ({ page, total, limit, onPageChange }) => {
       <button
         onClick={() => onPageChange(page - 1)}
         disabled={page === 1}
-        className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-8 h-8 flex items-center justify-center rounded-lg border m3-outline-variant-border m3-on-surface-variant hover:m3-surface-container-low-bg hover:m3-outline-border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <FiChevronLeft size={13} />
+        <MdChevronLeft size={13} />
       </button>
       {visible.map((p, i) => (
         <div key={p} className="flex items-center">
           {i > 0 && p - visible[i - 1] > 1 && (
-            <span className="px-1.5 text-slate-300 text-xs">…</span>
+            <span className="px-1.5 m3-on-surface-variant text-xs">…</span>
           )}
           <button
             onClick={() => onPageChange(p)}
             className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${p === page
-              ? "bg-blue-600 text-white shadow-sm"
-              : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+              ? "m3-solid-primary shadow-sm"
+              : "border m3-outline-variant-border m3-on-surface-variant hover:m3-surface-container-low-bg"
               }`}
           >
             {p}
@@ -318,9 +338,9 @@ const MiniPagination = ({ page, total, limit, onPageChange }) => {
       <button
         onClick={() => onPageChange(page + 1)}
         disabled={page === totalPages}
-        className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-8 h-8 flex items-center justify-center rounded-lg border m3-outline-variant-border m3-on-surface-variant hover:m3-surface-container-low-bg hover:m3-outline-border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        <FiChevronRight size={13} />
+        <MdChevronRight size={13} />
       </button>
     </div>
   );
@@ -355,10 +375,10 @@ const ProductMultiSelect = ({ products = [], selected = [], onChange }) => {
     <div className="relative" ref={containerRef}>
       <div
         onClick={() => setOpen((prev) => !prev)}
-        className="min-h-[44px] flex flex-wrap gap-1.5 px-3.5 py-2.5 border border-slate-200 rounded-lg cursor-pointer hover:border-blue-300 transition-colors"
+        className="min-h-[44px] flex flex-wrap gap-1.5 px-3.5 py-2.5 border m3-outline-variant-border rounded-lg cursor-pointer hover:border-blue-300 transition-colors"
       >
         {selected.length === 0 && (
-          <span className="text-slate-400 text-sm font-medium">Select products…</span>
+          <span className="m3-on-surface-variant text-sm font-medium">Select products…</span>
         )}
         {selected.map((id) => {
           const product = products.find((p) => p.product_id === id);
@@ -373,26 +393,26 @@ const ProductMultiSelect = ({ products = [], selected = [], onChange }) => {
                 onMouseDown={(e) => { e.stopPropagation(); toggle(id); }}
                 className="text-blue-400 hover:text-blue-700"
               >
-                <FiX size={9} />
+                <MdClose size={9} />
               </button>
             </span>
           );
         })}
       </div>
       {open && (
-        <div className="absolute z-40 mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
-          <div className="p-2 border-b border-slate-100">
+        <div className="absolute z-40 mt-1.5 w-full m3-surface-bg border m3-outline-variant-border rounded-xl shadow-lg overflow-hidden">
+          <div className="p-2 border-b m3-outline-variant-border">
             <input
               placeholder="Search products…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onMouseDown={(e) => e.stopPropagation()}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+              className="w-full px-3 py-2 text-sm border m3-outline-variant-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
             />
           </div>
           <div className="max-h-52 overflow-y-auto">
             {filtered.length === 0 ? (
-              <div className="px-4 py-5 text-sm text-slate-400 text-center font-semibold">
+              <div className="px-4 py-5 text-sm m3-on-surface-variant text-center font-semibold">
                 No products found
               </div>
             ) : (
@@ -402,11 +422,11 @@ const ProductMultiSelect = ({ products = [], selected = [], onChange }) => {
                   <div
                     key={product.product_id}
                     onMouseDown={(e) => { e.stopPropagation(); toggle(product.product_id); }}
-                    className={`px-4 py-2.5 text-sm cursor-pointer flex justify-between hover:bg-slate-50 transition-colors ${active ? "bg-blue-50 text-blue-700 font-semibold" : "text-slate-700"
+                    className={`px-4 py-2.5 text-sm cursor-pointer flex justify-between hover:m3-surface-container-low-bg transition-colors ${active ? "bg-blue-50 text-blue-700 font-semibold" : "m3-on-surface"
                       }`}
                   >
                     <span>{product.product_name} ({product.model})</span>
-                    {active && <FiCheck size={13} className="text-blue-600 flex-shrink-0" />}
+                    {active && <MdCheck size={13} className="text-blue-600 flex-shrink-0" />}
                   </div>
                 );
               })
@@ -459,14 +479,14 @@ const BrandMultiSelect = ({
       <div
         onClick={() => !disabled && !loading && setOpen((p) => !p)}
         className={`w-full px-3.5 py-2.5 rounded-lg border min-h-[42px] flex flex-wrap items-center gap-1.5 cursor-pointer transition-all ${disabled
-          ? "opacity-50 cursor-not-allowed bg-slate-50 border-slate-200"
-          : "bg-white border-slate-200 hover:border-blue-300"
+          ? "opacity-50 cursor-not-allowed m3-surface-container-low-bg m3-outline-variant-border"
+          : "m3-surface-bg m3-outline-variant-border hover:border-blue-300"
           } ${open ? "border-blue-400 ring-2 ring-blue-100" : ""}`}
       >
         {loading ? (
           <div className="flex items-center gap-2">
             <Spinner border="border-blue-200 border-t-blue-600" />
-            <span className="text-sm text-slate-400">{placeholder}</span>
+            <span className="text-sm m3-on-surface-variant">{placeholder}</span>
           </div>
         ) : selectedValues.length > 0 ? (
           selectedValues.map((value) => {
@@ -482,31 +502,31 @@ const BrandMultiSelect = ({
                   onMouseDown={(e) => { e.stopPropagation(); removeTag(value); }}
                   className="text-blue-400 hover:text-blue-700 flex-shrink-0"
                 >
-                  <FiX size={9} />
+                  <MdClose size={9} />
                 </button>
               </span>
             );
           })
         ) : (
-          <span className="text-sm text-slate-400 font-medium">{placeholder}</span>
+          <span className="text-sm m3-on-surface-variant font-medium">{placeholder}</span>
         )}
         <div className="ml-auto flex-shrink-0">
-          <FiChevronDown
-            className={`w-4 h-4 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          <MdExpandMore
+            className={`w-4 h-4 m3-on-surface-variant transition-transform ${open ? "rotate-180" : ""}`}
           />
         </div>
       </div>
       {open && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-hidden">
+        <div className="absolute z-50 w-full mt-1 m3-surface-bg border m3-outline-variant-border rounded-xl shadow-lg max-h-60 overflow-hidden">
           {searchable && (
-            <div className="p-2 border-b border-slate-100">
+            <div className="p-2 border-b m3-outline-variant-border">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onMouseDown={(e) => e.stopPropagation()}
                 placeholder="Search brands…"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                className="w-full px-3 py-2 text-sm border m3-outline-variant-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
               />
             </div>
           )}
@@ -518,18 +538,18 @@ const BrandMultiSelect = ({
                   <div
                     key={option.value}
                     onMouseDown={(e) => { e.stopPropagation(); toggle(option.value); }}
-                    className={`px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-slate-50 transition-colors ${active ? "bg-blue-50" : ""
+                    className={`px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:m3-surface-container-low-bg transition-colors ${active ? "bg-blue-50" : ""
                       }`}
                   >
-                    <span className={`font-medium ${active ? "text-blue-700" : "text-slate-700"}`}>
+                    <span className={`font-medium ${active ? "text-blue-700" : "m3-on-surface"}`}>
                       {option.label}
                     </span>
-                    {active && <FiCheck className="text-blue-600 flex-shrink-0" size={14} />}
+                    {active && <MdCheck className="text-blue-600 flex-shrink-0" size={14} />}
                   </div>
                 );
               })
             ) : (
-              <div className="px-4 py-5 text-sm text-slate-400 text-center font-semibold">
+              <div className="px-4 py-5 text-sm m3-on-surface-variant text-center font-semibold">
                 {searchTerm ? "No brands found" : "No brands available"}
               </div>
             )}
@@ -545,11 +565,11 @@ const BrandMultiSelect = ({
 // ─────────────────────────────────────────────
 
 const DiscountToggle = ({ isPercentage, onChange }) => (
-  <div className="flex bg-slate-100 rounded-full p-1 flex-shrink-0">
+  <div className="flex m3-surface-container-high-bg rounded-full p-1 flex-shrink-0">
     <button
       type="button"
       onClick={() => onChange(false)}
-      className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${!isPercentage ? "bg-white shadow text-blue-600" : "text-slate-500"
+      className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${!isPercentage ? "m3-surface-bg shadow text-blue-600" : "m3-on-surface-variant"
         }`}
     >
       ₹
@@ -557,7 +577,7 @@ const DiscountToggle = ({ isPercentage, onChange }) => (
     <button
       type="button"
       onClick={() => onChange(true)}
-      className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${isPercentage ? "bg-white shadow text-blue-600" : "text-slate-500"
+      className={`px-3 py-1.5 text-xs font-bold rounded-full transition ${isPercentage ? "m3-surface-bg shadow text-blue-600" : "m3-on-surface-variant"
         }`}
     >
       %
@@ -630,14 +650,14 @@ const AddBrandModelsModal = ({ dealerId, existingBrands = [], onClose, onSuccess
         <AlertBanner message={error} />
         {existingBrands.length > 0 && (
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 mb-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant mb-2">
               Currently Assigned
             </p>
             <div className="flex flex-wrap gap-1.5">
               {existingBrands.map((b) => (
                 <span
                   key={b}
-                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-black uppercase tracking-wide"
+                  className="inline-flex items-center px-2.5 py-1 rounded-full m3-surface-container-high-bg m3-on-surface-variant border m3-outline-variant-border text-[10px] font-black uppercase tracking-wide"
                 >
                   {b}
                 </span>
@@ -662,7 +682,7 @@ const AddBrandModelsModal = ({ dealerId, existingBrands = [], onClose, onSuccess
             searchable
           />
           {!brandsLoading && availableOptions.length === 0 && (
-            <p className="text-xs text-slate-400 italic mt-1">
+            <p className="text-xs m3-on-surface-variant italic mt-1">
               All available brands are already assigned to this dealer.
             </p>
           )}
@@ -746,9 +766,9 @@ const AddDiscountsModal = ({ dealerId, allBrands, brandToModels, onClose, onSucc
       <div className="flex-1 overflow-y-auto px-7 py-6 space-y-5">
         <AlertBanner message={error} />
         {rows.map((row, idx) => (
-          <div key={row.id} className="bg-slate-50 rounded-xl border border-slate-200 p-6 space-y-5">
+          <div key={row.id} className="m3-surface-container-low-bg rounded-xl border m3-outline-variant-border p-6 space-y-5">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+              <p className="text-xs font-black uppercase tracking-[0.12em] m3-on-surface-variant">
                 Discount Rule {idx + 1}
               </p>
               {rows.length > 1 && (
@@ -757,7 +777,7 @@ const AddDiscountsModal = ({ dealerId, allBrands, brandToModels, onClose, onSucc
                   aria-label="Remove rule"
                   className="p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
                 >
-                  <FiTrash2 size={13} />
+                  <MdDeleteOutline size={13} />
                 </button>
               )}
             </div>
@@ -792,7 +812,7 @@ const AddDiscountsModal = ({ dealerId, allBrands, brandToModels, onClose, onSucc
                       updateRow(idx, { discount_value: v });
                     }}
                     placeholder="Enter value"
-                    className="flex-1 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                    className="flex-1 border m3-outline-variant-border rounded-lg px-3.5 py-2.5 text-sm font-medium m3-on-surface placeholder-slate-300 m3-surface-bg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
                   />
                   <DiscountToggle
                     isPercentage={row.is_percentage}
@@ -820,9 +840,9 @@ const AddDiscountsModal = ({ dealerId, allBrands, brandToModels, onClose, onSucc
                   value={row.description}
                   onChange={(e) => updateRow(idx, { description: e.target.value })}
                   placeholder="Enter description…"
-                  className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none"
+                  className="w-full border m3-outline-variant-border rounded-lg px-3.5 py-2.5 text-sm font-medium m3-on-surface placeholder-slate-300 m3-surface-bg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none"
                 />
-                <p className="text-[10px] text-slate-400 text-right mt-1">
+                <p className="text-[10px] m3-on-surface-variant text-right mt-1">
                   {row.description?.length || 0}/200
                 </p>
               </div>
@@ -830,25 +850,25 @@ const AddDiscountsModal = ({ dealerId, allBrands, brandToModels, onClose, onSucc
           </div>
         ))}
       </div>
-      <div className="px-7 py-5 border-t border-slate-100 bg-slate-50/30 flex justify-between items-center flex-shrink-0">
+      <div className="px-7 py-5 border-t m3-outline-variant-border m3-surface-container-low-bg flex justify-between items-center flex-shrink-0">
         <button
           onClick={() => setRows((prev) => [...prev, createEmptyDiscountRow()])}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 border border-blue-300 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-50 transition-all"
         >
-          <FiPlus size={13} />
+          <MdAdd size={13} />
           Add Rule
         </button>
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all"
+            className="px-5 py-2.5 border m3-outline-variant-border rounded-xl m3-on-surface-variant text-sm font-semibold hover:m3-surface-container-low-bg transition-all"
           >
             Cancel
           </button>
           <button
             disabled={submitting}
             onClick={handleSubmit}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-blue-200"
+            className="inline-flex items-center gap-2 px-5 py-2.5 m3-solid-primary rounded-xl text-sm font-bold active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-blue-200"
           >
             {submitting ? (
               <>
@@ -893,7 +913,7 @@ const EditDiscountModal = ({
             type="number"
             value={discount.discount_value}
             onChange={(e) => onChange({ discount_value: e.target.value })}
-            className="flex-1 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+            className="flex-1 border m3-outline-variant-border rounded-lg px-3.5 py-2.5 text-sm font-medium m3-on-surface m3-surface-bg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
           />
           <DiscountToggle
             isPercentage={discount.is_percentage}
@@ -920,20 +940,20 @@ const EditDiscountModal = ({
           }
           onChange={(e) => onChange({ description: e.target.value })}
           placeholder="Enter description…"
-          className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none"
+          className="w-full border m3-outline-variant-border rounded-lg px-3.5 py-2.5 text-sm font-medium m3-on-surface placeholder-slate-300 m3-surface-bg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none"
         />
       </FormField>
     </div>
-    <div className="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0">
+    <div className="px-6 py-4 border-t m3-outline-variant-border flex gap-3 flex-shrink-0">
       <button
         onClick={onClose}
-        className="flex-1 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all"
+        className="flex-1 py-2.5 border m3-outline-variant-border rounded-xl m3-on-surface-variant text-sm font-semibold hover:m3-surface-container-low-bg transition-all"
       >
         Cancel
       </button>
       <button
         onClick={onSave}
-        className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
+        className="flex-1 py-2.5 m3-solid-primary rounded-xl text-sm font-bold active:scale-95 transition-all shadow-sm shadow-blue-200"
       >
         Update Discount
       </button>
@@ -948,31 +968,31 @@ const EditDiscountModal = ({
 const BrandsModelsSection = ({ dealer, brandToModels, onAddBrand, showBrandActions }) => {
   const existingBrands = dealer?.brand || [];
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+    <div className="m3-surface-bg rounded-2xl border m3-outline-variant-border shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-5 border-b m3-outline-variant-border m3-surface-container-low-bg">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-            <FiTag size={14} />
+            <MdSell size={14} />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-slate-800">Brands & Models</h2>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+            <h2 className="text-sm font-bold m3-on-surface">Brands & Models</h2>
+            <p className="text-[10px] font-semibold m3-on-surface-variant uppercase tracking-[0.1em] mt-0.5">
               Assigned product lines
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           {existingBrands.length > 0 && (
-            <span className="inline-flex px-2.5 py-1 rounded-full border text-[10px] font-black bg-slate-100 text-slate-600 border-slate-200 uppercase tracking-wide">
+            <span className="inline-flex px-2.5 py-1 rounded-full border text-[10px] font-black m3-surface-container-high-bg m3-on-surface-variant m3-outline-variant-border uppercase tracking-wide">
               {existingBrands.length} brands
             </span>
           )}
           {showBrandActions && (
             <button
               onClick={onAddBrand}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
+              className="inline-flex items-center gap-2 px-4 py-2.5 m3-solid-primary text-sm font-bold rounded-xl active:scale-95 transition-all shadow-sm shadow-blue-200"
             >
-              <FiPlus size={13} />
+              <MdAdd size={13} />
               Add Brands
             </button>
           )}
@@ -982,11 +1002,11 @@ const BrandsModelsSection = ({ dealer, brandToModels, onAddBrand, showBrandActio
       <div className="p-6">
         {existingBrands.length === 0 ? (
           <div className="text-center py-12">
-            <div className="p-4 bg-slate-100 rounded-2xl inline-block mb-3">
-              <FiTag size={22} className="text-slate-400" />
+            <div className="p-4 m3-surface-container-high-bg rounded-2xl inline-block mb-3">
+              <MdSell size={22} className="m3-on-surface-variant" />
             </div>
-            <p className="text-sm font-semibold text-slate-500">No brands assigned</p>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-sm font-semibold m3-on-surface-variant">No brands assigned</p>
+            <p className="text-xs m3-on-surface-variant mt-1">
               Use "Add Brand & Models" to assign brands to this dealer.
             </p>
           </div>
@@ -997,17 +1017,17 @@ const BrandsModelsSection = ({ dealer, brandToModels, onAddBrand, showBrandActio
               return (
                 <div key={index} className="relative pl-4">
                   <div className="absolute left-0 top-1 h-5 w-1 bg-blue-500 rounded-full" />
-                  <h3 className="text-sm font-bold text-slate-900 mb-2">{brand}</h3>
+                  <h3 className="text-sm font-bold m3-on-surface mb-2">{brand}</h3>
                   {models.length > 0 ? (
                     <ul className="space-y-1">
                       {models.map((model, i) => (
-                        <li key={i} className="text-xs text-slate-500 font-medium italic">
+                        <li key={i} className="text-xs m3-on-surface-variant font-medium italic">
                           {model}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">No models assigned</p>
+                    <p className="text-xs m3-on-surface-variant italic">No models assigned</p>
                   )}
                 </div>
               );
@@ -1027,15 +1047,15 @@ const DiscountsSection = ({
   onEditDiscount,
   onPageChange,
 }) => (
-  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-    <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+  <div className="m3-surface-bg rounded-2xl border m3-outline-variant-border shadow-sm overflow-hidden">
+    <div className="flex items-center justify-between px-6 py-5 border-b m3-outline-variant-border m3-surface-container-low-bg">
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-          <FiPercent size={14} />
+          <MdPercent size={14} />
         </div>
         <div>
-          <h2 className="text-sm font-bold text-slate-800">Dealer Discounts</h2>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+          <h2 className="text-sm font-bold m3-on-surface">Dealer Discounts</h2>
+          <p className="text-[10px] font-semibold m3-on-surface-variant uppercase tracking-[0.1em] mt-0.5">
             Pricing rules & configurations
           </p>
         </div>
@@ -1043,9 +1063,9 @@ const DiscountsSection = ({
       {showDiscountActions && (
         <button
           onClick={onAddDiscount}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
+          className="inline-flex items-center gap-2 px-4 py-2.5 m3-solid-primary text-sm font-bold rounded-xl active:scale-95 transition-all shadow-sm shadow-blue-200"
         >
-          <FiPlus size={13} />
+          <MdAdd size={13} />
           Add Discounts
         </button>
       )}
@@ -1060,11 +1080,11 @@ const DiscountsSection = ({
         </div>
       ) : discounts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <div className="p-4 bg-slate-100 rounded-2xl">
-            <FiPercent size={22} className="text-slate-400" />
+          <div className="p-4 m3-surface-container-high-bg rounded-2xl">
+            <MdPercent size={22} className="m3-on-surface-variant" />
           </div>
-          <p className="text-sm font-semibold text-slate-500">No discounts configured</p>
-          <p className="text-xs text-slate-400">
+          <p className="text-sm font-semibold m3-on-surface-variant">No discounts configured</p>
+          <p className="text-xs m3-on-surface-variant">
             {showDiscountActions
               ? "Start by adding pricing rules for this dealer."
               : "No pricing rules have been set up yet."}
@@ -1072,17 +1092,17 @@ const DiscountsSection = ({
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <div className="overflow-x-auto rounded-xl border m3-outline-variant-border">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60">
+                <tr className="border-b m3-outline-variant-border m3-surface-container-low-bg">
                   {[
                     "Brand", "Model", "Products", "Discount", "Status", "Created",
                     ...(showDiscountActions ? [""] : []),
                   ].map((h, i) => (
                     <th
                       key={i}
-                      className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${showDiscountActions && i === 6 ? "text-right" : "text-left"
+                      className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] m3-on-surface-variant whitespace-nowrap ${showDiscountActions && i === 6 ? "text-right" : "text-left"
                         }`}
                     >
                       {h}
@@ -1090,11 +1110,11 @@ const DiscountsSection = ({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y m3-divide-outline-variant">
                 {discounts.map((d) => (
-                  <tr key={d.dealer_discount_id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-5 py-4 font-bold text-slate-900">{d.brand_name}</td>
-                    <td className="px-5 py-4 text-slate-600 font-medium">{d.model_name}</td>
+                  <tr key={d.dealer_discount_id} className="hover:m3-surface-container-low-bg transition-colors">
+                    <td className="px-5 py-4 font-bold m3-on-surface">{d.brand_name}</td>
+                    <td className="px-5 py-4 m3-on-surface-variant font-medium">{d.model_name}</td>
                     <td className="px-5 py-4">
                       {d.products?.length > 0 ? (
                         <div className="flex flex-wrap gap-1.5 max-w-[280px] max-h-[60px] overflow-y-auto">
@@ -1107,13 +1127,13 @@ const DiscountsSection = ({
                             return (
                               <div
                                 key={p.product_id}
-                                className="flex flex-col px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-100"
+                                className="flex flex-col px-2.5 py-1.5 rounded-lg m3-surface-container-low-bg border m3-outline-variant-border"
                               >
-                                <span className="text-xs font-semibold text-slate-800">
+                                <span className="text-xs font-semibold m3-on-surface">
                                   {p.product_name}
                                 </span>
                                 <div className="flex items-center gap-1.5 text-[10px] mt-0.5">
-                                  <span className="text-slate-400 line-through">₹{base}</span>
+                                  <span className="m3-on-surface-variant line-through">₹{base}</span>
                                   <span className="font-bold text-blue-600">₹{final}</span>
                                 </div>
                               </div>
@@ -1121,7 +1141,7 @@ const DiscountsSection = ({
                           })}
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400 italic">All products</span>
+                        <span className="text-xs m3-on-surface-variant italic">All products</span>
                       )}
                     </td>
                     <td className="px-5 py-4">
@@ -1132,8 +1152,8 @@ const DiscountsSection = ({
                     <td className="px-5 py-4">
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wide ${d.status === "active"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-slate-100 text-slate-600 border-slate-200"
+                          ? "m3-tone-success"
+                          : "m3-surface-container-high-bg m3-on-surface-variant m3-outline-variant-border"
                           }`}
                       >
                         <span
@@ -1143,7 +1163,7 @@ const DiscountsSection = ({
                         {d.status}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
+                    <td className="px-5 py-4 m3-on-surface-variant text-xs whitespace-nowrap">
                       {formatDate(d.created_at)}
                     </td>
                     {showDiscountActions && (
@@ -1151,9 +1171,9 @@ const DiscountsSection = ({
                         <button
                           onClick={() => onEditDiscount(d)}
                           aria-label="Edit discount"
-                          className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                          className="p-2 rounded-lg m3-on-surface-variant hover:text-blue-600 hover:bg-blue-50 transition-all"
                         >
-                          <FiEdit3 size={14} />
+                          <MdEdit size={14} />
                         </button>
                       </td>
                     )}
@@ -1248,11 +1268,11 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
   }, []);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+    <div className="m3-surface-bg rounded-2xl border m3-outline-variant-border shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-5 border-b m3-outline-variant-border m3-surface-container-low-bg">
         <div>
-          <h2 className="text-sm font-bold text-slate-800">Order History</h2>
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+          <h2 className="text-sm font-bold m3-on-surface">Order History</h2>
+          <p className="text-[10px] font-semibold m3-on-surface-variant uppercase tracking-[0.1em] mt-0.5">
             {loading
               ? "Loading…"
               : `${total.toLocaleString()} total order${total !== 1 ? "s" : ""}`}
@@ -1262,43 +1282,43 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
           onClick={loadOrders}
           disabled={loading}
           title="Refresh orders"
-          className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all disabled:opacity-50"
+          className="p-2 rounded-xl border m3-outline-variant-border m3-on-surface-variant hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all disabled:opacity-50"
         >
-          <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          <MdRefresh size={14} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
       {/* Filters */}
-      <div className="px-6 py-4 border-b border-slate-100">
+      <div className="px-6 py-4 border-b m3-outline-variant-border">
         <div className="flex items-center gap-3 flex-wrap">
           {/* Search */}
           <div className="relative flex-1 min-w-[220px] max-w-xs">
-            <FiSearch size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <MdSearch size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 m3-on-surface-variant" />
             <input
               type="text"
               placeholder="Search orders…"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-8 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+              className="w-full pl-9 pr-8 py-2.5 text-sm border m3-outline-variant-border rounded-lg m3-surface-bg placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
             />
             {searchInput && (
               <button
                 onClick={() => { setSearchInput(""); setSearchQuery(""); }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 m3-on-surface-variant hover:m3-on-surface-variant"
               >
-                <FiX size={13} />
+                <MdClose size={13} />
               </button>
             )}
           </div>
 
-          <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-            <FiFilter size={10} />
+          <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant">
+            <MdFilterList size={10} />
             Filter
           </span>
 
           {/* Status */}
           <div className="w-44">
-            <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
+            <span className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">
               Status
             </span>
             <CustomSelect
@@ -1311,7 +1331,7 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
 
           {/* Priority */}
           <div className="w-44">
-            <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
+            <span className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">
               Priority
             </span>
             <CustomSelect
@@ -1323,7 +1343,7 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
           </div>
 
           {/* Date Range */}
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+          <div className="flex items-center gap-2 m3-surface-container-low-bg border m3-outline-variant-border rounded-lg px-2 py-1">
             <DateRangeFilter
               startDate={startDate}
               endDate={endDate}
@@ -1337,9 +1357,9 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
             {(startDate || endDate) && (
               <button
                 onClick={() => { setStartDate(""); setEndDate(""); setPage(1); }}
-                className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-slate-500 hover:text-slate-700"
+                className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold m3-on-surface-variant hover:m3-on-surface"
               >
-                <FiX size={10} />
+                <MdClose size={10} />
               </button>
             )}
           </div>
@@ -1349,7 +1369,7 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
               onClick={clearFilters}
               className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition ml-auto"
             >
-              <FiX size={12} />
+              <MdClose size={12} />
               Clear
             </button>
           )}
@@ -1380,11 +1400,11 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
           </div>
         ) : !error && orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="p-4 bg-slate-100 rounded-2xl">
-              <FiPackage size={22} className="text-slate-400" />
+            <div className="p-4 m3-surface-container-high-bg rounded-2xl">
+              <MdInventory size={22} className="m3-on-surface-variant" />
             </div>
-            <p className="text-sm font-semibold text-slate-500">No orders found</p>
-            <p className="text-xs text-slate-400">
+            <p className="text-sm font-semibold m3-on-surface-variant">No orders found</p>
+            <p className="text-xs m3-on-surface-variant">
               {hasActiveFilters
                 ? "Try adjusting your filters."
                 : "Orders placed by this dealer will appear here."}
@@ -1393,17 +1413,17 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
         ) : (
           !error && (
             <>
-              <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <div className="overflow-x-auto rounded-xl border m3-outline-variant-border">
                 <table className="min-w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/60">
+                    <tr className="border-b m3-outline-variant-border m3-surface-container-low-bg">
                       {[
                         "Order ID", "Date", "Items", "Priority", "Status",
                         ...(canViewOrderDetails ? [""] : []),
                       ].map((h, i) => (
                         <th
                           key={i}
-                          className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${canViewOrderDetails && i === 5 ? "text-right" : "text-left"
+                          className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] m3-on-surface-variant whitespace-nowrap ${canViewOrderDetails && i === 5 ? "text-right" : "text-left"
                             }`}
                         >
                           {h}
@@ -1411,19 +1431,19 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y m3-divide-outline-variant">
                     {orders.map(({ order }) => (
                       <tr
                         key={order.order_number}
-                        className="hover:bg-slate-50/60 transition-colors"
+                        className="hover:m3-surface-container-low-bg transition-colors"
                       >
-                        <td className="px-5 py-4 font-mono font-bold text-slate-900">
+                        <td className="px-5 py-4 font-mono font-bold m3-on-surface">
                           {order.order_number}
                         </td>
-                        <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
+                        <td className="px-5 py-4 m3-on-surface-variant text-xs whitespace-nowrap">
                           {formatDate(order.created_at)}
                         </td>
-                        <td className="px-5 py-4 font-semibold text-slate-700">
+                        <td className="px-5 py-4 font-semibold m3-on-surface">
                           {getTotalItems(order.order_details)} Items
                         </td>
                         <td className="px-5 py-4">
@@ -1438,7 +1458,7 @@ const OrderHistorySection = ({ dealerId, canViewOrderDetails, onViewOrder }) => 
                               onClick={() => onViewOrder(order.order_number)}
                               className="inline-flex items-center gap-1 text-blue-600 font-bold hover:text-blue-800 text-sm transition-colors"
                             >
-                              View <FiArrowRight size={12} />
+                              View <MdArrowForward size={12} />
                             </button>
                           </td>
                         )}
@@ -1683,15 +1703,15 @@ const DealerDetails = () => {
 
   if (error)
     return (
-      <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
+      <div className="min-h-screen m3-surface-container-low-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
-            <FiAlertCircle size={24} className="text-rose-500" />
+            <MdErrorOutline size={24} className="text-rose-500" />
           </div>
           <p className="text-sm font-semibold text-rose-600">{error}</p>
           <button
             onClick={() => navigate("/dealers")}
-            className="px-4 py-2 bg-rose-600 text-white text-sm font-bold rounded-lg hover:bg-rose-700 transition-all"
+            className="px-4 py-2 m3-solid-error text-sm font-bold rounded-lg transition-all"
           >
             Back to Dealers
           </button>
@@ -1701,8 +1721,8 @@ const DealerDetails = () => {
 
   if (!dealer)
     return (
-      <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
-        <p className="text-sm text-slate-400">Dealer not found</p>
+      <div className="min-h-screen m3-surface-container-low-bg flex items-center justify-center">
+        <p className="text-sm m3-on-surface-variant">Dealer not found</p>
       </div>
     );
 
@@ -1711,7 +1731,7 @@ const DealerDetails = () => {
   // ── Main render ──
 
   return (
-    <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen m3-surface-container-low-bg p-4 sm:p-6 lg:p-8">
       <div className="max-w-screen-xl mx-auto space-y-5">
 
         {/* ── Page Header ── */}
@@ -1720,24 +1740,24 @@ const DealerDetails = () => {
             <button
               onClick={() => navigate("/dealers")}
               aria-label="Back to dealers"
-              className="p-2 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all group"
+              className="p-2 rounded-xl border m3-outline-variant-border m3-surface-bg hover:m3-outline-border hover:shadow-sm transition-all group"
             >
-              <FiArrowLeft
+              <MdArrowBack
                 size={15}
-                className="text-slate-400 group-hover:text-slate-700 transition-colors"
+                className="m3-on-surface-variant group-hover:m3-on-surface transition-colors"
               />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Dealer Profile</h1>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">
+              <h1 className="text-xl font-bold m3-on-surface tracking-tight">Dealer Profile</h1>
+              <p className="text-xs m3-on-surface-variant font-medium mt-0.5">
                 Detailed overview and performance insights
               </p>
             </div>
           </div>
           <span
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wide ${dealerIsActive
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-              : "bg-rose-50 text-rose-700 border-rose-200"
+              ? "m3-tone-success"
+              : "m3-tone-error"
               }`}
           >
             <span
@@ -1749,19 +1769,19 @@ const DealerDetails = () => {
         </div>
 
         {/* ── Profile Card ── */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+        <div className="m3-surface-bg rounded-2xl border m3-outline-variant-border shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
 
           {/* Card header */}
-          <div className="px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 via-white to-blue-50/30">
+          <div className="px-8 py-6 border-b m3-outline-variant-border bg-gradient-to-r from-slate-50 via-white to-blue-50/30">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#9333EA] to-blue-400 flex items-center justify-center shadow-sm shadow-blue-200">
-                <FiUser size={16} className="text-white" />
+                <MdPersonOutline size={16} className="text-white" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-gray-900 tracking-tight">
+                <h2 className="text-base font-bold m3-on-surface tracking-tight">
                   Profile & Registration
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">Core account and contact details</p>
+                <p className="text-xs m3-on-surface-variant mt-0.5">Core account and contact details</p>
               </div>
             </div>
           </div>
@@ -1770,47 +1790,47 @@ const DealerDetails = () => {
           <div className="px-8 py-6">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               <InfoItem
-                icon={<FiUser size={14} />}
+                icon={<MdPersonOutline size={14} />}
                 label="Full Name"
                 value={formatName(dealer.employee_name)}
               />
               <InfoItem
-                icon={<FiMail size={14} />}
+                icon={<MdMailOutline size={14} />}
                 label="Shop Name"
                 value={capitalizeFirstLetter(dealer.shop_name || "N/A")}
               />
               <InfoItem
-                icon={<FiPhone size={14} />}
+                icon={<MdPhone size={14} />}
                 label="Phone Number"
                 value={dealer.employee_phone || "N/A"}
               />
               <InfoItem
-                icon={<FiMail size={14} />}
+                icon={<MdMailOutline size={14} />}
                 label="Email"
                 value={dealer.employee_email || "N/A"}
               />
               <InfoItem
-                icon={<FiShield size={14} />}
+                icon={<MdShield size={14} />}
                 label="Role"
                 value={dealer.role || "N/A"}
               />
               <InfoItem
-                icon={<FiMapPin size={14} />}
+                icon={<MdLocationOn size={14} />}
                 label="Town"
                 value={capitalizeFirstLetter(dealer.town) || "N/A"}
               />
               <InfoItem
-                icon={<FiMapPin size={14} />}
+                icon={<MdLocationOn size={14} />}
                 label="District"
                 value={capitalizeFirstLetter(dealer.district) || "N/A"}
               />
               <InfoItem
-                icon={<FiMapPin size={14} />}
+                icon={<MdLocationOn size={14} />}
                 label="Address"
                 value={capitalizeFirstLetter(dealer.address) || "N/A"}
               />
               <InfoItem
-                icon={<FiUserCheck size={14} />}
+                icon={<MdPersonAddAlt size={14} />}
                 label="Created By"
                 value={
                   dealer?.created_by
@@ -1819,7 +1839,7 @@ const DealerDetails = () => {
                 }
               />
               <InfoItem
-                icon={<FiCalendar size={14} />}
+                icon={<MdCalendarMonth size={14} />}
                 label="Created On"
                 value={
                   dealer?.created_at

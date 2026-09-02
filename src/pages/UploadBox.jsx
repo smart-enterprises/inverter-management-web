@@ -5,7 +5,11 @@
  */
 
 import React, { useRef, useState, useCallback } from "react";
-import { FiUploadCloud, FiFile, FiX, FiCheckCircle } from "react-icons/fi";
+import {
+  MdClose,
+  MdCloudUpload,
+  MdInsertDriveFile,
+} from "react-icons/md";
 import { ACCEPTED_FILE_TYPES, validateExcelFile } from "../api/dataUpload";
 
 /* ─────────────────────────────────────────────────────────────
@@ -16,7 +20,7 @@ const FilePreview = ({ file, onRemove }) => {
     return (
         <div className="upload-file-preview">
             <div className="upload-file-preview__icon">
-                <FiFile size={20} />
+                <MdInsertDriveFile size={20} />
             </div>
             <div className="upload-file-preview__info">
                 <p className="upload-file-preview__name">{file.name}</p>
@@ -28,7 +32,7 @@ const FilePreview = ({ file, onRemove }) => {
                 className="upload-file-preview__remove"
                 aria-label="Remove file"
             >
-                <FiX size={14} />
+                <MdClose size={14} />
             </button>
         </div>
     );
@@ -105,7 +109,7 @@ const UploadBox = ({ file, onFileSelect, onFileRemove, disabled = false }) => {
 
                     <div className="upload-drop-zone__content">
                         <div className={`upload-drop-zone__icon-wrap ${zoneActive ? "upload-drop-zone__icon-wrap--active" : ""}`}>
-                            <FiUploadCloud size={28} />
+                            <MdCloudUpload size={28} />
                         </div>
                         <div className="upload-drop-zone__text">
                             <p className="upload-drop-zone__headline">
@@ -130,7 +134,7 @@ const UploadBox = ({ file, onFileSelect, onFileRemove, disabled = false }) => {
             {/* Validation error */}
             {dragError && (
                 <p className="upload-box__error">
-                    <FiX size={12} className="upload-box__error-icon" />
+                    <MdClose size={12} className="upload-box__error-icon" />
                     {dragError}
                 </p>
             )}

@@ -1,16 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
-  FiArrowLeft,
-  FiCheckCircle,
-  FiSave,
-  FiShoppingCart,
-  FiXCircle,
-  FiPackage,
-  FiAlertCircle,
-  FiZap,
-  FiActivity,
-  FiChevronRight,
-} from 'react-icons/fi';
+  MdArrowBack,
+  MdCheckCircle,
+  MdErrorOutline,
+  MdInventory,
+  MdSave,
+} from "react-icons/md";
 import { useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { toastSuccess, toastInfo } from '../utils/toast';
@@ -34,7 +29,7 @@ import { getAllowedNextStatuses } from '../utils/orderStatusHelper';
 
 const FormField = ({ label, children }) => (
   <div className="space-y-2">
-    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+    <label className="block text-[10px] font-bold uppercase tracking-widest m3-on-surface-variant">
       {label}
     </label>
     {children}
@@ -43,7 +38,7 @@ const FormField = ({ label, children }) => (
 
 const FormFieldSecondary = ({ label, children }) => (
   <div className="space-y-2">
-    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+    <label className="block text-[10px] font-bold uppercase tracking-widest m3-on-surface-variant">
       {label}
     </label>
     {children}
@@ -54,7 +49,7 @@ const CheckboxField = ({ label, checked, onChange, disabled }) => (
   <label
     className={`group flex items-center gap-3 text-sm cursor-pointer px-4 py-2.5 rounded-xl border transition-all duration-200 select-none ${checked
         ? 'bg-amber-50 border-amber-200 text-amber-700'
-        : 'bg-white border-gray-200 text-gray-600 hover:border-amber-200 hover:bg-amber-50/30'
+        : 'm3-surface-bg m3-outline-variant-border m3-on-surface-variant hover:border-amber-200 hover:bg-amber-50/30'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
   >
     <input
@@ -66,7 +61,7 @@ const CheckboxField = ({ label, checked, onChange, disabled }) => (
     />
     <span className="font-medium">{label}</span>
     {checked && (
-      <FiCheckCircle size={14} className="ml-auto text-amber-500 flex-shrink-0" />
+      <MdCheckCircle size={14} className="ml-auto text-amber-500 flex-shrink-0" />
     )}
   </label>
 );
@@ -98,14 +93,14 @@ const normalizeOrder = (order) => ({
 
 const StatPill = ({ label, value, color = 'gray' }) => {
   const colorMap = {
-    gray: 'text-gray-700',
+    gray: 'm3-on-surface',
     emerald: 'text-emerald-600',
     rose: 'text-rose-600',
     amber: 'text-amber-600',
   };
   return (
-    <div className="flex-1 px-4 py-3 border-r border-gray-100 last:border-0">
-      <p className="text-[9px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
+    <div className="flex-1 px-4 py-3 border-r m3-outline-variant-border last:border-0">
+      <p className="text-[9px] uppercase tracking-widest m3-on-surface-variant font-semibold mb-1">
         {label}
       </p>
       <p className={`text-lg font-black tabular-nums ${colorMap[color]}`}>
@@ -131,7 +126,7 @@ const getItemStatusStyle = (status) => {
     case 'COMPLETED': return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
     case 'CANCELLED':
     case 'REJECTED': return 'bg-red-50 text-red-700 border border-red-100';
-    default: return 'bg-gray-50 text-gray-700 border border-gray-200';
+    default: return 'm3-surface-container-low-bg m3-on-surface border m3-outline-variant-border';
   }
 };
 
@@ -323,7 +318,7 @@ const UpdateOrder = () => {
           <div className="w-12 h-12 border-4 border-amber-100 rounded-full" />
           <div className="absolute inset-0 w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" />
         </div>
-        <p className="text-sm text-gray-400 font-medium">Loading order…</p>
+        <p className="text-sm m3-on-surface-variant font-medium">Loading order…</p>
       </div>
     );
 
@@ -331,7 +326,7 @@ const UpdateOrder = () => {
     return (
       <div className="min-h-[40vh] flex flex-col items-center justify-center gap-3">
         <div className="p-4 bg-red-50 rounded-2xl border border-red-100">
-          <FiAlertCircle size={28} className="text-red-500" />
+          <MdErrorOutline size={28} className="text-red-500" />
         </div>
         <p className="text-sm font-semibold text-red-600">{error}</p>
       </div>
@@ -342,7 +337,7 @@ const UpdateOrder = () => {
      ================================================================ */
 
   return (
-    <div className="min-h-screen bg-gray-50/40">
+    <div className="min-h-screen m3-surface-container-low-bg/40">
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
 
         {/* ================================================================
@@ -352,19 +347,19 @@ const UpdateOrder = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="p-2.5 rounded-xl border border-gray-200 hover:bg-white hover:border-gray-300 hover:shadow-sm transition-all duration-200 group"
+              className="p-2.5 rounded-xl border m3-outline-variant-border hover:m3-surface-bg hover:border-gray-300 hover:shadow-sm transition-all duration-200 group"
             >
-              <FiArrowLeft
-                className="text-gray-400 group-hover:text-gray-700 transition-colors"
+              <MdArrowBack
+                className="m3-on-surface-variant group-hover:m3-on-surface transition-colors"
                 size={18}
               />
             </button>
             <div>
-              <h1 className="text-xl font-black text-gray-900 tracking-tight">
+              <h1 className="text-xl font-black m3-on-surface tracking-tight">
                 Update Order
               </h1>
               {order?.order_number && (
-                <p className="text-[10px] font-mono text-gray-400 mt-0.5">
+                <p className="text-[10px] font-mono m3-on-surface-variant mt-0.5">
                   {order.order_number}
                 </p>
               )}
@@ -379,9 +374,10 @@ const UpdateOrder = () => {
                 ? 'Completed or Delivered orders cannot be edited'
                 : ''
             }
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white text-sm font-bold rounded-xl hover:bg-amber-700 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-amber-200"
+            className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold rounded-xl active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: "var(--md-sys-color-warning)", color: "var(--md-sys-color-on-warning)" }}
           >
-            <FiSave size={15} />
+            <MdSave size={15} />
             {submitting ? 'Updating…' : 'Save Changes'}
           </button>
         </div>
@@ -389,14 +385,14 @@ const UpdateOrder = () => {
         {/* ================================================================
             ORDER-LEVEL FIELDS
             ================================================================ */}
-        <section className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <section className="m3-surface-bg border m3-outline-variant-border rounded-2xl shadow-sm overflow-hidden">
           {/* Section Header */}
-          <div className="px-8 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white flex items-center justify-between">
+          <div className="px-8 py-5 border-b m3-outline-variant-border bg-gradient-to-r from-gray-50/80 to-white flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              <p className="text-[10px] font-bold uppercase tracking-widest m3-on-surface-variant">
                 Order Number
               </p>
-              <p className="mt-1 text-base font-black text-gray-900 font-mono tracking-wide">
+              <p className="mt-1 text-base font-black m3-on-surface font-mono tracking-wide">
                 {order.order_number}
               </p>
             </div>
@@ -530,19 +526,19 @@ const UpdateOrder = () => {
         {/* ================================================================
             ORDER ITEMS
             ================================================================ */}
-        <section className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <section className="m3-surface-bg border m3-outline-variant-border rounded-2xl shadow-sm overflow-hidden">
           {/* Section Header */}
-          <div className="px-8 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white flex items-center justify-between">
+          <div className="px-8 py-5 border-b m3-outline-variant-border bg-gradient-to-r from-gray-50/80 to-white flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-gray-900 tracking-tight">
+              <h2 className="text-base font-bold m3-on-surface tracking-tight">
                 Order Items
               </h2>
-              <p className="mt-0.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+              <p className="mt-0.5 text-[10px] font-semibold m3-on-surface-variant uppercase tracking-widest">
                 Products
               </p>
             </div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200">
-              <FiPackage size={11} />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold m3-surface-container-high-bg m3-on-surface border m3-outline-variant-border">
+              <MdInventory size={11} />
               {order.order_details.length}{' '}
               {order.order_details.length === 1 ? 'Item' : 'Items'}
             </span>
@@ -589,21 +585,21 @@ const UpdateOrder = () => {
               return (
                 <article
                   key={order_details_number}
-                  className="bg-gradient-to-br from-gray-50/60 to-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+                  className="bg-gradient-to-br from-gray-50/60 to-white border m3-outline-variant-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   {/* ---- Product Header ---- */}
-                  <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-4">
+                  <div className="px-6 py-5 border-b m3-outline-variant-border flex items-start justify-between gap-4">
                     {/* Left */}
                     <div className="flex flex-col gap-2 flex-1 min-w-0">
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+                        <h3 className="text-sm font-bold m3-on-surface tracking-tight">
                           {product_name}
                         </h3>
-                        <span className="text-[9px] font-mono bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md text-gray-400">
+                        <span className="text-[9px] font-mono m3-surface-container-high-bg border m3-outline-variant-border px-2 py-0.5 rounded-md m3-on-surface-variant">
                           {order_details_number}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400 font-medium">
+                      <p className="text-xs m3-on-surface-variant font-medium">
                         {product_brand} • {product_model}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
@@ -615,7 +611,7 @@ const UpdateOrder = () => {
                         <span
                           className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full ${is_free
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                              : 'bg-gray-100 text-gray-600 border border-gray-200'
+                              : 'm3-surface-container-high-bg m3-on-surface-variant border m3-outline-variant-border'
                             }`}
                         >
                           {is_free ? 'Scheme Product' : 'Regular'}
@@ -630,13 +626,13 @@ const UpdateOrder = () => {
                       >
                         {status}
                       </span>
-                      <div className="bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-right min-w-[110px] shadow-sm">
+                      <div className="m3-surface-bg border m3-outline-variant-border rounded-xl px-4 py-2.5 text-right min-w-[110px] shadow-sm">
                         {is_free ? (
                           <span className="text-xs font-black text-blue-700 tracking-wide">FREE</span>
                         ) : (
                           <>
-                            <p className="text-[9px] uppercase tracking-widest text-gray-400 font-semibold">Total</p>
-                            <p className="text-lg font-black text-gray-900 leading-tight tabular-nums">
+                            <p className="text-[9px] uppercase tracking-widest m3-on-surface-variant font-semibold">Total</p>
+                            <p className="text-lg font-black m3-on-surface leading-tight tabular-nums">
                               ₹ {total_price?.toLocaleString('en-IN')}
                             </p>
                           </>
@@ -647,7 +643,7 @@ const UpdateOrder = () => {
 
                   <div className="p-6 space-y-5">
                     {/* ---- Quick Stats ---- */}
-                    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+                    <div className="m3-surface-bg border m3-outline-variant-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
                       <div className="flex divide-x divide-gray-100">
                         <StatPill label="Total Ordered" value={totalOrdered} color="gray" />
                         <StatPill label="Delivered" value={delivered} color="emerald" />
@@ -655,7 +651,7 @@ const UpdateOrder = () => {
                         <StatPill label="Balance" value={balanceQty} color="amber" />
                       </div>
                       <div className="px-5 pb-4 pt-1">
-                        <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="w-full h-1 m3-surface-container-high-bg rounded-full overflow-hidden">
                           <div
                             className="h-full bg-emerald-500 rounded-full transition-all duration-700"
                             style={{ width: `${progressPct}%` }}
@@ -783,8 +779,8 @@ const UpdateOrder = () => {
 
                     {/* ---- Completion Flags ---- */}
                     {showCompletion && (
-                      <div className="border-t border-gray-100 pt-5 space-y-3">
-                        <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">
+                      <div className="border-t m3-outline-variant-border pt-5 space-y-3">
+                        <p className="text-[10px] uppercase tracking-widest m3-on-surface-variant font-bold">
                           Completion Status
                         </p>
                         <div className="flex gap-3 flex-wrap">
@@ -829,22 +825,22 @@ const UpdateOrder = () => {
         {/* ================================================================
             FINANCIAL SUMMARY
             ================================================================ */}
-        <section className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-8 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-white">
-            <h2 className="text-base font-bold text-gray-900 tracking-tight">
+        <section className="m3-surface-bg border m3-outline-variant-border rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-8 py-5 border-b m3-outline-variant-border bg-gradient-to-r from-gray-50/80 to-white">
+            <h2 className="text-base font-bold m3-on-surface tracking-tight">
               Financial Summary
             </h2>
-            <p className="mt-0.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+            <p className="mt-0.5 text-[10px] font-semibold m3-on-surface-variant uppercase tracking-widest">
               Billing Overview
             </p>
           </div>
 
           <div className="p-8">
             <div className="flex justify-end">
-              <div className="w-full sm:w-[440px] bg-gradient-to-br from-slate-50 to-gray-100 border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="w-full sm:w-[440px] bg-gradient-to-br from-slate-50 to-gray-100 border m3-outline-variant-border rounded-2xl overflow-hidden shadow-sm">
                 {/* Card Header */}
-                <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200/60 bg-white/80">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-600">
+                <div className="px-6 py-4 flex items-center justify-between border-b m3-outline-variant-border/60 m3-surface-bg/80">
+                  <h3 className="text-xs font-bold uppercase tracking-widest m3-on-surface-variant">
                     Order Financial Summary
                   </h3>
                   <span
@@ -870,25 +866,25 @@ const UpdateOrder = () => {
                 {/* Card Body */}
                 <div className="px-6 py-6 space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500 font-medium">Total Order Value</span>
-                    <span className="text-sm text-gray-900 font-bold tabular-nums">
+                    <span className="text-sm m3-on-surface-variant font-medium">Total Order Value</span>
+                    <span className="text-sm m3-on-surface font-bold tabular-nums">
                       ₹ {order.order_total_price?.toLocaleString('en-IN')}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500 font-medium">Amount Paid</span>
+                    <span className="text-sm m3-on-surface-variant font-medium">Amount Paid</span>
                     <span className="text-sm text-emerald-600 font-bold tabular-nums">
                       ₹ {amountPaid?.toLocaleString('en-IN')}
                     </span>
                   </div>
 
-                  <div className="border-t border-gray-200 border-dashed" />
+                  <div className="border-t m3-outline-variant-border border-dashed" />
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-sm font-bold text-gray-800">Balance Amount</span>
+                    <span className="text-sm font-bold m3-on-surface">Balance Amount</span>
                     <div className="flex items-center gap-1">
-                      <span className="text-gray-400 font-semibold">₹</span>
+                      <span className="m3-on-surface-variant font-semibold">₹</span>
                       <span className="text-2xl font-black text-amber-700 tracking-tight tabular-nums">
                         {order.amount_due?.toLocaleString('en-IN')}
                       </span>

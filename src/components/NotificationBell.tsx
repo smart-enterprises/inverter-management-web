@@ -1,17 +1,17 @@
 // src/components/NotificationBell.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    FiBell,
-    FiCheck,
-    FiShoppingBag,
-    FiChevronRight,
-    FiCreditCard,
-    FiTruck,
-    FiPackage,
-    FiSettings,
-    FiCheckCircle,
-    FiXCircle,
-} from "react-icons/fi";
+  MdCancel,
+  MdCheck,
+  MdCheckCircle,
+  MdChevronRight,
+  MdCreditCard,
+  MdInventory,
+  MdLocalShipping,
+  MdNotificationsNone,
+  MdSettings,
+  MdShoppingBag,
+} from "react-icons/md";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useNotifications } from "../hooks/useNotifications";
 import {
@@ -46,62 +46,62 @@ interface TypeStyle {
 
 const TYPE_STYLE: Partial<Record<NotificationType, TypeStyle>> = {
     [NOTIFICATION_TYPES.ORDER_CREATED_PENDING]: {
-        Icon: FiShoppingBag,
+        Icon: MdShoppingBag,
         iconBg: "bg-blue-100",
         iconText: "text-blue-600",
     },
     [NOTIFICATION_TYPES.ORDER_CREATED_PRODUCTION]: {
-        Icon: FiSettings,
+        Icon: MdSettings,
         iconBg: "bg-blue-100",
         iconText: "text-blue-600",
     },
     [NOTIFICATION_TYPES.ORDER_CREATED_PACKED]: {
-        Icon: FiPackage,
+        Icon: MdInventory,
         iconBg: "bg-emerald-100",
         iconText: "text-emerald-600",
     },
     [NOTIFICATION_TYPES.ORDER_CONFIRMED]: {
-        Icon: FiCheckCircle,
+        Icon: MdCheckCircle,
         iconBg: "bg-teal-100",
         iconText: "text-teal-600",
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_PRODUCTION]: {
-        Icon: FiSettings,
+        Icon: MdSettings,
         iconBg: "bg-blue-100",
         iconText: "text-blue-600",
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_PACKED]: {
-        Icon: FiPackage,
+        Icon: MdInventory,
         iconBg: "bg-emerald-100",
         iconText: "text-emerald-600",
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_INVOICE]: {
-        Icon: FiCreditCard,
+        Icon: MdCreditCard,
         iconBg: "bg-cyan-100",
         iconText: "text-cyan-600",
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_SHIPPED]: {
-        Icon: FiTruck,
+        Icon: MdLocalShipping,
         iconBg: "bg-blue-100",
         iconText: "text-blue-600",
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_DELIVERED]: {
-        Icon: FiCheckCircle,
+        Icon: MdCheckCircle,
         iconBg: "bg-teal-100",
         iconText: "text-teal-600",
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_COMPLETED]: {
-        Icon: FiCheckCircle,
+        Icon: MdCheckCircle,
         iconBg: "bg-teal-100",
         iconText: "text-teal-600",
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_CANCELLED]: {
-        Icon: FiXCircle,
+        Icon: MdCancel,
         iconBg: "bg-rose-100",
         iconText: "text-rose-600",
     },
     [NOTIFICATION_TYPES.ORDER_STATUS_REJECTED]: {
-        Icon: FiXCircle,
+        Icon: MdCancel,
         iconBg: "bg-rose-100",
         iconText: "text-rose-600",
     },
@@ -110,9 +110,9 @@ const TYPE_STYLE: Partial<Record<NotificationType, TypeStyle>> = {
 const getTypeStyle = (type: NotificationType): TypeStyle => {
     return (
         TYPE_STYLE[type] ?? {
-            Icon: FiBell,
-            iconBg: "bg-slate-100",
-            iconText: "text-slate-500",
+            Icon: MdNotificationsNone,
+            iconBg: "m3-surface-container-high-bg",
+            iconText: "m3-on-surface-variant",
         }
     );
 };
@@ -136,7 +136,7 @@ const NotificationItem = React.memo(
           text-left transition-colors duration-150 cursor-pointer
           ${!notification.is_read
                         ? "bg-blue-50/40 hover:bg-blue-50/70"
-                        : "hover:bg-slate-50"
+                        : "hover:m3-surface-container-low-bg"
                     }
         `}
             >
@@ -149,18 +149,18 @@ const NotificationItem = React.memo(
                 <div className="flex-1 min-w-0">
                     <p
                         className={`text-xs leading-tight truncate ${!notification.is_read
-                            ? "font-bold text-slate-900"
-                            : "font-semibold text-slate-600"
+                            ? "font-bold m3-on-surface"
+                            : "font-semibold m3-on-surface-variant"
                             }`}
                     >
                         {notification.title}
                     </p>
 
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5 line-clamp-2 leading-relaxed">
+                    <p className="text-[10px] m3-on-surface-variant font-medium mt-0.5 line-clamp-2 leading-relaxed">
                         {notification.message}
                     </p>
 
-                    <p className="text-[9px] text-slate-400 font-semibold mt-1">
+                    <p className="text-[9px] m3-on-surface-variant font-semibold mt-1">
                         {timeAgo(notification.created_at)}
                     </p>
                 </div>
@@ -239,17 +239,17 @@ const NotificationBell = () => {
           focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300
           ${isOpen
                         ? "bg-blue-50 border-blue-200 text-blue-600"
-                        : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-600"
+                        : "m3-surface-container-low-bg hover:m3-surface-container-high-bg m3-outline-variant-border m3-on-surface-variant hover:m3-on-surface-variant"
                     }
         `}
                 aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""
                     }`}
             >
-                <FiBell size={15} />
+                <MdNotificationsNone size={15} />
 
                 {unreadCount > 0 && (
                     <>
-                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 flex items-center justify-center rounded-full bg-rose-500 text-white text-[9px] font-black ring-2 ring-white">
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 flex items-center justify-center rounded-full text-[9px] font-black ring-2 ring-white" style={{ backgroundColor: "var(--md-sys-color-error)", color: "var(--md-sys-color-on-error)" }}>
                             {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
 
@@ -262,20 +262,20 @@ const NotificationBell = () => {
                 <div
                     role="dialog"
                     aria-label="Notifications panel"
-                    className="absolute right-0 top-[calc(100%+10px)] w-80 bg-white rounded-2xl border border-slate-200 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15)] z-50 overflow-hidden"
+                    className="absolute right-0 top-[calc(100%+10px)] w-80 m3-surface-bg rounded-2xl border m3-outline-variant-border shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15)] z-50 overflow-hidden"
                     style={{
                         animation:
                             "nb-dropdown-in 160ms cubic-bezier(0.4,0,0.2,1) forwards",
                     }}
                 >
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+                    <div className="flex items-center justify-between px-4 py-3 border-b m3-outline-variant-border m3-surface-container-low-bg">
                         <div>
-                            <p className="text-sm font-bold text-slate-900">
+                            <p className="text-sm font-bold m3-on-surface">
                                 Notifications
                             </p>
 
                             {unreadCount > 0 && (
-                                <p className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                                <p className="text-[10px] font-semibold m3-on-surface-variant mt-0.5">
                                     {unreadCount} unread
                                 </p>
                             )}
@@ -287,7 +287,7 @@ const NotificationBell = () => {
                                 onClick={() => void markAllAsRead()}
                                 className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded-lg transition-all cursor-pointer"
                             >
-                                <FiCheck size={10} />
+                                <MdCheck size={10} />
                                 Mark all read
                             </button>
                         )}
@@ -299,8 +299,8 @@ const NotificationBell = () => {
                                 <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
                             </div>
                         ) : notifications.length === 0 ? (
-                            <div className="flex flex-col items-center gap-3 py-10 text-slate-400">
-                                <FiBell size={24} className="opacity-30" />
+                            <div className="flex flex-col items-center gap-3 py-10 m3-on-surface-variant">
+                                <MdNotificationsNone size={24} className="opacity-30" />
                                 <p className="text-xs font-semibold">No notifications yet</p>
                             </div>
                         ) : (
@@ -317,7 +317,7 @@ const NotificationBell = () => {
                     </div>
 
                     {notifications.length > 0 && (
-                        <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/40">
+                        <div className="px-4 py-2.5 border-t m3-outline-variant-border m3-surface-container-low-bg">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -326,7 +326,7 @@ const NotificationBell = () => {
                                 }}
                                 className="flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
                             >
-                                View all orders <FiChevronRight size={11} />
+                                View all orders <MdChevronRight size={11} />
                             </button>
                         </div>
                     )}

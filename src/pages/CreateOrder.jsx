@@ -2,12 +2,29 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
-  FiPlus, FiArrowLeft, FiTrash2, FiSend, FiPackage, FiAlertCircle,
-  FiShoppingCart, FiTag, FiFileText, FiBox, FiLayers, FiTrendingDown,
-  FiZap, FiChevronDown, FiPercent, FiCreditCard, FiBarChart2,
-  FiCheck, FiFilter, FiDollarSign, FiGift, FiTrendingUp,
-  FiSearch, FiUser,
-} from "react-icons/fi";
+  MdAdd,
+  MdArrowBack,
+  MdBarChart,
+  MdBolt,
+  MdCardGiftcard,
+  MdCheck,
+  MdCreditCard,
+  MdCurrencyRupee,
+  MdDeleteOutline,
+  MdDescription,
+  MdErrorOutline,
+  MdExpandMore,
+  MdFilterList,
+  MdInventory,
+  MdInventory2,
+  MdLayers,
+  MdPercent,
+  MdPersonOutline,
+  MdSell,
+  MdSend,
+  MdShoppingCart,
+  MdTrendingDown,
+} from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { fetchDealerDiscounts, fetchDealers } from "../api/dealer";
@@ -83,7 +100,7 @@ const StockIndicator = ({ stockInfo, qty }) => {
 
   return (
     <div className="mt-2 space-y-1.5">
-      <div className="relative h-1.5 rounded-full bg-slate-100 overflow-hidden">
+      <div className="relative h-1.5 rounded-full m3-surface-container-high-bg overflow-hidden">
         <div className="absolute left-0 top-0 h-full rounded-full"
           style={{ width: `${unpackedPct}%`, background: "linear-gradient(90deg,#fbbf24,#f59e0b)" }} />
         <div className="absolute left-0 top-0 h-full rounded-full"
@@ -102,12 +119,12 @@ const StockIndicator = ({ stockInfo, qty }) => {
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />{unpacked} Unpacked
           </span>
         </div>
-        <span className="text-[9px] font-bold text-slate-400">{total} Total</span>
+        <span className="text-[9px] font-bold m3-on-surface-variant">{total} Total</span>
       </div>
       {status && (
-        <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold border ${status.level === "packed" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-          : status.level === "unpacked" ? "bg-amber-50 text-amber-700 border-amber-200"
-            : "bg-rose-50 text-rose-700 border-rose-200"
+        <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold border ${status.level === "packed" ? "m3-tone-success"
+          : status.level === "unpacked" ? "m3-tone-warning"
+            : "m3-tone-error"
           }`}>
           {status.icon} {status.label}
           {isOver && <span className="opacity-60 ml-0.5">· Production raised</span>}
@@ -123,10 +140,10 @@ const StockIndicator = ({ stockInfo, qty }) => {
 const Field = ({ label, required, children, hint }) => (
   <div className="space-y-1">
     <div className="flex items-center justify-between">
-      <label className="block text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
+      <label className="block text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">
         {label}{required && <span className="text-rose-400 ml-0.5">*</span>}
       </label>
-      {hint && <span className="text-[9px] text-slate-300 font-semibold">{hint}</span>}
+      {hint && <span className="text-[9px] m3-on-surface-variant font-semibold">{hint}</span>}
     </div>
     {children}
   </div>
@@ -138,17 +155,17 @@ const Field = ({ label, required, children, hint }) => (
 const SectionCard = ({ icon, title, subtitle, action, children, accent = "indigo" }) => {
   const a = accent === "indigo"
     ? { icon: "bg-blue-50 text-blue-600 border border-blue-100", bar: "from-blue-400 to-blue-600" }
-    : { icon: "bg-slate-50 text-slate-500 border border-slate-200", bar: "from-slate-400 to-slate-300" };
+    : { icon: "m3-surface-container-low-bg m3-on-surface-variant border m3-outline-variant-border", bar: "from-slate-400 to-slate-300" };
 
   return (
-    <div className="bg-white rounded-2xl border border-blue-100/60 overflow-hidden">
+    <div className="m3-surface-bg rounded-2xl border border-blue-100/60 overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-blue-100/60 bg-blue-50/30">
         <div className="flex items-center gap-3">
           <div className={`w-1 h-10 rounded-full bg-gradient-to-b ${a.bar} flex-shrink-0`} />
           <div className={`p-2 rounded-xl ${a.icon} flex-shrink-0`}>{icon}</div>
           <div>
-            <h2 className="text-sm font-bold text-slate-800 leading-tight">{title}</h2>
-            {subtitle && <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.12em] mt-0.5">{subtitle}</p>}
+            <h2 className="text-sm font-bold m3-on-surface leading-tight">{title}</h2>
+            {subtitle && <p className="text-[9px] font-semibold m3-on-surface-variant uppercase tracking-[0.12em] mt-0.5">{subtitle}</p>}
           </div>
         </div>
         {action}
@@ -164,7 +181,7 @@ const SectionCard = ({ icon, title, subtitle, action, children, accent = "indigo
 const StyledInput = ({ className = "", ...props }) => (
   <input
     {...props}
-    className={`w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all duration-150 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${className}`}
+    className={`w-full border m3-outline-variant-border rounded-lg px-3 py-2 text-sm font-medium m3-on-surface placeholder-slate-300 m3-surface-bg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all duration-150 disabled:m3-surface-container-low-bg disabled:m3-on-surface-variant disabled:cursor-not-allowed ${className}`}
   />
 );
 
@@ -173,7 +190,7 @@ const StyledInput = ({ className = "", ...props }) => (
    ================================================================ */
 const SalesmanRequiredHint = () => (
   <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg bg-blue-50/70 border border-blue-100">
-    <FiUser size={12} className="text-blue-500 flex-shrink-0" />
+    <MdPersonOutline size={12} className="text-blue-500 flex-shrink-0" />
     <p className="text-[10px] font-semibold text-blue-600">
       Select a salesman first to load their assigned dealers
     </p>
@@ -194,14 +211,14 @@ const CascadeSelect = ({ value, options, onChange, placeholder, disabled, color 
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className={`w-full border border-slate-200 rounded-lg pl-3 pr-7 py-2 text-sm font-medium bg-white appearance-none focus:outline-none focus:ring-2 ${colors[color] || colors.indigo} transition-all duration-150 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${value ? "text-slate-800 border-slate-300" : "text-slate-400"}`}
+        className={`w-full border m3-outline-variant-border rounded-lg pl-3 pr-7 py-2 text-sm font-medium m3-surface-bg appearance-none focus:outline-none focus:ring-2 ${colors[color] || colors.indigo} transition-all duration-150 disabled:m3-surface-container-low-bg disabled:m3-on-surface-variant disabled:cursor-not-allowed ${value ? "m3-on-surface m3-outline-border" : "m3-on-surface-variant"}`}
       >
         <option value="">{disabled ? "—" : placeholder}</option>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
-      <FiChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      <MdExpandMore size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 m3-on-surface-variant pointer-events-none" />
     </div>
   );
 };
@@ -264,32 +281,32 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
         ref={triggerRef} type="button"
         disabled={isLoading || isEmpty}
         onClick={() => isOpen ? (setIsOpen(false), setSearch("")) : openPanel()}
-        className={`w-full px-3 py-2 bg-white border rounded-lg text-sm text-left flex items-center justify-between gap-2 transition-all duration-150 ${isOpen ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200 hover:border-blue-300"
+        className={`w-full px-3 py-2 m3-surface-bg border rounded-lg text-sm text-left flex items-center justify-between gap-2 transition-all duration-150 ${isOpen ? "border-blue-400 ring-2 ring-blue-100" : "m3-outline-variant-border hover:border-blue-300"
           } ${isLoading || isEmpty ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
       >
-        <span className={`truncate font-medium ${selected ? "text-slate-800" : "text-slate-400"}`}>
+        <span className={`truncate font-medium ${selected ? "m3-on-surface" : "m3-on-surface-variant"}`}>
           {isLoading ? "Loading products…"
             : isEmpty ? "Select brand & model first"
               : selected ? capitalizeFirstLetter(selected.product_name || selected.label || "")
                 : placeholder}
         </span>
-        <FiChevronDown size={13} className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        <MdExpandMore size={13} className={`m3-on-surface-variant flex-shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
       {isOpen && !isLoading && options.length > 0 && (
         <div ref={panelRef} style={panelStyle}
-          className="bg-white border border-blue-100/80 rounded-xl shadow-[0_20px_60px_-12px_rgba(15,23,42,0.18)] overflow-hidden">
+          className="m3-surface-bg border border-blue-100/80 rounded-xl shadow-[0_20px_60px_-12px_rgba(15,23,42,0.18)] overflow-hidden">
 
           {/* Search */}
           <div className="px-3 pt-3 pb-2 border-b border-blue-100/60 bg-blue-50/40">
             <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 m3-on-surface-variant"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1111 5a6 6 0 016 6z" />
               </svg>
               <input ref={searchRef} type="text" value={search} onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name, model or type…"
-                className="w-full pl-8 pr-3 py-2 text-xs font-medium border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-400 bg-white placeholder-slate-300"
+                className="w-full pl-8 pr-3 py-2 text-xs font-medium border m3-outline-variant-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-400 m3-surface-bg placeholder-slate-300"
                 onClick={(e) => e.stopPropagation()} />
             </div>
           </div>
@@ -297,14 +314,14 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
           {/* Column headers */}
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr_80px] px-4 py-2 bg-blue-50/40 border-b border-blue-100/60">
             {["Product", "Brand", "Model", "Type", "Stock"].map((h) => (
-              <span key={h} className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{h}</span>
+              <span key={h} className="text-[10px] font-bold uppercase tracking-wide m3-on-surface-variant">{h}</span>
             ))}
           </div>
 
           {/* List */}
           <div className="max-h-60 overflow-y-auto dropdown-scroll overscroll-contain">
             {filtered.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-slate-400 font-semibold">No products found</div>
+              <div className="px-4 py-8 text-center text-sm m3-on-surface-variant font-semibold">No products found</div>
             ) : filtered.map((opt) => {
               const product = productsMap?.[opt.value];
               const total = product?.available_stock ?? 0;
@@ -320,14 +337,14 @@ const ProductDropdown = ({ value, options, onChange, placeholder, isLoading, pro
                 <button key={opt.value} type="button"
                   onClick={() => { onChange({ target: { value: opt.value } }); setIsOpen(false); setSearch(""); }}
                   className={`w-full grid grid-cols-[2fr_1fr_1fr_1fr_80px] gap-3 items-center px-4 py-3 text-sm text-left transition-all duration-150 border-b border-blue-50 last:border-0 ${isSelected ? "bg-blue-50/70" : "hover:bg-blue-50/30"}`}>
-                  <span className={`font-semibold ${isSelected ? "text-blue-700" : "text-slate-900"}`}>
+                  <span className={`font-semibold ${isSelected ? "text-blue-700" : "m3-on-surface"}`}>
                     {opt.product_name ? capitalizeFirstLetter(opt.product_name) : opt.label}
                   </span>
-                  <span className="text-sm text-slate-500">{opt.product_brand ? capitalizeFirstLetter(opt.product_brand) : <span className="text-slate-300">—</span>}</span>
-                  <span className="text-sm text-slate-500">{opt.product_model ? capitalizeFirstLetter(opt.product_model) : <span className="text-slate-300">—</span>}</span>
-                  <span className="text-sm text-slate-500">{opt.product_type ? capitalizeFirstLetter(opt.product_type) : <span className="text-slate-300">—</span>}</span>
+                  <span className="text-sm m3-on-surface-variant">{opt.product_brand ? capitalizeFirstLetter(opt.product_brand) : <span className="m3-on-surface-variant">—</span>}</span>
+                  <span className="text-sm m3-on-surface-variant">{opt.product_model ? capitalizeFirstLetter(opt.product_model) : <span className="m3-on-surface-variant">—</span>}</span>
+                  <span className="text-sm m3-on-surface-variant">{opt.product_type ? capitalizeFirstLetter(opt.product_type) : <span className="m3-on-surface-variant">—</span>}</span>
                   <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold border ${stockColors[lvl]}`}>
-                    <FiBox size={10} />{total}
+                    <MdInventory2 size={10} />{total}
                   </span>
                 </button>
               );
@@ -392,7 +409,7 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
   if (item.is_product_scheme) {
     return (
       <div className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-dashed border-emerald-200 bg-emerald-50/50">
-        <FiZap size={10} className="text-emerald-500" />
+        <MdBolt size={10} className="text-emerald-500" />
         <span className="text-[10px] font-bold text-emerald-600">Scheme</span>
       </div>
     );
@@ -401,14 +418,14 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
   if (options.length === 0 && mode !== "manual") {
     return (
       <div className="relative">
-        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">₹</span>
+        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold m3-on-surface-variant">₹</span>
         <StyledInput type="number" value={item.discount_price ?? ""}
           onChange={(e) => { const v = e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"); onManualChange(index, v === "" ? "" : Number(v)); }}
           onKeyDown={(e) => { if (["e","E","+","-"].includes(e.key)) e.preventDefault(); }}
           className="pl-6 text-right text-xs" placeholder="0" min={0} />
         {item.discount_price > 0 && (
           <button type="button" onClick={() => onManualChange(index, 0)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-rose-500 transition-colors text-[10px] font-black">✕</button>
+            className="absolute right-2 top-1/2 -translate-y-1/2 m3-on-surface-variant hover:text-rose-500 transition-colors text-[10px] font-black">✕</button>
         )}
       </div>
     );
@@ -419,15 +436,15 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
       <div className="flex gap-1">
         {options.length > 0 && (
           <button type="button" onClick={() => handleModeSwitch("dealer")}
-            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[9px] font-black uppercase tracking-wide border transition-all ${mode === "dealer" ? "bg-blue-500 text-white border-blue-500" : "bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[9px] font-black uppercase tracking-wide border transition-all ${mode === "dealer" ? "m3-tone-primary border-transparent" : "m3-surface-bg m3-on-surface-variant m3-outline-variant-border hover:border-blue-300 hover:text-blue-600"
               }`}>
-            <FiTag size={8} />Dealer
+            <MdSell size={8} />Dealer
           </button>
         )}
         <button type="button" onClick={() => handleModeSwitch("manual")}
-          className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[9px] font-black uppercase tracking-wide border transition-all ${mode === "manual" ? "bg-blue-500 text-white border-blue-500" : "bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+          className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[9px] font-black uppercase tracking-wide border transition-all ${mode === "manual" ? "m3-tone-primary border-transparent" : "m3-surface-bg m3-on-surface-variant m3-outline-variant-border hover:border-blue-300 hover:text-blue-600"
             }`}>
-          <FiPercent size={8} />Manual
+          <MdPercent size={8} />Manual
         </button>
         {hasDiscount && (
           <button type="button" onClick={() => { onClear(index); setMode("none"); }}
@@ -439,32 +456,32 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
         <>
           <button ref={triggerRef} type="button"
             onClick={() => dropOpen ? setDropOpen(false) : openDrop()}
-            className={`w-full px-2.5 py-2 bg-white border rounded-lg text-xs text-left flex items-center justify-between gap-1.5 transition-all ${dropOpen ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200 hover:border-blue-300"
+            className={`w-full px-2.5 py-2 m3-surface-bg border rounded-lg text-xs text-left flex items-center justify-between gap-1.5 transition-all ${dropOpen ? "border-blue-400 ring-2 ring-blue-100" : "m3-outline-variant-border hover:border-blue-300"
               }`}>
-            <span className={`truncate font-semibold ${selectedDealer ? "text-slate-800" : "text-slate-400"}`}>
+            <span className={`truncate font-semibold ${selectedDealer ? "m3-on-surface" : "m3-on-surface-variant"}`}>
               {selectedDealer
                 ? (selectedDealer.is_percentage ? `${selectedDealer.discount_value}% off` : `₹ ${selectedDealer.discount_value} off`)
                 : "Pick discount…"}
             </span>
-            <FiChevronDown size={11} className={`text-slate-400 flex-shrink-0 transition-transform ${dropOpen ? "rotate-180" : ""}`} />
+            <MdExpandMore size={11} className={`m3-on-surface-variant flex-shrink-0 transition-transform ${dropOpen ? "rotate-180" : ""}`} />
           </button>
           {dropOpen && (
             <div ref={panelRef} style={panelStyle}
-              className="bg-white border border-blue-100/80 rounded-xl shadow-[0_16px_48px_-8px_rgba(15,23,42,0.16)] overflow-hidden">
+              className="m3-surface-bg border border-blue-100/80 rounded-xl shadow-[0_16px_48px_-8px_rgba(15,23,42,0.16)] overflow-hidden">
               <div className="p-2 border-b border-blue-100/60">
                 <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…"
-                  className="w-full px-2.5 py-1.5 text-xs font-medium border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300" />
+                  className="w-full px-2.5 py-1.5 text-xs font-medium border m3-outline-variant-border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300" />
               </div>
               <div className="max-h-40 overflow-y-auto dropdown-scroll">
                 {filtered.length === 0 ? (
-                  <div className="px-4 py-4 text-xs text-slate-400 text-center font-semibold">No discounts</div>
+                  <div className="px-4 py-4 text-xs m3-on-surface-variant text-center font-semibold">No discounts</div>
                 ) : filtered.map((opt) => (
                   <button key={opt.dealer_discount_id} type="button"
                     onClick={() => { onDealerChange(index, opt.dealer_discount_id); setDropOpen(false); setSearch(""); }}
-                    className={`w-full px-3 py-2.5 text-left text-xs font-semibold border-b border-blue-50 last:border-0 transition-colors ${item.dealer_discount_id === opt.dealer_discount_id ? "bg-blue-50/70 text-blue-700" : "hover:bg-blue-50/30 text-slate-700"
+                    className={`w-full px-3 py-2.5 text-left text-xs font-semibold border-b border-blue-50 last:border-0 transition-colors ${item.dealer_discount_id === opt.dealer_discount_id ? "bg-blue-50/70 text-blue-700" : "hover:bg-blue-50/30 m3-on-surface"
                       }`}>
                     <span className="font-black">{opt.is_percentage ? `${opt.discount_value}%` : `₹ ${opt.discount_value}`}</span>
-                    <span className="ml-1.5 text-[10px] text-slate-400">{opt.is_percentage ? "% off" : "flat off"}</span>
+                    <span className="ml-1.5 text-[10px] m3-on-surface-variant">{opt.is_percentage ? "% off" : "flat off"}</span>
                   </button>
                 ))}
               </div>
@@ -475,7 +492,7 @@ const DiscountField = ({ item, index, discountOptions, onDealerChange, onManualC
 
       {mode === "manual" && (
         <div className="relative">
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">₹</span>
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold m3-on-surface-variant">₹</span>
           <StyledInput type="number" value={item.discount_price ?? ""}
             onChange={(e) => { const v = e.target.value; onManualChange(index, v === "" ? "" : Number(v)); }}
             className="pl-6 text-right text-xs" placeholder="0" min={0} />
@@ -494,17 +511,17 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
   const savingsPct = subtotal > 0 ? ((totalDiscount / subtotal) * 100).toFixed(1) : 0;
 
   return (
-    <div className="rounded-2xl border border-blue-100/60 bg-white overflow-hidden">
+    <div className="rounded-2xl border border-blue-100/60 m3-surface-bg overflow-hidden">
       <div className="h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-amber-400" />
 
       <div className="flex items-center justify-between px-5 py-4 border-b border-blue-100/60 bg-blue-50/30">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
-            <FiBarChart2 size={14} className="text-white" />
+            <MdBarChart size={14} className="text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-800 leading-tight">Bill Breakdown</p>
-            <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+            <p className="text-sm font-bold m3-on-surface leading-tight">Bill Breakdown</p>
+            <p className="text-[9px] font-semibold m3-on-surface-variant uppercase tracking-[0.1em] mt-0.5">
               {itemCount} {itemCount === 1 ? "line item" : "line items"}
             </p>
           </div>
@@ -512,10 +529,10 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
         <div className="flex items-center gap-2">
           {totalDiscount > 0 && (
             <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black bg-emerald-50 text-emerald-600 border border-emerald-200 uppercase tracking-wide">
-              <FiGift size={8} />{savingsPct}% saved
+              <MdCardGiftcard size={8} />{savingsPct}% saved
             </span>
           )}
-          <span className={`px-2.5 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${isPaid ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-amber-50 text-amber-600 border-amber-200"
+          <span className={`px-2.5 py-1 text-[10px] font-black rounded-full border uppercase tracking-wider ${isPaid ? "m3-tone-success" : "m3-tone-warning"
             }`}>{isPaid ? "✓ Settled" : "⏳ Outstanding"}</span>
         </div>
       </div>
@@ -524,15 +541,15 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
         {/* Gross Total */}
         <div className="flex items-center justify-between py-2.5 border-b border-blue-50">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-              <FiLayers size={10} className="text-slate-500" />
+            <div className="w-7 h-7 rounded-lg m3-surface-container-high-bg flex items-center justify-center flex-shrink-0">
+              <MdLayers size={10} className="m3-on-surface-variant" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-600">Gross Total</p>
-              <p className="text-[9px] text-slate-400 font-medium">Before discounts</p>
+              <p className="text-xs font-semibold m3-on-surface-variant">Gross Total</p>
+              <p className="text-[9px] m3-on-surface-variant font-medium">Before discounts</p>
             </div>
           </div>
-          <span className="text-sm font-bold text-slate-500 tabular-nums">
+          <span className="text-sm font-bold m3-on-surface-variant tabular-nums">
             ₹ {subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
           </span>
         </div>
@@ -542,7 +559,7 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
           <div className="flex items-center justify-between py-2.5 border-b border-blue-50">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
-                <FiTrendingDown size={10} className="text-rose-500" />
+                <MdTrendingDown size={10} className="text-rose-500" />
               </div>
               <div>
                 <p className="text-xs font-semibold text-rose-600">Discount Applied</p>
@@ -573,7 +590,7 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
           <div className="flex items-center justify-between py-2.5 border-b border-blue-50">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-                <FiCreditCard size={10} className="text-amber-600" />
+                <MdCreditCard size={10} className="text-amber-600" />
               </div>
               <div>
                 <p className="text-xs font-semibold text-amber-700">Paid Now</p>
@@ -593,7 +610,7 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
           }`}>
           <div className="flex items-center gap-2.5">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isPaid ? "bg-emerald-100" : "bg-rose-100"}`}>
-              {isPaid ? <FiCheck size={13} className="text-emerald-600" /> : <FiDollarSign size={13} className="text-rose-600" />}
+              {isPaid ? <MdCheck size={13} className="text-emerald-600" /> : <MdCurrencyRupee size={13} className="text-rose-600" />}
             </div>
             <div>
               <p className={`text-[10px] font-black uppercase tracking-[0.1em] ${isPaid ? "text-emerald-700" : "text-rose-700"}`}>
@@ -619,7 +636,7 @@ const OrderSummaryCard = ({ financialSummary, itemCount }) => {
               </p>
               <p className="text-[9px] text-emerald-500 font-medium mt-0.5">{savingsPct}% off the original price</p>
             </div>
-            <FiTrendingDown size={16} className="text-emerald-400 flex-shrink-0 ml-auto" />
+            <MdTrendingDown size={16} className="text-emerald-400 flex-shrink-0 ml-auto" />
           </div>
         )}
       </div>
@@ -640,7 +657,7 @@ const ItemCard = ({
   const hasProduct = !!item.product_name;
 
   return (
-    <div className="hidden xl:block bg-white border border-blue-100/60 rounded-2xl overflow-visible transition-all duration-200 hover:border-blue-200 hover:shadow-lg group">
+    <div className="hidden xl:block m3-surface-bg border border-blue-100/60 rounded-2xl overflow-visible transition-all duration-200 hover:border-blue-200 hover:shadow-lg group">
 
       {/* Card header */}
       <div className="flex items-center justify-between px-5 py-3 bg-blue-50/30 border-b border-blue-100/60 rounded-t-2xl">
@@ -649,22 +666,22 @@ const ItemCard = ({
             <span className="text-[10px] font-black text-white">{index + 1}</span>
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-700">
+            <span className="text-xs font-bold m3-on-surface">
               {hasProduct ? capitalizeFirstLetter(item.product_name) : `Item #${index + 1}`}
             </span>
             {hasProduct && (
               <div className="flex items-center gap-1.5 mt-0.5">
                 {item.product_brand && (
-                  <span className="text-[9px] font-semibold text-slate-400">{capitalizeFirstLetter(item.product_brand)}</span>
+                  <span className="text-[9px] font-semibold m3-on-surface-variant">{capitalizeFirstLetter(item.product_brand)}</span>
                 )}
                 {item.product_model && (
                   <>
                     <span className="text-slate-200 text-[9px]">·</span>
-                    <span className="text-[9px] font-semibold text-slate-400">{capitalizeFirstLetter(item.product_model)}</span>
+                    <span className="text-[9px] font-semibold m3-on-surface-variant">{capitalizeFirstLetter(item.product_model)}</span>
                   </>
                 )}
                 {item.product_type && (
-                  <span className="px-1.5 py-0 rounded-full bg-slate-100 border border-slate-200 text-[8px] font-black text-slate-500 uppercase">
+                  <span className="px-1.5 py-0 rounded-full m3-surface-container-high-bg border m3-outline-variant-border text-[8px] font-black m3-on-surface-variant uppercase">
                     {item.product_type}
                   </span>
                 )}
@@ -673,7 +690,7 @@ const ItemCard = ({
           </div>
           {item.is_product_scheme && (
             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[8px] font-black uppercase shadow-sm">
-              <FiZap size={7} />Scheme
+              <MdBolt size={7} />Scheme
             </span>
           )}
         </div>
@@ -686,7 +703,7 @@ const ItemCard = ({
               ) : (
                 <>
                   {discountLabel && (
-                    <span className="text-[10px] text-slate-400 line-through">₹{itemTotal.toLocaleString("en-IN")}</span>
+                    <span className="text-[10px] m3-on-surface-variant line-through">₹{itemTotal.toLocaleString("en-IN")}</span>
                   )}
                   <span className="text-xs font-black text-blue-700">₹{Math.max(0, finalAmount).toLocaleString("en-IN")}</span>
                   {discountLabel && (
@@ -701,15 +718,15 @@ const ItemCard = ({
             onClick={() => onItemChange(index, "is_product_scheme", !item.is_product_scheme)}
             className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-wide transition-all ${item.is_product_scheme
               ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-sm"
-              : "bg-white text-slate-400 border-slate-200 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50"
+              : "m3-surface-bg m3-on-surface-variant m3-outline-variant-border hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50"
               }`}>
-            <FiZap size={9} />Scheme
+            <MdBolt size={9} />Scheme
           </button>
 
           {totalItems > 1 && (
             <button type="button" onClick={() => onRemove(index)}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-200">
-              <FiTrash2 size={13} />
+              className="p-1.5 rounded-lg m3-on-surface-variant hover:text-rose-500 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-200">
+              <MdDeleteOutline size={13} />
             </button>
           )}
         </div>
@@ -721,10 +738,10 @@ const ItemCard = ({
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="w-2 h-2 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Brand</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">Brand</span>
               {currentBrand && (
                 <span className="ml-auto inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-blue-50 text-blue-600 border border-blue-100 text-[8px] font-black leading-4">
-                  <FiCheck size={7} />{currentBrand}
+                  <MdCheck size={7} />{currentBrand}
                 </span>
               )}
             </div>
@@ -737,10 +754,10 @@ const ItemCard = ({
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
               <div className="w-2 h-2 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex-shrink-0" />
-              <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Model</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">Model</span>
               {currentModel && (
                 <span className="ml-auto inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-amber-50 text-amber-600 border border-amber-100 text-[8px] font-black leading-4">
-                  <FiCheck size={7} />{currentModel}
+                  <MdCheck size={7} />{currentModel}
                 </span>
               )}
             </div>
@@ -752,13 +769,13 @@ const ItemCard = ({
           </div>
         </div>
 
-        <div className="rounded-xl border border-blue-100/60 bg-white p-4 hover:shadow-md transition-all duration-200">
+        <div className="rounded-xl border border-blue-100/60 m3-surface-bg p-4 hover:shadow-md transition-all duration-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_90px_120px_180px_160px] gap-4 items-start">
 
             {/* Product */}
             <div>
-              <label className="flex items-center gap-1 mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                <FiPackage size={10} className="text-slate-400" />Product<span className="text-rose-400">*</span>
+              <label className="flex items-center gap-1 mb-1 text-[10px] font-semibold uppercase tracking-wide m3-on-surface-variant">
+                <MdInventory size={10} className="m3-on-surface-variant" />Product<span className="text-rose-400">*</span>
               </label>
               <div className="space-y-1.5">
                 <ProductDropdown value={item.product_id} options={itemProductOptions}
@@ -771,7 +788,7 @@ const ItemCard = ({
 
             {/* Qty */}
             <div>
-              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Qty</label>
+              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide m3-on-surface-variant">Qty</label>
               <StyledInput type="number" min="1" value={item.qty_ordered}
                 onChange={(e) => onItemChange(index, "qty_ordered", e.target.value)}
                 className="text-center font-semibold" />
@@ -779,24 +796,24 @@ const ItemCard = ({
 
             {/* Unit Price */}
             <div>
-              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Unit Price</label>
+              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide m3-on-surface-variant">Unit Price</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">₹</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs m3-on-surface-variant font-medium">₹</span>
                 <StyledInput type="number" value={item.product_price} readOnly
-                  className="pl-6 pr-2 text-right text-sm bg-slate-50 border-slate-200 font-semibold" />
+                  className="pl-6 pr-2 text-right text-sm m3-surface-container-low-bg m3-outline-variant-border font-semibold" />
               </div>
             </div>
 
             {/* Discount */}
             <div>
-              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Discount</label>
+              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide m3-on-surface-variant">Discount</label>
               <DiscountField item={item} index={index} discountOptions={discountOptions}
                 onDealerChange={onDealerDiscount} onManualChange={onManualDiscount} onClear={onClearDiscount} />
             </div>
 
             {/* Delivery */}
             <div>
-              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Delivery</label>
+              <label className="block mb-1 text-[10px] font-semibold uppercase tracking-wide m3-on-surface-variant">Delivery</label>
               <StyledInput type="date" min={getMinDeliveryDate()} value={item.delivery_date}
                 onChange={(e) => onItemChange(index, "delivery_date", e.target.value)} className="text-xs" />
             </div>
@@ -817,7 +834,7 @@ const MobileItemCard = ({
   onBrandChange, onModelChange, onItemChange, onDealerDiscount, onManualDiscount,
   onClearDiscount, onRemove,
 }) => (
-  <div className="xl:hidden bg-white border border-blue-100/60 rounded-2xl overflow-hidden">
+  <div className="xl:hidden m3-surface-bg border border-blue-100/60 rounded-2xl overflow-hidden">
     <div className="flex items-center justify-between px-4 py-3 bg-blue-50/30 border-b border-blue-100/60">
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -829,14 +846,14 @@ const MobileItemCard = ({
         <button type="button" onClick={() => onItemChange(index, "is_product_scheme", !item.is_product_scheme)}
           className={`flex items-center gap-1 px-2 py-1 rounded border text-[9px] font-black uppercase tracking-wide transition-all ${item.is_product_scheme
             ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent"
-            : "bg-white text-slate-400 border-slate-200 hover:border-blue-300"
+            : "m3-surface-bg m3-on-surface-variant m3-outline-variant-border hover:border-blue-300"
             }`}>
-          <FiZap size={8} />Scheme
+          <MdBolt size={8} />Scheme
         </button>
         {totalItems > 1 && (
           <button type="button" onClick={() => onRemove(index)}
             className="p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all">
-            <FiTrash2 size={12} />
+            <MdDeleteOutline size={12} />
           </button>
         )}
       </div>
@@ -866,8 +883,8 @@ const MobileItemCard = ({
         </Field>
         <Field label="Unit Price">
           <div className="relative">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">₹</span>
-            <StyledInput type="number" value={item.product_price} readOnly className="pl-6 text-right bg-slate-50 cursor-default font-semibold" />
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs m3-on-surface-variant">₹</span>
+            <StyledInput type="number" value={item.product_price} readOnly className="pl-6 text-right m3-surface-container-low-bg cursor-default font-semibold" />
           </div>
         </Field>
       </div>
@@ -882,8 +899,8 @@ const MobileItemCard = ({
       {item.product_name && (
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-blue-50/40 to-amber-50/30 border border-blue-100/60">
           <div className="min-w-0">
-            <p className="text-xs font-bold text-slate-900 truncate">{capitalizeFirstLetter(item.product_name)}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">
+            <p className="text-xs font-bold m3-on-surface truncate">{capitalizeFirstLetter(item.product_name)}</p>
+            <p className="text-[10px] m3-on-surface-variant mt-0.5">
               {item.product_brand && capitalizeFirstLetter(item.product_brand)}
               {item.product_model && ` · ${capitalizeFirstLetter(item.product_model)}`}
             </p>
@@ -891,8 +908,8 @@ const MobileItemCard = ({
           <div className="flex flex-col items-end flex-shrink-0">
             {item.is_product_scheme ? <span className="text-sm font-black text-emerald-600">FREE</span> : (
               <>
-                {discountLabel && <span className="text-[10px] text-slate-400 line-through">₹{itemTotal.toLocaleString("en-IN")}</span>}
-                <span className="text-sm font-black text-slate-900">₹{Math.max(0, finalAmount).toLocaleString("en-IN")}</span>
+                {discountLabel && <span className="text-[10px] m3-on-surface-variant line-through">₹{itemTotal.toLocaleString("en-IN")}</span>}
+                <span className="text-sm font-black m3-on-surface">₹{Math.max(0, finalAmount).toLocaleString("en-IN")}</span>
               </>
             )}
           </div>
@@ -1292,17 +1309,17 @@ const CreateOrder = () => {
           <div className="flex justify-between items-center gap-4">
             <div className="flex items-center gap-3.5">
               <button type="button" onClick={() => navigate("/orders")}
-                className="p-2 rounded-xl border border-slate-200 bg-white hover:text-blue-600 hover:border-blue-200 transition-colors group">
-                <FiArrowLeft size={15} className="text-slate-500 group-hover:text-blue-600 transition-colors" />
+                className="p-2 rounded-xl border m3-outline-variant-border m3-surface-bg hover:text-blue-600 hover:border-blue-200 transition-colors group">
+                <MdArrowBack size={15} className="m3-on-surface-variant group-hover:text-blue-600 transition-colors" />
               </button>
               <div>
-                <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Place New Order</h1>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.12em] mt-0.5">Order Management</p>
+                <h1 className="text-2xl font-extrabold m3-on-surface tracking-tight">Place New Order</h1>
+                <p className="text-[10px] font-semibold m3-on-surface-variant uppercase tracking-[0.12em] mt-0.5">Order Management</p>
               </div>
             </div>
             <button type="submit" disabled={loading}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-bold rounded-xl hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm shadow-blue-500/30">
-              <FiSend size={13} />
+              <MdSend size={13} />
               {loading ? "Creating…" : "Submit Order"}
             </button>
           </div>
@@ -1310,12 +1327,12 @@ const CreateOrder = () => {
           {/* ── ERROR BANNER ── */}
           {error && (
             <div className="flex items-center gap-3 px-4 py-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm font-semibold">
-              <FiAlertCircle size={15} className="text-rose-500 flex-shrink-0" />{error}
+              <MdErrorOutline size={15} className="text-rose-500 flex-shrink-0" />{error}
             </div>
           )}
 
           {/* ── ORDER DETAILS ── */}
-          <SectionCard icon={<FiFileText size={13} />} title="Order Details" subtitle="Basic Information" accent="indigo">
+          <SectionCard icon={<MdDescription size={13} />} title="Order Details" subtitle="Basic Information" accent="indigo">
             <div className="space-y-5">
               <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
 
@@ -1367,7 +1384,7 @@ const CreateOrder = () => {
                 {/* ── AMOUNT PAID ── */}
                 <Field label="Amount Paid" hint="Optional">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">₹</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold m3-on-surface-variant">₹</span>
                     <StyledInput type="number" name="amount_paid" value={formData.amount_paid}
                       onChange={handleChange} placeholder="0" min={0} className="pl-7" />
                   </div>
@@ -1383,26 +1400,26 @@ const CreateOrder = () => {
               <Field label="Order Notes" hint="Optional">
                 <textarea name="order_note" value={formData.order_note} onChange={handleChange} rows={3}
                   placeholder="Special instructions or notes…"
-                  className="w-full border border-slate-200 rounded-lg px-3.5 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none" />
+                  className="w-full border m3-outline-variant-border rounded-lg px-3.5 py-3 text-sm font-medium m3-on-surface placeholder-slate-300 m3-surface-bg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none" />
               </Field>
             </div>
           </SectionCard>
 
           {/* ── ORDER ITEMS ── */}
           <SectionCard
-            icon={<FiShoppingCart size={13} />}
+            icon={<MdShoppingCart size={13} />}
             title="Ordered Items"
             subtitle="Products"
             accent="indigo"
             action={
               <div className="flex items-center gap-2">
                 {formData.dealer_id && allBrands.length > 0 && (
-                  <span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-wide border border-slate-200">
-                    <FiFilter size={8} />{allBrands.length} brand{allBrands.length !== 1 ? "s" : ""}
+                  <span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-lg m3-surface-container-high-bg m3-on-surface-variant text-[9px] font-black uppercase tracking-wide border m3-outline-variant-border">
+                    <MdFilterList size={8} />{allBrands.length} brand{allBrands.length !== 1 ? "s" : ""}
                   </span>
                 )}
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-wide">
-                  <FiPackage size={9} />
+                  <MdInventory size={9} />
                   {formData.order_details.length} {formData.order_details.length === 1 ? "Item" : "Items"}
                 </span>
               </div>
@@ -1413,13 +1430,13 @@ const CreateOrder = () => {
               {/* ── Context hints ── */}
               {canSelectSalesmanPermission && !formData.salesman_id && (
                 <div className="flex items-center gap-3 px-4 py-3 bg-blue-50/60 border border-blue-200 border-dashed rounded-xl">
-                  <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600 flex-shrink-0"><FiUser size={12} /></div>
+                  <div className="p-1.5 rounded-lg bg-blue-100 text-blue-600 flex-shrink-0"><MdPersonOutline size={12} /></div>
                   <p className="text-xs font-semibold text-blue-700">Select a salesman to load their assigned dealers and products</p>
                 </div>
               )}
               {(!canSelectSalesmanPermission || formData.salesman_id) && !formData.dealer_id && (
                 <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 border-dashed rounded-xl">
-                  <div className="p-1.5 rounded-lg bg-amber-100 text-amber-600 flex-shrink-0"><FiAlertCircle size={12} /></div>
+                  <div className="p-1.5 rounded-lg bg-amber-100 text-amber-600 flex-shrink-0"><MdErrorOutline size={12} /></div>
                   <p className="text-xs font-semibold text-amber-700">Select a dealer to load available brands and products</p>
                 </div>
               )}
@@ -1484,9 +1501,9 @@ const CreateOrder = () => {
 
               {/* ── Add item ── */}
               <button type="button" onClick={addItem}
-                className="w-full flex items-center justify-center gap-2.5 py-4 border-2 border-dashed border-blue-200/70 rounded-xl text-sm font-semibold text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/40 transition-all group">
+                className="w-full flex items-center justify-center gap-2.5 py-4 border-2 border-dashed border-blue-200/70 rounded-xl text-sm font-semibold m3-on-surface-variant hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/40 transition-all group">
                 <div className="p-1.5 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
-                  <FiPlus size={12} className="text-blue-500 group-hover:text-blue-600 transition-colors" />
+                  <MdAdd size={12} className="text-blue-500 group-hover:text-blue-600 transition-colors" />
                 </div>
                 Add Another Item
               </button>
@@ -1500,19 +1517,19 @@ const CreateOrder = () => {
 
           {/* ── STICKY FOOTER ── */}
           <div className="sticky bottom-6 z-20 flex justify-end pointer-events-none">
-            <div className="pointer-events-auto flex items-center gap-3 bg-white/95 backdrop-blur-md border border-blue-100/80 rounded-xl shadow-lg px-5 py-3 ring-1 ring-blue-100/60">
+            <div className="pointer-events-auto flex items-center gap-3 m3-surface-bg/95 backdrop-blur-md border border-blue-100/80 rounded-xl shadow-lg px-5 py-3 ring-1 ring-blue-100/60">
               <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              <span className="text-sm text-slate-500 font-semibold hidden sm:block">
+              <span className="text-sm m3-on-surface-variant font-semibold hidden sm:block">
                 {formData.order_details.length} {formData.order_details.length === 1 ? "item" : "items"} in cart
               </span>
               <div className="w-px h-4 bg-blue-100 mx-1 hidden sm:block" />
               <button type="button" onClick={() => navigate("/orders")}
-                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg hover:border-blue-200 hover:text-blue-600 active:scale-95 transition-colors">
+                className="px-4 py-2 m3-surface-bg border m3-outline-variant-border m3-on-surface-variant text-sm font-semibold rounded-lg hover:border-blue-200 hover:text-blue-600 active:scale-95 transition-colors">
                 Cancel
               </button>
               <button type="submit" disabled={loading}
                 className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-500/30">
-                <FiSend size={12} />
+                <MdSend size={12} />
                 {loading ? "Creating…" : "Place Order"}
               </button>
             </div>

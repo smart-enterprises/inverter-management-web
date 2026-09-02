@@ -2,12 +2,19 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  FiPlus, FiSearch, FiEye, FiChevronLeft, FiChevronRight, FiEdit2,
-  FiPackage, FiFilter, FiAlertCircle, FiX, FiCalendar,
-  FiRefreshCw,
-  FiArrowRight,
-  FiTruck,
-} from "react-icons/fi";
+  MdArrowForward,
+  MdCalendarMonth,
+  MdChevronLeft,
+  MdChevronRight,
+  MdClose,
+  MdErrorOutline,
+  MdFilterList,
+  MdInventory,
+  MdLocalShipping,
+  MdRefresh,
+  MdSearch,
+  MdVisibility,
+} from "react-icons/md";
 import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrders } from "../api/orders";
@@ -54,30 +61,30 @@ const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
   );
 
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
-      <p className="text-xs text-slate-400 font-medium hidden sm:block">
-        Page <span className="font-bold text-slate-600">{currentPage}</span> of{" "}
-        <span className="font-bold text-slate-600">{totalPages}</span>
+    <div className="flex items-center justify-between px-6 py-4 border-t m3-outline-variant-border">
+      <p className="text-xs m3-on-surface-variant font-medium hidden sm:block">
+        Page <span className="font-bold m3-on-surface-variant">{currentPage}</span> of{" "}
+        <span className="font-bold m3-on-surface-variant">{totalPages}</span>
       </p>
       <div className="flex items-center gap-1.5 ml-auto">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-8 h-8 flex items-center justify-center rounded-lg border m3-outline-variant-border m3-on-surface-variant hover:m3-surface-container-low-bg hover:m3-outline-border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <FiChevronLeft size={13} />
+          <MdChevronLeft size={13} />
         </button>
         <div className="flex items-center gap-1">
           {visiblePages.map((page, index) => {
             const showDots = index > 0 && page - visiblePages[index - 1] > 1;
             return (
               <div key={page} className="flex items-center">
-                {showDots && <span className="px-1.5 text-slate-300 text-xs select-none">…</span>}
+                {showDots && <span className="px-1.5 m3-on-surface-variant text-xs select-none">…</span>}
                 <button
                   onClick={() => onPageChange(page)}
                   className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === currentPage
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                    ? "m3-solid-primary shadow-sm"
+                    : "border m3-outline-variant-border m3-on-surface-variant hover:m3-surface-container-low-bg hover:m3-outline-border"
                     }`}
                 >
                   {page}
@@ -89,9 +96,9 @@ const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-8 h-8 flex items-center justify-center rounded-lg border m3-outline-variant-border m3-on-surface-variant hover:m3-surface-container-low-bg hover:m3-outline-border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <FiChevronRight size={13} />
+          <MdChevronRight size={13} />
         </button>
       </div>
     </div>
@@ -103,14 +110,14 @@ const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
    ================================================================ */
 const PriorityBadge = ({ priority }) => {
   const map = {
-    HIGH: "bg-rose-50 text-rose-700 border-rose-200",
-    MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
-    LOW: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    HIGH: "m3-tone-error",
+    MEDIUM: "m3-tone-warning",
+    LOW: "m3-tone-success",
   };
   const dotMap = { HIGH: "bg-rose-500", MEDIUM: "bg-amber-500", LOW: "bg-emerald-500" };
   const key = priority?.toUpperCase();
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "m3-surface-container-low-bg m3-on-surface-variant m3-outline-variant-border"}`}>
       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotMap[key] || "bg-slate-400"}`} />
       {priority}
     </span>
@@ -119,20 +126,20 @@ const PriorityBadge = ({ priority }) => {
 
 const StatusBadge = ({ status }) => {
   const map = {
-    PENDING: "bg-amber-50 text-amber-700 border-amber-200",
-    CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
-    PRODUCTION: "bg-blue-50 text-blue-700 border-blue-200",
-    PACKED: "bg-amber-50 text-amber-700 border-amber-200",
-    INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
-    SHIPPED: "bg-blue-50 text-blue-700 border-blue-200",
-    DELIVERED: "bg-green-50 text-green-700 border-green-200",
-    COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
-    REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
+    PENDING: "m3-tone-warning",
+    CONFIRMED: "m3-tone-primary",
+    PRODUCTION: "m3-tone-primary",
+    PACKED: "m3-tone-warning",
+    INVOICE: "m3-tone-secondary",
+    SHIPPED: "m3-tone-primary",
+    DELIVERED: "m3-tone-success",
+    COMPLETED: "m3-tone-success",
+    CANCELLED: "m3-tone-error",
+    REJECTED: "m3-tone-error",
   };
   const key = status?.toUpperCase();
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "m3-surface-container-low-bg m3-on-surface-variant m3-outline-variant-border"}`}>
       {status}
     </span>
   );
@@ -144,28 +151,28 @@ const StatusBadge = ({ status }) => {
 const DateInput = ({ value, onChange, placeholder, max }) => (
   <div className="flex flex-col gap-1">
     {placeholder && (
-      <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 px-0.5">
+      <span className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant px-0.5">
         {placeholder}
       </span>
     )}
     <div className="relative">
-      <FiCalendar
+      <MdCalendarMonth
         size={12}
-        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+        className="absolute left-3 top-1/2 -translate-y-1/2 m3-on-surface-variant pointer-events-none"
       />
       <input
         type="date"
         value={value}
         onChange={onChange}
         max={max}
-        className="pl-8 pr-3 py-2.5 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all cursor-pointer"
+        className="pl-8 pr-3 py-2.5 text-xs border m3-outline-variant-border rounded-lg m3-surface-bg m3-on-surface font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all cursor-pointer"
       />
       {value && (
         <button
           onClick={() => onChange({ target: { value: "" } })}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+          className="absolute right-2 top-1/2 -translate-y-1/2 m3-on-surface-variant hover:m3-on-surface-variant transition-colors"
         >
-          <FiX size={10} />
+          <MdClose size={10} />
         </button>
       )}
     </div>
@@ -319,13 +326,13 @@ const Delivery = () => {
   /* ── Loading / error states ── */
   if (loading && orders.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
+      <div className="min-h-screen m3-surface-container-low-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-5">
           <div className="relative w-12 h-12">
             <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
             <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
-          <p className="text-sm text-slate-400 font-semibold tracking-wide">Loading deliveries…</p>
+          <p className="text-sm m3-on-surface-variant font-semibold tracking-wide">Loading deliveries…</p>
         </div>
       </div>
     );
@@ -333,12 +340,12 @@ const Delivery = () => {
 
   if (error && orders.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50/60 flex items-center justify-center">
+      <div className="min-h-screen m3-surface-container-low-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100"><FiAlertCircle size={24} className="text-rose-400" /></div>
+          <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100"><MdErrorOutline size={24} className="text-rose-400" /></div>
           <div className="space-y-1">
             <p className="text-sm font-bold text-rose-600">Something went wrong</p>
-            <p className="text-xs text-slate-400">{error}</p>
+            <p className="text-xs m3-on-surface-variant">{error}</p>
           </div>
         </div>
       </div>
@@ -349,14 +356,14 @@ const Delivery = () => {
      RENDER
      ================================================================ */
   return (
-    <div className="min-h-screen bg-slate-50/60 px-4 sm:px-6 py-8">
+    <div className="min-h-screen m3-surface-container-low-bg px-4 sm:px-6 py-8">
       <div className="max-w-screen-2xl mx-auto space-y-5">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Deliveries</h1>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
+            <h1 className="text-xl font-bold m3-on-surface tracking-tight">Deliveries</h1>
+            <p className="text-xs m3-on-surface-variant font-medium mt-0.5">
               {loading ? "Loading…" : `${pagination.total.toLocaleString()} total order${pagination.total !== 1 ? "s" : ""}`}
             </p>
           </div>
@@ -366,48 +373,48 @@ const Delivery = () => {
               onClick={loadOrders}
               disabled={loading}
               title="Refresh"
-              className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50"
+              className="p-2.5 rounded-xl border m3-outline-variant-border m3-surface-bg m3-on-surface-variant hover:m3-on-surface hover:m3-outline-border hover:shadow-sm transition-all disabled:opacity-50"
             >
-              <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
+              <MdRefresh size={14} className={loading ? "animate-spin" : ""} />
             </button>
           </div>
         </div>
 
         {/* ── MAIN CARD ── */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="m3-surface-bg border m3-outline-variant-border rounded-2xl shadow-sm overflow-hidden">
 
           {/* ── FILTER BAR ── */}
-          <div className="px-5 py-3 border-b border-slate-200 bg-white">
+          <div className="px-5 py-3 border-b m3-outline-variant-border m3-surface-bg">
             <div className="flex items-center justify-between gap-4 flex-wrap">
 
               {/* Search */}
               <div className="relative flex-1 min-w-[220px] max-w-sm sm:max-w-xs">
-                <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <MdSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 m3-on-surface-variant" />
                 <input
                   type="text"
                   placeholder="Search orders, dealers, shops..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none transition"
+                  className="w-full pl-9 pr-8 py-2 text-sm border m3-outline-variant-border rounded-md m3-surface-container-low-bg focus:m3-surface-bg focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none transition"
                 />
                 {searchInput && (
                   <button
                     onClick={() => { setSearchInput(""); setSearchQuery(""); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 m3-on-surface-variant hover:m3-on-surface-variant"
                   >
-                    <FiX size={13} />
+                    <MdClose size={13} />
                   </button>
                 )}
               </div>
 
               {/* Filters */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                  <FiFilter size={10} />Filter
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] m3-on-surface-variant">
+                  <MdFilterList size={10} />Filter
                 </span>
 
                 <div className="w-36">
-                  <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Status</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">Status</span>
                   <CustomSelect
                     name="status"
                     value={selectedStatus}
@@ -420,7 +427,7 @@ const Delivery = () => {
                 </div>
 
                 <div className="w-36">
-                  <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Priority</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.14em] m3-on-surface-variant">Priority</span>
                   <CustomSelect
                     name="priority"
                     value={selectedPriority}
@@ -433,10 +440,10 @@ const Delivery = () => {
                 </div>
 
                 {/* Delivery Date Range */}
-                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
-                  <FiTruck size={12} className="text-slate-400" title="Delivery Date Filter" />
+                <div className="flex items-center gap-1 m3-surface-container-low-bg border m3-outline-variant-border rounded-md px-2 py-1">
+                  <MdLocalShipping size={12} className="m3-on-surface-variant" title="Delivery Date Filter" />
                   <DateInput label="From" value={deliveryStartDate} onChange={handleDeliveryStartChange} max={deliveryEndDate || undefined} />
-                  <div className="flex items-center pb-2 text-slate-400"><FiArrowRight size={12} /></div>
+                  <div className="flex items-center pb-2 m3-on-surface-variant"><MdArrowForward size={12} /></div>
                   <DateInput label="To" value={deliveryEndDate} onChange={handleDeliveryEndChange} min={deliveryStartDate || undefined} />
                   {(deliveryStartDate || deliveryEndDate) && (
                     <span className="px-2 py-1 text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-100 rounded-full uppercase tracking-wide whitespace-nowrap ml-1">Active</span>
@@ -448,7 +455,7 @@ const Delivery = () => {
                     onClick={clearFilters}
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-md hover:bg-rose-100 transition"
                   >
-                    <FiX size={12} />Clear
+                    <MdClose size={12} />Clear
                   </button>
                 )}
               </div>
@@ -467,27 +474,27 @@ const Delivery = () => {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
+                <tr className="border-b m3-outline-variant-border m3-surface-container-low-bg">
                   {["Dealer & Order", "Shop", "Created", "Delivery", "Items", "Total", "Priority", "Status", ""].map((h, i) => (
                     <th
                       key={i}
-                      className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${i === 8 ? "text-right" : "text-left"}`}
+                      className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] m3-on-surface-variant whitespace-nowrap ${i === 8 ? "text-right" : "text-left"}`}
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y m3-divide-outline-variant">
                 {orders.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-5 py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <div className="p-5 bg-slate-100 rounded-2xl">
-                          <FiPackage size={24} className="text-slate-400" />
+                        <div className="p-5 m3-surface-container-high-bg rounded-2xl">
+                          <MdInventory size={24} className="m3-on-surface-variant" />
                         </div>
-                        <p className="text-sm font-semibold text-slate-500">No orders found</p>
-                        <p className="text-xs text-slate-400">Try adjusting your filters</p>
+                        <p className="text-sm font-semibold m3-on-surface-variant">No orders found</p>
+                        <p className="text-xs m3-on-surface-variant">Try adjusting your filters</p>
                       </div>
                     </td>
                   </tr>
@@ -524,30 +531,30 @@ const Delivery = () => {
                     return (
                       <tr
                         key={order.order_number}
-                        className="hover:bg-slate-50/60 transition-colors duration-100"
+                        className="hover:m3-surface-container-low-bg transition-colors duration-100"
                       >
                         <td className="px-5 py-4">
-                          <p className="font-bold text-slate-900">{formatName(order.dealer?.employee_name)}</p>
-                          <p className="text-[10px] font-mono text-slate-400 mt-0.5">{order.order_number}</p>
+                          <p className="font-bold m3-on-surface">{formatName(order.dealer?.employee_name)}</p>
+                          <p className="text-[10px] font-mono m3-on-surface-variant mt-0.5">{order.order_number}</p>
                         </td>
-                        <td className="px-5 py-4 text-slate-600 font-medium">
+                        <td className="px-5 py-4 m3-on-surface-variant font-medium">
                           {capitalizeFirstLetter(order.dealer?.shop_name)}
                         </td>
-                        <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
+                        <td className="px-5 py-4 m3-on-surface-variant text-xs font-medium whitespace-nowrap">
                           {formatDate(order.created_at)}
                         </td>
-                        <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
+                        <td className="px-5 py-4 m3-on-surface-variant text-xs font-medium whitespace-nowrap">
                           {formatDate(finalDeliveryDate)}
                         </td>
                         <td className="px-5 py-4">
-                          <span className="inline-flex px-2 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                          <span className="inline-flex px-2 py-1 rounded-lg text-xs font-bold m3-surface-container-high-bg m3-on-surface-variant border m3-outline-variant-border">
                             {getTotalItems(order.order_details)}
                           </span>
                         </td>
                         <td className="px-5 py-4 whitespace-nowrap">
                           {canViewOrderPrice
-                            ? <span className="text-sm font-bold text-slate-900">{order.order_total_price ? `₹ ${order.order_total_price.toLocaleString("en-IN")}` : "—"}</span>
-                            : <span className="text-sm text-slate-300">—</span>
+                            ? <span className="text-sm font-bold m3-on-surface">{order.order_total_price ? `₹ ${order.order_total_price.toLocaleString("en-IN")}` : "—"}</span>
+                            : <span className="text-sm m3-on-surface-variant">—</span>
                           }
                         </td>
                         <td className="px-5 py-4">
@@ -569,9 +576,9 @@ const Delivery = () => {
                             <button
                               onClick={() => navigate(`/orders/${order.order_number}`)}
                               title="View Order"
-                              className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                              className="p-2 rounded-lg m3-on-surface-variant hover:text-blue-600 hover:bg-blue-50 transition-all"
                             >
-                              <FiEye size={14} />
+                              <MdVisibility size={14} />
                             </button>
                           </div>
                         </td>

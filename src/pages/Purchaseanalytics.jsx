@@ -1,11 +1,20 @@
 // PurchaseAnalytics.jsx — Weekly/Monthly order analytics
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
-    FiTrendingUp, FiTrendingDown, FiBarChart2, FiCalendar,
-    FiPackage, FiUsers, FiDollarSign, FiRefreshCw, FiFilter,
-    FiArrowUpRight, FiArrowDownRight, FiTag, FiBox,
-    FiChevronLeft, FiChevronRight, FiActivity, FiShoppingCart,
-} from "react-icons/fi";
+  MdBarChart,
+  MdChevronLeft,
+  MdChevronRight,
+  MdCurrencyRupee,
+  MdFilterList,
+  MdGroup,
+  MdInventory,
+  MdNorthEast,
+  MdOutlineInsights,
+  MdRefresh,
+  MdSell,
+  MdShoppingCart,
+  MdSouthEast,
+} from "react-icons/md";
 import { fetchOrders } from "../api/orders";
 import { fetchDealers } from "../api/dealer";
 import { capitalizeFirstLetter, formatName } from "../utils/constants";
@@ -80,29 +89,29 @@ const KPICard = ({ title, value, sub, icon, color, loading, trend, trendVal }) =
             icon: "text-amber-600",
             val: "text-amber-700",
         },
-    }[color] || { bg: "bg-slate-50 border-slate-200", icon: "text-slate-500", val: "text-slate-700" };
+    }[color] || { bg: "m3-surface-container-low-bg m3-outline-variant-border", icon: "m3-on-surface-variant", val: "m3-on-surface" };
 
     return (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 hover:shadow-md transition-all duration-200">
+        <div className="m3-surface-bg border m3-outline-variant-border rounded-2xl shadow-sm p-5 hover:shadow-md transition-all duration-200">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 mb-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.14em] m3-on-surface-variant mb-2">
                         {title}
                     </p>
                     {loading ? (
-                        <div className="h-8 w-24 bg-slate-100 rounded-lg animate-pulse" />
+                        <div className="h-8 w-24 m3-surface-container-high-bg rounded-lg animate-pulse" />
                     ) : (
                         <p className={`text-2xl font-black tabular-nums ${colorMap.val}`}>{value}</p>
                     )}
                     {sub && !loading && (
-                        <p className="text-xs text-slate-400 font-medium mt-1">{sub}</p>
+                        <p className="text-xs m3-on-surface-variant font-medium mt-1">{sub}</p>
                     )}
                     {trend !== undefined && !loading && (
                         <div
                             className={`flex items-center gap-1 text-[10px] font-black mt-1.5 ${trend >= 0 ? "text-emerald-600" : "text-rose-600"
                                 }`}
                         >
-                            {trend >= 0 ? <FiArrowUpRight size={11} /> : <FiArrowDownRight size={11} />}
+                            {trend >= 0 ? <MdNorthEast size={11} /> : <MdSouthEast size={11} />}
                             {Math.abs(trendVal || trend)}% vs previous period
                         </div>
                     )}
@@ -117,12 +126,12 @@ const KPICard = ({ title, value, sub, icon, color, loading, trend, trendVal }) =
 
 // ── Section Card ──────────────────────────────────────────────────
 const SCard = ({ title, subtitle, action, children }) => (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+    <div className="m3-surface-bg border m3-outline-variant-border rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b m3-outline-variant-border m3-surface-container-low-bg">
             <div>
-                <h2 className="text-sm font-bold text-slate-800">{title}</h2>
+                <h2 className="text-sm font-bold m3-on-surface">{title}</h2>
                 {subtitle && (
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+                    <p className="text-[10px] font-semibold m3-on-surface-variant uppercase tracking-[0.1em] mt-0.5">
                         {subtitle}
                     </p>
                 )}
@@ -139,16 +148,16 @@ const HBar = ({ label, value, max, colorClass = "bg-blue-500", sub }) => {
     return (
         <div className="flex items-center gap-3">
             <div className="w-28 flex-shrink-0">
-                <p className="text-xs font-semibold text-slate-700 truncate" title={label}>{label}</p>
-                {sub && <p className="text-[10px] text-slate-400">{sub}</p>}
+                <p className="text-xs font-semibold m3-on-surface truncate" title={label}>{label}</p>
+                {sub && <p className="text-[10px] m3-on-surface-variant">{sub}</p>}
             </div>
-            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="flex-1 h-2 m3-surface-container-high-bg rounded-full overflow-hidden">
                 <div
                     className={`h-full rounded-full transition-all duration-700 ${colorClass}`}
                     style={{ width: `${pct}%` }}
                 />
             </div>
-            <span className="text-xs font-black text-slate-700 min-w-[40px] text-right tabular-nums">
+            <span className="text-xs font-black m3-on-surface min-w-[40px] text-right tabular-nums">
                 {fmtNum(value)}
             </span>
         </div>
@@ -156,7 +165,7 @@ const HBar = ({ label, value, max, colorClass = "bg-blue-500", sub }) => {
 };
 
 const Stat = ({ label, value, highlight, success, warning }) => {
-    let color = "text-slate-700";
+    let color = "m3-on-surface";
 
     if (highlight) color = "text-blue-600";
     if (success) color = "text-emerald-600";
@@ -164,7 +173,7 @@ const Stat = ({ label, value, highlight, success, warning }) => {
 
     return (
         <div className="text-right min-w-[70px]">
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+            <p className="text-[10px] uppercase tracking-wider m3-on-surface-variant font-bold">
                 {label}
             </p>
             <p className={`text-sm font-extrabold ${color}`}>
@@ -388,15 +397,15 @@ const PurchaseAnalytics = () => {
        RENDER
        ================================================================ */
     return (
-        <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-5">
+        <div className="min-h-screen m3-surface-container-low-bg p-4 sm:p-6 lg:p-8 space-y-5">
 
             {/* ── Header ── */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                    <h1 className="text-xl font-bold m3-on-surface tracking-tight">
                         Purchase Analytics
                     </h1>
-                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    <p className="text-xs m3-on-surface-variant font-medium mt-0.5">
                         {loading ? "Loading…" : `${fmtNum(kpis.totalOrders)} orders · ${dateRange.label}`}
                     </p>
                 </div>
@@ -404,25 +413,25 @@ const PurchaseAnalytics = () => {
                     <button
                         onClick={loadOrders}
                         disabled={loading}
-                        className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all disabled:opacity-50"
+                        className="p-2.5 rounded-xl border m3-outline-variant-border m3-surface-bg m3-on-surface-variant hover:m3-on-surface hover:m3-outline-border hover:shadow-sm transition-all disabled:opacity-50"
                     >
-                        <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
+                        <MdRefresh size={14} className={loading ? "animate-spin" : ""} />
                     </button>
                 </div>
             </div>
 
             {/* ── Controls ── */}
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 flex flex-wrap items-center gap-3">
+            <div className="m3-surface-bg border m3-outline-variant-border rounded-2xl shadow-sm p-4 flex flex-wrap items-center gap-3">
 
                 {/* Mode toggle */}
-                <div className="inline-flex bg-slate-100 rounded-xl p-1 gap-1">
+                <div className="inline-flex m3-surface-container-high-bg rounded-xl p-1 gap-1">
                     {["weekly", "monthly"].map((m) => (
                         <button
                             key={m}
                             onClick={() => setMode(m)}
                             className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wide transition-all ${mode === m
-                                ? "bg-blue-600 text-white shadow-sm"
-                                : "text-slate-500 hover:text-slate-800"
+                                ? "m3-solid-primary shadow-sm"
+                                : "m3-on-surface-variant hover:m3-on-surface"
                                 }`}
                         >
                             {m}
@@ -435,19 +444,19 @@ const PurchaseAnalytics = () => {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setWeekOffset((p) => p - 1)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border m3-outline-variant-border m3-on-surface-variant hover:m3-surface-container-low-bg hover:m3-outline-border transition-all"
                         >
-                            <FiChevronLeft size={13} />
+                            <MdChevronLeft size={13} />
                         </button>
-                        <span className="text-sm font-bold text-slate-700 whitespace-nowrap min-w-[100px] text-center">
+                        <span className="text-sm font-bold m3-on-surface whitespace-nowrap min-w-[100px] text-center">
                             {dateRange.label}
                         </span>
                         <button
                             onClick={() => setWeekOffset((p) => Math.min(0, p + 1))}
                             disabled={weekOffset >= 0}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border m3-outline-variant-border m3-on-surface-variant hover:m3-surface-container-low-bg hover:m3-outline-border transition-all disabled:opacity-40"
                         >
-                            <FiChevronRight size={13} />
+                            <MdChevronRight size={13} />
                         </button>
                     </div>
                 )}
@@ -478,7 +487,7 @@ const PurchaseAnalytics = () => {
 
                 {/* Dealer filter */}
                 <div className="flex items-center gap-2">
-                    <FiFilter size={13} className="text-slate-400" />
+                    <MdFilterList size={13} className="m3-on-surface-variant" />
                     <div className="w-48">
                         <CustomSelect
                             name="dealer"
@@ -510,7 +519,7 @@ const PurchaseAnalytics = () => {
                     title="Total Revenue"
                     value={fmt(kpis.totalRevenue)}
                     sub={`vs ${fmt(prevOrders.reduce((s, o) => s + Number(o.order_total_price || 0), 0))} prev`}
-                    icon={<FiDollarSign />}
+                    icon={<MdCurrencyRupee />}
                     color="emerald"
                     loading={loading}
                     trend={kpis.revTrend}
@@ -520,7 +529,7 @@ const PurchaseAnalytics = () => {
                     title="Total Orders"
                     value={fmtNum(kpis.totalOrders)}
                     sub={`${fmtNum(prevOrders.length)} previous period`}
-                    icon={<FiShoppingCart />}
+                    icon={<MdShoppingCart />}
                     color="indigo"
                     loading={loading}
                     trend={kpis.orderTrend}
@@ -530,7 +539,7 @@ const PurchaseAnalytics = () => {
                     title="Units Sold"
                     value={fmtNum(kpis.totalItems)}
                     sub="across all products"
-                    icon={<FiPackage />}
+                    icon={<MdInventory />}
                     color="violet"
                     loading={loading}
                 />
@@ -538,7 +547,7 @@ const PurchaseAnalytics = () => {
                     title="Avg. Order Value"
                     value={fmt(kpis.avgOrder)}
                     sub={`${fmtNum(kpis.uniqueDealers)} active dealers`}
-                    icon={<FiBarChart2 />}
+                    icon={<MdBarChart />}
                     color="amber"
                     loading={loading}
                 />
@@ -553,20 +562,20 @@ const PurchaseAnalytics = () => {
                     subtitle="Units sold this period"
                     action={
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-wide">
-                            <FiPackage size={9} /> {topProducts.length} products
+                            <MdInventory size={9} /> {topProducts.length} products
                         </span>
                     }
                 >
                     {loading ? (
                         <div className="space-y-3">
                             {[...Array(6)].map((_, i) => (
-                                <div key={i} className="h-8 bg-slate-100 rounded-lg animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />
+                                <div key={i} className="h-8 m3-surface-container-high-bg rounded-lg animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />
                             ))}
                         </div>
                     ) : topProducts.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
-                            <div className="p-4 bg-slate-100 rounded-2xl"><FiPackage size={22} className="text-slate-400" /></div>
-                            <p className="text-sm font-semibold text-slate-500">No product data</p>
+                            <div className="p-4 m3-surface-container-high-bg rounded-2xl"><MdInventory size={22} className="m3-on-surface-variant" /></div>
+                            <p className="text-sm font-semibold m3-on-surface-variant">No product data</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -577,7 +586,7 @@ const PurchaseAnalytics = () => {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-2 mb-1">
-                                            <p className="text-xs font-bold text-slate-900 truncate">
+                                            <p className="text-xs font-bold m3-on-surface truncate">
                                                 {capitalizeFirstLetter(p.name)}
                                             </p>
                                             <span className="text-[10px] font-black text-blue-700 flex-shrink-0">
@@ -585,17 +594,17 @@ const PurchaseAnalytics = () => {
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="flex-1 h-1.5 m3-surface-container-high-bg rounded-full overflow-hidden">
                                                 <div
                                                     className="h-full bg-blue-500 rounded-full transition-all duration-700"
                                                     style={{ width: `${topProducts[0].qty > 0 ? (p.qty / topProducts[0].qty) * 100 : 0}%` }}
                                                 />
                                             </div>
-                                            <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                                            <span className="text-[10px] m3-on-surface-variant font-medium whitespace-nowrap">
                                                 {fmt(p.revenue)}
                                             </span>
                                         </div>
-                                        <p className="text-[9px] text-slate-400 font-medium mt-0.5">
+                                        <p className="text-[9px] m3-on-surface-variant font-medium mt-0.5">
                                             {p.brand} · {p.model}
                                         </p>
                                     </div>
@@ -611,20 +620,20 @@ const PurchaseAnalytics = () => {
                     subtitle="By units purchased"
                     action={
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-100 uppercase tracking-wide">
-                            <FiTag size={9} /> {topBrands.length} brands
+                            <MdSell size={9} /> {topBrands.length} brands
                         </span>
                     }
                 >
                     {loading ? (
                         <div className="space-y-3">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className="h-8 bg-slate-100 rounded-lg animate-pulse" />
+                                <div key={i} className="h-8 m3-surface-container-high-bg rounded-lg animate-pulse" />
                             ))}
                         </div>
                     ) : topBrands.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
-                            <div className="p-4 bg-slate-100 rounded-2xl"><FiTag size={22} className="text-slate-400" /></div>
-                            <p className="text-sm font-semibold text-slate-500">No brand data</p>
+                            <div className="p-4 m3-surface-container-high-bg rounded-2xl"><MdSell size={22} className="m3-on-surface-variant" /></div>
+                            <p className="text-sm font-semibold m3-on-surface-variant">No brand data</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -657,13 +666,13 @@ const PurchaseAnalytics = () => {
                         {loading ? (
                             <div className="space-y-2">
                                 {[...Array(6)].map((_, i) => (
-                                    <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />
+                                    <div key={i} className="h-14 m3-surface-container-high-bg rounded-xl animate-pulse" />
                                 ))}
                             </div>
                         ) : topDealers.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 gap-3">
-                                <div className="p-4 bg-slate-100 rounded-2xl"><FiUsers size={22} className="text-slate-400" /></div>
-                                <p className="text-sm font-semibold text-slate-500">No dealer data</p>
+                                <div className="p-4 m3-surface-container-high-bg rounded-2xl"><MdGroup size={22} className="m3-on-surface-variant" /></div>
+                                <p className="text-sm font-semibold m3-on-surface-variant">No dealer data</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
@@ -677,7 +686,7 @@ const PurchaseAnalytics = () => {
                                     return (
                                         <div
                                             key={i}
-                                            className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300 p-4"
+                                            className="group relative overflow-hidden rounded-2xl border m3-outline-variant-border m3-surface-bg shadow-sm hover:shadow-lg transition-all duration-300 p-4"
                                         >
                                             {/* Hover Gradient */}
                                             <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition" />
@@ -686,7 +695,7 @@ const PurchaseAnalytics = () => {
 
                                                 {/* Rank */}
                                                 <div
-                                                    className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-sm shadow ${i < 3 ? rankColors[i] : "bg-slate-100 text-slate-600"
+                                                    className={`w-10 h-10 flex items-center justify-center rounded-xl font-black text-sm shadow ${i < 3 ? rankColors[i] : "m3-surface-container-high-bg m3-on-surface-variant"
                                                         }`}
                                                 >
                                                     #{i + 1}
@@ -696,17 +705,17 @@ const PurchaseAnalytics = () => {
                                                 <div className="flex-1 min-w-0">
                                                     {/* Name + ID */}
                                                     <div className="flex items-center gap-2 flex-wrap">
-                                                        <p className="text-sm font-bold text-slate-900 break-words">
+                                                        <p className="text-sm font-bold m3-on-surface break-words">
                                                             {capitalizeFirstLetter(d.name)}
                                                         </p>
 
-                                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-semibold">
+                                                        <span className="text-[10px] px-2 py-0.5 rounded-full m3-surface-container-high-bg m3-on-surface-variant font-semibold">
                                                             ID: {d.employee_id}
                                                         </span>
                                                     </div>
 
                                                     {/* Shop Name */}
-                                                    <p className="text-xs text-slate-500 font-medium mt-1 break-words">
+                                                    <p className="text-xs m3-on-surface-variant font-medium mt-1 break-words">
                                                         {capitalizeFirstLetter(d.shop || "No Shop")}
                                                     </p>
                                                 </div>
@@ -732,28 +741,28 @@ const PurchaseAnalytics = () => {
                     {loading ? (
                         <div className="space-y-3">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className="h-8 bg-slate-100 rounded-lg animate-pulse" />
+                                <div key={i} className="h-8 m3-surface-container-high-bg rounded-lg animate-pulse" />
                             ))}
                         </div>
                     ) : statusBreakdown.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
-                            <div className="p-4 bg-slate-100 rounded-2xl"><FiActivity size={22} className="text-slate-400" /></div>
-                            <p className="text-sm font-semibold text-slate-500">No data</p>
+                            <div className="p-4 m3-surface-container-high-bg rounded-2xl"><MdOutlineInsights size={22} className="m3-on-surface-variant" /></div>
+                            <p className="text-sm font-semibold m3-on-surface-variant">No data</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
                             {statusBreakdown.map(({ status, count, pct }) => (
                                 <div key={status}>
                                     <div className="flex items-center justify-between mb-1">
-                                        <span className="text-[10px] font-black uppercase tracking-wide text-slate-600">
+                                        <span className="text-[10px] font-black uppercase tracking-wide m3-on-surface-variant">
                                             {status}
                                         </span>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="text-[10px] font-black text-slate-700">{count}</span>
-                                            <span className="text-[9px] text-slate-400">({pct}%)</span>
+                                            <span className="text-[10px] font-black m3-on-surface">{count}</span>
+                                            <span className="text-[9px] m3-on-surface-variant">({pct}%)</span>
                                         </div>
                                     </div>
-                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-1.5 m3-surface-container-high-bg rounded-full overflow-hidden">
                                         <div
                                             className={`h-full rounded-full transition-all duration-700 ${STATUS_COLORS[status] || "bg-slate-400"}`}
                                             style={{ width: `${pct}%` }}
@@ -774,74 +783,74 @@ const PurchaseAnalytics = () => {
                 {loading ? (
                     <div className="space-y-2">
                         {[...Array(5)].map((_, i) => (
-                            <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />
+                            <div key={i} className="h-12 m3-surface-container-high-bg rounded-xl animate-pulse" />
                         ))}
                     </div>
                 ) : filteredOrders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-3">
-                        <div className="p-4 bg-slate-100 rounded-2xl">
-                            <FiShoppingCart size={22} className="text-slate-400" />
+                        <div className="p-4 m3-surface-container-high-bg rounded-2xl">
+                            <MdShoppingCart size={22} className="m3-on-surface-variant" />
                         </div>
-                        <p className="text-sm font-semibold text-slate-500">
+                        <p className="text-sm font-semibold m3-on-surface-variant">
                             No orders in this period
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-200">
+                    <div className="overflow-x-auto rounded-xl border m3-outline-variant-border">
                         <table className="min-w-full text-sm">
                             <thead>
-                                <tr className="bg-slate-50/60 border-b border-slate-100">
+                                <tr className="m3-surface-container-low-bg border-b m3-outline-variant-border">
                                     {["Order #", "Dealer", "Date", "Items", "Amount", "Status", "Payment"].map((h) => (
-                                        <th key={h} className="px-5 py-3.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 text-left whitespace-nowrap">
+                                        <th key={h} className="px-5 py-3.5 text-[9px] font-black uppercase tracking-[0.12em] m3-on-surface-variant text-left whitespace-nowrap">
                                             {h}
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y m3-divide-outline-variant">
                                 {filteredOrders.slice(0, 20).map((o) => {
                                     const items = (o.order_details || []).reduce(
                                         (s, d) => s + Number(d.total_qty_ordered || d.qty_ordered || 0), 0
                                     );
                                     return (
-                                        <tr key={o.order_number} className="hover:bg-slate-50/60 transition-colors">
-                                            <td className="px-5 py-3.5 font-mono font-bold text-slate-900 text-xs">{o.order_number}</td>
+                                        <tr key={o.order_number} className="hover:m3-surface-container-low-bg transition-colors">
+                                            <td className="px-5 py-3.5 font-mono font-bold m3-on-surface text-xs">{o.order_number}</td>
                                             <td className="px-5 py-3.5">
-                                                <p className="font-bold text-slate-900 text-xs">{formatName(o.dealer?.employee_name)}</p>
-                                                <p className="text-[10px] text-slate-400">{capitalizeFirstLetter(o.dealer?.shop_name || "")}</p>
+                                                <p className="font-bold m3-on-surface text-xs">{formatName(o.dealer?.employee_name)}</p>
+                                                <p className="text-[10px] m3-on-surface-variant">{capitalizeFirstLetter(o.dealer?.shop_name || "")}</p>
                                             </td>
-                                            <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap">
+                                            <td className="px-5 py-3.5 text-xs m3-on-surface-variant whitespace-nowrap">
                                                 {new Date(o.created_at).toLocaleDateString("en-IN")}
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <span className="inline-flex px-2 py-1 rounded-lg text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-200">
+                                                <span className="inline-flex px-2 py-1 rounded-lg text-[10px] font-black m3-surface-container-high-bg m3-on-surface-variant border m3-outline-variant-border">
                                                     {items}
                                                 </span>
                                             </td>
-                                            <td className="px-5 py-3.5 font-bold text-slate-900 whitespace-nowrap text-xs">
+                                            <td className="px-5 py-3.5 font-bold m3-on-surface whitespace-nowrap text-xs">
                                                 {fmt(o.order_total_price)}
                                             </td>
-                                            <td className="px-5 py-3.5 font-bold text-slate-900 whitespace-nowrap text-xs">
+                                            <td className="px-5 py-3.5 font-bold m3-on-surface whitespace-nowrap text-xs">
                                                 {fmt(o.amount_paid)}
                                             </td>
-                                            <td className="px-5 py-3.5 font-bold text-slate-900 whitespace-nowrap text-xs">
+                                            <td className="px-5 py-3.5 font-bold m3-on-surface whitespace-nowrap text-xs">
                                                 {fmt(o.order_total_price - o.amount_paid)}
                                             </td>
                                             <td className="px-5 py-3.5">
-                                                <span className={`inline-flex px-2.5 py-1 rounded-full text-[9px] font-black border uppercase tracking-wide ${STATUS_COLORS[o.status] ? "" : ""} ${o.status === "COMPLETED" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                                    : o.status === "DELIVERED" ? "bg-green-50 text-green-700 border-green-200"
-                                                        : o.status === "CANCELLED" ? "bg-rose-50 text-rose-700 border-rose-200"
-                                                            : o.status === "PENDING" ? "bg-amber-50 text-amber-700 border-amber-200"
-                                                                : "bg-slate-50 text-slate-600 border-slate-200"
+                                                <span className={`inline-flex px-2.5 py-1 rounded-full text-[9px] font-black border uppercase tracking-wide ${STATUS_COLORS[o.status] ? "" : ""} ${o.status === "COMPLETED" ? "m3-tone-success"
+                                                    : o.status === "DELIVERED" ? "m3-tone-success"
+                                                        : o.status === "CANCELLED" ? "m3-tone-error"
+                                                            : o.status === "PENDING" ? "m3-tone-warning"
+                                                                : "m3-surface-container-low-bg m3-on-surface-variant m3-outline-variant-border"
                                                     }`}>
                                                     {o.status}
                                                 </span>
                                             </td>
 
                                             <td className="px-5 py-3.5">
-                                                <span className={`inline-flex px-2.5 py-1 rounded-full text-[9px] font-black border uppercase tracking-wide ${o.payment_status === "PAID" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                                    : o.payment_status === "PARTIAL" ? "bg-amber-50 text-amber-700 border-amber-200"
-                                                        : "bg-rose-50 text-rose-700 border-rose-200"
+                                                <span className={`inline-flex px-2.5 py-1 rounded-full text-[9px] font-black border uppercase tracking-wide ${o.payment_status === "PAID" ? "m3-tone-success"
+                                                    : o.payment_status === "PARTIAL" ? "m3-tone-warning"
+                                                        : "m3-tone-error"
                                                     }`}>
                                                     {o.payment_status}
                                                 </span>
@@ -852,8 +861,8 @@ const PurchaseAnalytics = () => {
                             </tbody>
                         </table>
                         {filteredOrders.length > 20 && (
-                            <div className="px-5 py-3 bg-slate-50/40 border-t border-slate-100 text-center">
-                                <p className="text-xs text-slate-400 font-medium">
+                            <div className="px-5 py-3 m3-surface-container-low-bg border-t m3-outline-variant-border text-center">
+                                <p className="text-xs m3-on-surface-variant font-medium">
                                     Showing 20 of {fmtNum(filteredOrders.length)} orders
                                 </p>
                             </div>
