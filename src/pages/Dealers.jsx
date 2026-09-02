@@ -1,10 +1,11 @@
-// dealers.jsx
+// Dealers.jsx — Material Design 3
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  FiPlus, FiSearch, FiX, FiCheck, FiChevronDown,
-  FiEdit2, FiTrash2, FiEye, FiEyeOff, FiChevronLeft, FiChevronRight,
-  FiAlertCircle, FiUsers, FiFilter,
-} from "react-icons/fi";
+  MdAdd, MdSearch, MdClose, MdCheck, MdExpandMore,
+  MdEdit, MdDeleteOutline, MdVisibility, MdVisibilityOff,
+  MdChevronLeft, MdChevronRight,
+  MdErrorOutline, MdStorefront, MdFilterList,
+} from "react-icons/md";
 import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
 
@@ -17,6 +18,11 @@ import { getAllBrands } from "../api/brands";
 import { useAuth } from "../hooks/useAuth";
 import { fetchUsers } from "../api/user";
 import { capitalizeFirstLetter, formatName } from "../utils/constants";
+import {
+  Surface, Button, IconButton, Chip, Banner, EmptyState,
+  Table, Thead, Th, Tr, Td,
+} from "../components/m3";
+import { T } from "../components/m3/tokens";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED PRIMITIVES — defined at module level so they never re-mount and
@@ -26,13 +32,13 @@ import { capitalizeFirstLetter, formatName } from "../utils/constants";
 /** Labelled field wrapper with optional inline error message. */
 const FormField = ({ label, required, errorMsg, children }) => (
   <div className="space-y-1.5">
-    <label className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-      {label}{required && <span className="text-rose-400 ml-0.5">*</span>}
+    <label className="block m3-label-medium" style={{ color: T.onSurfaceVariant }}>
+      {label}{required && <span className="ml-0.5" style={{ color: T.error }}>*</span>}
     </label>
     {children}
     {errorMsg && (
-      <p className="flex items-center gap-1 text-xs text-rose-500 font-semibold mt-1">
-        <FiAlertCircle size={11} />{errorMsg}
+      <p className="flex items-center gap-1 m3-body-small mt-1" style={{ color: T.error }}>
+        <MdErrorOutline size={14} />{errorMsg}
       </p>
     )}
   </div>
@@ -42,7 +48,13 @@ const FormField = ({ label, required, errorMsg, children }) => (
 const FormInput = ({ className = "", ...props }) => (
   <input
     {...props}
-    className={`w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all ${className}`}
+    className={`w-full m3-body-medium px-3.5 h-11 focus:outline-none ${className}`}
+    style={{
+      border: `1px solid ${T.outline}`,
+      borderRadius: T.cornerExtraSmall,
+      backgroundColor: T.surface,
+      color: T.onSurface,
+    }}
   />
 );
 
@@ -84,54 +96,74 @@ const MultiSelectDropdown = ({
     <div className="relative multiselect-container">
       <div
         onClick={() => !disabled && !loading && setIsOpen(!isOpen)}
-        className={`w-full px-3.5 py-2.5 rounded-lg border min-h-[42px] flex flex-wrap items-center gap-1.5 cursor-pointer transition-all
-          ${disabled ? "opacity-50 cursor-not-allowed bg-slate-50 border-slate-200" : "bg-white border-slate-200 hover:border-blue-300"}
-          ${isOpen ? "border-blue-400 ring-2 ring-blue-100" : ""}`}
+        className={`w-full px-3.5 py-2.5 min-h-[44px] flex flex-wrap items-center gap-1.5 cursor-pointer transition-all ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        style={{
+          border: `1px solid ${isOpen ? T.primary : T.outline}`,
+          borderRadius: T.cornerExtraSmall,
+          backgroundColor: T.surface,
+        }}
       >
         {loading ? (
           <div className="flex items-center gap-2">
-            <div className="w-3.5 h-3.5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-            <span className="text-sm text-slate-400">{placeholder}</span>
+            <div
+              className="w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin"
+              style={{ borderColor: T.primary, borderTopColor: "transparent" }}
+            />
+            <span className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>{placeholder}</span>
           </div>
         ) : selectedValues.length > 0 ? (
           <>
             {selectedValues.map((value) => {
               const option = options.find((o) => o.value === value);
               return (
-                <span
-                  key={value}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200 max-w-[120px]"
-                >
+                <Chip key={value} tone="primary" className="max-w-[140px]">
                   <span className="truncate">{option?.label || value}</span>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); handleRemoveTag(value); }}
-                    className="text-blue-400 hover:text-blue-700 flex-shrink-0"
+                    aria-label={`Remove ${option?.label || value}`}
+                    className="flex-shrink-0 opacity-70 hover:opacity-100"
                   >
-                    <FiX size={9} />
+                    <MdClose size={12} />
                   </button>
-                </span>
+                </Chip>
               );
             })}
           </>
         ) : (
-          <span className="text-sm text-slate-400 font-medium">{placeholder}</span>
+          <span className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>{placeholder}</span>
         )}
         <div className="ml-auto flex-shrink-0">
-          <FiChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+          <MdExpandMore
+            className={`w-5 h-5 transition-transform ${isOpen ? "rotate-180" : ""}`}
+            style={{ color: T.onSurfaceVariant }}
+          />
         </div>
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-hidden">
+        <div
+          className="absolute z-50 w-full mt-1 max-h-60 overflow-hidden"
+          style={{
+            backgroundColor: T.surfaceContainer,
+            borderRadius: T.cornerSmall,
+            boxShadow: T.elevation2,
+          }}
+        >
           {searchable && (
-            <div className="p-2 border-b border-slate-100">
+            <div className="p-2" style={{ borderBottom: `1px solid ${T.outlineVariant}` }}>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search brands…"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                className="w-full px-3 h-10 m3-body-medium focus:outline-none"
+                style={{
+                  border: `1px solid ${T.outline}`,
+                  borderRadius: T.cornerExtraSmall,
+                  backgroundColor: T.surface,
+                  color: T.onSurface,
+                }}
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -141,17 +173,19 @@ const MultiSelectDropdown = ({
               ? filteredOptions.map((option) => (
                 <div
                   key={option.value}
-                  className={`px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-slate-50 transition-colors ${selectedValues.includes(option.value) ? "bg-blue-50" : ""}`}
+                  className="px-4 h-12 cursor-pointer flex items-center justify-between m3-state-layer m3-body-large"
+                  style={{
+                    backgroundColor: selectedValues.includes(option.value) ? T.secondaryContainer : "transparent",
+                    color: selectedValues.includes(option.value) ? T.onSecondaryContainer : T.onSurface,
+                  }}
                   onClick={() => handleToggleOption(option.value)}
                 >
-                  <span className={`font-medium ${selectedValues.includes(option.value) ? "text-blue-700" : "text-slate-700"}`}>
-                    {option.label}
-                  </span>
-                  {selectedValues.includes(option.value) && <FiCheck className="text-blue-600" size={14} />}
+                  <span>{option.label}</span>
+                  {selectedValues.includes(option.value) && <MdCheck size={18} />}
                 </div>
               ))
               : (
-                <div className="px-4 py-5 text-sm text-slate-400 text-center font-semibold">
+                <div className="px-4 py-5 m3-body-medium text-center" style={{ color: T.onSurfaceVariant }}>
                   {searchTerm ? "No brands found" : "No brands available"}
                 </div>
               )
@@ -363,34 +397,48 @@ const CreateDealerModal = ({
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" onClick={onClose} />
+      <div
+        className="fixed inset-0 z-40"
+        style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
+        onClick={onClose}
+      />
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
         <div
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 flex flex-col"
-          style={{ maxHeight: "90vh" }}
+          className="w-full max-w-xl flex flex-col"
+          style={{
+            maxHeight: "90vh",
+            backgroundColor: "var(--md-sys-color-surface-container-high)",
+            borderRadius: T.cornerExtraLarge,
+            boxShadow: T.elevation3,
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+          <div
+            className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+            style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+          >
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-                <FiUsers size={14} />
+              <div
+                className="p-2.5"
+                style={{
+                  borderRadius: T.cornerFull,
+                  backgroundColor: T.primaryContainer,
+                  color: T.onPrimaryContainer,
+                }}
+              >
+                <MdStorefront size={20} />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900">
+                <h2 className="m3-title-medium" style={{ color: T.onSurface }}>
                   {editingDealerId ? "Edit Dealer" : "Add New Dealer"}
                 </h2>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+                <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>
                   {editingDealerId ? "Update dealer information" : "Create dealer account"}
                 </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
-            >
-              <FiX size={16} />
-            </button>
+            <IconButton icon={MdClose} onClick={onClose} aria-label="Close dialog" />
           </div>
 
           {/* Form */}
@@ -401,11 +449,7 @@ const CreateDealerModal = ({
             noValidate
           >
             {/* API-level error */}
-            {apiError && (
-              <div className="flex items-center gap-2.5 px-4 py-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-semibold">
-                <FiAlertCircle size={14} className="flex-shrink-0" />{apiError}
-              </div>
-            )}
+            {apiError && <Banner tone="error">{apiError}</Banner>}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* ✅ errorMsg now reads "name" key, matching remapped fieldErrors */}
@@ -456,9 +500,11 @@ const CreateDealerModal = ({
                     <button
                       type="button"
                       onClick={() => setShowPassword((p) => !p)}
-                      className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute inset-y-0 right-3 flex items-center"
+                      style={{ color: T.onSurfaceVariant }}
                     >
-                      {showPassword ? <FiEyeOff size={14} /> : <FiEye size={14} />}
+                      {showPassword ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
                     </button>
                   </div>
                 </FormField>
@@ -517,31 +563,29 @@ const CreateDealerModal = ({
                 onChange={handleChange}
                 rows={3}
                 placeholder="Enter complete address"
-                className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-none"
+                className="w-full m3-body-medium px-3.5 py-2.5 focus:outline-none resize-none"
+                style={{
+                  border: `1px solid ${T.outline}`,
+                  borderRadius: T.cornerExtraSmall,
+                  backgroundColor: T.surface,
+                  color: T.onSurface,
+                }}
               />
             </FormField>
           </form>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex-shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-all cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              form="dealer-form"
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-blue-200 cursor-pointer"
-            >
+          <div
+            className="flex items-center justify-end gap-3 px-6 py-4 flex-shrink-0"
+            style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+          >
+            <Button variant="text" onClick={onClose}>Cancel</Button>
+            <Button variant="filled" type="submit" form="dealer-form" disabled={loading}>
               {loading
-                ? <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{editingDealerId ? "Updating…" : "Adding…"}</>
+                ? <><div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />{editingDealerId ? "Updating…" : "Adding…"}</>
                 : editingDealerId ? "Update Dealer" : "Add Dealer"
               }
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -559,26 +603,21 @@ const DealerActions = ({ dealerId, onEdit, onDelete, dealerStatus, canUpdateDeal
       <Link
         to={`/dealers/${dealerId}`}
         title="View Details"
-        className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+        aria-label="View dealer details"
+        className="m3-icon-button m3-state-layer m3-focus"
       >
-        <FiEye size={14} />
+        <MdVisibility size={20} />
       </Link>
       {canUpdateDealer && canDeleteDealer && (
         <>
-          <button
-            onClick={onEdit}
-            title="Edit Dealer"
-            className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all"
-          >
-            <FiEdit2 size={14} />
-          </button>
-          <button
+          <IconButton icon={MdEdit} onClick={onEdit} title="Edit Dealer" aria-label="Edit dealer" />
+          <IconButton
+            icon={MdDeleteOutline}
             onClick={onDelete}
             title="Delete Dealer"
-            className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
-          >
-            <FiTrash2 size={14} />
-          </button>
+            aria-label="Delete dealer"
+            style={{ color: T.error }}
+          />
         </>
       )}
     </div>
@@ -595,39 +634,54 @@ const DealersPagination = ({ currentPage, totalPages, onPageChange }) => {
   const handleChange = (p) => { if (p < 1 || p > totalPages) return; onPageChange(p); };
 
   return (
-    <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100">
-      <p className="text-xs text-slate-400 font-medium hidden sm:block">
+    <div
+      className="flex items-center justify-between px-5 py-4"
+      style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+    >
+      <p className="m3-body-small hidden sm:block" style={{ color: T.onSurfaceVariant }}>
         Page {currentPage} of {totalPages}
       </p>
       <div className="flex items-center gap-1.5 ml-auto">
-        <button
+        <IconButton
+          icon={MdChevronLeft}
           onClick={() => handleChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <FiChevronLeft size={13} />
-        </button>
+          aria-label="Previous page"
+          className="disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ width: 32, height: 32 }}
+        />
         {visiblePages.map((page, index) => {
           const showDots = index > 0 && page - visiblePages[index - 1] > 1;
+          const current = page === currentPage;
           return (
             <div key={page} className="flex items-center">
-              {showDots && <span className="px-1.5 text-slate-300 text-xs">…</span>}
+              {showDots && (
+                <span className="px-1.5 m3-body-small" style={{ color: T.onSurfaceVariant }}>…</span>
+              )}
               <button
+                type="button"
                 onClick={() => handleChange(page)}
-                className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === currentPage ? "bg-blue-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"}`}
+                aria-current={current ? "page" : undefined}
+                className="m3-label-large m3-state-layer m3-focus min-w-[32px] h-8 px-2.5 flex items-center justify-center"
+                style={{
+                  borderRadius: T.cornerFull,
+                  backgroundColor: current ? T.secondaryContainer : "transparent",
+                  color: current ? T.onSecondaryContainer : T.onSurfaceVariant,
+                }}
               >
                 {page}
               </button>
             </div>
           );
         })}
-        <button
+        <IconButton
+          icon={MdChevronRight}
           onClick={() => handleChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <FiChevronRight size={13} />
-        </button>
+          aria-label="Next page"
+          className="disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ width: 32, height: 32 }}
+        />
       </div>
     </div>
   );
@@ -751,44 +805,56 @@ const Dealers = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{ backgroundColor: T.surface }}>
       <div className="max-w-screen-2xl mx-auto space-y-5">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Dealers</h1>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">Manage and track dealer accounts</p>
+            <h1 className="m3-headline-small" style={{ color: T.onSurface }}>Dealers</h1>
+            <p className="m3-body-medium mt-0.5" style={{ color: T.onSurfaceVariant }}>
+              Manage and track dealer accounts
+            </p>
           </div>
           {canCreateDealer && (
-            <button
+            <Button
+              variant="filled"
+              icon={MdAdd}
               onClick={() => { setIsModalOpen(true); setEditingDealerId(null); setEditingDealerData(null); }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 cursor-pointer"
             >
-              <FiPlus size={14} />Add New Dealer
-            </button>
+              Add New Dealer
+            </Button>
           )}
         </div>
 
         {/* Main Card */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <Surface className="overflow-hidden">
 
           {/* Filter Bar */}
-          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/40">
+          <div className="px-5 py-4" style={{ borderBottom: `1px solid ${T.outlineVariant}` }}>
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               <div className="relative w-full lg:max-w-sm">
-                <FiSearch size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <MdSearch
+                  size={20}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: T.onSurfaceVariant }}
+                />
                 <input
                   type="text"
                   placeholder="Search by name or shop…"
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                  className="m3-body-medium w-full pl-11 pr-4 h-10 focus:outline-none"
+                  style={{
+                    backgroundColor: T.surfaceContainerHigh,
+                    borderRadius: T.cornerFull,
+                    color: T.onSurface,
+                  }}
                 />
               </div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                  <FiFilter size={10} />Filter
+                <span className="flex items-center gap-1.5 m3-label-medium" style={{ color: T.onSurfaceVariant }}>
+                  <MdFilterList size={16} />Filter
                 </span>
                 <div className="w-36">
                   <CustomSelect
@@ -806,89 +872,92 @@ const Dealers = () => {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
               <div className="relative w-10 h-10">
-                <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
-                <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <div
+                  className="absolute inset-0 border-4 rounded-full"
+                  style={{ borderColor: T.surfaceContainerHighest }}
+                />
+                <div
+                  className="absolute inset-0 border-4 border-t-transparent rounded-full animate-spin"
+                  style={{ borderLeftColor: T.primary, borderRightColor: T.primary, borderBottomColor: T.primary }}
+                />
               </div>
-              <p className="text-sm text-slate-400 font-medium">Loading dealers…</p>
+              <p className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>Loading dealers…</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
-                <FiAlertCircle size={22} className="text-rose-500" />
+              <div className="p-4" style={{ backgroundColor: T.errorContainer, borderRadius: T.cornerFull }}>
+                <MdErrorOutline size={24} style={{ color: T.onErrorContainer }} />
               </div>
-              <p className="text-sm font-semibold text-rose-600">{error}</p>
-              <button
-                onClick={fetchDealersList}
-                className="text-sm text-blue-600 font-bold hover:text-blue-700 transition-colors"
-              >
-                Try Again
-              </button>
+              <p className="m3-body-medium" style={{ color: T.error }}>{error}</p>
+              <Button variant="text" onClick={fetchDealersList}>Try Again</Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/50">
-                    {[
-                      "Dealer", "Shop", "Phone", "District", "Status",
-                      "Created By", "Created Date",
-                      "",
-                    ].map((h, i, arr) => (
-                      <th
-                        key={i}
-                        className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 ${i === arr.length - 1 ? "text-right" : "text-left"} whitespace-nowrap`}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
+            <Table>
+                <Thead>
+                  {[
+                    "Dealer", "Shop", "Phone", "District", "Status",
+                    "Created By", "Created Date",
+                    "",
+                  ].map((h, i, arr) => (
+                    <Th key={i} align={i === arr.length - 1 ? "right" : "left"}>{h}</Th>
+                  ))}
+                </Thead>
+                <tbody>
                   {dealers.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-20 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="p-5 bg-slate-100 rounded-2xl">
-                            <FiUsers size={24} className="text-slate-400" />
-                          </div>
-                          <p className="text-sm font-semibold text-slate-500">No dealers found</p>
-                          <p className="text-xs text-slate-400">Try adjusting filters or search terms</p>
-                        </div>
+                      <td colSpan={9}>
+                        <EmptyState icon={MdStorefront} label="No dealers found" />
+                        <p className="m3-body-small text-center -mt-8 pb-8" style={{ color: T.onSurfaceVariant }}>
+                          Try adjusting filters or search terms
+                        </p>
                       </td>
                     </tr>
                   ) : dealers.map((dealer) => (
-                    <tr key={dealer.employee_id} className="hover:bg-slate-50/60 transition-colors duration-100 group">
+                    <Tr key={dealer.employee_id}>
                       {/* Dealer */}
-                      <td className="px-5 py-4">
+                      <Td>
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 text-blue-700 font-black text-sm border border-blue-100 flex-shrink-0">
+                          <div
+                            className="w-9 h-9 flex items-center justify-center flex-shrink-0 m3-label-large"
+                            style={{
+                              borderRadius: T.cornerFull,
+                              backgroundColor: T.primaryContainer,
+                              color: T.onPrimaryContainer,
+                            }}
+                          >
                             {dealer.employee_name?.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 text-sm">{formatName(dealer.employee_name)}</p>
-                            <span className="text-[9px] font-mono text-slate-400">{dealer.employee_id}</span>
+                            <p className="m3-body-medium" style={{ color: T.onSurface }}>
+                              {formatName(dealer.employee_name)}
+                            </p>
+                            <span className="m3-body-small font-mono" style={{ color: T.onSurfaceVariant }}>
+                              {dealer.employee_id}
+                            </span>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-5 py-4 text-slate-600 font-medium">{capitalizeFirstLetter(dealer.shop_name)}</td>
-                      <td className="px-5 py-4 text-slate-600 font-medium whitespace-nowrap">{dealer.employee_phone}</td>
-                      <td className="px-5 py-4 text-slate-600 font-medium">{dealer.district}</td>
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wide ${(dealer.status || "").toLowerCase() === "active"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-rose-50 text-rose-700 border-rose-200"}`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${(dealer.status || "").toLowerCase() === "active" ? "bg-emerald-500" : "bg-rose-500"}`} />
+                      </Td>
+                      <Td muted>{capitalizeFirstLetter(dealer.shop_name)}</Td>
+                      <Td muted className="whitespace-nowrap">{dealer.employee_phone}</Td>
+                      <Td muted>{dealer.district}</Td>
+                      <Td>
+                        {/* Dot plus label: state is never carried by colour alone. */}
+                        <Chip tone={(dealer.status || "").toLowerCase() === "active" ? "success" : "error"}>
+                          <span
+                            className="w-1.5 h-1.5 flex-shrink-0"
+                            style={{
+                              borderRadius: T.cornerFull,
+                              backgroundColor: (dealer.status || "").toLowerCase() === "active" ? T.success : T.error,
+                            }}
+                          />
                           {dealer.status || "N/A"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-slate-500 font-medium text-xs">
-                        {formatName(userMap[dealer.created_by] || dealer.created_by)}
-                      </td>
-                      <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
+                        </Chip>
+                      </Td>
+                      <Td muted>{formatName(userMap[dealer.created_by] || dealer.created_by)}</Td>
+                      <Td muted className="whitespace-nowrap">
                         {dealer.created_at ? new Date(dealer.created_at).toLocaleDateString() : ""}
-                      </td>
-                      <td className="px-5 py-4">
+                      </Td>
+                      <Td align="right">
                         <DealerActions
                           dealerId={dealer.employee_id}
                           onEdit={() => handleEditDealer(dealer.employee_id)}
@@ -897,16 +966,15 @@ const Dealers = () => {
                           canUpdateDealer={canUpdateDealer}
                           canDeleteDealer={canDeleteDealer}
                         />
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </Table>
           )}
 
           <DealersPagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
-        </div>
+        </Surface>
       </div>
 
       {/* Create/Edit Modal */}
@@ -921,42 +989,58 @@ const Dealers = () => {
       {/* Delete Modal */}
       {showDeleteModal && (
         <>
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" onClick={() => setShowDeleteModal(false)} />
+          <div
+            className="fixed inset-0 z-40"
+            style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
+            onClick={() => setShowDeleteModal(false)}
+          />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 p-6">
+            <div
+              className="w-full max-w-md p-6"
+              style={{
+                backgroundColor: "var(--md-sys-color-surface-container-high)",
+                borderRadius: T.cornerExtraLarge,
+                boxShadow: T.elevation3,
+              }}
+            >
               <div className="flex flex-col items-center mb-5">
-                <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100 mb-3">
-                  <FiTrash2 size={22} className="text-rose-500" />
+                <div
+                  className="p-4 mb-3"
+                  style={{ backgroundColor: T.errorContainer, borderRadius: T.cornerFull }}
+                >
+                  <MdDeleteOutline size={24} style={{ color: T.onErrorContainer }} />
                 </div>
-                <h2 className="text-base font-bold text-slate-900">Delete Dealer</h2>
-                <p className="text-sm text-slate-400 mt-1 text-center">
+                <h2 className="m3-headline-small" style={{ color: T.onSurface }}>Delete Dealer</h2>
+                <p className="m3-body-medium mt-2 text-center" style={{ color: T.onSurfaceVariant }}>
                   This action cannot be undone. Please provide a reason.
                 </p>
               </div>
               <textarea
-                className="w-full border border-slate-200 rounded-xl px-3.5 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 transition-all resize-none mb-3"
+                className="w-full m3-body-medium px-3.5 py-3 focus:outline-none resize-none mb-3"
+                style={{
+                  border: `1px solid ${T.outline}`,
+                  borderRadius: T.cornerExtraSmall,
+                  backgroundColor: T.surface,
+                  color: T.onSurface,
+                }}
                 placeholder="Reason for deletion (optional)"
                 value={deleteReason}
                 onChange={(e) => setDeleteReason(e.target.value)}
                 rows={3}
               />
               {deleteError && (
-                <p className="text-xs text-rose-500 font-semibold mb-3">{deleteError}</p>
+                <p className="m3-body-small mb-3" style={{ color: T.error }}>{deleteError}</p>
               )}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
+              <div className="flex justify-end gap-2">
+                <Button variant="text" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
+                <Button
+                  variant="filled"
                   onClick={handleDeleteDealer}
                   disabled={deleteLoading}
-                  className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-bold hover:bg-rose-700 active:scale-95 transition-all disabled:opacity-60"
+                  style={{ backgroundColor: T.error, color: T.onError }}
                 >
                   {deleteLoading ? "Deleting…" : "Delete Dealer"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

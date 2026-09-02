@@ -1,10 +1,10 @@
-// users.jsx
+// User.jsx — Material Design 3
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
-  FiSearch, FiEye, FiEdit2, FiChevronLeft, FiChevronRight,
-  FiX, FiTrash2, FiPlus, FiUsers, FiFilter, FiLink,
-} from "react-icons/fi";
-import { TbBuildingStore } from "react-icons/tb";
+  MdSearch, MdVisibility, MdEdit, MdChevronLeft, MdChevronRight,
+  MdClose, MdDeleteOutline, MdAdd, MdGroup, MdFilterList, MdLink,
+  MdStorefront, MdExpandMore,
+} from "react-icons/md";
 import Swal from "sweetalert2";
 import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
@@ -14,6 +14,11 @@ import { ROLES, getRoleLabel } from "../utils/roles";
 import { formatName } from "../utils/constants";
 import { errorsToMap, validateEmployeeFields } from "../utils/validationUtils";
 import ManageDealersModal from "../components/ManageDealersModal";
+import {
+  Surface, Button, IconButton, Chip, FilterChip, EmptyState,
+  Table, Thead, Th, Tr, Td,
+} from "../components/m3";
+import { T, CHIP_TONES } from "../components/m3/tokens";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -63,20 +68,34 @@ const getCreatableRoles = (viewerRole) =>
 
 // ─── Role Config ──────────────────────────────────────────────────────────────
 
-const ROLE_CONFIG = {
-  ALL: { tab: "bg-slate-800 text-white shadow-md", tabInactive: "text-slate-600 hover:bg-slate-100", badge: "bg-slate-100 text-slate-700 border-slate-200", dot: "bg-slate-500" },
-  [ROLES.SUPER_ADMIN]: { tab: "bg-amber-600 text-white shadow-md shadow-amber-200", tabInactive: "text-amber-600 hover:bg-amber-50", badge: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500" },
-  [ROLES.ADMIN]: { tab: "bg-blue-600 text-white shadow-md shadow-blue-200", tabInactive: "text-blue-600 hover:bg-blue-50", badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" },
-  [ROLES.MANAGER]: { tab: "bg-blue-600 text-white shadow-md shadow-blue-200", tabInactive: "text-blue-600 hover:bg-blue-50", badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" },
-  [ROLES.SALESMAN]: { tab: "bg-emerald-600 text-white shadow-md shadow-emerald-200", tabInactive: "text-emerald-600 hover:bg-emerald-50", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
-  [ROLES.PRODUCTION]: { tab: "bg-blue-500 text-white shadow-md shadow-blue-200", tabInactive: "text-blue-600 hover:bg-blue-50", badge: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" },
-  [ROLES.PACKING]: { tab: "bg-pink-500 text-white shadow-md shadow-pink-200", tabInactive: "text-pink-600 hover:bg-pink-50", badge: "bg-pink-50 text-pink-700 border-pink-200", dot: "bg-pink-500" },
-  [ROLES.ACCOUNTS]: { tab: "bg-cyan-600 text-white shadow-md shadow-cyan-200", tabInactive: "text-cyan-600 hover:bg-cyan-50", badge: "bg-cyan-50 text-cyan-700 border-cyan-200", dot: "bg-cyan-500" },
-  [ROLES.DELIVERY]: { tab: "bg-teal-600 text-white shadow-md shadow-teal-200", tabInactive: "text-teal-600 hover:bg-teal-50", badge: "bg-teal-50 text-teal-700 border-teal-200", dot: "bg-teal-500" },
+/* Nine roles onto M3's tonal containers. The role name is always
+   written next to the dot, so a repeated tone across two roles costs
+   nothing — the label, not the hue, is what identifies the role. */
+const ROLE_TONE = {
+  ALL: "neutral",
+  [ROLES.SUPER_ADMIN]: "warning",
+  [ROLES.ADMIN]: "primary",
+  [ROLES.MANAGER]: "secondary",
+  [ROLES.SALESMAN]: "success",
+  [ROLES.PRODUCTION]: "tertiary",
+  [ROLES.PACKING]: "neutral",
+  [ROLES.ACCOUNTS]: "primary",
+  [ROLES.DELIVERY]: "secondary",
 };
 
-const getRoleColor = (role) =>
-  ROLE_CONFIG[role]?.badge || "bg-slate-50 text-slate-600 border-slate-200";
+const ROLE_DOT = {
+  ALL: T.outline,
+  [ROLES.SUPER_ADMIN]: T.warning,
+  [ROLES.ADMIN]: T.primary,
+  [ROLES.MANAGER]: T.secondary,
+  [ROLES.SALESMAN]: T.success,
+  [ROLES.PRODUCTION]: T.tertiary,
+  [ROLES.PACKING]: T.outline,
+  [ROLES.ACCOUNTS]: T.primary,
+  [ROLES.DELIVERY]: T.secondary,
+};
+
+const getRoleTone = (role) => ROLE_TONE[role] ?? "neutral";
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
 
@@ -105,45 +124,50 @@ const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
   };
 
   return (
-    <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100">
-      <p className="text-xs text-slate-400 font-medium hidden sm:block">
-        Page <span className="font-bold text-slate-600">{page}</span> of{" "}
-        <span className="font-bold text-slate-600">{totalPages}</span>
+    <div
+      className="flex items-center justify-between px-5 py-4"
+      style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+    >
+      <p className="m3-body-small hidden sm:block" style={{ color: T.onSurfaceVariant }}>
+        Page {page} of {totalPages}
       </p>
       <div className="flex items-center gap-1.5 ml-auto">
-        <button
-          type="button"
+        <IconButton
+          icon={MdChevronLeft}
           onClick={() => handlePageChange(page - 1)}
           disabled={page === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <FiChevronLeft size={13} />
-        </button>
+          aria-label="Previous page"
+          className="disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ width: 32, height: 32 }}
+        />
         {generatePages().map((p, i) =>
           p === "..." ? (
-            <span key={`e-${i}`} className="px-1.5 text-slate-300 text-xs">…</span>
+            <span key={`e-${i}`} className="px-1.5 m3-body-small" style={{ color: T.onSurfaceVariant }}>…</span>
           ) : (
             <button
               key={p}
               type="button"
               onClick={() => handlePageChange(p)}
-              className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all ${page === p
-                ? "bg-blue-600 text-white shadow-sm"
-                : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
-                }`}
+              aria-current={page === p ? "page" : undefined}
+              className="m3-label-large m3-state-layer m3-focus min-w-[32px] h-8 px-2.5 flex items-center justify-center"
+              style={{
+                borderRadius: T.cornerFull,
+                backgroundColor: page === p ? T.secondaryContainer : "transparent",
+                color: page === p ? T.onSecondaryContainer : T.onSurfaceVariant,
+              }}
             >
               {p}
             </button>
           )
         )}
-        <button
-          type="button"
+        <IconButton
+          icon={MdChevronRight}
           onClick={() => handlePageChange(page + 1)}
           disabled={page === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <FiChevronRight size={13} />
-        </button>
+          aria-label="Next page"
+          className="disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ width: 32, height: 32 }}
+        />
       </div>
     </div>
   );
@@ -154,28 +178,23 @@ const Pagination = ({ page = 1, totalPages = 1, onChange }) => {
 const ModalInput = ({ className = "", ...props }) => (
   <input
     {...props}
-    className={`w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all ${className}`}
+    className={`w-full m3-body-medium px-4 h-12 focus:outline-none ${className}`}
+    style={{
+      border: `1px solid ${T.outline}`,
+      borderRadius: T.cornerExtraSmall,
+      backgroundColor: T.surface,
+      color: T.onSurface,
+    }}
   />
 );
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
-const StatusBadge = ({ status }) => {
-  const styleMap = {
-    active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    inactive: "bg-slate-50 text-slate-600 border-slate-200",
-    deleted: "bg-rose-50 text-rose-700 border-rose-200",
-  };
-  const key = (status || "").toLowerCase();
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${styleMap[key] || "bg-slate-50 text-slate-600 border-slate-200"
-        }`}
-    >
-      {status}
-    </span>
-  );
-};
+const STATUS_TONE_MAP = { active: "success", inactive: "neutral", deleted: "error" };
+
+const StatusBadge = ({ status }) => (
+  <Chip tone={STATUS_TONE_MAP[(status || "").toLowerCase()] ?? "neutral"}>{status}</Chip>
+);
 
 // ─── User Actions ─────────────────────────────────────────────────────────────
 
@@ -186,45 +205,34 @@ const UserActions = React.memo(({ user: u, onView, onEdit, onDelete, onManageDea
   return (
     <div className="flex items-center justify-end gap-1">
       {isSalesman && canManageDealers && (
-        <button
-          type="button"
+        <IconButton
+          icon={MdLink}
           onClick={onManageDealers}
-          className="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
           aria-label="Manage dealers"
           title="Manage Dealers"
-        >
-          <FiLink size={14} />
-        </button>
+        />
       )}
-      <button
-        type="button"
-        onClick={onView}
-        className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-        aria-label="View user"
-      >
-        <FiEye size={14} />
-      </button>
+      <IconButton icon={MdVisibility} onClick={onView} aria-label="View user" title="View user" />
       <button
         type="button"
         onClick={onEdit}
         disabled={editFetching}
-        className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-all disabled:opacity-50"
+        className="m3-icon-button m3-state-layer m3-focus disabled:opacity-50"
         aria-label="Edit user"
+        title="Edit user"
       >
-        {editFetching
-          ? <svg className="animate-spin h-3.5 w-3.5 text-sky-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
-          : <FiEdit2 size={14} />}
+        {editFetching ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <MdEdit size={20} />}
       </button>
       <button
         type="button"
         onClick={onDelete}
         disabled={deleteFetching}
-        className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all disabled:opacity-50"
+        className="m3-icon-button m3-state-layer m3-focus disabled:opacity-50"
         aria-label="Delete user"
+        title="Delete user"
+        style={{ color: T.error }}
       >
-        {deleteFetching
-          ? <svg className="animate-spin h-3.5 w-3.5 text-rose-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
-          : <FiTrash2 size={14} />}
+        {deleteFetching ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <MdDeleteOutline size={20} />}
       </button>
     </div>
   );
@@ -237,10 +245,9 @@ UserActions.displayName = "UserActions";
 const DealerCountBadge = ({ count }) => {
   if (count === undefined || count === null) return null;
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 leading-none">
-      <TbBuildingStore size={9} />
+    <Chip tone="success" icon={MdStorefront}>
       {count} {count === 1 ? "dealer" : "dealers"}
-    </span>
+    </Chip>
   );
 };
 
@@ -507,80 +514,75 @@ const User = () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{ backgroundColor: T.surface }}>
       <div className="max-w-screen-2xl mx-auto space-y-5">
 
         {/* ── Page Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Users</h1>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">Manage and track all system users</p>
+            <h1 className="m3-headline-small" style={{ color: T.onSurface }}>Users</h1>
+            <p className="m3-body-medium mt-0.5" style={{ color: T.onSurfaceVariant }}>
+              Manage and track all system users
+            </p>
           </div>
           {canCreateUser && (
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 cursor-pointer"
-            >
-              <FiPlus size={14} /> Add New User
-            </button>
+            <Button variant="filled" icon={MdAdd} onClick={openCreateModal}>
+              Add New User
+            </Button>
           )}
         </div>
 
         {/* ── Role Tabs ── */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-2 overflow-x-auto">
+        {/* A single-select filter row, which is what M3 filter chips are for. */}
+        <div className="overflow-x-auto">
           <div className="flex items-center gap-2 min-w-max sm:flex-wrap sm:min-w-0">
-            {roleTabs.map((role) => {
-              const cfg = ROLE_CONFIG[role];
-              const isActive = selectedRole === role;
-              return (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => { setSelectedRole(role); setPage(1); }}
-                  className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all duration-200 whitespace-nowrap ${isActive
-                    ? cfg?.tab || "bg-slate-800 text-white shadow-md"
-                    : `text-slate-500 hover:text-slate-800 hover:bg-slate-100 ${cfg?.tabInactive || ""}`
-                    }`}
-                >
-                  {role !== "ALL" && !isActive && (
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg?.dot || "bg-slate-400"}`} />
-                  )}
-                  {isActive && role !== "ALL" && (
-                    <span className="w-2 h-2 rounded-full bg-white/70 flex-shrink-0" />
-                  )}
-                  {role === "ALL" ? "All" : getRoleLabel(role)}
-                  {isActive && (
-                    <span className="absolute inset-0 rounded-xl ring-2 ring-white/30 pointer-events-none" />
-                  )}
-                </button>
-              );
-            })}
+            {roleTabs.map((role) => (
+              <FilterChip
+                key={role}
+                selected={selectedRole === role}
+                onClick={() => { setSelectedRole(role); setPage(1); }}
+                className="flex items-center gap-2 whitespace-nowrap"
+              >
+                {role !== "ALL" && (
+                  <span
+                    className="w-2 h-2 flex-shrink-0"
+                    style={{ borderRadius: T.cornerFull, backgroundColor: ROLE_DOT[role] ?? T.outline }}
+                  />
+                )}
+                {role === "ALL" ? "All" : getRoleLabel(role)}
+              </FilterChip>
+            ))}
           </div>
         </div>
 
         {/* ── Main Table Card ── */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <Surface className="overflow-hidden">
 
           {/* Filters */}
-          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/40">
+          <div className="px-5 py-4" style={{ borderBottom: `1px solid ${T.outlineVariant}` }}>
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               <div className="relative flex-1 sm:max-w-xs">
-                <FiSearch
-                  size={13}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                <MdSearch
+                  size={20}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: T.onSurfaceVariant }}
                 />
                 <input
                   type="text"
                   placeholder="Search by name or email…"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg bg-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                  className="m3-body-medium w-full pl-11 pr-4 h-10 focus:outline-none"
+                  style={{
+                    backgroundColor: T.surfaceContainerHigh,
+                    borderRadius: T.cornerFull,
+                    color: T.onSurface,
+                  }}
                 />
               </div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                  <FiFilter size={10} />Filter
+                <span className="flex items-center gap-1.5 m3-label-medium" style={{ color: T.onSurfaceVariant }}>
+                  <MdFilterList size={16} />Filter
                 </span>
                 <div className="w-36">
                   <CustomSelect
@@ -595,42 +597,34 @@ const User = () => {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  {tableHeaders.map((h, i) => (
-                    <th
-                      key={i}
-                      className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.1em] text-slate-400 whitespace-nowrap ${i === tableHeaders.length - 1 ? "text-right" : "text-left"
-                        }`}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
+          <Table>
+              <Thead>
+                {tableHeaders.map((h, i) => (
+                  <Th key={i} align={i === tableHeaders.length - 1 ? "right" : "left"}>{h}</Th>
+                ))}
+              </Thead>
+              <tbody>
                 {loading ? (
                   <tr>
                     <td colSpan={tableHeaders.length} className="py-20 text-center">
                       <div className="flex justify-center">
                         <div className="relative w-10 h-10">
-                          <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
-                          <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                          <div
+                            className="absolute inset-0 border-4 rounded-full"
+                            style={{ borderColor: T.surfaceContainerHighest }}
+                          />
+                          <div
+                            className="absolute inset-0 border-4 border-t-transparent rounded-full animate-spin"
+                            style={{ borderLeftColor: T.primary, borderRightColor: T.primary, borderBottomColor: T.primary }}
+                          />
                         </div>
                       </div>
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={tableHeaders.length} className="py-20 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="p-5 bg-slate-100 rounded-2xl">
-                          <FiUsers size={24} className="text-slate-400" />
-                        </div>
-                        <p className="text-sm font-semibold text-slate-500">No users found</p>
-                      </div>
+                    <td colSpan={tableHeaders.length}>
+                      <EmptyState icon={MdGroup} label="No users found" />
                     </td>
                   </tr>
                 ) : (
@@ -641,28 +635,30 @@ const User = () => {
                       : undefined;
 
                     return (
-                      <tr
-                        key={u.employee_id}
-                        className="hover:bg-slate-50/60 transition-colors duration-100"
-                      >
+                      <Tr key={u.employee_id}>
                         {/* ── User ── */}
-                        <td className="px-5 py-4">
+                        <Td>
                           <div className="flex items-center gap-3">
                             <div
-                              className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold text-sm border ${getRoleColor(u.role)}`}
+                              className="w-10 h-10 flex items-center justify-center m3-label-large flex-shrink-0"
+                              style={{
+                                borderRadius: T.cornerFull,
+                                backgroundColor: CHIP_TONES[getRoleTone(u.role)].bg,
+                                color: CHIP_TONES[getRoleTone(u.role)].fg,
+                              }}
                             >
                               {formatName(u.employee_name)?.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex flex-col leading-tight">
-                              <p className="text-sm font-semibold text-slate-900">
+                              <p className="m3-body-medium" style={{ color: T.onSurface }}>
                                 {formatName(u.employee_name)}
                               </p>
                               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                <span className="text-[10px] font-mono text-slate-400">
+                                <span className="m3-body-small font-mono" style={{ color: T.onSurfaceVariant }}>
                                   {u.employee_id}
                                 </span>
-                                <span className="text-[10px] text-slate-300">•</span>
-                                <span className="text-[10px] text-slate-500 font-medium">
+                                <span className="m3-body-small" style={{ color: T.outline }}>•</span>
+                                <span className="m3-body-small" style={{ color: T.onSurfaceVariant }}>
                                   {u.employee_phone}
                                 </span>
                                 {/* Dealer count — only for salesman */}
@@ -672,48 +668,43 @@ const User = () => {
                               </div>
                             </div>
                           </div>
-                        </td>
+                        </Td>
 
                         {/* ── Email ── */}
-                        <td className="px-5 py-4 text-slate-600 font-medium">
-                          {u.employee_email}
-                        </td>
+                        <Td muted>{u.employee_email}</Td>
 
                         {/* ── Role ── */}
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wide whitespace-nowrap ${getRoleColor(u.role)}`}
-                          >
+                        <Td>
+                          <Chip tone={getRoleTone(u.role)} className="whitespace-nowrap">
                             <span
-                              className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${ROLE_CONFIG[u.role]?.dot || "bg-slate-400"}`}
+                              className="w-1.5 h-1.5 flex-shrink-0"
+                              style={{ borderRadius: T.cornerFull, backgroundColor: ROLE_DOT[u.role] ?? T.outline }}
                             />
                             {getRoleLabel(u.role)}
-                          </span>
-                        </td>
+                          </Chip>
+                        </Td>
 
                         {/* ── Status ── */}
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wide ${u.status === "active"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-rose-50 text-rose-700 border-rose-200"
-                              }`}
-                          >
+                        <Td>
+                          <Chip tone={u.status === "active" ? "success" : "error"}>
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${u.status === "active" ? "bg-emerald-500" : "bg-rose-500"
-                                }`}
+                              className="w-1.5 h-1.5 flex-shrink-0"
+                              style={{
+                                borderRadius: T.cornerFull,
+                                backgroundColor: u.status === "active" ? T.success : T.error,
+                              }}
                             />
                             {u.status}
-                          </span>
-                        </td>
+                          </Chip>
+                        </Td>
 
                         {/* ── Created ── */}
-                        <td className="px-5 py-4 text-slate-500 text-xs whitespace-nowrap">
+                        <Td muted className="whitespace-nowrap">
                           {new Date(u.created_at).toLocaleDateString()}
-                        </td>
+                        </Td>
 
                         {/* ── Actions ── */}
-                        <td className="px-5 py-4">
+                        <Td align="right">
                           <UserActions
                             user={u}
                             onView={() => navigate(`/users/${u.employee_id}`)}
@@ -724,50 +715,59 @@ const User = () => {
                             editFetching={editFetching}
                             deleteFetching={deleteFetching}
                           />
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     );
                   })
                 )}
               </tbody>
-            </table>
-          </div>
+            </Table>
 
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-        </div>
+        </Surface>
       </div>
 
       {/* ── Create User Modal ── */}
       {isModalOpen && (
         <>
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 z-40"
+            style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
             onClick={closeCreateModal}
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
             <div
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 flex flex-col"
-              style={{ maxHeight: "90vh" }}
+              className="w-full max-w-xl flex flex-col"
+              style={{
+                maxHeight: "90vh",
+                backgroundColor: "var(--md-sys-color-surface-container-high)",
+                borderRadius: T.cornerExtraLarge,
+                boxShadow: T.elevation3,
+              }}
             >
-              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+              <div
+                className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+                style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+              >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
-                    <FiUsers size={14} />
+                  <div
+                    className="p-2.5"
+                    style={{
+                      borderRadius: T.cornerFull,
+                      backgroundColor: T.primaryContainer,
+                      color: T.onPrimaryContainer,
+                    }}
+                  >
+                    <MdGroup size={20} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-slate-900">Add New User</h2>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+                    <h2 className="m3-title-medium" style={{ color: T.onSurface }}>Add New User</h2>
+                    <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>
                       Create system account
                     </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={closeCreateModal}
-                  className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
-                >
-                  <FiX size={16} />
-                </button>
+                <IconButton icon={MdClose} onClick={closeCreateModal} aria-label="Close dialog" />
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
@@ -807,14 +807,22 @@ const User = () => {
                   <select
                     value={formData.role || ""}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full appearance-none border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all cursor-pointer"
+                    className="w-full appearance-none m3-body-medium px-4 h-12 focus:outline-none cursor-pointer"
+                    style={{
+                      border: `1px solid ${T.outline}`,
+                      borderRadius: T.cornerExtraSmall,
+                      backgroundColor: T.surface,
+                      color: T.onSurface,
+                    }}
                   >
                     <option value="" disabled>Select Role</option>
                     {creatableRoles.map((role) => (
                       <option key={role} value={role}>{getRoleLabel(role)}</option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400 text-xs">▼</div>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center" style={{ color: T.onSurfaceVariant }}>
+                    <MdExpandMore size={20} />
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <ModalInput
@@ -835,19 +843,24 @@ const User = () => {
                   placeholder="Address"
                   value={formData.address || ""}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none transition-all"
+                  className="w-full m3-body-medium px-4 py-3 focus:outline-none resize-none"
+                  style={{
+                    border: `1px solid ${T.outline}`,
+                    borderRadius: T.cornerExtraSmall,
+                    backgroundColor: T.surface,
+                    color: T.onSurface,
+                  }}
                 />
               </div>
 
-              <div className="px-6 py-4 border-t border-slate-100 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={handleCreate}
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60 shadow-sm shadow-blue-200"
-                >
+              <div
+                className="px-6 py-4 flex justify-end gap-2 flex-shrink-0"
+                style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+              >
+                <Button variant="text" onClick={closeCreateModal}>Cancel</Button>
+                <Button variant="filled" onClick={handleCreate} disabled={loading}>
                   {loading ? "Creating…" : "Create User"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -858,33 +871,43 @@ const User = () => {
       {editingUser && (
         <>
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 z-40"
+            style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
             onClick={closeEditModal}
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6">
             <div
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 flex flex-col"
-              style={{ maxHeight: "90vh" }}
+              className="w-full max-w-xl flex flex-col"
+              style={{
+                maxHeight: "90vh",
+                backgroundColor: "var(--md-sys-color-surface-container-high)",
+                borderRadius: T.cornerExtraLarge,
+                boxShadow: T.elevation3,
+              }}
             >
-              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+              <div
+                className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+                style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+              >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-sky-50 text-sky-600 border border-sky-100">
-                    <FiEdit2 size={14} />
+                  <div
+                    className="p-2.5"
+                    style={{
+                      borderRadius: T.cornerFull,
+                      backgroundColor: T.secondaryContainer,
+                      color: T.onSecondaryContainer,
+                    }}
+                  >
+                    <MdEdit size={20} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-slate-900">Edit User</h2>
-                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.1em] mt-0.5">
+                    <h2 className="m3-title-medium" style={{ color: T.onSurface }}>Edit User</h2>
+                    <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>
                       Update user information
                     </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={closeEditModal}
-                  className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all"
-                >
-                  <FiX size={16} />
-                </button>
+                <IconButton icon={MdClose} onClick={closeEditModal} aria-label="Close dialog" />
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
@@ -907,7 +930,13 @@ const User = () => {
                 <select
                   value={formData.role || ""}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                  className="w-full m3-body-medium px-4 h-12 focus:outline-none"
+                  style={{
+                    border: `1px solid ${T.outline}`,
+                    borderRadius: T.cornerExtraSmall,
+                    backgroundColor: T.surface,
+                    color: T.onSurface,
+                  }}
                 >
                   {[...new Set([...(formData.role ? [formData.role] : []), ...creatableRoles])].map(
                     (role) => (
@@ -919,7 +948,13 @@ const User = () => {
                 <select
                   value={formData.status || ""}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
+                  className="w-full m3-body-medium px-4 h-12 focus:outline-none"
+                  style={{
+                    border: `1px solid ${T.outline}`,
+                    borderRadius: T.cornerExtraSmall,
+                    backgroundColor: T.surface,
+                    color: T.onSurface,
+                  }}
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -930,25 +965,22 @@ const User = () => {
                   value={formData.address || ""}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   rows={3}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 placeholder-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none transition-all"
+                  className="w-full m3-body-medium px-4 py-3 focus:outline-none resize-none"
+                  style={{
+                    border: `1px solid ${T.outline}`,
+                    borderRadius: T.cornerExtraSmall,
+                    backgroundColor: T.surface,
+                    color: T.onSurface,
+                  }}
                 />
               </div>
 
-              <div className="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={closeEditModal}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleUpdate}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
-                >
-                  Update User
-                </button>
+              <div
+                className="px-6 py-4 flex justify-end gap-2 flex-shrink-0"
+                style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+              >
+                <Button variant="text" onClick={closeEditModal}>Cancel</Button>
+                <Button variant="filled" onClick={handleUpdate}>Update User</Button>
               </div>
             </div>
           </div>
