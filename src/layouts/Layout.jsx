@@ -18,10 +18,11 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="flex bg-[#F8FAFC] h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "var(--md-sys-color-surface)" }}>
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          className="fixed inset-0 z-20 lg:hidden"
+          style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -35,7 +36,7 @@ export default function Layout() {
         />
       </div>
 
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed && !isMobileMenuOpen ? "lg:ml-16" : "lg:ml-64"} ${isMobileMenuOpen ? "ml-64" : ""} lg:min-h-screen`}>
+      <div className={`flex flex-col flex-1 transition-all duration-300 ${isCollapsed && !isMobileMenuOpen ? "lg:ml-20" : "lg:ml-64"} ${isMobileMenuOpen ? "ml-64" : ""} lg:min-h-screen`}>
         <Navbar
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
@@ -43,7 +44,7 @@ export default function Layout() {
 
         <NotificationBanner />
 
-        <main className="flex-1 overflow-auto bg-[#F8FAFC]">
+        <main className="flex-1 overflow-auto" style={{ backgroundColor: "var(--md-sys-color-surface)" }}>
           <div className="p-4">
             <Outlet />
           </div>

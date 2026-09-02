@@ -5,6 +5,9 @@
 
 @import "tailwindcss";
 
+/* Material Design 3 token layer — color roles, shape, type, elevation */
+@import "./m3.css";
+
 /* ─────────────────────────────────────────────────────────────
    1. DESIGN TOKENS
    ───────────────────────────────────────────────────────────── */
@@ -467,7 +470,7 @@ body {
    ───────────────────────────────────────────────────────────── */
 .nb-header {
     padding: 10px 20px;
-    background: #F8FAFC;
+    background: var(--md-sys-color-surface);
     position: sticky;
     top: 0;
     z-index: 10;
@@ -478,10 +481,9 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 8px 18px;
-    background: #ffffff;
-    border-radius: 14px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+    background: var(--md-sys-color-surface-container-lowest);
+    border-radius: var(--md-sys-shape-corner-large);
+    border: 1px solid var(--md-sys-color-outline-variant);
     max-width: 1800px;
     margin: 0 auto;
 }

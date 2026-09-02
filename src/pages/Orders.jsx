@@ -1,12 +1,11 @@
-// orders.jsx
+// Orders.jsx — Material Design 3
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  FiPlus, FiSearch, FiEye, FiChevronLeft, FiChevronRight, FiEdit2,
-  FiPackage, FiFilter, FiAlertCircle, FiX, FiCalendar,
-  FiRefreshCw,
-  FiArrowRight,
-} from "react-icons/fi";
+  MdAdd, MdSearch, MdVisibility, MdChevronLeft, MdChevronRight,
+  MdInbox, MdFilterList, MdErrorOutline, MdClose, MdCalendarMonth,
+  MdRefresh, MdArrowForward,
+} from "react-icons/md";
 import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import { fetchOrders } from "../api/orders";
@@ -17,6 +16,11 @@ import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
 import { canSelectSalesman, ROLES } from "../utils/roles";
 import ProductionStatusBadge from "../components/ProductionStatusBadge";
+import {
+  Surface, Button, IconButton, Chip, StatusChip, EmptyState,
+  Table, Thead, Th, Tr, Td,
+} from "../components/m3";
+import { T } from "../components/m3/tokens";
 
 /* ================================================================
    HELPERS
@@ -46,31 +50,41 @@ const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
   );
 
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-t border-blue-100/60">
-      <p className="text-xs text-slate-400 font-medium hidden sm:block">
-        Page <span className="font-bold text-slate-600">{currentPage}</span> of{" "}
-        <span className="font-bold text-slate-600">{totalPages}</span>
+    <div
+      className="flex items-center justify-between px-6 py-4"
+      style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+    >
+      <p className="m3-body-small hidden sm:block" style={{ color: T.onSurfaceVariant }}>
+        Page {currentPage} of {totalPages}
       </p>
       <div className="flex items-center gap-1.5 ml-auto">
-        <button
+        <IconButton
+          icon={MdChevronLeft}
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <FiChevronLeft size={13} />
-        </button>
+          aria-label="Previous page"
+          className="disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ width: 32, height: 32 }}
+        />
         <div className="flex items-center gap-1">
           {visiblePages.map((page, index) => {
             const showDots = index > 0 && page - visiblePages[index - 1] > 1;
+            const current = page === currentPage;
             return (
               <div key={page} className="flex items-center">
-                {showDots && <span className="px-1.5 text-slate-300 text-xs select-none">…</span>}
+                {showDots && (
+                  <span className="px-1.5 m3-body-small select-none" style={{ color: T.onSurfaceVariant }}>…</span>
+                )}
                 <button
+                  type="button"
                   onClick={() => onPageChange(page)}
-                  className={`min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-colors ${page === currentPage
-                    ? "bg-blue-500 text-white border border-blue-500 shadow-sm"
-                    : "bg-white border border-slate-200 text-slate-600 hover:border-blue-200 hover:text-blue-600"
-                    }`}
+                  aria-current={current ? "page" : undefined}
+                  className="m3-label-large m3-state-layer m3-focus min-w-[32px] h-8 px-2.5 flex items-center justify-center"
+                  style={{
+                    borderRadius: T.cornerFull,
+                    backgroundColor: current ? T.secondaryContainer : "transparent",
+                    color: current ? T.onSecondaryContainer : T.onSurfaceVariant,
+                  }}
                 >
                   {page}
                 </button>
@@ -78,13 +92,14 @@ const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
             );
           })}
         </div>
-        <button
+        <IconButton
+          icon={MdChevronRight}
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <FiChevronRight size={13} />
-        </button>
+          aria-label="Next page"
+          className="disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ width: 32, height: 32 }}
+        />
       </div>
     </div>
   );
@@ -93,40 +108,21 @@ const OrdersPagination = ({ currentPage, totalPages, onPageChange }) => {
 /* ================================================================
    BADGES
    ================================================================ */
+/* Priority keeps its dot alongside the label: colour is never the only
+   carrier of the level. */
+const PRIORITY_TONE = { HIGH: "error", MEDIUM: "warning", LOW: "success" };
+const PRIORITY_DOT = { HIGH: T.error, MEDIUM: T.warning, LOW: T.success };
+
 const PriorityBadge = ({ priority }) => {
-  const map = {
-    HIGH: "bg-rose-50 text-rose-700 border-rose-200",
-    MEDIUM: "bg-amber-50 text-amber-700 border-amber-200",
-    LOW: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  };
-  const dotMap = { HIGH: "bg-rose-500", MEDIUM: "bg-amber-500", LOW: "bg-emerald-500" };
   const key = priority?.toUpperCase();
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
-      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotMap[key] || "bg-slate-400"}`} />
+    <Chip tone={PRIORITY_TONE[key] ?? "neutral"}>
+      <span
+        className="w-1.5 h-1.5 flex-shrink-0"
+        style={{ borderRadius: T.cornerFull, backgroundColor: PRIORITY_DOT[key] ?? T.outline }}
+      />
       {priority}
-    </span>
-  );
-};
-
-const StatusBadge = ({ status }) => {
-  const map = {
-    PENDING: "bg-amber-50 text-amber-700 border-amber-200",
-    CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
-    PRODUCTION: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
-    PACKED: "bg-teal-50 text-teal-700 border-teal-200",
-    INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
-    SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
-    DELIVERED: "bg-green-50 text-green-700 border-green-200",
-    COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
-    REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
-  };
-  const key = status?.toUpperCase();
-  return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border ${map[key] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
-      {status}
-    </span>
+    </Chip>
   );
 };
 
@@ -148,16 +144,17 @@ const ProgressBar = ({ progress, status }) => {
 
   return (
     <div className="mt-1.5 w-36">
-      <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500">
-        <span>
-          {delivered}/{ordered} delivered
-        </span>
-        <span className={isComplete ? "text-emerald-600" : "text-slate-400"}>{pct}%</span>
+      <div className="flex items-center justify-between m3-body-small" style={{ color: T.onSurfaceVariant }}>
+        <span>{delivered}/{ordered} delivered</span>
+        <span style={{ color: isComplete ? T.success : T.onSurfaceVariant }}>{pct}%</span>
       </div>
-      <div className="mt-1 h-1 rounded-full bg-blue-50 overflow-hidden">
+      <div className="m3-progress-track mt-1">
         <div
-          className={`h-full rounded-full ${isComplete ? "bg-emerald-500" : "bg-gradient-to-r from-blue-400 to-blue-600"}`}
-          style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+          className="m3-progress-bar"
+          style={{
+            width: `${Math.min(100, Math.max(0, pct))}%`,
+            backgroundColor: isComplete ? T.success : T.primary,
+          }}
         />
       </div>
     </div>
@@ -170,28 +167,38 @@ const ProgressBar = ({ progress, status }) => {
 const DateInput = ({ value, onChange, placeholder, max }) => (
   <div className="flex flex-col gap-1">
     {placeholder && (
-      <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 px-0.5">
+      <span className="m3-label-medium px-0.5" style={{ color: T.onSurfaceVariant }}>
         {placeholder}
       </span>
     )}
     <div className="relative">
-      <FiCalendar
-        size={12}
-        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+      <MdCalendarMonth
+        size={16}
+        className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+        style={{ color: T.onSurfaceVariant }}
       />
       <input
         type="date"
         value={value}
         onChange={onChange}
         max={max}
-        className="pl-8 pr-3 py-2.5 text-xs border border-slate-200 rounded-lg bg-white text-slate-700 font-medium placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all cursor-pointer"
+        className="m3-body-small pl-8 pr-6 h-9 focus:outline-none cursor-pointer"
+        style={{
+          border: `1px solid ${T.outline}`,
+          borderRadius: T.cornerSmall,
+          backgroundColor: T.surface,
+          color: T.onSurface,
+        }}
       />
       {value && (
         <button
+          type="button"
           onClick={() => onChange({ target: { value: "" } })}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-rose-500 transition-colors"
+          aria-label="Clear date"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2"
+          style={{ color: T.onSurfaceVariant }}
         >
-          <FiX size={10} />
+          <MdClose size={14} />
         </button>
       )}
     </div>
@@ -425,13 +432,22 @@ const Orders = () => {
      unmounts and steals focus from the search input mid-typing. */
   if (initialLoad && loading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: T.surface }}
+      >
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-10 h-10">
-            <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
-            <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div
+              className="absolute inset-0 border-4 rounded-full"
+              style={{ borderColor: T.surfaceContainerHighest }}
+            />
+            <div
+              className="absolute inset-0 border-4 border-t-transparent rounded-full animate-spin"
+              style={{ borderLeftColor: T.primary, borderRightColor: T.primary, borderBottomColor: T.primary }}
+            />
           </div>
-          <p className="text-sm text-slate-400 font-medium">Loading orders…</p>
+          <p className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>Loading orders…</p>
         </div>
       </div>
     );
@@ -439,12 +455,18 @@ const Orders = () => {
 
   if (initialLoad && error) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: T.surface }}
+      >
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
-            <FiAlertCircle size={24} className="text-rose-500" />
+          <div
+            className="p-4"
+            style={{ backgroundColor: T.errorContainer, borderRadius: T.cornerFull }}
+          >
+            <MdErrorOutline size={24} style={{ color: T.onErrorContainer }} />
           </div>
-          <p className="text-sm font-semibold text-rose-600">{error}</p>
+          <p className="m3-body-medium" style={{ color: T.error }}>{error}</p>
         </div>
       </div>
     );
@@ -454,74 +476,83 @@ const Orders = () => {
      RENDER
      ================================================================ */
   return (
-    <div className="min-h-screen bg-[#F8FAFC] px-4 sm:px-6 py-8">
+    <div className="min-h-screen px-4 sm:px-6 py-8" style={{ backgroundColor: T.surface }}>
       <div className="max-w-screen-2xl mx-auto space-y-5">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Orders</h1>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
+            <h1 className="m3-headline-small" style={{ color: T.onSurface }}>Orders</h1>
+            <p className="m3-body-medium mt-0.5" style={{ color: T.onSurfaceVariant }}>
               {loading ? "Loading…" : `${pagination.total.toLocaleString()} total order${pagination.total !== 1 ? "s" : ""}`}
             </p>
           </div>
 
           <div className="flex items-center gap-2.5">
-            <button
+            <IconButton
+              icon={MdRefresh}
               onClick={loadOrders}
               disabled={loading}
               title="Refresh"
-              className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors disabled:opacity-50"
-            >
-              <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            </button>
+              aria-label="Refresh"
+              className={`disabled:opacity-50 ${loading ? "[&>svg]:animate-spin" : ""}`}
+            />
 
             {canCreateOrder && (
-              <button
-                onClick={() => navigate("/orders/create")}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-bold rounded-xl hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-500/30 cursor-pointer"
-              >
-                <FiPlus size={14} /> Create Order
-              </button>
+              <Button variant="filled" icon={MdAdd} onClick={() => navigate("/orders/create")}>
+                Create Order
+              </Button>
             )}
           </div>
         </div>
 
         {/* ── MAIN CARD ── */}
-        <div className="bg-white border border-blue-100/60 rounded-2xl overflow-hidden">
+        <Surface className="overflow-hidden">
 
           {/* ── FILTER BAR ── */}
-          <div className="px-5 py-3 border-b border-blue-100/60 bg-white">
+          <div className="px-5 py-3" style={{ borderBottom: `1px solid ${T.outlineVariant}` }}>
             <div className="flex items-center justify-between gap-4 flex-wrap">
 
               {/* Search */}
               <div className="relative flex-1 min-w-[220px] max-w-sm sm:max-w-xs">
-                <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <MdSearch
+                  size={20}
+                  className="absolute left-3 top-1/2 -translate-y-1/2"
+                  style={{ color: T.onSurfaceVariant }}
+                />
                 <input
                   type="text"
                   placeholder="Search orders, dealers, shops..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg bg-blue-50/40 focus:bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none transition"
+                  className="m3-body-medium w-full pl-11 pr-9 h-10 outline-none"
+                  style={{
+                    backgroundColor: T.surfaceContainerHigh,
+                    borderRadius: T.cornerFull,
+                    color: T.onSurface,
+                  }}
                 />
                 {searchInput && (
                   <button
+                    type="button"
                     onClick={() => { setSearchInput(""); setSearchQuery(""); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors"
+                    aria-label="Clear search"
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    style={{ color: T.onSurfaceVariant }}
                   >
-                    <FiX size={13} />
+                    <MdClose size={18} />
                   </button>
                 )}
               </div>
 
               {/* Filters */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                  <FiFilter size={10} />Filter
+                <span className="flex items-center gap-1.5 m3-label-medium" style={{ color: T.onSurfaceVariant }}>
+                  <MdFilterList size={16} />Filter
                 </span>
 
                 <div className="w-36">
-                  <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Status</span>
+                  <span className="m3-label-medium" style={{ color: T.onSurfaceVariant }}>Status</span>
                   <CustomSelect
                     name="status"
                     value={selectedStatus}
@@ -534,7 +565,7 @@ const Orders = () => {
                 </div>
 
                 <div className="w-36">
-                  <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Priority</span>
+                  <span className="m3-label-medium" style={{ color: T.onSurfaceVariant }}>Priority</span>
                   <CustomSelect
                     name="priority"
                     value={selectedPriority}
@@ -548,7 +579,7 @@ const Orders = () => {
 
                 {canSelectSalesmanPermission && (
                   <div className="w-44">
-                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Salesman</span>
+                    <span className="m3-label-medium" style={{ color: T.onSurfaceVariant }}>Salesman</span>
                     <CustomSelect
                       name="salesman"
                       value={selectedSalesman}
@@ -564,7 +595,7 @@ const Orders = () => {
 
                 {canFilterByDealer && (
                   <div className="w-48">
-                    <span className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">Dealer</span>
+                    <span className="m3-label-medium" style={{ color: T.onSurfaceVariant }}>Dealer</span>
                     <CustomSelect
                       name="dealer"
                       value={selectedDealer}
@@ -579,8 +610,10 @@ const Orders = () => {
                 )}
 
                 {/* Date Range */}
-                <div className="flex items-center gap-1 bg-blue-50/40 border border-blue-100/80 rounded-lg px-2 py-1">
-                  <FiCalendar size={12} className="text-blue-500" />
+                <div
+                  className="flex items-center gap-1 px-2 py-1"
+                  style={{ backgroundColor: T.surfaceContainerLow, borderRadius: T.cornerSmall }}
+                >
                   <DateInput
                     placeholder="From"
                     value={startDate}
@@ -590,8 +623,8 @@ const Orders = () => {
                       setPagination((prev) => ({ ...prev, page: 1 }));
                     }}
                   />
-                  <div className="flex items-center pb-2 text-slate-400">
-                    <FiArrowRight size={12} />
+                  <div className="flex items-center pb-1" style={{ color: T.onSurfaceVariant }}>
+                    <MdArrowForward size={16} />
                   </div>
                   <DateInput
                     placeholder="To"
@@ -602,19 +635,20 @@ const Orders = () => {
                     }}
                   />
                   {(startDate || endDate) && (
-                    <span className="ml-1 px-2 py-0.5 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full">
-                      Active
-                    </span>
+                    <Chip tone="primary" className="ml-1">Active</Chip>
                   )}
                 </div>
 
                 {!cannotRemoveClear && hasActiveFilters && (
-                  <button
+                  <Button
+                    variant="text"
+                    icon={MdClose}
+                    iconSize={16}
                     onClick={clearFilters}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-md hover:bg-rose-100 transition"
+                    style={{ height: 32, color: T.error }}
                   >
-                    <FiX size={12} />Clear
-                  </button>
+                    Clear
+                  </Button>
                 )}
               </div>
             </div>
@@ -624,38 +658,38 @@ const Orders = () => {
               whether the current result set is empty, so the layout (and
               search input focus) stays put. */}
           {loading && !initialLoad && (
-            <div className="px-5 py-2 bg-blue-50/60 border-b border-blue-100/60 flex items-center gap-2">
-              <div className="w-3 h-3 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-              <span className="text-xs text-blue-600 font-semibold">Updating results…</span>
+            <div
+              className="px-5 py-2 flex items-center gap-2"
+              style={{
+                backgroundColor: T.secondaryContainer,
+                borderBottom: `1px solid ${T.outlineVariant}`,
+              }}
+            >
+              <div
+                className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
+                style={{ borderColor: T.onSecondaryContainer, borderTopColor: "transparent" }}
+              />
+              <span className="m3-label-medium" style={{ color: T.onSecondaryContainer }}>
+                Updating results…
+              </span>
             </div>
           )}
 
           {/* ── TABLE ── */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-blue-50/40">
-                  {["Dealer & Order", "Shop", "Created", "Delivery", "Items", "Total", "Priority", "Status", ""].map((h, i) => (
-                    <th
-                      key={i}
-                      className={`px-5 py-3.5 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 whitespace-nowrap ${i === 8 ? "text-right" : "text-left"}`}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-blue-50">
+          <Table>
+              <Thead>
+                {["Dealer & Order", "Shop", "Created", "Delivery", "Items", "Total", "Priority", "Status", ""].map((h, i) => (
+                  <Th key={i} align={i === 8 ? "right" : "left"}>{h}</Th>
+                ))}
+              </Thead>
+              <tbody>
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-5 py-20 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="p-5 bg-blue-50 rounded-2xl">
-                          <FiPackage size={24} className="text-blue-400" />
-                        </div>
-                        <p className="text-sm font-semibold text-slate-500">No orders found</p>
-                        <p className="text-xs text-slate-400">Try adjusting your filters</p>
-                      </div>
+                    <td colSpan={9}>
+                      <EmptyState icon={MdInbox} label="No orders found" />
+                      <p className="m3-body-small text-center -mt-8 pb-8" style={{ color: T.onSurfaceVariant }}>
+                        Try adjusting your filters
+                      </p>
                     </td>
                   </tr>
                 ) : (
@@ -743,38 +777,31 @@ const Orders = () => {
                     const hasSubLines = subLines.length > 0;
 
                     return (
-                      <tr
-                        key={order.order_number}
-                        className="hover:bg-blue-50/30 transition-colors duration-100"
-                      >
-                        <td className="px-5 py-4">
-                          <p className="font-bold text-slate-900">{formatName(order.dealer?.employee_name)}</p>
-                          <p className="text-[10px] font-mono text-slate-400 mt-0.5">{order.order_number}</p>
-                        </td>
-                        <td className="px-5 py-4 text-slate-600 font-medium">
-                          {capitalizeFirstLetter(order.dealer?.shop_name)}
-                        </td>
-                        <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
-                          {formatDate(order.created_at)}
-                        </td>
-                        <td className="px-5 py-4 text-slate-500 text-xs font-medium whitespace-nowrap">
-                          {formatDate(finalDeliveryDate)}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="inline-flex px-2 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 tabular-nums">
+                      <Tr key={order.order_number}>
+                        <Td>
+                          <p className="m3-body-medium" style={{ color: T.onSurface }}>
+                            {formatName(order.dealer?.employee_name)}
+                          </p>
+                          <p className="m3-body-small font-mono mt-0.5" style={{ color: T.onSurfaceVariant }}>
+                            {order.order_number}
+                          </p>
+                        </Td>
+                        <Td muted>{capitalizeFirstLetter(order.dealer?.shop_name)}</Td>
+                        <Td muted className="whitespace-nowrap">{formatDate(order.created_at)}</Td>
+                        <Td muted className="whitespace-nowrap">{formatDate(finalDeliveryDate)}</Td>
+                        <Td>
+                          <Chip tone="neutral" className="m3-numeric">
                             {getTotalItems(order.order_details)}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 whitespace-nowrap">
+                          </Chip>
+                        </Td>
+                        <Td numeric className="whitespace-nowrap">
                           {canViewOrderPrice
-                            ? <span className="text-sm font-bold text-slate-900">{order.order_total_price ? `₹ ${order.order_total_price.toLocaleString("en-IN")}` : "—"}</span>
-                            : <span className="text-sm text-slate-300">—</span>
+                            ? (order.order_total_price ? `₹ ${order.order_total_price.toLocaleString("en-IN")}` : "—")
+                            : <span style={{ color: T.onSurfaceVariant }}>—</span>
                           }
-                        </td>
-                        <td className="px-5 py-4">
-                          <PriorityBadge priority={order.priority} />
-                        </td>
-                        <td className="px-5 py-4">
+                        </Td>
+                        <Td><PriorityBadge priority={order.priority} /></Td>
+                        <Td>
                           {hasSubLines ? (
                             <ProductionStatusBadge
                               status={order.status}
@@ -782,28 +809,26 @@ const Orders = () => {
                               variant="table"
                             />
                           ) : (
-                            <StatusBadge status={order.status} />
+                            <StatusChip status={String(order.status).toUpperCase()} />
                           )}
                           <ProgressBar progress={order.progress} status={order.status} />
-                        </td>
-                        <td className="px-5 py-4">
+                        </Td>
+                        <Td align="right">
                           <div className="flex items-center justify-end gap-1">
-                            <button
+                            <IconButton
+                              icon={MdVisibility}
                               onClick={() => navigate(`/orders/${order.order_number}`)}
                               title="View Order"
-                              className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                            >
-                              <FiEye size={14} />
-                            </button>
+                              aria-label="View order"
+                            />
                           </div>
-                        </td>
-                      </tr>
+                        </Td>
+                      </Tr>
                     );
                   })
                 )}
               </tbody>
-            </table>
-          </div>
+          </Table>
 
           {/* ── PAGINATION ── */}
           <OrdersPagination
@@ -811,7 +836,7 @@ const Orders = () => {
             totalPages={pagination.totalPages}
             onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
           />
-        </div>
+        </Surface>
       </div>
     </div>
   );

@@ -1,18 +1,32 @@
-// Dashboard.jsx — Kredi-themed
+// Dashboard.jsx — Material Design 3
+// Shared M3 primitives come from ../components/m3; only the pieces
+// specific to this page (module cards, pipeline bars, alert list)
+// are defined here.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  FiUsers, FiShoppingBag, FiTruck, FiTrendingUp,
-  FiAlertCircle, FiArrowRight, FiPackage,
-  FiCheckCircle, FiRefreshCw, FiActivity, FiHexagon,
-  FiBox, FiBell,
-} from "react-icons/fi";
+  MdShoppingBag,
+  MdOutlineInsights,
+  MdOutlineLocalShipping,
+  MdCheckCircle,
+  MdOutlineCheckCircle,
+  MdOutlineGroup,
+  MdOutlineInventory2,
+  MdOutlinePrecisionManufacturing,
+  MdTrendingUp,
+  MdErrorOutline,
+  MdArrowForward,
+  MdInbox,
+  MdRefresh,
+  MdNotificationsNone,
+  MdWarningAmber,
+} from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import { fetchUsers, fetchEmployeeCount } from "../api/user";
 import { ROLES } from "../utils/roles";
 import { fetchOrders } from "../api/orders";
 import { fetchLowStockProducts, fetchProducts } from "../api/products";
 import { getAllBrands } from "../api/brands";
-import { capitalizeFirstLetter, formatName, ONGOING_STATUSES } from "../utils/constants";
+import { formatName, ONGOING_STATUSES } from "../utils/constants";
 import { useRouteAccess } from "../hooks/useRouteAccess";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -20,6 +34,11 @@ import {
   DASHBOARD_SECTIONS,
 } from "../utils/dashboardPermissions";
 import { getDateRange } from "../utils/dateUtils";
+import {
+  Card, Surface, Chip, StatusChip, Button, KpiCard, Skeleton,
+  EmptyState, SectionTitle, Table, Thead, Th, Tr, Td,
+} from "../components/m3";
+import { T } from "../components/m3/tokens";
 
 const LOW_STOCK_THRESHOLD = 5;
 const RECENT_ORDERS_LIMIT = 6;
@@ -38,88 +57,65 @@ const formatRelativeTime = (dateStr) => {
   return `${Math.floor(hrs / 24)}d ago`;
 };
 
-// ── Skeleton ───────────────────────────────────────────────────────────────────
-const Skeleton = ({ className = "" }) => (
-  <div className={`animate-pulse bg-blue-100/40 rounded-lg ${className}`} />
-);
+const formatNumber = (v) =>
+  typeof v === "number" ? v.toLocaleString("en-IN") : (v ?? "—");
 
-// ── Hero KPI card (top row) ─────────────────────────────────────────────────────
-const HeroKpi = ({ icon, tint, label, value, loading, onClick }) => (
-  <button
-    onClick={onClick}
-    type="button"
-    disabled={!onClick}
-    className={`text-left w-full bg-white rounded-2xl border border-blue-100/60 p-5 transition-all ${onClick ? "hover:border-blue-200 hover:shadow-sm cursor-pointer" : "cursor-default"}`}
-  >
-    <div className="flex items-start justify-between gap-3 mb-3">
-      <p className="text-xs font-semibold text-slate-500 mt-1">{label}</p>
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tint}`}>
-        {React.cloneElement(icon, { size: 16 })}
-      </div>
-    </div>
-    {loading ? (
-      <Skeleton className="h-9 w-24" />
-    ) : (
-      <p className="text-3xl font-extrabold tracking-tight text-slate-900 tabular-nums">
-        {typeof value === "number" ? value.toLocaleString("en-IN") : value ?? "—"}
-      </p>
-    )}
-  </button>
-);
-
-// ── Module card (2x3 grid) ──────────────────────────────────────────────────────
-const ModuleCard = ({ icon, iconTint, title, description, status = "Active", rows, loading }) => {
-  const statusStyle =
+/* ── Module card ─────────────────────────────────────────────────────────── */
+const ModuleCard = ({ icon: Icon, tone, title, description, status = "Active", rows, loading }) => {
+  const chip =
     status === "Warning"
-      ? "bg-amber-50 text-amber-700 border-amber-200"
+      ? { tone: "warning", Icon: MdWarningAmber }
       : status === "Alert"
-        ? "bg-rose-50 text-rose-700 border-rose-200"
-        : "bg-emerald-50 text-emerald-700 border-emerald-200";
-
-  const statusDot = status === "Warning"
-    ? "text-amber-500"
-    : status === "Alert"
-      ? "text-rose-500"
-      : "text-emerald-500";
+        ? { tone: "error", Icon: MdErrorOutline }
+        : { tone: "success", Icon: MdCheckCircle };
 
   return (
-    <div className="bg-white rounded-2xl border border-blue-100/60 p-5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconTint}`}>
-            {React.cloneElement(icon, { size: 17 })}
+    <Surface className="p-5">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+            style={{
+              borderRadius: T.cornerFull,
+              backgroundColor: tone.bg,
+              color: tone.fg,
+            }}
+          >
+            <Icon size={20} />
           </div>
-          <h3 className="text-[15px] font-bold text-slate-900">{title}</h3>
+          <h3 className="m3-title-medium truncate" style={{ color: T.onSurface }}>{title}</h3>
         </div>
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusStyle}`}>
-          <FiCheckCircle size={10} className={statusDot} />
-          {status}
-        </span>
+        <Chip tone={chip.tone} icon={chip.Icon} className="flex-shrink-0">{status}</Chip>
       </div>
 
       {description && (
-        <p className="text-xs text-slate-500 mb-4 leading-relaxed">{description}</p>
+        <p className="m3-body-small mb-4" style={{ color: T.onSurfaceVariant }}>{description}</p>
       )}
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-1">
         {rows.map((r, i) => (
           <div
             key={i}
             onClick={r.onClick}
-            className={`flex items-center justify-between px-3 py-2 rounded-lg bg-blue-50/50 ${r.onClick ? "cursor-pointer hover:bg-blue-100/60" : ""}`}
+            className={`flex items-center justify-between px-3 h-11 ${r.onClick ? "cursor-pointer m3-state-layer" : ""}`}
+            style={{
+              backgroundColor: T.surfaceContainerLow,
+              borderRadius: T.cornerSmall,
+              color: T.onSurface,
+            }}
           >
-            <span className="text-xs font-medium text-slate-600">{r.label}</span>
-            <span className="text-sm font-bold text-slate-900 tabular-nums">
-              {loading ? <Skeleton className="h-4 w-10 inline-block" /> : (r.value?.toLocaleString?.("en-IN") ?? r.value ?? "—")}
+            <span className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>{r.label}</span>
+            <span className="m3-title-small m3-numeric" style={{ color: T.onSurface }}>
+              {loading ? <Skeleton className="h-4 w-10 inline-block" /> : formatNumber(r.value)}
             </span>
           </div>
         ))}
       </div>
-    </div>
+    </Surface>
   );
 };
 
-// ── Pipeline health bar ─────────────────────────────────────────────────────────
+/* ── Pipeline health ─────────────────────────────────────────────────────── */
 const PIPELINE_LABELS = {
   PENDING: "Pending",
   CONFIRMED: "Confirmed",
@@ -130,197 +126,170 @@ const PIPELINE_LABELS = {
 };
 
 const PipelineHealth = ({ counts, loading, total }) => (
-  <div className="bg-white rounded-2xl border border-blue-100/60 p-5">
-    <div className="flex items-center gap-2 mb-4">
-      <FiActivity size={14} className="text-blue-500" />
-      <h3 className="text-[15px] font-bold text-slate-900">Pipeline Health</h3>
-    </div>
-    <div className="space-y-3.5">
+  <Surface className="p-5">
+    <SectionTitle icon={MdOutlineInsights}>Pipeline Health</SectionTitle>
+    <div className="flex flex-col gap-4">
       {ONGOING_STATUSES.map((s) => {
         const val = counts?.[s] ?? 0;
         const pct = total > 0 ? Math.round((val / total) * 100) : 0;
         return (
           <div key={s}>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-slate-600">{PIPELINE_LABELS[s] ?? s}</span>
-              <span className="text-xs font-bold text-slate-900 tabular-nums">
+            <div className="flex items-center justify-between mb-2">
+              <span className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>
+                {PIPELINE_LABELS[s] ?? s}
+              </span>
+              <span className="m3-label-large m3-numeric" style={{ color: T.onSurface }}>
                 {loading ? "—" : val.toLocaleString("en-IN")}
               </span>
             </div>
-            <div className="h-1.5 rounded-full bg-blue-50 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all"
-                style={{ width: loading ? "0%" : `${Math.min(100, Math.max(2, pct))}%` }}
-              />
+            <div className="m3-progress-track">
+              <div className="m3-progress-bar" style={{ width: loading ? "0%" : `${Math.min(100, pct)}%` }} />
             </div>
           </div>
         );
       })}
     </div>
-  </div>
+  </Surface>
 );
 
-// ── Recent alerts card ──────────────────────────────────────────────────────────
+/* ── Recent alerts ───────────────────────────────────────────────────────── */
+const ALERT_TONE = {
+  danger: { bg: T.errorContainer, fg: T.onErrorContainer, Icon: MdErrorOutline },
+  warn: { bg: T.warningContainer, fg: T.onWarningContainer, Icon: MdWarningAmber },
+  ok: { bg: T.successContainer, fg: T.onSuccessContainer, Icon: MdCheckCircle },
+};
+
 const RecentAlerts = ({ items, loading }) => (
-  <div className="bg-white rounded-2xl border border-blue-100/60 p-5">
-    <div className="flex items-center gap-2 mb-4">
-      <FiBell size={14} className="text-blue-500" />
-      <h3 className="text-[15px] font-bold text-slate-900">Recent Alerts</h3>
-    </div>
+  <Surface className="p-5">
+    <SectionTitle icon={MdNotificationsNone}>Recent Alerts</SectionTitle>
     {loading ? (
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
       </div>
     ) : items.length === 0 ? (
       <div className="py-6 text-center">
-        <FiCheckCircle size={20} className="text-emerald-500 mx-auto mb-2" />
-        <p className="text-xs font-semibold text-slate-500">All systems operational</p>
+        <MdOutlineCheckCircle size={24} className="mx-auto mb-2" style={{ color: T.success }} />
+        <p className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>All systems operational</p>
       </div>
     ) : (
-      <ul className="space-y-3">
-        {items.map((a, i) => (
-          <li key={i} className="flex items-start gap-2.5">
-            <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${a.tone === "danger" ? "bg-rose-500" : a.tone === "warn" ? "bg-amber-500" : "bg-emerald-500"}`} />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-slate-800">{a.title}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">{a.subtitle}</p>
-            </div>
-          </li>
-        ))}
+      <ul className="flex flex-col gap-3">
+        {items.map((a, i) => {
+          const tone = ALERT_TONE[a.tone] ?? ALERT_TONE.ok;
+          return (
+            <li key={i} className="flex items-start gap-3">
+              <span
+                className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+                style={{ borderRadius: T.cornerFull, backgroundColor: tone.bg, color: tone.fg }}
+              >
+                <tone.Icon size={16} />
+              </span>
+              <div className="min-w-0">
+                <p className="m3-body-medium" style={{ color: T.onSurface }}>{a.title}</p>
+                <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>{a.subtitle}</p>
+              </div>
+            </li>
+          );
+        })}
       </ul>
     )}
-  </div>
+  </Surface>
 );
 
-// ── Order status pill (used in recent orders table) ─────────────────────────────
-const STATUS_PILL = {
-  PENDING: "bg-amber-50 text-amber-700 border-amber-200",
-  CONFIRMED: "bg-blue-50 text-blue-700 border-blue-200",
-  PRODUCTION: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
-  PACKED: "bg-teal-50 text-teal-700 border-teal-200",
-  INVOICE: "bg-cyan-50 text-cyan-700 border-cyan-200",
-  SHIPPED: "bg-orange-50 text-orange-700 border-orange-200",
-  DELIVERED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
-  REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
-};
-
-// ── Recent orders card ──────────────────────────────────────────────────────────
+/* ── Recent orders ───────────────────────────────────────────────────────── */
 const RecentOrdersCard = ({ orders, loading, onViewAll, onRowClick, canNavigate }) => (
-  <div className="bg-white rounded-2xl border border-blue-100/60 overflow-hidden">
-    <div className="flex items-center justify-between px-5 py-4 border-b border-blue-100/60">
-      <h3 className="text-[15px] font-bold text-slate-900">Recent Orders</h3>
-      <button
-        onClick={onViewAll}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-xs font-bold hover:bg-blue-50 transition-colors"
-      >
-        View All <FiArrowRight size={11} />
-      </button>
-    </div>
-
+  <Card
+    title="Recent Orders"
+    padded={false}
+    action={
+      <Button variant="text" onClick={onViewAll}>
+        View all
+        <MdArrowForward size={18} />
+      </Button>
+    }
+  >
     {loading ? (
-      <div className="p-5 space-y-3">
+      <div className="p-5 flex flex-col gap-3">
         {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
       </div>
     ) : orders.length === 0 ? (
-      <div className="py-16 text-center">
-        <div className="inline-flex p-4 rounded-2xl bg-blue-50 mb-3">
-          <FiPackage size={20} className="text-blue-400" />
-        </div>
-        <p className="text-sm font-semibold text-slate-500">No recent orders</p>
-      </div>
+      <EmptyState icon={MdInbox} label="No recent orders" />
     ) : (
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-blue-50/40">
-              <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Order</th>
-              <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Dealer</th>
-              <th className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Status</th>
-              <th className="text-right px-5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Amount</th>
-              <th className="text-right px-5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">When</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-blue-50">
-            {orders.map(({ order }) => {
-              if (!order) return null;
-              const dealerName = order.dealer?.employee_name
-                ? formatName(order.dealer.employee_name)
-                : "Unknown Dealer";
-              const pill = STATUS_PILL[order.status] ?? "bg-slate-50 text-slate-600 border-slate-200";
-              return (
-                <tr
-                  key={order.order_number}
-                  onClick={canNavigate ? () => onRowClick(order.order_number) : undefined}
-                  className={`${canNavigate ? "cursor-pointer hover:bg-blue-50/40" : ""} transition-colors`}
-                >
-                  <td className="px-5 py-3">
-                    <span className="font-mono text-xs font-bold text-slate-800">{order.order_number}</span>
-                  </td>
-                  <td className="px-5 py-3 text-slate-700 font-medium text-xs">{dealerName}</td>
-                  <td className="px-5 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border ${pill}`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className="text-xs font-bold text-slate-900 tabular-nums">
-                      ₹{Number(order.order_total_price || 0).toLocaleString("en-IN")}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right text-[11px] text-slate-400 font-medium">
-                    {formatRelativeTime(order.created_at)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <Thead>
+          <Th>Order</Th>
+          <Th>Dealer</Th>
+          <Th>Status</Th>
+          <Th align="right">Amount</Th>
+          <Th align="right">When</Th>
+        </Thead>
+        <tbody>
+          {orders.map(({ order }) => {
+            if (!order) return null;
+            const dealerName = order.dealer?.employee_name
+              ? formatName(order.dealer.employee_name)
+              : "Unknown Dealer";
+            return (
+              <Tr
+                key={order.order_number}
+                onClick={canNavigate ? () => onRowClick(order.order_number) : undefined}
+              >
+                <Td className="font-mono">{order.order_number}</Td>
+                <Td muted>{dealerName}</Td>
+                <Td><StatusChip status={order.status} /></Td>
+                <Td align="right" numeric>
+                  ₹{Number(order.order_total_price || 0).toLocaleString("en-IN")}
+                </Td>
+                <Td align="right" muted className="m3-body-small">
+                  {formatRelativeTime(order.created_at)}
+                </Td>
+              </Tr>
+            );
+          })}
+        </tbody>
+      </Table>
     )}
-  </div>
+  </Card>
 );
 
-// ── Low stock list (right rail bottom) ──────────────────────────────────────────
+/* ── Low stock list ──────────────────────────────────────────────────────── */
 const LowStockList = ({ products, loading, onClickProduct, canNavigate }) => (
-  <div className="bg-white rounded-2xl border border-blue-100/60 p-5">
-    <div className="flex items-center gap-2 mb-4">
-      <FiAlertCircle size={14} className="text-rose-500" />
-      <h3 className="text-[15px] font-bold text-slate-900">Low Stock</h3>
-    </div>
+  <Surface className="p-5">
+    <SectionTitle icon={MdErrorOutline}>Low Stock</SectionTitle>
     {loading ? (
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
       </div>
     ) : products.length === 0 ? (
       <div className="py-6 text-center">
-        <FiCheckCircle size={20} className="text-emerald-500 mx-auto mb-2" />
-        <p className="text-xs font-semibold text-slate-500">Stock looks healthy</p>
+        <MdOutlineCheckCircle size={24} className="mx-auto mb-2" style={{ color: T.success }} />
+        <p className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>Stock looks healthy</p>
       </div>
     ) : (
-      <ul className="space-y-2.5">
+      <ul className="flex flex-col gap-1">
         {products.slice(0, 5).map((p) => (
           <li
             key={p.product_id}
             onClick={canNavigate ? () => onClickProduct(p.product_id) : undefined}
-            className={`flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50/50 ${canNavigate ? "cursor-pointer hover:bg-blue-100/60" : ""}`}
+            className={`flex items-center justify-between gap-3 px-3 py-2.5 ${canNavigate ? "cursor-pointer m3-state-layer" : ""}`}
+            style={{
+              backgroundColor: T.surfaceContainerLow,
+              borderRadius: T.cornerSmall,
+              color: T.onSurface,
+            }}
           >
-            <div className="min-w-0 pr-2">
-              <p className="text-xs font-bold text-slate-800 truncate">{p.product_name}</p>
-              <p className="text-[10px] text-slate-400 truncate">{p.brand}</p>
+            <div className="min-w-0">
+              <p className="m3-body-medium truncate" style={{ color: T.onSurface }}>{p.product_name}</p>
+              <p className="m3-body-small truncate" style={{ color: T.onSurfaceVariant }}>{p.brand}</p>
             </div>
-            <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border bg-rose-50 text-rose-700 border-rose-200 tabular-nums flex-shrink-0">
-              {p.available_stock ?? 0}
-            </span>
+            <Chip tone="error" className="m3-numeric flex-shrink-0">{p.available_stock ?? 0}</Chip>
           </li>
         ))}
       </ul>
     )}
-  </div>
+  </Surface>
 );
 
-// ── Main Dashboard ──────────────────────────────────────────────────────────────
+/* ── Main Dashboard ──────────────────────────────────────────────────────── */
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -340,7 +309,7 @@ const Dashboard = () => {
   const showDealerStats = canViewDashboardSection(role, DASHBOARD_SECTIONS.STATS_DEALERS);
   const isAdminish = role === ROLES.SUPER_ADMIN || role === ROLES.ADMIN || role === ROLES.MANAGER;
 
-  // ── State ─────────────────────────────────────────────────────────────────────
+  // ── State ─────────────────────────────────────────────────────────────────
   const [state, setState] = useState({
     totalOrders: 0, recentOrders: [], ongoingOrders: 0, ongoingByStatus: {},
     monthlyOrders: 0, todayOrders: 0, todayDeliveryCount: 0,
@@ -355,7 +324,7 @@ const Dashboard = () => {
   const [failedSections, setFailedSections] = useState([]);
   const abortRef = useRef(null);
 
-  // ── Fetchers ──────────────────────────────────────────────────────────────────
+  // ── Fetchers ──────────────────────────────────────────────────────────────
   const fetchCount = useCallback(
     (params) =>
       fetchOrders({ page: 1, limit: 1, includeRejected: false, ...params })
@@ -479,7 +448,7 @@ const Dashboard = () => {
     loadDashboard(controller.signal);
   }, [loadDashboard]);
 
-  // ── Navigation ────────────────────────────────────────────────────────────────
+  // ── Navigation ────────────────────────────────────────────────────────────
   const { today, firstDayOfMonth } = useMemo(getDateRange, []);
   const nav = useMemo(() => ({
     allOrders: () => navigate("/orders"),
@@ -506,7 +475,7 @@ const Dashboard = () => {
     lowStockCount, lowStockProducts, brandCount, productCount,
   } = state;
 
-  // ── Alerts derived from state ─────────────────────────────────────────────────
+  // ── Alerts derived from state ─────────────────────────────────────────────
   const alerts = useMemo(() => {
     const items = [];
     if (showLowStockAlert && lowStockCount > 0) {
@@ -533,88 +502,69 @@ const Dashboard = () => {
     return items;
   }, [showLowStockAlert, lowStockCount, failedSections, todayDeliveryCount]);
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-4 sm:p-6 lg:p-8 space-y-6">
-
+    <div
+      className="min-h-screen p-4 sm:p-6 lg:p-8 flex flex-col gap-6"
+      style={{ backgroundColor: T.surface }}
+    >
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Dashboard Overview</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Welcome{user?.employee_name ? `, ${formatName(user.employee_name)}` : ""}. Monitor orders, production and delivery from here. <span className="text-slate-400">· {formatMonthLabel()}</span>
+          <h1 className="m3-headline-small" style={{ color: T.onSurface }}>Dashboard</h1>
+          <p className="m3-body-medium mt-1" style={{ color: T.onSurfaceVariant }}>
+            Welcome{user?.employee_name ? `, ${formatName(user.employee_name)}` : ""}. Monitor orders, production and delivery from here. · {formatMonthLabel()}
           </p>
         </div>
-        <button
+        <Button
+          variant="outlined"
+          icon={MdRefresh}
           onClick={handleRefresh}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-blue-200 text-blue-600 text-xs font-bold hover:bg-blue-50 transition-colors disabled:opacity-50"
+          className={loading ? "[&>svg]:animate-spin" : ""}
         >
-          <FiRefreshCw size={12} className={loading ? "animate-spin" : ""} />
           Refresh
-        </button>
+        </Button>
       </div>
 
       {/* ─── HERO KPIs ─── */}
       {showStatsRow && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-          <HeroKpi
-            icon={<FiShoppingBag className="text-blue-600" />}
-            tint="bg-blue-100/70 text-blue-600"
-            label="Total Orders"
-            value={totalOrders}
-            loading={loading}
-            onClick={nav.allOrders}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <KpiCard
+            icon={MdShoppingBag} tone="primary" label="Total Orders"
+            value={formatNumber(totalOrders)} loading={loading} onClick={nav.allOrders}
           />
-          <HeroKpi
-            icon={<FiActivity className="text-blue-600" />}
-            tint="bg-blue-100/70 text-blue-600"
-            label="Active Orders"
-            value={ongoingOrders}
-            loading={loading}
-            onClick={nav.activeOrders}
+          <KpiCard
+            icon={MdOutlineInsights} tone="secondary" label="Active Orders"
+            value={formatNumber(ongoingOrders)} loading={loading} onClick={nav.activeOrders}
           />
-          <HeroKpi
-            icon={<FiTruck className="text-emerald-600" />}
-            tint="bg-emerald-100/70 text-emerald-600"
-            label="Today's Deliveries"
-            value={todayDeliveryCount}
-            loading={loading}
-            onClick={nav.todayDeliveries}
+          <KpiCard
+            icon={MdOutlineLocalShipping} tone="tertiary" label="Today's Deliveries"
+            value={formatNumber(todayDeliveryCount)} loading={loading} onClick={nav.todayDeliveries}
           />
-          <HeroKpi
-            icon={<FiCheckCircle className="text-amber-600" />}
-            tint="bg-amber-100/70 text-amber-600"
-            label="Completed This Month"
-            value={monthlyCompletedOrders}
-            loading={loading}
-            onClick={nav.monthCompleted}
+          <KpiCard
+            icon={MdCheckCircle} tone="success" label="Completed This Month"
+            value={formatNumber(monthlyCompletedOrders)} loading={loading} onClick={nav.monthCompleted}
           />
         </div>
       )}
 
       {/* ─── MODULES + RIGHT RAIL ─── */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
 
-        {/* Modules grid */}
-        <div className="xl:col-span-3 space-y-4">
+        <div className="xl:col-span-3 flex flex-col gap-4">
           {showBusinessMetrics && (
             <>
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-slate-900">Operations Modules</h2>
-                <button
-                  onClick={nav.allOrders}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-bold hover:border-blue-200 hover:text-blue-600 transition-colors"
-                >
-                  Manage Orders
-                </button>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="m3-title-large" style={{ color: T.onSurface }}>Operations</h2>
+                <Button variant="tonal" onClick={nav.allOrders}>Manage orders</Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
                 <ModuleCard
-                  icon={<FiShoppingBag className="text-blue-600" />}
-                  iconTint="bg-blue-100/70"
+                  icon={MdShoppingBag}
+                  tone={{ bg: T.primaryContainer, fg: T.onPrimaryContainer }}
                   title="Sales"
                   description="Order intake and pipeline"
                   loading={loading}
@@ -626,8 +576,8 @@ const Dashboard = () => {
                 />
 
                 <ModuleCard
-                  icon={<FiHexagon className="text-emerald-600" />}
-                  iconTint="bg-emerald-100/70"
+                  icon={MdOutlinePrecisionManufacturing}
+                  tone={{ bg: T.tertiaryContainer, fg: T.onTertiaryContainer }}
                   title="Production"
                   description="What's being built and packed"
                   loading={loading}
@@ -639,8 +589,8 @@ const Dashboard = () => {
                 />
 
                 <ModuleCard
-                  icon={<FiTruck className="text-blue-600" />}
-                  iconTint="bg-blue-100/70"
+                  icon={MdOutlineLocalShipping}
+                  tone={{ bg: T.secondaryContainer, fg: T.onSecondaryContainer }}
                   title="Delivery"
                   description="Shipping and last-mile"
                   loading={loading}
@@ -653,8 +603,8 @@ const Dashboard = () => {
 
                 {canViewProductList && (
                   <ModuleCard
-                    icon={<FiBox className="text-amber-600" />}
-                    iconTint="bg-amber-100/70"
+                    icon={MdOutlineInventory2}
+                    tone={{ bg: T.warningContainer, fg: T.onWarningContainer }}
                     title="Brands & Catalog"
                     description="Master data: brands, products and stock health"
                     status={lowStockCount > 0 ? "Warning" : "Active"}
@@ -669,8 +619,8 @@ const Dashboard = () => {
 
                 {(showUserStats || showDealerStats) && (
                   <ModuleCard
-                    icon={<FiUsers className="text-cyan-600" />}
-                    iconTint="bg-cyan-100/70"
+                    icon={MdOutlineGroup}
+                    tone={{ bg: T.primaryContainer, fg: T.onPrimaryContainer }}
                     title="People"
                     description="Team and dealer network"
                     loading={loading}
@@ -690,8 +640,8 @@ const Dashboard = () => {
 
                 {isAdminish && (
                   <ModuleCard
-                    icon={<FiTrendingUp className="text-amber-600" />}
-                    iconTint="bg-amber-100/70"
+                    icon={MdTrendingUp}
+                    tone={{ bg: T.successContainer, fg: T.onSuccessContainer }}
                     title="Completed Orders"
                     description="Fulfillment performance"
                     loading={loading}
@@ -709,7 +659,7 @@ const Dashboard = () => {
         </div>
 
         {/* Right rail */}
-        <div className="space-y-5">
+        <div className="flex flex-col gap-4">
           {showBusinessMetrics && (
             <PipelineHealth counts={ongoingByStatus} loading={loading} total={ongoingOrders} />
           )}
@@ -718,7 +668,7 @@ const Dashboard = () => {
       </div>
 
       {/* ─── BOTTOM ROW ─── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {showRecentOrders && (
           <div className="xl:col-span-2">
             <RecentOrdersCard

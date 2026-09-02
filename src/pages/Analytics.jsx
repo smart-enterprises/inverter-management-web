@@ -1,4 +1,4 @@
-// src/pages/Analytics.jsx — Kredi-themed
+// src/pages/Analytics.jsx — Material Design 3
 //
 // Server-side analytics dashboard.
 //   GET /api/v1/analytics/summary
@@ -16,11 +16,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-    FiActivity, FiAlertCircle, FiArrowDownRight, FiArrowUpRight,
-    FiAward, FiBarChart, FiBarChart2, FiCheckCircle, FiChevronLeft,
-    FiChevronRight, FiDollarSign, FiFilter, FiPackage, FiPieChart,
-    FiRefreshCw, FiShoppingBag, FiSlash, FiTrendingUp, FiUsers, FiXCircle,
-} from "react-icons/fi";
+    MdAreaChart, MdBarChart, MdBlock, MdCancel, MdCheckCircle,
+    MdChevronLeft, MdChevronRight, MdCurrencyRupee, MdEmojiEvents,
+    MdErrorOutline, MdFilterList, MdInsertChartOutlined, MdInventory2,
+    MdNorthEast, MdOutlineGroup, MdOutlineInsights, MdOutlinePendingActions,
+    MdPieChartOutline, MdRefresh, MdShoppingBag, MdShowChart, MdSouthEast,
+    MdTrendingUp,
+} from "react-icons/md";
 import {
     Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart,
     LabelList, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer,
@@ -35,6 +37,11 @@ import {
 import { fetchDealers } from "../api/dealer";
 import { capitalizeFirstLetter, formatName } from "../utils/constants";
 import CustomSelect from "../components/CustomSelect";
+import {
+    Card, Button, IconButton, Chip, FilterChip, SegmentedButton,
+    Skeleton, EmptyState, Banner,
+} from "../components/m3";
+import { T, CHART, STATUS_COLOR, CHIP_TONES } from "../components/m3/tokens";
 import { useAuth } from "../hooks/useAuth";
 import { ROLES } from "../utils/roles";
 
@@ -66,30 +73,16 @@ const addDays = (date, n) => {
 const daysBetween = (from, to) =>
     Math.max(1, Math.round((new Date(to) - new Date(from)) / 86_400_000) + 1);
 
-/* ─────────────────────────────── Palette ─────────────────────────────── */
-const STATUS_COLOR = {
-    PENDING: "#f59e0b",
-    CONFIRMED: "#3b82f6",
-    PRODUCTION: "#c026d3",
-    PACKED: "#14b8a6",
-    INVOICE: "#06b6d4",
-    SHIPPED: "#f97316",
-    DELIVERED: "#10b981",
-    COMPLETED: "#059669",
-    CANCELLED: "#f43f5e",
-    REJECTED: "#94a3b8",
-};
-
-// Soft-tint KPI palettes — match dashboard cards
+/* KPI icon container tones, keyed by this page's legacy colour names. */
 const KPI_TINTS = {
-    orange: "bg-blue-100/70 text-blue-600",
-    emerald: "bg-emerald-100/70 text-emerald-600",
-    blue: "bg-blue-100/70 text-blue-600",
-    violet: "bg-fuchsia-100/70 text-fuchsia-600",
-    rose: "bg-rose-100/70 text-rose-600",
-    amber: "bg-amber-100/70 text-amber-600",
-    cyan: "bg-cyan-100/70 text-cyan-600",
-    slate: "bg-slate-100/70 text-slate-600",
+    orange: CHIP_TONES.primary,
+    emerald: CHIP_TONES.success,
+    blue: CHIP_TONES.primary,
+    violet: CHIP_TONES.tertiary,
+    rose: CHIP_TONES.error,
+    amber: CHIP_TONES.warning,
+    cyan: CHIP_TONES.secondary,
+    slate: CHIP_TONES.neutral,
 };
 
 /* ─────────────────────────────── Range presets ─────────────────────────────── */
@@ -113,17 +106,25 @@ const buildPresets = () => {
 const ChartTooltip = ({ active, payload, label, formatter }) => {
     if (!active || !payload || !payload.length) return null;
     return (
-        <div className="rounded-xl bg-white/95 backdrop-blur border border-blue-100 shadow-lg px-3 py-2 text-xs">
-            {label && <p className="font-bold text-slate-800 mb-1.5">{label}</p>}
-            <div className="space-y-1">
+        <div
+            className="px-3 py-2"
+            style={{
+                backgroundColor: "var(--md-sys-color-inverse-surface)",
+                color: "var(--md-sys-color-inverse-on-surface)",
+                borderRadius: T.cornerSmall,
+                boxShadow: "var(--md-sys-elevation-2)",
+            }}
+        >
+            {label && <p className="m3-label-large mb-1.5">{label}</p>}
+            <div className="flex flex-col gap-1">
                 {payload.map((row) => (
                     <div key={row.dataKey} className="flex items-center gap-2">
                         <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ background: row.color || row.fill }}
+                            className="w-2 h-2 flex-shrink-0"
+                            style={{ background: row.color || row.fill, borderRadius: T.cornerFull }}
                         />
-                        <span className="text-slate-500 capitalize">{row.name}:</span>
-                        <span className="font-bold tabular-nums text-slate-900">
+                        <span className="m3-body-small capitalize opacity-80">{row.name}:</span>
+                        <span className="m3-label-medium m3-numeric">
                             {formatter ? formatter(row.value, row.dataKey, row) : row.value}
                         </span>
                     </div>
@@ -136,6 +137,7 @@ const ChartTooltip = ({ active, payload, label, formatter }) => {
 /* ─────────────────────────────── KPI Card ─────────────────────────────── */
 const KpiCard = ({ icon, title, value, delta, color = "orange", loading, onClick }) => {
     const tint = KPI_TINTS[color] || KPI_TINTS.orange;
+    const Icon = icon;
     const interactive = !!onClick && !loading;
     const deltaSign = delta == null || !Number.isFinite(delta) ? null : delta >= 0 ? "+" : "−";
     const deltaAbs = delta == null || !Number.isFinite(delta) ? null : Math.abs(delta).toFixed(1);
@@ -145,26 +147,38 @@ const KpiCard = ({ icon, title, value, delta, color = "orange", loading, onClick
             type="button"
             onClick={interactive ? onClick : undefined}
             disabled={!interactive}
-            className={`text-left w-full bg-white rounded-2xl border border-blue-100/60 p-5 transition-all ${interactive ? "hover:border-blue-200 hover:shadow-sm cursor-pointer" : "cursor-default"}`}
+            className={`text-left w-full p-5 m3-focus ${interactive ? "m3-state-layer cursor-pointer" : "cursor-default"}`}
+            style={{
+                backgroundColor: T.surfaceContainerLow,
+                borderRadius: T.cornerMedium,
+                color: T.onSurface,
+            }}
         >
             <div className="flex items-start justify-between gap-3 mb-3">
-                <p className="text-xs font-semibold text-slate-500 mt-1">{title}</p>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tint}`}>
-                    {React.cloneElement(icon, { size: 16 })}
+                <p className="m3-label-large mt-1" style={{ color: T.onSurfaceVariant }}>{title}</p>
+                <div
+                    className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+                    style={{ borderRadius: T.cornerFull, backgroundColor: tint.bg, color: tint.fg }}
+                >
+                    <Icon size={20} />
                 </div>
             </div>
             {loading ? (
-                <div className="h-8 w-24 bg-blue-100/40 rounded-lg animate-pulse" />
+                <div
+                    className="h-8 w-24 animate-pulse"
+                    style={{ backgroundColor: T.surfaceContainerHighest, borderRadius: T.cornerSmall }}
+                />
             ) : (
                 <>
-                    <p className="text-2xl font-extrabold tabular-nums text-slate-900 tracking-tight">{value}</p>
+                    <p className="m3-title-large m3-numeric" style={{ color: T.onSurface, fontWeight: 500 }}>{value}</p>
                     {deltaSign && (
-                        <div
-                            className={`mt-2 inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-1.5 py-0.5 ${delta >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}
+                        <Chip
+                            tone={delta >= 0 ? "success" : "error"}
+                            icon={delta >= 0 ? MdNorthEast : MdSouthEast}
+                            className="mt-2"
                         >
-                            {delta >= 0 ? <FiArrowUpRight size={10} /> : <FiArrowDownRight size={10} />}
                             {deltaAbs}% vs prev
-                        </div>
+                        </Chip>
                     )}
                 </>
             )}
@@ -172,36 +186,9 @@ const KpiCard = ({ icon, title, value, delta, color = "orange", loading, onClick
     );
 };
 
-/* ─────────────────────────────── Card frame ─────────────────────────────── */
-const Card = ({ title, subtitle, action, children }) => (
-    <div className="bg-white border border-blue-100/60 rounded-2xl overflow-hidden">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-blue-100/60">
-            <div className="min-w-0">
-                <h2 className="text-[15px] font-bold text-slate-900">{title}</h2>
-                {subtitle && (
-                    <p className="text-[11px] text-slate-400 font-medium mt-0.5 truncate">{subtitle}</p>
-                )}
-            </div>
-            {action}
-        </div>
-        <div className="p-5">{children}</div>
-    </div>
-);
-
-const Skeleton = ({ className = "" }) => (
-    <div className={`bg-blue-100/40 rounded-xl animate-pulse ${className}`} />
-);
-const Empty = ({ label }) => (
-    <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <div className="p-4 bg-blue-50 rounded-2xl">
-            <FiBarChart2 size={22} className="text-blue-400" />
-        </div>
-        <p className="text-sm font-semibold text-slate-500">{label}</p>
-    </div>
-);
 const Field = ({ label, children }) => (
     <label className="flex flex-col gap-1">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{label}</span>
+        <span className="m3-label-medium" style={{ color: T.onSurfaceVariant }}>{label}</span>
         {children}
     </label>
 );
@@ -229,75 +216,48 @@ const MonthPicker = ({ month, onChange }) => {
 
     return (
         <div className="inline-flex items-center gap-1">
-            <button
+            <IconButton
+                icon={MdChevronLeft}
                 onClick={goPrev}
                 title="Previous month"
-                className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 bg-white transition-colors"
-            >
-                <FiChevronLeft size={13} />
-            </button>
-            <button
+                aria-label="Previous month"
+                style={{ width: 32, height: 32 }}
+            />
+            <Button
+                variant={isCurrentMonth ? "tonal" : "outlined"}
                 onClick={goCurrent}
                 title={isCurrentMonth ? "Current month" : "Jump to current month"}
-                className={[
-                    "px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors min-w-[100px] text-center",
-                    isCurrentMonth
-                        ? "bg-blue-500 text-white border-blue-500"
-                        : "bg-white text-slate-700 border-slate-200 hover:border-blue-200",
-                ].join(" ")}
+                style={{ height: 32, minWidth: 108, padding: "0 16px" }}
             >
                 {MONTH_LABELS[month.month0]} {month.year}
-            </button>
-            <button
+            </Button>
+            <IconButton
+                icon={MdChevronRight}
                 onClick={goNext}
                 disabled={isCurrentMonth}
                 title={isCurrentMonth ? "Already on current month" : "Next month"}
-                className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-                <FiChevronRight size={13} />
-            </button>
+                aria-label="Next month"
+                className="disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ width: 32, height: 32 }}
+            />
         </div>
     );
 };
-
-const ChartTypeSwitch = ({ value, onChange, options }) => (
-    <div className="inline-flex items-center bg-blue-50/60 rounded-lg p-0.5 border border-blue-100/80">
-        {options.map((opt) => {
-            const active = value === opt.value;
-            return (
-                <button
-                    key={opt.value}
-                    onClick={() => onChange(opt.value)}
-                    title={opt.label}
-                    className={[
-                        "flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors",
-                        active
-                            ? "bg-white text-blue-600 shadow-sm"
-                            : "text-slate-500 hover:text-slate-700",
-                    ].join(" ")}
-                >
-                    {React.cloneElement(opt.icon, { size: 12 })}
-                    <span className="hidden sm:inline">{opt.label}</span>
-                </button>
-            );
-        })}
-    </div>
-);
 
 /* ─────────────────────────────── Chart renderers ─────────────────────────────── */
 const TREND_GRADIENTS = (
     <defs>
         <linearGradient id="grad-revenue" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.45} />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+            <stop offset="0%" stopColor={CHART.bookings} stopOpacity={0.28} />
+            <stop offset="100%" stopColor={CHART.bookings} stopOpacity={0} />
         </linearGradient>
         <linearGradient id="grad-paid" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+            <stop offset="0%" stopColor={CHART.paid} stopOpacity={0.22} />
+            <stop offset="100%" stopColor={CHART.paid} stopOpacity={0} />
         </linearGradient>
         <linearGradient id="grad-orders" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
-            <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+            <stop offset="0%" stopColor={CHART.orders} stopOpacity={0.25} />
+            <stop offset="100%" stopColor={CHART.orders} stopOpacity={0} />
         </linearGradient>
     </defs>
 );
@@ -315,20 +275,20 @@ const trendTooltip = (
 );
 
 const trendXAxis = (
-    <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={{ stroke: "#fde6cd" }} />
+    <XAxis dataKey="date" stroke={CHART.axis} fontSize={11} tickLine={false} axisLine={{ stroke: CHART.grid }} />
 );
 const trendYLeft = (
-    <YAxis yAxisId="left" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false}
+    <YAxis yAxisId="left" stroke={CHART.axis} fontSize={11} tickLine={false} axisLine={false}
         tickFormatter={(v) => compactNum(v)} />
 );
 const trendYRight = (
-    <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false}
+    <YAxis yAxisId="right" orientation="right" stroke={CHART.axis} fontSize={11} tickLine={false} axisLine={false}
         tickFormatter={(v) => compactINR(v)} />
 );
 
 const renderTrendChart = (type, data) => {
     const common = { data, margin: { top: 16, right: 20, left: 0, bottom: 0 } };
-    const grid = <CartesianGrid strokeDasharray="3 3" stroke="#fff3e6" />;
+    const grid = <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />;
     const legend = <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconType="circle" />;
 
     if (type === "area") {
@@ -336,11 +296,11 @@ const renderTrendChart = (type, data) => {
             <AreaChart {...common}>
                 {TREND_GRADIENTS}
                 {grid}{trendXAxis}{trendYLeft}{trendYRight}{trendTooltip}{legend}
-                <Area yAxisId="right" type="monotone" dataKey="revenue" name="Bookings" stroke="#3b82f6" strokeWidth={2} fill="url(#grad-revenue)" />
-                <Area yAxisId="right" type="monotone" dataKey="delivered" name="Delivered" stroke="#10b981" strokeWidth={2} fill="none" />
-                <Area yAxisId="right" type="monotone" dataKey="cancelled" name="Cancelled" stroke="#f43f5e" strokeWidth={2} fill="none" />
-                <Area yAxisId="right" type="monotone" dataKey="paid" name="Paid" stroke="#3b82f6" strokeWidth={2} fill="url(#grad-paid)" />
-                <Area yAxisId="left" type="monotone" dataKey="orders" name="Orders" stroke="#10b981" strokeWidth={2} fill="url(#grad-orders)" />
+                <Area yAxisId="right" type="monotone" dataKey="delivered" name="Delivered" stroke={CHART.delivered} strokeWidth={2} fill="none" />
+                <Area yAxisId="right" type="monotone" dataKey="revenue" name="Bookings" stroke={CHART.bookings} strokeWidth={2} fill="url(#grad-revenue)" />
+                <Area yAxisId="left" type="monotone" dataKey="orders" name="Orders" stroke={CHART.orders} strokeWidth={2} fill="url(#grad-orders)" />
+                <Area yAxisId="right" type="monotone" dataKey="paid" name="Paid" stroke={CHART.paid} strokeWidth={2} fill="url(#grad-paid)" />
+                <Area yAxisId="right" type="monotone" dataKey="cancelled" name="Cancelled" stroke={CHART.cancelled} strokeWidth={2} fill="none" />
             </AreaChart>
         );
     }
@@ -349,11 +309,11 @@ const renderTrendChart = (type, data) => {
         return (
             <BarChart {...common} barCategoryGap="20%">
                 {grid}{trendXAxis}{trendYLeft}{trendYRight}{trendTooltip}{legend}
-                <Bar yAxisId="right" dataKey="revenue" name="Bookings" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                <Bar yAxisId="right" dataKey="delivered" name="Delivered" fill="#10b981" radius={[6, 6, 0, 0]} />
-                <Bar yAxisId="right" dataKey="cancelled" name="Cancelled" fill="#f43f5e" radius={[6, 6, 0, 0]} />
-                <Bar yAxisId="right" dataKey="paid" name="Paid" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                <Bar yAxisId="left" dataKey="orders" name="Orders" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
+                <Bar yAxisId="right" dataKey="delivered" name="Delivered" fill={CHART.delivered} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="right" dataKey="revenue" name="Bookings" fill={CHART.bookings} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="orders" name="Orders" fill={CHART.orders} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="right" dataKey="paid" name="Paid" fill={CHART.paid} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="right" dataKey="cancelled" name="Cancelled" fill={CHART.cancelled} radius={[4, 4, 0, 0]} />
             </BarChart>
         );
     }
@@ -362,11 +322,11 @@ const renderTrendChart = (type, data) => {
         return (
             <LineChart {...common}>
                 {grid}{trendXAxis}{trendYLeft}{trendYRight}{trendTooltip}{legend}
-                <Line yAxisId="right" type="monotone" dataKey="revenue" name="Bookings" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="delivered" name="Delivered" stroke="#10b981" strokeWidth={2} dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="cancelled" name="Cancelled" stroke="#f43f5e" strokeWidth={2} dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="paid" name="Paid" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                <Line yAxisId="left" type="monotone" dataKey="orders" name="Orders" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="delivered" name="Delivered" stroke={CHART.delivered} strokeWidth={2} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="revenue" name="Bookings" stroke={CHART.bookings} strokeWidth={2} dot={false} />
+                <Line yAxisId="left" type="monotone" dataKey="orders" name="Orders" stroke={CHART.orders} strokeWidth={2} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="paid" name="Paid" stroke={CHART.paid} strokeWidth={2} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="cancelled" name="Cancelled" stroke={CHART.cancelled} strokeWidth={2} dot={false} />
             </LineChart>
         );
     }
@@ -375,11 +335,11 @@ const renderTrendChart = (type, data) => {
         <ComposedChart {...common}>
             {TREND_GRADIENTS}
             {grid}{trendXAxis}{trendYLeft}{trendYRight}{trendTooltip}{legend}
-            <Area yAxisId="right" type="monotone" dataKey="revenue" name="Bookings" stroke="#3b82f6" strokeWidth={2} fill="url(#grad-revenue)" />
-            <Line yAxisId="right" type="monotone" dataKey="delivered" name="Delivered" stroke="#10b981" strokeWidth={2} dot={false} />
-            <Line yAxisId="right" type="monotone" dataKey="cancelled" name="Cancelled" stroke="#f43f5e" strokeWidth={2} dot={false} />
-            <Line yAxisId="right" type="monotone" dataKey="paid" name="Paid" stroke="#3b82f6" strokeWidth={2} dot={false} />
-            <Bar yAxisId="left" dataKey="orders" name="Orders" fill="#8b5cf6" radius={[6, 6, 0, 0]} barSize={14} />
+            <Line yAxisId="right" type="monotone" dataKey="delivered" name="Delivered" stroke={CHART.delivered} strokeWidth={2} dot={false} />
+            <Area yAxisId="right" type="monotone" dataKey="revenue" name="Bookings" stroke={CHART.bookings} strokeWidth={2} fill="url(#grad-revenue)" />
+            <Bar yAxisId="left" dataKey="orders" name="Orders" fill={CHART.orders} radius={[4, 4, 0, 0]} barSize={14} />
+            <Line yAxisId="right" type="monotone" dataKey="paid" name="Paid" stroke={CHART.paid} strokeWidth={2} dot={false} />
+            <Line yAxisId="right" type="monotone" dataKey="cancelled" name="Cancelled" stroke={CHART.cancelled} strokeWidth={2} dot={false} />
         </ComposedChart>
     );
 };
@@ -393,10 +353,10 @@ const renderPipelineChart = (type, statusBars, totalStatus) => {
                 margin={{ top: 8, right: 48, left: 8, bottom: 8 }}
                 barCategoryGap="22%"
             >
-                <CartesianGrid strokeDasharray="3 3" stroke="#fff3e6" horizontal={false} />
-                <XAxis type="number" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false}
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} horizontal={false} />
+                <XAxis type="number" stroke={CHART.axis} fontSize={11} tickLine={false} axisLine={false}
                     tickFormatter={(v) => compactNum(v)} />
-                <YAxis type="category" dataKey="status" stroke="#94a3b8" fontSize={11}
+                <YAxis type="category" dataKey="status" stroke={CHART.axis} fontSize={11}
                     tickLine={false} axisLine={false} width={92} />
                 <Tooltip
                     content={
@@ -405,13 +365,13 @@ const renderPipelineChart = (type, statusBars, totalStatus) => {
                         />
                     }
                 />
-                <Bar dataKey="count" radius={[0, 8, 8, 0]} barSize={18}>
+                <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18}>
                     {statusBars.map((row) => <Cell key={row.status} fill={row.fill} />)}
                     <LabelList
                         dataKey="count"
                         position="right"
                         formatter={(v) => `${fullNum(v)} · ${((v / totalStatus) * 100).toFixed(0)}%`}
-                        fill="#475569"
+                        fill={CHART.axis}
                         fontSize={11}
                         fontWeight={700}
                     />
@@ -429,7 +389,7 @@ const renderPipelineChart = (type, statusBars, totalStatus) => {
                 cx="50%" cy="50%"
                 innerRadius={62} outerRadius={108}
                 paddingAngle={2}
-                stroke="#fff"
+                stroke="var(--md-sys-color-surface)"
                 strokeWidth={2}
                 label={({ count }) => `${((count / totalStatus) * 100).toFixed(0)}%`}
                 labelLine={false}
@@ -623,52 +583,63 @@ const Analytics = () => {
 
     /* ─────────────────────────── Render ─────────────────────────── */
     return (
-        <div className="min-h-screen bg-[#F8FAFC] p-4 sm:p-6 lg:p-8 space-y-6">
+        <div
+            className="min-h-screen p-4 sm:p-6 lg:p-8 flex flex-col gap-6"
+            style={{ backgroundColor: T.surface }}
+        >
 
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Analytics</h1>
-                    <p className="text-sm text-slate-500 mt-1">
-                        Sales, fulfillment & dealer performance. <span className="text-slate-400">Range:</span> <span className="font-mono text-xs text-slate-500">{from} → {to}</span>
+                    <h1 className="m3-headline-small" style={{ color: T.onSurface }}>Analytics</h1>
+                    <p className="m3-body-medium mt-1" style={{ color: T.onSurfaceVariant }}>
+                        Sales, fulfillment &amp; dealer performance. Range: <span className="font-mono">{from} → {to}</span>
                     </p>
                 </div>
 
                 {/* Quick range chips */}
                 <div className="flex flex-wrap items-center gap-2">
                     {presets.map((p) => (
-                        <button
+                        <FilterChip
                             key={p.id}
+                            selected={activePreset === p.id}
                             onClick={() => applyPreset(p)}
-                            className={[
-                                "px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors",
-                                activePreset === p.id
-                                    ? "bg-blue-500 text-white border-blue-500"
-                                    : "bg-white text-slate-600 border-slate-200 hover:border-blue-200 hover:text-blue-600",
-                            ].join(" ")}
                         >
                             {p.label}
-                        </button>
+                        </FilterChip>
                     ))}
-                    <button
+                    <IconButton
+                        icon={MdRefresh}
                         onClick={() => load()}
                         title="Refresh"
-                        className="p-2 bg-white text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-200 rounded-lg transition-colors"
-                    >
-                        <FiRefreshCw size={13} className={loading ? "animate-spin" : ""} />
-                    </button>
+                        aria-label="Refresh"
+                        className={loading ? "[&>svg]:animate-spin" : ""}
+                    />
                 </div>
             </div>
 
             {/* Custom range + dealer filter */}
-            <div className="flex flex-wrap items-end gap-3 px-4 py-3 bg-white border border-blue-100/60 rounded-2xl">
+            <div
+                className="flex flex-wrap items-end gap-3 px-4 py-3"
+                style={{
+                    backgroundColor: T.surface,
+                    border: `1px solid ${T.outlineVariant}`,
+                    borderRadius: T.cornerMedium,
+                }}
+            >
                 <Field label="From">
                     <input
                         type="date"
                         value={from}
                         max={to}
                         onChange={(e) => onCustomFrom(e.target.value)}
-                        className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        className="m3-body-medium px-3 h-10 focus:outline-none"
+                        style={{
+                            border: `1px solid ${T.outline}`,
+                            borderRadius: T.cornerSmall,
+                            backgroundColor: T.surface,
+                            color: T.onSurface,
+                        }}
                     />
                 </Field>
                 <Field label="To">
@@ -677,11 +648,17 @@ const Analytics = () => {
                         value={to}
                         min={from}
                         onChange={(e) => onCustomTo(e.target.value)}
-                        className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        className="m3-body-medium px-3 h-10 focus:outline-none"
+                        style={{
+                            border: `1px solid ${T.outline}`,
+                            borderRadius: T.cornerSmall,
+                            backgroundColor: T.surface,
+                            color: T.onSurface,
+                        }}
                     />
                 </Field>
 
-                <Field label={<span className="flex items-center gap-1"><FiFilter size={10} /> Dealer</span>}>
+                <Field label={<span className="flex items-center gap-1"><MdFilterList size={14} /> Dealer</span>}>
                     <div className="min-w-[260px]">
                         <CustomSelect
                             name="dealer"
@@ -700,7 +677,7 @@ const Analytics = () => {
                     </div>
                 </Field>
 
-                <div className="text-[11px] text-slate-400 font-medium pb-2 ml-2">
+                <div className="m3-body-small pb-2 ml-2" style={{ color: T.onSurfaceVariant }}>
                     {daysBetween(from, to)} day{daysBetween(from, to) > 1 ? "s" : ""}
                     {" · "}
                     <span className="font-mono">vs {previousRange.from} → {previousRange.to}</span>
@@ -709,81 +686,68 @@ const Analytics = () => {
 
             {/* Error */}
             {error && (
-                <div className="flex items-center gap-3 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
-                    <FiAlertCircle size={14} />
-                    <span className="font-semibold">{error}</span>
-                </div>
+                <Banner tone="error">{error}</Banner>
             )}
 
             {/* KPI number-format toggle */}
             <div className="flex items-center justify-end">
-                <div className="inline-flex items-center bg-blue-50/60 border border-blue-100/80 rounded-lg p-0.5">
-                    {[
-                        { id: true,  label: "Compact (5L)" },
-                        { id: false, label: "Full (5,00,000)" },
-                    ].map((opt) => (
-                        <button
-                            key={String(opt.id)}
-                            onClick={() => setCompactNumbers(opt.id)}
-                            className={[
-                                "px-3 py-1 text-xs font-bold rounded-md transition-colors",
-                                compactNumbers === opt.id
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-slate-500 hover:text-blue-600",
-                            ].join(" ")}
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
+                <SegmentedButton
+                    ariaLabel="Number format"
+                    value={compactNumbers}
+                    onChange={setCompactNumbers}
+                    options={[
+                        { value: true, label: "Compact (5L)" },
+                        { value: false, label: "Full (5,00,000)" },
+                    ]}
+                />
             </div>
 
             {/* KPI strip */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <KpiCard
-                    icon={<FiShoppingBag />} title="Orders" color="orange"
+                    icon={MdShoppingBag} title="Orders" color="orange"
                     value={fullNum(summary?.orders_total)} delta={d.orders} loading={loading}
                     onClick={() => drillTo({ startDate: from, endDate: to })}
                 />
                 <KpiCard
-                    icon={<FiDollarSign />} title="Bookings" color="emerald"
+                    icon={MdCurrencyRupee} title="Bookings" color="emerald"
                     value={fmtINR(summary?.revenue_booked)} delta={d.booked} loading={loading}
                 />
                 <KpiCard
-                    icon={<FiPackage />} title="Delivered ₹" color="violet"
+                    icon={MdInventory2} title="Delivered ₹" color="violet"
                     value={fmtINR(summary?.revenue_delivered)} delta={d.delivered} loading={loading}
                     onClick={() => drillTo({ status: "DELIVERED", startDate: from, endDate: to })}
                 />
                 {canSeeProfit && (
                     <KpiCard
-                        icon={<FiAward />} title="Profit ₹" color="emerald"
+                        icon={MdEmojiEvents} title="Profit ₹" color="emerald"
                         value={fmtINR(summary?.profit_delivered)} delta={d.profit} loading={loading}
                     />
                 )}
                 <KpiCard
-                    icon={<FiXCircle />} title="Cancelled ₹" color="rose"
+                    icon={MdCancel} title="Cancelled ₹" color="rose"
                     value={fmtINR(summary?.revenue_cancelled)} delta={d.cancelled} loading={loading}
                     onClick={() => drillTo({ status: "CANCELLED", startDate: from, endDate: to })}
                 />
                 <KpiCard
-                    icon={<FiSlash />} title="Rejected ₹" color="rose"
+                    icon={MdBlock} title="Rejected ₹" color="rose"
                     value={fmtINR(summary?.revenue_rejected)} delta={d.rejected} loading={loading}
                     onClick={() => drillTo({ status: "REJECTED", startDate: from, endDate: to })}
                 />
                 <KpiCard
-                    icon={<FiActivity />} title="Pending ₹" color="amber"
+                    icon={MdOutlinePendingActions} title="Pending ₹" color="amber"
                     value={fmtINR(summary?.revenue_pending)} delta={d.pending} loading={loading}
                 />
                 <KpiCard
-                    icon={<FiCheckCircle />} title="Paid" color="blue"
+                    icon={MdCheckCircle} title="Paid" color="blue"
                     value={fmtINR(summary?.revenue_paid)} delta={d.paid} loading={loading}
                 />
                 <KpiCard
-                    icon={<FiActivity />} title="Due" color="amber"
+                    icon={MdOutlineInsights} title="Due" color="amber"
                     value={fmtINR(summary?.revenue_due)} delta={d.due} loading={loading}
                 />
                 <KpiCard
-                    icon={<FiTrendingUp />} title="Avg / Order" color="cyan"
+                    icon={MdTrendingUp} title="Avg / Order" color="cyan"
                     value={summary?.orders_total ? fmtINR(summary.revenue_booked / summary.orders_total) : "—"}
                     loading={loading}
                 />
@@ -795,20 +759,26 @@ const Analytics = () => {
                 subtitle={`${interval.toUpperCase()} · ${from} → ${to}`}
                 action={
                     <div className="flex items-center gap-2">
-                        <ChartTypeSwitch
+                        <SegmentedButton
                             value={trendType}
                             onChange={setTrendType}
                             options={[
-                                { value: "composed", label: "Mixed", icon: <FiBarChart2 /> },
-                                { value: "area", label: "Area", icon: <FiTrendingUp /> },
-                                { value: "bar", label: "Bar", icon: <FiBarChart /> },
-                                { value: "line", label: "Line", icon: <FiActivity /> },
+                                { value: "composed", label: "Mixed", icon: MdInsertChartOutlined },
+                                { value: "area", label: "Area", icon: MdAreaChart },
+                                { value: "bar", label: "Bar", icon: MdBarChart },
+                                { value: "line", label: "Line", icon: MdShowChart },
                             ]}
                         />
                         <select
                             value={interval}
                             onChange={(e) => setInterval(e.target.value)}
-                            className="px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            className="m3-label-large px-3 h-8 focus:outline-none"
+                            style={{
+                                border: `1px solid ${T.outline}`,
+                                borderRadius: T.cornerFull,
+                                backgroundColor: "transparent",
+                                color: T.onSurfaceVariant,
+                            }}
                         >
                             <option value="day">Day</option>
                             <option value="week">Week</option>
@@ -820,7 +790,7 @@ const Analytics = () => {
                 {loading ? (
                     <Skeleton className="h-80" />
                 ) : trendData.length === 0 ? (
-                    <Empty label="No orders in this range." />
+                    <EmptyState label="No orders in this range." />
                 ) : (
                     <ResponsiveContainer width="100%" height={340}>
                         {renderTrendChart(trendType, trendData)}
@@ -831,31 +801,23 @@ const Analytics = () => {
             {/* Top performance section header */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between pt-2">
                 <div>
-                    <h2 className="text-base font-bold text-slate-900">Top Performance</h2>
-                    <p className="text-xs text-slate-500">
+                    <h2 className="m3-title-large" style={{ color: T.onSurface }}>Top Performance</h2>
+                    <p className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>
                         {topView === "delivered"
                             ? "Ranked by what was actually delivered (real business)."
                             : "Ranked by all booked orders (including pending & cancelled)."}
                     </p>
                 </div>
-                <div className="inline-flex items-center bg-blue-50/60 border border-blue-100/80 rounded-lg p-0.5 self-start sm:self-auto">
-                    {[
-                        { id: "delivered", label: "Delivered" },
-                        { id: "booked", label: "Booked" },
-                    ].map((v) => (
-                        <button
-                            key={v.id}
-                            onClick={() => setTopView(v.id)}
-                            className={[
-                                "px-3 py-1 text-xs font-bold rounded-md transition-colors",
-                                topView === v.id
-                                    ? "bg-white text-blue-600 shadow-sm"
-                                    : "text-slate-500 hover:text-blue-600",
-                            ].join(" ")}
-                        >
-                            {v.label}
-                        </button>
-                    ))}
+                <div className="self-start sm:self-auto">
+                    <SegmentedButton
+                        ariaLabel="Ranking basis"
+                        value={topView}
+                        onChange={setTopView}
+                        options={[
+                            { value: "delivered", label: "Delivered" },
+                            { value: "booked", label: "Booked" },
+                        ]}
+                    />
                 </div>
             </div>
 
@@ -867,12 +829,12 @@ const Analytics = () => {
                         title="Order Pipeline"
                         subtitle="Status distribution"
                         action={
-                            <ChartTypeSwitch
+                            <SegmentedButton
                                 value={pipelineType}
                                 onChange={setPipelineType}
                                 options={[
-                                    { value: "donut", label: "Donut", icon: <FiPieChart /> },
-                                    { value: "bar", label: "Bar", icon: <FiBarChart /> },
+                                    { value: "donut", label: "Donut", icon: MdPieChartOutline },
+                                    { value: "bar", label: "Bar", icon: MdBarChart },
                                 ]}
                             />
                         }
@@ -880,7 +842,7 @@ const Analytics = () => {
                         {loading ? (
                             <Skeleton className="h-80" />
                         ) : statusBars.length === 0 ? (
-                            <Empty label="No orders." />
+                            <EmptyState label="No orders." />
                         ) : (
                             <ResponsiveContainer width="100%" height={340}>
                                 {renderPipelineChart(pipelineType, statusBars, totalStatus)}
@@ -898,7 +860,13 @@ const Analytics = () => {
                             <select
                                 value={metric}
                                 onChange={(e) => setMetric(e.target.value)}
-                                className="px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                className="m3-label-large px-3 h-8 focus:outline-none"
+                                style={{
+                                    border: `1px solid ${T.outline}`,
+                                    borderRadius: T.cornerFull,
+                                    backgroundColor: "transparent",
+                                    color: T.onSurfaceVariant,
+                                }}
                             >
                                 <option value="revenue">Revenue</option>
                                 {canSeeProfit && <option value="profit">Profit</option>}
@@ -909,7 +877,7 @@ const Analytics = () => {
                         {loading ? (
                             <Skeleton className="h-80" />
                         ) : topData.length === 0 ? (
-                            <Empty label="No products sold in this range." />
+                            <EmptyState label="No products sold in this range." />
                         ) : (
                             <ResponsiveContainer width="100%" height={340}>
                                 <ComposedChart
@@ -918,16 +886,10 @@ const Analytics = () => {
                                     margin={{ top: 8, right: 64, left: 8, bottom: 8 }}
                                     barCategoryGap="20%"
                                 >
-                                    <defs>
-                                        <linearGradient id="grad-bar" x1="0" y1="0" x2="1" y2="0">
-                                            <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.9} />
-                                            <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.7} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#fff3e6" horizontal={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} horizontal={false} />
                                     <XAxis
                                         type="number"
-                                        stroke="#94a3b8"
+                                        stroke={CHART.axis}
                                         fontSize={11}
                                         tickLine={false}
                                         axisLine={false}
@@ -936,7 +898,7 @@ const Analytics = () => {
                                     <YAxis
                                         type="category"
                                         dataKey="product_name"
-                                        stroke="#94a3b8"
+                                        stroke={CHART.axis}
                                         fontSize={11}
                                         tickLine={false}
                                         axisLine={false}
@@ -952,15 +914,15 @@ const Analytics = () => {
                                     />
                                     <Bar
                                         dataKey={metric === "qty" ? "qty_sold" : metric}
-                                        fill="url(#grad-bar)"
-                                        radius={[0, 8, 8, 0]}
+                                        fill={CHART.bookings}
+                                        radius={[0, 4, 4, 0]}
                                         barSize={18}
                                     >
                                         <LabelList
                                             dataKey={metric === "qty" ? "qty_sold" : metric}
                                             position="right"
                                             formatter={(v) => metric === "qty" ? compactNum(v) : compactINR(v)}
-                                            fill="#475569"
+                                            fill={CHART.axis}
                                             fontSize={11}
                                             fontWeight={700}
                                         />
@@ -985,7 +947,13 @@ const Analytics = () => {
                             <select
                                 value={brandMetric}
                                 onChange={(e) => setBrandMetric(e.target.value)}
-                                className="px-3 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                className="m3-label-large px-3 h-8 focus:outline-none"
+                                style={{
+                                    border: `1px solid ${T.outline}`,
+                                    borderRadius: T.cornerFull,
+                                    backgroundColor: "transparent",
+                                    color: T.onSurfaceVariant,
+                                }}
                             >
                                 <option value="qty">Quantity</option>
                                 <option value="revenue">Revenue</option>
@@ -996,7 +964,7 @@ const Analytics = () => {
                         {loading ? (
                             <Skeleton className="h-80" />
                         ) : topBrands.length === 0 ? (
-                            <Empty label="No brand data." />
+                            <EmptyState label="No brand data." />
                         ) : (
                             <ResponsiveContainer width="100%" height={340}>
                                 <BarChart
@@ -1005,16 +973,10 @@ const Analytics = () => {
                                     margin={{ top: 8, right: 56, left: 8, bottom: 8 }}
                                     barCategoryGap="22%"
                                 >
-                                    <defs>
-                                        <linearGradient id="grad-brand" x1="0" y1="0" x2="1" y2="0">
-                                            <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.85} />
-                                            <stop offset="100%" stopColor="#a78bfa" stopOpacity={0.7} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#fff3e6" horizontal={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} horizontal={false} />
                                     <XAxis
                                         type="number"
-                                        stroke="#94a3b8"
+                                        stroke={CHART.axis}
                                         fontSize={11}
                                         tickLine={false}
                                         axisLine={false}
@@ -1023,7 +985,7 @@ const Analytics = () => {
                                     <YAxis
                                         type="category"
                                         dataKey="product_brand"
-                                        stroke="#94a3b8"
+                                        stroke={CHART.axis}
                                         fontSize={11}
                                         tickLine={false}
                                         axisLine={false}
@@ -1038,15 +1000,15 @@ const Analytics = () => {
                                     />
                                     <Bar
                                         dataKey={brandMetric === "qty" ? "qty_sold" : brandMetric}
-                                        fill="url(#grad-brand)"
-                                        radius={[0, 8, 8, 0]}
+                                        fill={CHART.bookings}
+                                        radius={[0, 4, 4, 0]}
                                         barSize={18}
                                     >
                                         <LabelList
                                             dataKey={brandMetric === "qty" ? "qty_sold" : brandMetric}
                                             position="right"
                                             formatter={(v) => brandMetric === "qty" ? compactNum(v) : compactINR(v)}
-                                            fill="#475569"
+                                            fill={CHART.axis}
                                             fontSize={11}
                                             fontWeight={700}
                                         />
@@ -1063,9 +1025,9 @@ const Analytics = () => {
                         <Card title="Top Dealers" subtitle="Hidden — filtering by single dealer">
                             <div className="flex flex-col items-center justify-center py-16 gap-3">
                                 <div className="p-4 bg-blue-50 rounded-2xl">
-                                    <FiUsers size={22} className="text-blue-400" />
+                                    <MdOutlineGroup size={24} style={{ color: T.onSurfaceVariant }} />
                                 </div>
-                                <p className="text-sm font-semibold text-slate-500">
+                                <p className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>
                                     Switch dealer filter back to "All Dealers" to see the leaderboard.
                                 </p>
                             </div>
@@ -1075,58 +1037,59 @@ const Analytics = () => {
                             {loading ? (
                                 <Skeleton className="h-80" />
                             ) : topDealers.length === 0 ? (
-                                <Empty label="No dealer activity in this range." />
+                                <EmptyState label="No dealer activity in this range." />
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full text-sm">
                                         <thead>
-                                            <tr className="bg-blue-50/40 text-left">
+                                            <tr className="text-left" style={{ backgroundColor: T.surfaceContainerLow }}>
                                                 {["#", "Dealer", "Orders", "Revenue", ...(canSeeProfit ? ["Profit"] : []), "Paid", "Due"].map((h, i) => (
                                                     <th
                                                         key={h}
                                                         className={[
-                                                            "px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 whitespace-nowrap",
+                                                            "m3-label-medium px-3 py-3 whitespace-nowrap",
                                                             i >= 2 ? "text-right" : "",
                                                         ].join(" ")}
+                                                        style={{ color: T.onSurfaceVariant, fontWeight: 500 }}
                                                     >
                                                         {h}
                                                     </th>
                                                 ))}
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-blue-50">
+                                        <tbody>
                                             {topDealers.map((d, i) => (
-                                                <tr key={d.dealer_id} className="hover:bg-blue-50/30 transition-colors">
-                                                    <td className="px-3 py-3 text-slate-400 font-bold tabular-nums">
+                                                <tr key={d.dealer_id} className="m3-state-layer" style={{ borderTop: `1px solid ${T.outlineVariant}`, color: T.onSurface }}>
+                                                    <td className="px-3 py-3 m3-label-large m3-numeric" style={{ color: T.onSurfaceVariant }}>
                                                         {i + 1}
                                                         {i === 0 && (
-                                                            <FiAward className="inline ml-1 text-amber-500" size={12} />
+                                                            <MdEmojiEvents className="inline ml-1" size={14} style={{ color: "var(--md-sys-color-warning)" }} />
                                                         )}
                                                     </td>
                                                     <td className="px-3 py-3">
-                                                        <p className="font-bold text-slate-900">
+                                                        <p className="m3-body-medium" style={{ color: T.onSurface }}>
                                                             {formatName(d.dealer_name || "—")}
                                                         </p>
-                                                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                                        <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>
                                                             {d.shop_name ? capitalizeFirstLetter(d.shop_name) : ""}
                                                             {d.district ? ` · ${capitalizeFirstLetter(d.district)}` : ""}
                                                         </p>
                                                     </td>
-                                                    <td className="px-3 py-3 text-right tabular-nums font-semibold text-slate-700">
+                                                    <td className="px-3 py-3 text-right m3-body-medium m3-numeric" style={{ color: T.onSurfaceVariant }}>
                                                         {fullNum(d.orders_count)}
                                                     </td>
-                                                    <td className="px-3 py-3 text-right tabular-nums font-bold text-emerald-700">
+                                                    <td className="px-3 py-3 text-right m3-label-large m3-numeric" style={{ color: T.onSurface }}>
                                                         {compactINR(d.revenue)}
                                                     </td>
                                                     {canSeeProfit && (
-                                                        <td className="px-3 py-3 text-right tabular-nums font-bold text-fuchsia-700">
+                                                        <td className="px-3 py-3 text-right m3-label-large m3-numeric" style={{ color: T.onSurface }}>
                                                             {compactINR(d.profit)}
                                                         </td>
                                                     )}
-                                                    <td className="px-3 py-3 text-right tabular-nums font-semibold text-blue-700">
+                                                    <td className="px-3 py-3 text-right m3-body-medium m3-numeric" style={{ color: T.onSurfaceVariant }}>
                                                         {compactINR(d.paid)}
                                                     </td>
-                                                    <td className="px-3 py-3 text-right tabular-nums font-semibold text-amber-700">
+                                                    <td className="px-3 py-3 text-right m3-body-medium m3-numeric" style={{ color: T.onSurfaceVariant }}>
                                                         {compactINR(d.due)}
                                                     </td>
                                                 </tr>
@@ -1149,56 +1112,57 @@ const Analytics = () => {
                         {loading ? (
                             <Skeleton className="h-80" />
                         ) : topSalesmen.length === 0 ? (
-                            <Empty label="No salesman activity in this range." />
+                            <EmptyState label="No salesman activity in this range." />
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="min-w-full text-sm">
                                     <thead>
-                                        <tr className="bg-blue-50/40 text-left">
+                                        <tr className="text-left" style={{ backgroundColor: T.surfaceContainerLow }}>
                                             {["#", "Salesman", "Orders", "Revenue", ...(canSeeProfit ? ["Profit"] : []), "Due"].map((h, i) => (
                                                 <th
                                                     key={h}
                                                     className={[
-                                                        "px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 whitespace-nowrap",
+                                                        "m3-label-medium px-3 py-3 whitespace-nowrap",
                                                         i >= 2 ? "text-right" : "",
                                                     ].join(" ")}
+                                                    style={{ color: T.onSurfaceVariant, fontWeight: 500 }}
                                                 >
                                                     {h}
                                                 </th>
                                             ))}
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-blue-50">
+                                    <tbody>
                                         {topSalesmen.map((s, i) => (
-                                            <tr key={s.salesman_id} className="hover:bg-blue-50/30 transition-colors">
-                                                <td className="px-3 py-3 text-slate-400 font-bold tabular-nums">
+                                            <tr key={s.salesman_id} className="m3-state-layer" style={{ borderTop: `1px solid ${T.outlineVariant}`, color: T.onSurface }}>
+                                                <td className="px-3 py-3 m3-label-large m3-numeric" style={{ color: T.onSurfaceVariant }}>
                                                     {i + 1}
                                                     {i === 0 && (
-                                                        <FiAward className="inline ml-1 text-amber-500" size={12} />
+                                                        <MdEmojiEvents className="inline ml-1" size={14} style={{ color: "var(--md-sys-color-warning)" }} />
                                                     )}
                                                 </td>
                                                 <td className="px-3 py-3">
-                                                    <p className="font-bold text-slate-900">
+                                                    <p className="m3-body-medium" style={{ color: T.onSurface }}>
                                                         {formatName(s.salesman_name || "—")}
                                                     </p>
                                                     {s.district && (
-                                                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                                        <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>
                                                             {capitalizeFirstLetter(s.district)}
                                                         </p>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-3 text-right tabular-nums font-semibold text-slate-700">
+                                                <td className="px-3 py-3 text-right m3-body-medium m3-numeric" style={{ color: T.onSurfaceVariant }}>
                                                     {fullNum(s.orders_count)}
                                                 </td>
-                                                <td className="px-3 py-3 text-right tabular-nums font-bold text-emerald-700">
+                                                <td className="px-3 py-3 text-right m3-label-large m3-numeric" style={{ color: T.onSurface }}>
                                                     {compactINR(s.revenue)}
                                                 </td>
                                                 {canSeeProfit && (
-                                                    <td className="px-3 py-3 text-right tabular-nums font-bold text-fuchsia-700">
+                                                    <td className="px-3 py-3 text-right m3-label-large m3-numeric" style={{ color: T.onSurface }}>
                                                         {compactINR(s.profit)}
                                                     </td>
                                                 )}
-                                                <td className="px-3 py-3 text-right tabular-nums font-semibold text-amber-700">
+                                                <td className="px-3 py-3 text-right m3-body-medium m3-numeric" style={{ color: T.onSurfaceVariant }}>
                                                     {compactINR(s.due)}
                                                 </td>
                                             </tr>
@@ -1222,7 +1186,7 @@ const Analytics = () => {
                         {loading ? (
                             <Skeleton className="h-80" />
                         ) : achievement.items.length === 0 ? (
-                            <Empty label="No salesman activity in this range." />
+                            <EmptyState label="No salesman activity in this range." />
                         ) : (
                             <ResponsiveContainer width="100%" height={340}>
                                 <BarChart
@@ -1230,27 +1194,17 @@ const Analytics = () => {
                                     margin={{ top: 24, right: 20, left: 0, bottom: 0 }}
                                     barGap={6}
                                 >
-                                    <defs>
-                                        <linearGradient id="grad-achieved" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.95} />
-                                            <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.6} />
-                                        </linearGradient>
-                                        <linearGradient id="grad-target" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#fde6cd" stopOpacity={0.95} />
-                                            <stop offset="100%" stopColor="#fde6cd" stopOpacity={0.5} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#fff3e6" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
                                     <XAxis
                                         dataKey="salesman_name"
-                                        stroke="#94a3b8"
+                                        stroke={CHART.axis}
                                         fontSize={11}
                                         tickLine={false}
-                                        axisLine={{ stroke: "#fde6cd" }}
+                                        axisLine={{ stroke: CHART.grid }}
                                         tickFormatter={(v) => capitalizeFirstLetter(v || "")}
                                     />
                                     <YAxis
-                                        stroke="#94a3b8"
+                                        stroke={CHART.axis}
                                         fontSize={11}
                                         tickLine={false}
                                         axisLine={false}
@@ -1270,15 +1224,15 @@ const Analytics = () => {
                                         }
                                     />
                                     <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconType="circle" />
-                                    <Bar dataKey="target_qty" name="Target" fill="url(#grad-target)" radius={[6, 6, 0, 0]} />
-                                    <Bar dataKey="achieved_qty" name="Achieved" fill="url(#grad-achieved)" radius={[6, 6, 0, 0]}>
+                                    <Bar dataKey="target_qty" name="Target" fill={CHART.track} radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="achieved_qty" name="Achieved" fill={CHART.bookings} radius={[4, 4, 0, 0]}>
                                         <LabelList
                                             dataKey="achievement_pct"
                                             position="top"
                                             formatter={(v) => `${v}%`}
-                                            fill="#3b82f6"
+                                            fill={CHART.axis}
                                             fontSize={11}
-                                            fontWeight={800}
+                                            fontWeight={600}
                                         />
                                     </Bar>
                                 </BarChart>

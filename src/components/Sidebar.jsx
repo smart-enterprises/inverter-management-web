@@ -1,48 +1,60 @@
 import React, { memo, useMemo, useCallback } from "react";
 import {
-  FiUsers,
-  FiUser,
-  FiClipboard,
-  FiBox,
-  FiBarChart2,
-  FiChevronLeft,
-  FiChevronRight,
-  FiShield,
-  FiActivity,
-  FiTruck,
-  FiHome,
-  FiZap,
-} from "react-icons/fi";
+  MdBolt,
+  MdMenuOpen,
+  MdMenu,
+  MdDashboard,
+  MdOutlineDashboard,
+  MdBarChart,
+  MdOutlineBarChart,
+  MdReceiptLong,
+  MdOutlineReceiptLong,
+  MdPrecisionManufacturing,
+  MdOutlinePrecisionManufacturing,
+  MdLocalShipping,
+  MdOutlineLocalShipping,
+  MdStorefront,
+  MdOutlineStorefront,
+  MdInventory2,
+  MdOutlineInventory2,
+  MdSell,
+  MdOutlineSell,
+  MdGroup,
+  MdOutlineGroup,
+} from "react-icons/md";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { ROUTE_PERMISSIONS } from "../routes/routePermissions";
 
 /* ─────────────────────────────────────────────────────────────
-   NAV GROUPS  — Kredi-style grouped sidebar
+   NAV GROUPS — Material 3 navigation drawer
+   Each item carries both an outlined (inactive) and a filled
+   (active) icon, which is how M3 signals selection alongside
+   the secondary-container indicator.
    ───────────────────────────────────────────────────────────── */
 const NAV_GROUPS = [
   {
     label: "Overview",
     items: [
-      { icon: FiHome, label: "Dashboard", path: "/dashboard" },
-      { icon: FiBarChart2, label: "Analytics", path: "/analytics" },
+      { icon: MdOutlineDashboard, iconActive: MdDashboard, label: "Dashboard", path: "/dashboard" },
+      { icon: MdOutlineBarChart, iconActive: MdBarChart, label: "Analytics", path: "/analytics" },
     ],
   },
   {
     label: "Operations",
     items: [
-      { icon: FiClipboard, label: "Orders", path: "/orders" },
-      { icon: FiActivity, label: "Production", path: "/production-summary" },
-      { icon: FiTruck, label: "Delivery", path: "/delivery" },
+      { icon: MdOutlineReceiptLong, iconActive: MdReceiptLong, label: "Orders", path: "/orders" },
+      { icon: MdOutlinePrecisionManufacturing, iconActive: MdPrecisionManufacturing, label: "Production", path: "/production-summary" },
+      { icon: MdOutlineLocalShipping, iconActive: MdLocalShipping, label: "Delivery", path: "/delivery" },
     ],
   },
   {
     label: "Masters",
     items: [
-      { icon: FiUser, label: "Dealers", path: "/dealers" },
-      { icon: FiBox, label: "Products", path: "/products" },
-      { icon: FiShield, label: "Brands", path: "/brands" },
-      { icon: FiUsers, label: "Users", path: "/users" },
+      { icon: MdOutlineStorefront, iconActive: MdStorefront, label: "Dealers", path: "/dealers" },
+      { icon: MdOutlineInventory2, iconActive: MdInventory2, label: "Products", path: "/products" },
+      { icon: MdOutlineSell, iconActive: MdSell, label: "Brands", path: "/brands" },
+      { icon: MdOutlineGroup, iconActive: MdGroup, label: "Users", path: "/users" },
     ],
   },
 ];
@@ -64,8 +76,16 @@ const isPathActive = (pathname, path) => {
   return pathname === path;
 };
 
+const toDisplayName = (raw) =>
+  (raw || "")
+    .replace(/_/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ""))
+    .join(" ");
+
 /* ─────────────────────────────────────────────────────────────
-   Sidebar
+   Sidebar — drawer when expanded, navigation rail when collapsed
    ───────────────────────────────────────────────────────────── */
 const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
   const location = useLocation();
@@ -73,7 +93,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
   const role = user?.role;
 
   const collapsed = isCollapsed && !isMobileMenuOpen;
-  const widthClass = collapsed ? "w-16" : "w-64";
+  const widthClass = collapsed ? "w-20" : "w-64";
 
   const visibleGroups = useMemo(
     () =>
@@ -91,47 +111,88 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
     [setIsCollapsed]
   );
 
+  const displayName = toDisplayName(user?.employee_name);
+  const initial = displayName ? displayName[0] : "?";
+
   return (
     <aside
-      className={`fixed left-0 top-0 z-20 h-screen bg-[#F8FAFC] border-r border-blue-100/60 flex flex-col transition-[width] duration-300 ${widthClass}`}
+      className={`fixed left-0 top-0 z-20 h-screen flex flex-col transition-[width] duration-300 ${widthClass}`}
+      style={{
+        backgroundColor: "var(--md-sys-color-surface-container-low)",
+        transitionTimingFunction: "var(--md-sys-motion-easing-emphasized)",
+      }}
     >
-      {/* Header */}
-      <div className="relative flex items-center h-16 px-4 flex-shrink-0">
-        <Link to="/dashboard" className={`flex items-center gap-2.5 min-w-0 ${collapsed ? "justify-center w-full" : ""}`}>
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-500/30">
-            <FiZap size={18} className="text-white" />
-          </div>
-          {!collapsed && (
-            <div className="flex flex-col leading-tight min-w-0">
-              <span className="text-[15px] font-extrabold text-slate-900 tracking-tight truncate">Smart</span>
-              <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-slate-400 truncate">Enterprises</span>
-            </div>
-          )}
-        </Link>
+      {/* ── Header: brand + menu toggle ─────────────────────── */}
+      <div className={`flex items-center h-16 flex-shrink-0 ${collapsed ? "justify-center px-2" : "gap-2 px-4"}`}>
+        {collapsed ? (
+          <button
+            onClick={toggleSidebar}
+            aria-label="Expand navigation"
+            className="m3-icon-button m3-state-layer m3-focus"
+          >
+            <MdMenu size={24} />
+          </button>
+        ) : (
+          <>
+            <Link to="/dashboard" className="flex items-center gap-3 min-w-0 flex-1">
+              <div
+                className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+                style={{
+                  borderRadius: "var(--md-sys-shape-corner-medium)",
+                  backgroundColor: "var(--md-sys-color-primary)",
+                  color: "var(--md-sys-color-on-primary)",
+                }}
+              >
+                <MdBolt size={22} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span
+                  className="m3-title-medium truncate"
+                  style={{ color: "var(--md-sys-color-on-surface)" }}
+                >
+                  Smart
+                </span>
+                <span
+                  className="m3-label-small truncate"
+                  style={{ color: "var(--md-sys-color-on-surface-variant)" }}
+                >
+                  ENTERPRISES
+                </span>
+              </div>
+            </Link>
 
-        <button
-          onClick={toggleSidebar}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 z-30 w-6 h-6 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-200 shadow-sm transition-colors"
-        >
-          {collapsed ? <FiChevronRight size={12} /> : <FiChevronLeft size={12} />}
-        </button>
+            <button
+              onClick={toggleSidebar}
+              aria-label="Collapse navigation"
+              className="m3-icon-button m3-state-layer m3-focus hidden lg:inline-flex flex-shrink-0"
+            >
+              <MdMenuOpen size={24} />
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-5 scrollbar-hide">
-        {visibleGroups.map((group) => (
+      {/* ── Navigation ──────────────────────────────────────── */}
+      <nav className={`flex-1 overflow-y-auto scrollbar-hide pb-2 ${collapsed ? "px-2 space-y-2" : "px-3 space-y-4"}`}>
+        {visibleGroups.map((group, groupIndex) => (
           <div key={group.label}>
-            {!collapsed && (
-              <p className="px-2 mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+            {collapsed ? (
+              groupIndex > 0 && <hr className="m3-divider mx-2 mb-2" />
+            ) : (
+              <p
+                className="m3-label-medium px-4 h-9 flex items-center uppercase"
+                style={{ color: "var(--md-sys-color-on-surface-variant)", letterSpacing: "0.8px" }}
+              >
                 {group.label}
               </p>
             )}
-            <div className="flex flex-col gap-1">
+
+            <div className={collapsed ? "flex flex-col gap-1" : "flex flex-col"}>
               {group.items.map((item) => (
                 <NavItem
                   key={item.path}
                   icon={item.icon}
+                  iconActive={item.iconActive}
                   label={item.label}
                   to={item.path}
                   active={isPathActive(location.pathname, item.path)}
@@ -143,47 +204,93 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen }) => {
         ))}
       </nav>
 
-      {/* Footer user chip */}
-      {user && !collapsed && (() => {
-        const displayName = (user.employee_name || "")
-          .replace(/_/g, " ")
-          .trim()
-          .split(/\s+/)
-          .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ""))
-          .join(" ");
-        const initial = displayName ? displayName[0] : "?";
-        return (
-          <div className="m-3 p-3 rounded-xl bg-white/60 border border-blue-100/80 flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+      {/* ── Account ─────────────────────────────────────────── */}
+      {user && (
+        <div className={`flex-shrink-0 ${collapsed ? "px-2 pb-3" : "px-3 pb-3"}`}>
+          <hr className="m3-divider mb-3 mx-1" />
+          <div
+            className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-2"}`}
+            title={collapsed ? displayName : undefined}
+          >
+            <div
+              className="w-10 h-10 flex items-center justify-center flex-shrink-0 m3-label-large"
+              style={{
+                borderRadius: "var(--md-sys-shape-corner-full)",
+                backgroundColor: "var(--md-sys-color-primary-container)",
+                color: "var(--md-sys-color-on-primary-container)",
+              }}
+            >
               {initial}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-slate-900 truncate">{displayName || "User"}</p>
-              <p className="text-[10px] text-slate-400 truncate">
-                {(user.role || "").replace("ROLE_", "").replace(/_/g, " ").toLowerCase()}
-              </p>
-            </div>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p
+                  className="m3-label-large truncate"
+                  style={{ color: "var(--md-sys-color-on-surface)" }}
+                >
+                  {displayName || "User"}
+                </p>
+                <p
+                  className="m3-body-small truncate capitalize"
+                  style={{ color: "var(--md-sys-color-on-surface-variant)" }}
+                >
+                  {(user.role || "").replace("ROLE_", "").replace(/_/g, " ").toLowerCase()}
+                </p>
+              </div>
+            )}
           </div>
-        );
-      })()}
+        </div>
+      )}
     </aside>
   );
 };
 
 /* ─────────────────────────────────────────────────────────────
    NavItem
+   Expanded → 56dp drawer item with a full-corner active pill.
+   Collapsed → navigation rail: 56x32 indicator above the label.
    ───────────────────────────────────────────────────────────── */
-const NavItem = memo(({ icon: Icon, label, to, active, collapsed }) => {
-  const base = "flex items-center rounded-xl text-sm font-medium transition-colors";
-  const layout = collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5";
-  const state = active
-    ? "bg-blue-500 text-white shadow-sm shadow-blue-500/30"
-    : "text-slate-600 hover:bg-blue-50 hover:text-slate-900";
+const NavItem = memo(({ icon: Icon, iconActive: IconActive, label, to, active, collapsed }) => {
+  const ActiveIcon = active ? (IconActive ?? Icon) : Icon;
+
+  if (collapsed) {
+    return (
+      <Link
+        to={to}
+        title={label}
+        aria-current={active ? "page" : undefined}
+        className="flex flex-col items-center gap-1 py-1 m3-focus"
+        style={{ color: active ? "var(--md-sys-color-on-surface)" : "var(--md-sys-color-on-surface-variant)" }}
+      >
+        <span
+          className="m3-rail-indicator m3-state-layer"
+          style={{
+            backgroundColor: active ? "var(--md-sys-color-secondary-container)" : "transparent",
+            color: active ? "var(--md-sys-color-on-secondary-container)" : "var(--md-sys-color-on-surface-variant)",
+          }}
+        >
+          <ActiveIcon size={24} />
+        </span>
+        {/* Rail labels get the full word rather than an ellipsis: at 64px of
+            usable width every nav label fits at 10px without truncating. */}
+        <span
+          className="text-center px-0.5"
+          style={{ fontSize: "10px", lineHeight: "14px", fontWeight: 500, letterSpacing: "0.4px" }}
+        >
+          {label}
+        </span>
+      </Link>
+    );
+  }
 
   return (
-    <Link to={to} className={`${base} ${layout} ${state}`} title={collapsed ? label : undefined}>
-      <Icon size={17} className={active ? "text-white" : "text-slate-500"} />
-      {!collapsed && <span className="truncate">{label}</span>}
+    <Link
+      to={to}
+      aria-current={active ? "page" : undefined}
+      className={`m3-nav-item m3-state-layer m3-focus gap-3 px-4 ${active ? "m3-nav-item-active" : ""}`}
+    >
+      <ActiveIcon size={24} className="flex-shrink-0" />
+      <span className="m3-label-large truncate">{label}</span>
     </Link>
   );
 });

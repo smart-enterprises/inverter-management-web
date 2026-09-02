@@ -1,0 +1,292 @@
+/* ============================================================
+   m3.css — Material Design 3 token layer
+   ------------------------------------------------------------
+   Color roles, shape scale, type scale and elevation per the
+   M3 spec (m3.material.io). Seeded from the Smart Enterprises
+   brand blue, so the product keeps its identity while gaining
+   a real M3 role system instead of ad-hoc Tailwind palettes.
+
+   Usage: reference roles as var(--md-sys-color-*), never raw
+   hex. Component classes at the bottom cover the repeated
+   patterns (cards, buttons, chips, state layers).
+   ============================================================ */
+
+:root {
+    /* ── Color roles: primary ─────────────────────────────── */
+    --md-sys-color-primary: #0b57d0;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #d3e3fd;
+    --md-sys-color-on-primary-container: #041e49;
+    --md-sys-color-inverse-primary: #a8c7fa;
+
+    /* ── Color roles: secondary ───────────────────────────── */
+    --md-sys-color-secondary: #565f71;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #dae2f9;
+    --md-sys-color-on-secondary-container: #131c2b;
+
+    /* ── Color roles: tertiary ────────────────────────────── */
+    --md-sys-color-tertiary: #6b5778;
+    --md-sys-color-on-tertiary: #ffffff;
+    --md-sys-color-tertiary-container: #f3daff;
+    --md-sys-color-on-tertiary-container: #251431;
+
+    /* ── Color roles: error ───────────────────────────────── */
+    --md-sys-color-error: #b3261e;
+    --md-sys-color-on-error: #ffffff;
+    --md-sys-color-error-container: #f9dedc;
+    --md-sys-color-on-error-container: #410e0b;
+
+    /* ── Custom roles (M3 sanctions extending with custom
+          colors; these follow the same tonal construction) ── */
+    --md-sys-color-success: #146c2e;
+    --md-sys-color-on-success: #ffffff;
+    --md-sys-color-success-container: #c4eed0;
+    --md-sys-color-on-success-container: #072711;
+
+    --md-sys-color-warning: #7a5900;
+    --md-sys-color-on-warning: #ffffff;
+    --md-sys-color-warning-container: #ffdf99;
+    --md-sys-color-on-warning-container: #261900;
+
+    /* ── Color roles: surfaces ────────────────────────────── */
+    --md-sys-color-surface: #faf9fd;
+    --md-sys-color-surface-dim: #d9d9e0;
+    --md-sys-color-surface-bright: #faf9fd;
+    --md-sys-color-surface-container-lowest: #ffffff;
+    --md-sys-color-surface-container-low: #f4f3fa;
+    --md-sys-color-surface-container: #eeedf4;
+    --md-sys-color-surface-container-high: #e8e7ef;
+    --md-sys-color-surface-container-highest: #e2e2e9;
+    --md-sys-color-on-surface: #1a1b21;
+    --md-sys-color-on-surface-variant: #44464f;
+    --md-sys-color-inverse-surface: #2f3036;
+    --md-sys-color-inverse-on-surface: #f1f0f7;
+
+    /* ── Color roles: outlines ────────────────────────────── */
+    --md-sys-color-outline: #74777f;
+    --md-sys-color-outline-variant: #c4c6d0;
+    --md-sys-color-scrim: #000000;
+
+    /* ── Shape scale ──────────────────────────────────────── */
+    --md-sys-shape-corner-none: 0px;
+    --md-sys-shape-corner-extra-small: 4px;
+    --md-sys-shape-corner-small: 8px;
+    --md-sys-shape-corner-medium: 12px;
+    --md-sys-shape-corner-large: 16px;
+    --md-sys-shape-corner-extra-large: 28px;
+    --md-sys-shape-corner-full: 9999px;
+
+    /* ── Elevation (M3 tonal + shadow levels) ─────────────── */
+    --md-sys-elevation-0: none;
+    --md-sys-elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.30), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+    --md-sys-elevation-2: 0 1px 2px 0 rgb(0 0 0 / 0.30), 0 2px 6px 2px rgb(0 0 0 / 0.15);
+    --md-sys-elevation-3: 0 4px 8px 3px rgb(0 0 0 / 0.15), 0 1px 3px 0 rgb(0 0 0 / 0.30);
+
+    /* ── State layer opacities ────────────────────────────── */
+    --md-sys-state-hover-opacity: 0.08;
+    --md-sys-state-focus-opacity: 0.10;
+    --md-sys-state-pressed-opacity: 0.10;
+
+    /* ── Motion ───────────────────────────────────────────── */
+    --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+    --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+    --md-sys-motion-duration-short: 150ms;
+    --md-sys-motion-duration-medium: 300ms;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TYPE SCALE
+   M3 roles: display / headline / title / body / label.
+   Sizes and tracking follow the spec; the family stays the
+   product's existing stack so no webfont round-trip is added.
+   ───────────────────────────────────────────────────────────── */
+.m3-display-small  { font-size: 36px; line-height: 44px; font-weight: 400; letter-spacing: 0; }
+.m3-headline-small { font-size: 24px; line-height: 32px; font-weight: 400; letter-spacing: 0; }
+.m3-title-large    { font-size: 22px; line-height: 28px; font-weight: 400; letter-spacing: 0; }
+.m3-title-medium   { font-size: 16px; line-height: 24px; font-weight: 500; letter-spacing: 0.15px; }
+.m3-title-small    { font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; }
+.m3-body-large     { font-size: 16px; line-height: 24px; font-weight: 400; letter-spacing: 0.5px; }
+.m3-body-medium    { font-size: 14px; line-height: 20px; font-weight: 400; letter-spacing: 0.25px; }
+.m3-body-small     { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0.4px; }
+.m3-label-large    { font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px; }
+.m3-label-medium   { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px; }
+.m3-label-small    { font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px; }
+
+/* Numeric readouts stay tabular so columns of figures align. */
+.m3-numeric { font-variant-numeric: tabular-nums; }
+
+/* ─────────────────────────────────────────────────────────────
+   COMPONENTS
+   ───────────────────────────────────────────────────────────── */
+
+/* Cards — M3 filled and outlined variants. Filled cards carry
+   no border; separation comes from the surface tone itself. */
+.m3-card-filled {
+    background-color: var(--md-sys-color-surface-container-low);
+    border-radius: var(--md-sys-shape-corner-medium);
+}
+
+.m3-card-outlined {
+    background-color: var(--md-sys-color-surface);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-medium);
+}
+
+.m3-card-elevated {
+    background-color: var(--md-sys-color-surface-container-low);
+    border-radius: var(--md-sys-shape-corner-medium);
+    box-shadow: var(--md-sys-elevation-1);
+}
+
+/* State layer — M3 renders interaction states as a tinted
+   overlay at a fixed opacity rather than a colour swap. */
+.m3-state-layer {
+    position: relative;
+    isolation: isolate;
+}
+
+.m3-state-layer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+}
+
+.m3-state-layer:hover::after { opacity: var(--md-sys-state-hover-opacity); }
+.m3-state-layer:focus-visible::after { opacity: var(--md-sys-state-focus-opacity); }
+.m3-state-layer:active::after { opacity: var(--md-sys-state-pressed-opacity); }
+.m3-state-layer:disabled::after { opacity: 0; }
+
+/* Buttons */
+.m3-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 24px;
+    border-radius: var(--md-sys-shape-corner-full);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: box-shadow var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+}
+
+.m3-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.38;
+}
+
+/* Icon-leading buttons get 16px of lead padding per spec. */
+.m3-button-with-icon { padding-left: 16px; }
+
+.m3-button-filled {
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+}
+
+.m3-button-tonal {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+.m3-button-outlined {
+    background-color: transparent;
+    color: var(--md-sys-color-primary);
+    border: 1px solid var(--md-sys-color-outline);
+}
+
+.m3-button-text {
+    background-color: transparent;
+    color: var(--md-sys-color-primary);
+    padding: 0 12px;
+}
+
+/* Icon button — 40dp target, full corner, state layer on hover */
+.m3-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--md-sys-shape-corner-full);
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+}
+
+/* Chips / assist badges */
+.m3-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: var(--md-sys-shape-corner-small);
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* Navigation drawer item — 56dp tall, full corner, active state
+   is a secondary-container "indicator" pill per M3 nav spec. */
+.m3-nav-item {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    border-radius: var(--md-sys-shape-corner-full);
+    color: var(--md-sys-color-on-surface-variant);
+    transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+}
+
+.m3-nav-item-active {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+/* Navigation rail item — 56x32 indicator above a label */
+.m3-rail-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 32px;
+    border-radius: var(--md-sys-shape-corner-full);
+    transition: background-color var(--md-sys-motion-duration-short) var(--md-sys-motion-easing-standard);
+}
+
+/* Divider */
+.m3-divider {
+    border: 0;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* Linear progress indicator track/bar */
+.m3-progress-track {
+    height: 4px;
+    border-radius: var(--md-sys-shape-corner-full);
+    background-color: var(--md-sys-color-surface-container-highest);
+    overflow: hidden;
+}
+
+.m3-progress-bar {
+    height: 100%;
+    border-radius: var(--md-sys-shape-corner-full);
+    background-color: var(--md-sys-color-primary);
+    transition: width var(--md-sys-motion-duration-medium) var(--md-sys-motion-easing-emphasized);
+}
+
+/* Focus ring consistent with M3 focus indicator */
+.m3-focus:focus-visible {
+    outline: 3px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+}

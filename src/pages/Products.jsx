@@ -1,14 +1,13 @@
-// Products.jsx 
+// Products.jsx — Material Design 3
 import React, {
   useState, useEffect, useCallback, useMemo, useRef, memo,
 } from "react";
 import {
-  FiPlus, FiSearch, FiBox, FiX, FiChevronLeft, FiChevronRight,
-  FiEdit3, FiPackage, FiEye, FiAlertCircle, FiRefreshCw,
-  FiTrendingUp, FiLayers, FiCheckCircle, FiInfo,
-  FiSliders, FiArrowRight, FiChevronDown, FiZap,
-  FiTag,
-} from "react-icons/fi";
+  MdAdd, MdSearch, MdInventory2, MdClose, MdChevronLeft, MdChevronRight,
+  MdEdit, MdInventory, MdVisibility, MdErrorOutline, MdRefresh,
+  MdTrendingUp, MdLayers, MdCheckCircle, MdInfoOutline,
+  MdTune, MdExpandMore, MdBolt, MdSell,
+} from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "../components/CustomSelect";
 import {
@@ -23,6 +22,11 @@ import {
   canCreateProduct, canEditProduct,
   canUpdateProductStock, canViewProductPrice,
 } from "../utils/productPermissions";
+import {
+  Surface, Button, IconButton, Chip, EmptyState as M3EmptyState,
+  Banner, Table, Thead, Th, Tr, Td, KpiCard,
+} from "../components/m3";
+import { T } from "../components/m3/tokens";
 
 /* ─────────────────────────────────────────────────────────────────────
    CONSTANTS
@@ -65,31 +69,21 @@ const buildQueryString = (params) =>
 /* ─────────────────────────────────────────────────────────────────────
    STATUS CONFIG
 ───────────────────────────────────────────────────────────────────────*/
-const STATUS_CONFIG = {
-  active: {
-    badge: "bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-emerald-100",
-    dot: "bg-emerald-400",
-    pulse: true,
-  },
-  inactive: {
-    badge: "bg-slate-100 text-slate-500 border-slate-200",
-    dot: "bg-slate-300",
-    pulse: false,
-  },
-};
-
+/* Active/inactive keeps a dot beside the label, so the state is never
+   carried by colour alone. */
 const StatusBadge = memo(({ status }) => {
-  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.inactive;
+  const isActive = status === "active";
   return (
-    <span className={`inline-flex items-center gap-1.5 pl-2 pr-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wide ${cfg.badge}`}>
-      <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-        {cfg.pulse && (
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-        )}
-        <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-      </span>
-      {status === "active" ? "Active" : "Inactive"}
-    </span>
+    <Chip tone={isActive ? "success" : "neutral"}>
+      <span
+        className="w-1.5 h-1.5 flex-shrink-0"
+        style={{
+          borderRadius: T.cornerFull,
+          backgroundColor: isActive ? T.success : T.outline,
+        }}
+      />
+      {isActive ? "Active" : "Inactive"}
+    </Chip>
   );
 });
 StatusBadge.displayName = "StatusBadge";
@@ -97,10 +91,10 @@ StatusBadge.displayName = "StatusBadge";
 /* ─────────────────────────────────────────────────────────────────────
    STOCK LEVEL STYLE
 ───────────────────────────────────────────────────────────────────────*/
-const stockLevelStyle = (qty) => {
-  if (qty === 0) return "bg-rose-50 text-rose-600 border-rose-200 ring-1 ring-rose-100";
-  if (qty < 5) return "bg-amber-50 text-amber-600 border-amber-200 ring-1 ring-amber-100";
-  return "bg-emerald-50 text-emerald-600 border-emerald-200 ring-1 ring-emerald-100";
+const stockLevelTone = (qty) => {
+  if (qty === 0) return "error";
+  if (qty < 5) return "warning";
+  return "success";
 };
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -108,14 +102,14 @@ const stockLevelStyle = (qty) => {
 ───────────────────────────────────────────────────────────────────────*/
 const Field = memo(({ label, required, hint, children, id }) => (
   <div className="space-y-1.5">
-    <label htmlFor={id} className="block text-[10px] font-black uppercase tracking-[0.13em] text-slate-400 select-none">
+    <label htmlFor={id} className="block m3-label-medium select-none" style={{ color: T.onSurfaceVariant }}>
       {label}
-      {required && <span className="text-rose-400 ml-0.5" aria-hidden>*</span>}
+      {required && <span className="ml-0.5" style={{ color: T.error }} aria-hidden>*</span>}
     </label>
     {children}
     {hint && (
-      <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-        <FiInfo size={10} aria-hidden />
+      <p className="m3-body-small flex items-center gap-1" style={{ color: T.onSurfaceVariant }}>
+        <MdInfoOutline size={14} aria-hidden />
         {hint}
       </p>
     )}
@@ -126,7 +120,11 @@ Field.displayName = "Field";
 const FormInput = React.forwardRef(({ prefix, className = "", ...props }, ref) => (
   <div className="relative">
     {prefix && (
-      <span aria-hidden className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 pointer-events-none select-none">
+      <span
+        aria-hidden
+        className="absolute left-3 top-1/2 -translate-y-1/2 m3-body-medium pointer-events-none select-none"
+        style={{ color: T.onSurfaceVariant }}
+      >
         {prefix}
       </span>
     )}
@@ -134,13 +132,17 @@ const FormInput = React.forwardRef(({ prefix, className = "", ...props }, ref) =
       ref={ref}
       {...props}
       className={[
-        "w-full border border-slate-200 rounded-xl py-2.5 text-sm font-medium text-slate-800",
-        "placeholder-slate-300 bg-white transition-all",
-        "focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400",
-        "disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed",
+        "w-full m3-body-medium h-11 focus:outline-none",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
         prefix ? "pl-7 pr-3" : "px-3",
         className,
       ].join(" ")}
+      style={{
+        border: `1px solid ${T.outline}`,
+        borderRadius: T.cornerExtraSmall,
+        backgroundColor: T.surface,
+        color: T.onSurface,
+      }}
     />
   </div>
 ));
@@ -149,43 +151,46 @@ FormInput.displayName = "FormInput";
 const SectionHeading = memo(({ icon: Icon, children }) => (
   <div className="flex items-center gap-3">
     {Icon && (
-      <span className="p-1.5 bg-blue-50 border border-blue-100 rounded-lg text-blue-500">
-        <Icon size={11} />
+      <span
+        className="p-1.5 flex-shrink-0"
+        style={{
+          borderRadius: T.cornerFull,
+          backgroundColor: T.primaryContainer,
+          color: T.onPrimaryContainer,
+        }}
+      >
+        <Icon size={16} />
       </span>
     )}
-    <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 whitespace-nowrap">
+    <span className="m3-title-small whitespace-nowrap" style={{ color: T.onSurface }}>
       {children}
     </span>
-    <div className="flex-1 h-px bg-gradient-to-r from-slate-200 to-transparent" />
+    <div className="flex-1 h-px" style={{ backgroundColor: T.outlineVariant }} />
   </div>
 ));
 SectionHeading.displayName = "SectionHeading";
 
-const AlertBanner = memo(({ variant = "error", icon: Icon = FiAlertCircle, children, onDismiss }) => {
-  const styles = {
-    error: "bg-rose-50   border-rose-200   text-rose-700",
-    success: "bg-emerald-50 border-emerald-200 text-emerald-700",
-    warning: "bg-amber-50  border-amber-200  text-amber-700",
-  }[variant] ?? "bg-slate-50 border-slate-200 text-slate-700";
-  return (
-    <div role="alert" className={`flex items-center gap-2.5 px-4 py-3 border rounded-xl text-sm font-semibold ${styles}`}>
-      <Icon size={14} className="flex-shrink-0" aria-hidden />
-      <span className="flex-1">{children}</span>
-      {onDismiss && (
-        <button onClick={onDismiss} className="ml-2 opacity-60 hover:opacity-100 transition-opacity" aria-label="Dismiss">
-          <FiX size={13} />
-        </button>
-      )}
-    </div>
-  );
-});
+const AlertBanner = memo(({ variant = "error", children, onDismiss }) => (
+  <div role="alert" className="relative">
+    <Banner tone={variant}>{children}</Banner>
+    {onDismiss && (
+      <button
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        className="absolute right-4 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100 transition-opacity"
+      >
+        <MdClose size={18} />
+      </button>
+    )}
+  </div>
+));
 AlertBanner.displayName = "AlertBanner";
 
 const Spinner = memo(({ size = 14, className = "" }) => (
   <div
     aria-hidden
     style={{ width: size, height: size }}
-    className={`border-2 border-current border-t-transparent rounded-full animate-spin opacity-60 ${className}`}
+    className={`border-2 border-current border-t-transparent rounded-full animate-spin opacity-60 ${className}`.trim()}
   />
 ));
 Spinner.displayName = "Spinner";
@@ -311,33 +316,53 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-40" onClick={onClose} aria-hidden />
+      <div
+        className="fixed inset-0 z-40"
+        style={{ backgroundColor: "color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent)" }}
+        onClick={onClose}
+        aria-hidden
+      />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="create-product-title">
         <div
-          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200/80 flex flex-col overflow-hidden"
-          style={{ maxHeight: "min(90dvh, 90vh)" }}
+          className="relative w-full max-w-2xl flex flex-col overflow-hidden"
+          style={{
+            maxHeight: "min(90dvh, 90vh)",
+            backgroundColor: "var(--md-sys-color-surface-container-high)",
+            borderRadius: T.cornerExtraLarge,
+            boxShadow: T.elevation3,
+          }}
           onClick={(e) => e.stopPropagation()}
         >
-          <header className="flex items-center justify-between px-6 py-5 border-b border-slate-100 flex-shrink-0 bg-gradient-to-br from-slate-50 to-white">
+          <header
+            className="flex items-center justify-between px-6 py-5 flex-shrink-0"
+            style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+          >
             <div className="flex items-center gap-3.5">
-              <div className="p-2.5 rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-200">
-                <FiBox size={14} aria-hidden />
+              <div
+                className="p-2.5"
+                style={{
+                  borderRadius: T.cornerFull,
+                  backgroundColor: T.primaryContainer,
+                  color: T.onPrimaryContainer,
+                }}
+              >
+                <MdInventory2 size={20} aria-hidden />
               </div>
               <div>
-                <h2 id="create-product-title" className="text-sm font-bold text-slate-900 leading-tight">Create New Product</h2>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.12em] mt-0.5">Add to inventory</p>
+                <h2 id="create-product-title" className="m3-title-medium" style={{ color: T.onSurface }}>
+                  Create New Product
+                </h2>
+                <p className="m3-body-small mt-0.5" style={{ color: T.onSurfaceVariant }}>Add to inventory</p>
               </div>
             </div>
-            <button onClick={onClose} aria-label="Close dialog" className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all">
-              <FiX size={16} />
-            </button>
+            <IconButton icon={MdClose} onClick={onClose} aria-label="Close dialog" />
           </header>
 
           <form id="create-product-form" onSubmit={handleSubmit} noValidate className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
             {error && <AlertBanner onDismiss={() => setError("")}>{error}</AlertBanner>}
 
             <section className="space-y-4">
-              <SectionHeading icon={FiBox}>Product Information</SectionHeading>
+              <SectionHeading icon={MdInventory2}>Product Information</SectionHeading>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Brand" required id="cp-brand">
                   <CustomSelect name="brand" value={form.brand} onChange={handleChange} options={["", ...brands.map((b) => b.brand_name)]} placeholder="Select brand" inputRef={firstFieldRef} />
@@ -366,13 +391,13 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
             </section>
 
             <section className="space-y-4">
-              <SectionHeading icon={FiPackage}>Initial Stock</SectionHeading>
+              <SectionHeading icon={MdInventory}>Initial Stock</SectionHeading>
 
               {isBatteryCategory(form.product_category) ? (
                 // 🔋 BATTERY → ONLY PACKED STOCK
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <p className="text-[11px] text-amber-500 font-medium flex items-center gap-1">
-                    <FiZap size={10} /> Battery products only use packed stock
+                  <p className="m3-body-small flex items-center gap-1" style={{ color: T.warning }}>
+                    <MdBolt size={14} /> Battery products only use packed stock
                   </p>
 
                   <StockRow
@@ -411,11 +436,14 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
             </section>
           </form>
 
-          <footer className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
-            <button type="button" onClick={onClose} disabled={loading} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-all disabled:opacity-50">Cancel</button>
-            <button type="submit" form="create-product-form" disabled={loading} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 text-sm font-bold transition-all disabled:opacity-60 shadow-sm shadow-blue-200">
-              {loading ? <><Spinner size={13} className="text-white" />Creating…</> : <><FiPlus size={13} aria-hidden />Create Product</>}
-            </button>
+          <footer
+            className="flex items-center justify-end gap-3 px-6 py-4 flex-shrink-0"
+            style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+          >
+            <Button variant="text" onClick={onClose} disabled={loading}>Cancel</Button>
+            <Button variant="filled" type="submit" form="create-product-form" disabled={loading}>
+              {loading ? <><Spinner size={14} />Creating…</> : <><MdAdd size={18} aria-hidden />Create Product</>}
+            </Button>
           </footer>
         </div>
       </div >
@@ -424,42 +452,18 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
 };
 
 /* ─────────────────────────────────────────────────────────────────────
-   STAT CARD
-───────────────────────────────────────────────────────────────────────*/
-const STAT_COLOR_MAP = {
-  indigo: { wrap: "bg-blue-600", text: "text-white" },
-  emerald: { wrap: "bg-emerald-500", text: "text-white" },
-  rose: { wrap: "bg-rose-500", text: "text-white" },
-  amber: { wrap: "bg-amber-400", text: "text-amber-900" },
-};
-
-const StatCard = memo(({ label, value, icon, color }) => {
-  const cfg = STAT_COLOR_MAP[color] ?? STAT_COLOR_MAP.indigo;
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 px-4 py-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow duration-200 min-w-0">
-      <div className={`p-2.5 rounded-xl flex-shrink-0 ${cfg.wrap}`} aria-hidden>
-        {React.cloneElement(icon, { size: 14, className: cfg.text })}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400 truncate">{label}</p>
-        <p className="text-xl font-black tabular-nums text-slate-900 leading-tight mt-0.5">{value ?? "—"}</p>
-      </div>
-    </div>
-  );
-});
-StatCard.displayName = "StatCard";
-
-/* ─────────────────────────────────────────────────────────────────────
    PAGINATION
 ───────────────────────────────────────────────────────────────────────*/
 const PaginationBtn = memo(({ children, active, ...props }) => (
   <button
+    type="button"
     {...props}
-    className={[
-      "min-w-[32px] h-8 px-2.5 flex items-center justify-center rounded-lg text-xs font-bold transition-all",
-      active ? "bg-blue-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300",
-      "disabled:opacity-40 disabled:cursor-not-allowed",
-    ].join(" ")}
+    className="m3-label-large m3-state-layer m3-focus min-w-[32px] h-8 px-2.5 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+    style={{
+      borderRadius: T.cornerFull,
+      backgroundColor: active ? T.secondaryContainer : "transparent",
+      color: active ? T.onSecondaryContainer : T.onSurfaceVariant,
+    }}
   >
     {children}
   </button>
@@ -473,19 +477,23 @@ const Pagination = memo(({ page, totalPages, total, limit, onPageChange }) => {
   const allPages = Array.from({ length: totalPages }, (_, i) => i + 1);
   const visible = allPages.filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1);
   return (
-    <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-slate-100 bg-white rounded-b-2xl">
-      <p className="text-xs text-slate-400 font-medium">
-        Showing <span className="font-bold text-slate-600">{from}–{to}</span> of <span className="font-bold text-slate-600">{total}</span> products
+    <nav
+      aria-label="Pagination"
+      className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
+      style={{ borderTop: `1px solid ${T.outlineVariant}` }}
+    >
+      <p className="m3-body-small" style={{ color: T.onSurfaceVariant }}>
+        Showing {from}–{to} of {total} products
       </p>
       <div className="flex items-center gap-1.5">
-        <PaginationBtn onClick={() => onPageChange(page - 1)} disabled={page === 1} aria-label="Previous page"><FiChevronLeft size={13} /></PaginationBtn>
+        <PaginationBtn onClick={() => onPageChange(page - 1)} disabled={page === 1} aria-label="Previous page"><MdChevronLeft size={20} /></PaginationBtn>
         {visible.map((p, i) => (
           <React.Fragment key={p}>
-            {i > 0 && p - visible[i - 1] > 1 && <span className="px-1.5 text-slate-300 text-xs" aria-hidden>…</span>}
+            {i > 0 && p - visible[i - 1] > 1 && <span className="px-1.5 m3-body-small" style={{ color: T.onSurfaceVariant }} aria-hidden>…</span>}
             <PaginationBtn onClick={() => onPageChange(p)} active={p === page} aria-label={`Page ${p}`} aria-current={p === page ? "page" : undefined}>{p}</PaginationBtn>
           </React.Fragment>
         ))}
-        <PaginationBtn onClick={() => onPageChange(page + 1)} disabled={page === totalPages} aria-label="Next page"><FiChevronRight size={13} /></PaginationBtn>
+        <PaginationBtn onClick={() => onPageChange(page + 1)} disabled={page === totalPages} aria-label="Next page"><MdChevronRight size={20} /></PaginationBtn>
       </div>
     </nav>
   );
@@ -495,34 +503,18 @@ Pagination.displayName = "Pagination";
 /* ─────────────────────────────────────────────────────────────────────
    STOCK BADGE
 ───────────────────────────────────────────────────────────────────────*/
-const STOCK_BADGE_STYLES = {
-  blue: { wrapper: "bg-sky-50 text-sky-700 border-sky-100", dot: "bg-sky-400" },
-  violet: { wrapper: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-400" },
-  amber: { wrapper: "bg-amber-50 text-amber-700 border-amber-100", dot: "bg-amber-400" },
-};
+/* Unpacked / packed read as two tones of the same idea, each labelled. */
+const STOCK_BADGE_TONE = { blue: "secondary", violet: "warning", amber: "warning" };
 
-const StockBadge = memo(({ color, label, value }) => {
-  const { wrapper, dot } = STOCK_BADGE_STYLES[color] ?? STOCK_BADGE_STYLES.blue;
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 border rounded-lg text-[10px] font-black whitespace-nowrap ${wrapper}`}>
-      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} aria-hidden />
-      {label}: {value}
-    </span>
-  );
-});
+const StockBadge = memo(({ color, label, value }) => (
+  <Chip tone={STOCK_BADGE_TONE[color] ?? "secondary"} className="m3-numeric whitespace-nowrap">
+    {label}: {value}
+  </Chip>
+));
 StockBadge.displayName = "StockBadge";
 
-const ActionBtn = memo(({ children, label, colorClass, onClick }) => (
-  <button onClick={onClick} aria-label={label} title={label} className={`p-2 rounded-lg text-slate-400 transition-all active:scale-90 ${colorClass}`}>
-    {children}
-  </button>
-));
-ActionBtn.displayName = "ActionBtn";
-
 const Pill = memo(({ children }) => (
-  <span className="inline-flex px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-[10px] font-semibold uppercase tracking-wide">
-    {children || "—"}
-  </span>
+  <Chip tone="neutral">{children || "—"}</Chip>
 ));
 Pill.displayName = "Pill";
 
@@ -549,114 +541,90 @@ const ProductRow = memo(({
     stocks[0]?.packed_stock ?? 0;
 
   const qty = available_stock ?? 0;
-  const stockStyle = stockLevelStyle(qty);
   const isBattery = isBatteryCategory(product_category);
 
   return (
-    <tr className="group border-b border-slate-100 hover:bg-blue-50/20 transition-colors duration-100">
+    <Tr className="group">
 
       {/* ── MERGED: Product + Brand + Model ── */}
-      <td className="px-4 py-3.5">
+      <Td>
         <div className="flex items-center gap-3">
-          {/* Icon */}
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 border border-slate-200 flex items-center justify-center flex-shrink-0 group-hover:border-blue-200 group-hover:from-blue-100 transition-all duration-150">
-            {isBattery
-              ? <FiZap size={13} className="text-amber-500 group-hover:text-amber-600 transition-colors" />
-              : <FiBox size={13} className="text-blue-400 group-hover:text-blue-500 transition-colors" />
-            }
+          <div
+            className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+            style={{
+              borderRadius: T.cornerFull,
+              backgroundColor: isBattery ? T.warningContainer : T.primaryContainer,
+              color: isBattery ? T.onWarningContainer : T.onPrimaryContainer,
+            }}
+          >
+            {isBattery ? <MdBolt size={20} /> : <MdInventory2 size={20} />}
           </div>
-          {/* Text block */}
           <div className="min-w-0">
-            {/* Product name */}
-            <p className="font-semibold text-slate-800 truncate max-w-[160px] xl:max-w-[220px] text-sm leading-tight">
+            <p
+              className="m3-body-medium truncate max-w-[160px] xl:max-w-[220px]"
+              style={{ color: T.onSurface }}
+            >
               {product_name}
             </p>
-            {/* Brand · Model row */}
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-              {brand && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100 text-[9px] font-black uppercase tracking-wide">
-                  <FiTag size={8} aria-hidden />
-                  {brand}
-                </span>
-              )}
-              {model && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-[9px] font-black uppercase tracking-wide">
-                  <FiLayers size={8} aria-hidden />
-                  {model}
-                </span>
-              )}
+              {brand && <Chip tone="primary" icon={MdSell}>{brand}</Chip>}
+              {model && <Chip tone="neutral" icon={MdLayers}>{model}</Chip>}
             </div>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-              {/* Product ID */}
-              <span className="text-[9px] font-mono text-slate-300">
+              <span className="m3-body-small font-mono" style={{ color: T.onSurfaceVariant }}>
                 {product_id}
               </span>
             </div>
           </div>
         </div>
-      </td>
+      </Td>
 
-      {/* Type */}
-      <td className="px-4 py-3.5"><Pill>{product_type}</Pill></td>
+      <Td><Pill>{product_type}</Pill></Td>
 
-      {/* Category */}
-      <td className="px-4 py-3.5">
+      <Td>
         <div className="flex items-center gap-1.5">
           <Pill>{product_category}</Pill>
-          {isBattery && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-600 border border-amber-200 text-[9px] font-black uppercase tracking-wide">
-              <FiZap size={8} />BTY
-            </span>
-          )}
+          {isBattery && <Chip tone="warning" icon={MdBolt}>BTY</Chip>}
         </div>
-      </td>
+      </Td>
 
-      {/* Price */}
       {userCanViewPrice && (
-        <td className="px-4 py-3.5 whitespace-nowrap text-sm font-bold text-slate-900 tabular-nums">
-          {fmtINR(price)}
-        </td>
+        <Td numeric className="whitespace-nowrap">{fmtINR(price)}</Td>
       )}
 
-      {/* Available stock */}
-      <td className="px-4 py-3.5">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px] font-black tabular-nums ${stockStyle}`}>
-          {qty}
-        </span>
-      </td>
+      {/* Available stock — tone signals the level, the number states it. */}
+      <Td>
+        <Chip tone={stockLevelTone(qty)} className="m3-numeric">{qty}</Chip>
+      </Td>
 
       {/* Stock breakdown — Battery shows ONLY packed */}
-      <td className="px-4 py-3.5">
+      <Td>
         <div className="flex gap-1.5 flex-wrap">
           {isBattery ? (
-            // Battery: PACKED only
             <StockBadge color="violet" label="P" value={packedStock} />
           ) : (
-            // Normal: both
             <>
               <StockBadge color="blue" label="U" value={unpackedStock} />
               <StockBadge color="violet" label="P" value={packedStock} />
             </>
           )}
         </div>
-      </td>
+      </Td>
 
-      {/* Status */}
-      <td className="px-4 py-3.5"><StatusBadge status={status} /></td>
+      <Td><StatusBadge status={status} /></Td>
 
-      {/* Actions */}
-      <td className="px-4 py-3.5">
-        <div className="flex items-center justify-end gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
-          <ActionBtn onClick={onView} label="View product" colorClass="hover:text-blue-600 hover:bg-blue-50"><FiEye size={14} /></ActionBtn>
+      <Td align="right">
+        <div className="flex items-center justify-end gap-0.5">
+          <IconButton icon={MdVisibility} onClick={onView} aria-label="View product" title="View product" />
           {userCanEdit && (
-            <ActionBtn onClick={onEdit} label="Edit product" colorClass="hover:text-sky-600 hover:bg-sky-50"><FiEdit3 size={14} /></ActionBtn>
+            <IconButton icon={MdEdit} onClick={onEdit} aria-label="Edit product" title="Edit product" />
           )}
           {userCanUpdateStock && status === "active" && (
-            <ActionBtn onClick={onStock} label="Update stock" colorClass="hover:text-emerald-600 hover:bg-emerald-50"><FiPackage size={14} /></ActionBtn>
+            <IconButton icon={MdInventory} onClick={onStock} aria-label="Update stock" title="Update stock" />
           )}
         </div>
-      </td>
-    </tr>
+      </Td>
+    </Tr>
   );
 });
 ProductRow.displayName = "ProductRow";
@@ -675,31 +643,51 @@ const FilterBar = memo(({
   const categoryOptions = [ALL_CATEGORIES, ...productCategories];
 
   return (
-    <div className="flex items-center gap-0 h-12 bg-white border border-slate-100 rounded-xl overflow-x-auto scrollbar-none px-1">
+    <div
+      className="flex items-center gap-0 h-14 overflow-x-auto scrollbar-none px-2"
+      style={{ borderBottom: `1px solid ${T.outlineVariant}` }}
+    >
       {/* Search */}
       <div className="relative flex-shrink-0 w-[294px] px-1.5">
-        <FiSearch size={12} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <MdSearch
+          size={18}
+          className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+          style={{ color: T.onSurfaceVariant }}
+        />
         <input
           type="search" placeholder="Search products…" value={searchInput}
           onChange={(e) => onSearchInput(e.target.value)} aria-label="Search products"
-          className="w-full h-8 pl-7 pr-6 text-[12.5px] text-slate-800 placeholder-slate-300 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-150"
+          className="m3-body-medium w-full h-10 pl-10 pr-8 focus:outline-none"
+          style={{
+            backgroundColor: T.surfaceContainerHigh,
+            borderRadius: T.cornerFull,
+            color: T.onSurface,
+          }}
         />
         {searchInput && (
-          <button onClick={onSearchClear} aria-label="Clear search" className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-[15px] h-[15px] rounded text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-all duration-100">
-            <FiX size={9} />
+          <button
+            type="button"
+            onClick={onSearchClear}
+            aria-label="Clear search"
+            className="absolute right-4 top-1/2 -translate-y-1/2"
+            style={{ color: T.onSurfaceVariant }}
+          >
+            <MdClose size={16} />
           </button>
         )}
       </div>
 
-      <div className="w-8 flex-shrink-0" />
+      <div className="w-6 flex-shrink-0" />
 
       <div className="flex items-center gap-1.5 px-2.5 flex-shrink-0">
-        <FiSliders size={11} className="text-slate-400" />
-        <span className="text-[10px] font-semibold tracking-[.1em] uppercase text-slate-400 whitespace-nowrap">FILTER</span>
-        {loadingMeta && <Spinner size={10} className="text-blue-400 ml-0.5" />}
+        <MdTune size={16} style={{ color: T.onSurfaceVariant }} />
+        <span className="m3-label-medium whitespace-nowrap" style={{ color: T.onSurfaceVariant }}>
+          Filter
+        </span>
+        {loadingMeta && <Spinner size={12} className="ml-0.5" />}
       </div>
 
-      <div className="w-px h-5 bg-slate-200 flex-shrink-0 mx-0.5" />
+      <div className="w-px h-5 flex-shrink-0 mx-1" style={{ backgroundColor: T.outlineVariant }} />
 
       {[
         { value: selectedBrand || ALL_BRANDS, onChange: (e) => onBrandChange(e.target.value), options: [ALL_BRANDS, ...filterBrands.map((b) => b.brand_name)], width: "116px", disabled: false },
@@ -711,21 +699,32 @@ const FilterBar = memo(({
         <div key={i} className="relative flex-shrink-0 px-0.5" style={{ width }}>
           <select
             value={value} onChange={onChange} disabled={disabled}
-            className="w-full h-8 appearance-none pl-2.5 pr-5 text-[12px] font-medium text-slate-600 bg-transparent border-none rounded-lg outline-none cursor-pointer hover:bg-slate-50 focus:bg-slate-50 focus:ring-2 focus:ring-blue-100 disabled:opacity-35 disabled:cursor-not-allowed transition-all duration-150"
+            className="m3-body-medium w-full h-8 appearance-none pl-2.5 pr-6 bg-transparent border-none outline-none cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
+            style={{ color: T.onSurfaceVariant, borderRadius: T.cornerSmall }}
           >
             {options.map((o) => <option key={o}>{o}</option>)}
           </select>
-          <FiChevronDown size={9} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <MdExpandMore
+            size={16}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            style={{ color: T.onSurfaceVariant }}
+          />
         </div>
       ))}
 
       {hasActiveFilters && (
-        <button
-          onClick={onClearFilters} aria-label="Clear all filters" title="Clear all filters"
-          className="ml-auto mr-1 flex-shrink-0 inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-[11px] font-medium text-rose-500 bg-rose-50 hover:bg-rose-100 border border-rose-100 hover:border-rose-200 transition-all duration-150 whitespace-nowrap"
+        <Button
+          variant="text"
+          icon={MdClose}
+          iconSize={16}
+          onClick={onClearFilters}
+          aria-label="Clear all filters"
+          title="Clear all filters"
+          className="ml-auto mr-1 flex-shrink-0 whitespace-nowrap"
+          style={{ height: 32, color: T.error }}
         >
-          <FiX size={9} />Clear
-        </button>
+          Clear
+        </Button>
       )}
     </div>
   );
@@ -736,61 +735,56 @@ FilterBar.displayName = "FilterBar";
    TABLE HEADER — updated to match merged cell
 ───────────────────────────────────────────────────────────────────────*/
 const TableHeader = memo(({ headers }) => (
-  <thead>
-    <tr className="border-b border-slate-200 bg-slate-50/80">
-      {headers.map((h, i) => (
-        <th key={i} className={`px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap ${!h ? "text-right" : "text-left"}`}>
-          {h}
-        </th>
-      ))}
-    </tr>
-  </thead>
+  <Thead>
+    {headers.map((h, i) => (
+      <Th key={i} align={!h ? "right" : "left"}>{h}</Th>
+    ))}
+  </Thead>
 ));
 TableHeader.displayName = "TableHeader";
 
 /* ─────────────────────────────────────────────────────────────────────
    EMPTY / LOADING / ERROR STATES
 ───────────────────────────────────────────────────────────────────────*/
-const EmptyState = memo(({ colSpan }) => (
+const EmptyRow = memo(({ colSpan }) => (
   <tr>
-    <td colSpan={colSpan} className="py-24 text-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-          <FiBox size={24} className="text-slate-400" />
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-bold text-slate-600">No products found</p>
-          <p className="text-xs text-slate-400">Try adjusting your search or filters</p>
-        </div>
-      </div>
+    <td colSpan={colSpan}>
+      <M3EmptyState icon={MdInventory2} label="No products found" />
+      <p className="m3-body-small text-center -mt-8 pb-8" style={{ color: T.onSurfaceVariant }}>
+        Try adjusting your search or filters
+      </p>
     </td>
   </tr>
 ));
-EmptyState.displayName = "EmptyState";
+EmptyRow.displayName = "EmptyRow";
 
 const LoadingState = memo(() => (
   <div className="flex flex-col items-center justify-center py-28 gap-5">
     <div className="relative w-12 h-12">
-      <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
-      <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div
+        className="absolute inset-0 border-4 rounded-full"
+        style={{ borderColor: T.surfaceContainerHighest }}
+      />
+      <div
+        className="absolute inset-0 border-4 border-t-transparent rounded-full animate-spin"
+        style={{ borderLeftColor: T.primary, borderRightColor: T.primary, borderBottomColor: T.primary }}
+      />
     </div>
-    <p className="text-sm text-slate-400 font-semibold tracking-wide">Loading products…</p>
+    <p className="m3-body-medium" style={{ color: T.onSurfaceVariant }}>Loading products…</p>
   </div>
 ));
 LoadingState.displayName = "LoadingState";
 
 const ErrorState = memo(({ message, onRetry }) => (
   <div className="flex flex-col items-center justify-center py-24 gap-4">
-    <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
-      <FiAlertCircle size={24} className="text-rose-400" />
+    <div className="p-4" style={{ backgroundColor: T.errorContainer, borderRadius: T.cornerFull }}>
+      <MdErrorOutline size={24} style={{ color: T.onErrorContainer }} />
     </div>
     <div className="text-center space-y-1">
-      <p className="text-sm font-bold text-rose-600">Something went wrong</p>
-      <p className="text-xs text-slate-400">{message}</p>
+      <p className="m3-title-small" style={{ color: T.error }}>Something went wrong</p>
+      <p className="m3-body-small" style={{ color: T.onSurfaceVariant }}>{message}</p>
     </div>
-    <button onClick={onRetry} className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-bold px-4 py-2 bg-blue-50 rounded-xl border border-blue-100 transition-all hover:bg-blue-100">
-      <FiRefreshCw size={13} />Try again
-    </button>
+    <Button variant="tonal" icon={MdRefresh} onClick={onRetry}>Try again</Button>
   </div>
 ));
 ErrorState.displayName = "ErrorState";
@@ -948,11 +942,11 @@ const Products = () => {
 
   /* ── Render ──────────────────────────────────────────────────────── */
   return (
-    <div className="w-full overflow-x-hidden p-4 sm:p-6">
+    <div className="w-full overflow-x-hidden p-4 sm:p-6" style={{ backgroundColor: T.surface }}>
       <div className="max-w-screen-2xl mx-auto space-y-5">
 
         {success && (
-          <AlertBanner variant="success" icon={FiCheckCircle} onDismiss={() => setSuccess("")}>
+          <AlertBanner variant="success" onDismiss={() => setSuccess("")}>
             {success}
           </AlertBanner>
         )}
@@ -960,36 +954,42 @@ const Products = () => {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2.5 mb-1">
-              <div className="p-1.5 rounded-lg bg-blue-600 text-white flex-shrink-0"><FiBox size={13} /></div>
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">Products</h1>
-            </div>
-            <p className="text-xs text-slate-400 font-medium pl-0.5">
+            <h1 className="m3-headline-small" style={{ color: T.onSurface }}>Products</h1>
+            <p className="m3-body-medium mt-0.5" style={{ color: T.onSurfaceVariant }}>
               {loading ? "Loading inventory…" : `${pagination.total.toLocaleString()} product${pagination.total !== 1 ? "s" : ""} in your catalog`}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={loadProducts} disabled={loading} title="Refresh" aria-label="Refresh products" className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:shadow-sm transition-all disabled:opacity-50 group">
-              <FiRefreshCw size={14} className={`transition-transform ${loading ? "animate-spin" : "group-hover:rotate-180 duration-500"}`} aria-hidden />
-            </button>
+            <IconButton
+              icon={MdRefresh}
+              onClick={loadProducts}
+              disabled={loading}
+              title="Refresh"
+              aria-label="Refresh products"
+              className={`disabled:opacity-50 ${loading ? "[&>svg]:animate-spin" : ""}`}
+            />
             {userCanCreate && (
-              <button onClick={() => openModal("create")} className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200 whitespace-nowrap">
-                <FiPlus size={14} aria-hidden />Create Product<FiArrowRight size={13} className="opacity-70" aria-hidden />
-              </button>
+              <Button variant="filled" icon={MdAdd} onClick={() => openModal("create")} className="whitespace-nowrap">
+                Create Product
+              </Button>
             )}
           </div>
         </div>
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-          <StatCard label="Total Products" value={pagination.total.toLocaleString()} icon={<FiBox />} color="indigo" />
-          <StatCard label="Active" value={stats.active} icon={<FiTrendingUp />} color="emerald" />
-          <StatCard label="Zero Stock" value={stats.zeroStock} icon={<FiAlertCircle />} color="rose" />
-          <StatCard label="Showing" value={products.length} icon={<FiLayers />} color="amber" />
+          <KpiCard icon={MdInventory2} tone="primary" label="Total Products"
+            value={pagination.total.toLocaleString()} valueClass="m3-title-large" />
+          <KpiCard icon={MdTrendingUp} tone="success" label="Active"
+            value={stats.active} valueClass="m3-title-large" />
+          <KpiCard icon={MdErrorOutline} tone="error" label="Zero Stock"
+            value={stats.zeroStock} valueClass="m3-title-large" />
+          <KpiCard icon={MdLayers} tone="warning" label="Showing"
+            value={products.length} valueClass="m3-title-large" />
         </div>
 
         {/* Main panel */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <Surface className="overflow-hidden">
           <FilterBar
             searchInput={searchInput} onSearchInput={setSearchInput}
             onSearchClear={() => { setSearchInput(""); setSearchQuery(""); setPage(1); }}
@@ -1008,10 +1008,10 @@ const Products = () => {
 
           {loading ? <LoadingState /> : error ? <ErrorState message={error} onRetry={loadProducts} /> : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm" style={{ minWidth: "780px" }} aria-label="Products table">
+              <table className="w-full" style={{ minWidth: "780px" }} aria-label="Products table">
                 <TableHeader headers={colHeaders} />
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {products.length === 0 ? <EmptyState colSpan={colHeaders.length} /> : (
+                <tbody>
+                  {products.length === 0 ? <EmptyRow colSpan={colHeaders.length} /> : (
                     products.map((product) => (
                       <ProductRow
                         key={product.product_id}
@@ -1039,7 +1039,7 @@ const Products = () => {
           {!loading && !error && pagination.total > 0 && (
             <Pagination page={page} totalPages={pagination.totalPages} total={pagination.total} limit={PAGE_LIMIT} onPageChange={setPage} />
           )}
-        </div>
+        </Surface>
       </div>
 
       {/* Modals */}
