@@ -11,5 +11,8 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Listen on all interfaces, not just localhost, so the dev server is
+    // reachable from other devices (a phone) on the same WiFi network.
+    host: true,
   },
 });
