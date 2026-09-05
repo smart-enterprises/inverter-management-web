@@ -238,7 +238,7 @@ const buildCreatePayload = (form) => {
     stocks.push({ stock: parseInt(form.packedStock, 10), stock_type: "PACKED", type: "ADD", stock_notes: form.packedNotes || `added stock ${form.packedStock} - packed` });
   return {
     brand: form.brand, product_name: form.product_name.trim(), model: form.model,
-    product_type: form.product_type.trim(), product_category: form.product_category,
+    product_type: form.product_type.trim(), product_category: form.product_category.trim(),
     product_price: toFloat(form.product_price), product_cost: toFloat(form.product_cost), stocks,
   };
 };
@@ -251,6 +251,7 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
   const [brands, setBrands] = useState([]);
   const [availableModels, setAvailableModels] = useState([]);
   const [customTypes, setCustomTypes] = useState([]);
+  const [customCategories, setCustomCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const firstFieldRef = useRef(null);
@@ -294,6 +295,11 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
     if (v && !productTypes.includes(v)) setCustomTypes((prev) => prev.includes(v) ? prev : [...prev, v]);
   }, [form.product_type, productTypes]);
 
+  const handleCategoryBlur = useCallback(() => {
+    const v = form.product_category?.trim().toUpperCase();
+    if (v && !productCategories.includes(v)) setCustomCategories((prev) => prev.includes(v) ? prev : [...prev, v]);
+  }, [form.product_category, productCategories]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const err = validateCreateForm(form);
@@ -311,8 +317,10 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
 
   if (!isOpen) return null;
   const typeDatalistId = "create-product-type-opts";
+  const categoryDatalistId = "create-product-category-opts";
   const modelDisabled = !form.brand || availableModels.length === 0;
   const allTypeOptions = [...productTypes, ...customTypes];
+  const allCategoryOptions = [...productCategories, ...customCategories];
 
   return (
     <>
@@ -377,8 +385,9 @@ const CreateProductModal = ({ isOpen, onClose, onProductCreated, productTypes = 
                   <FormInput id="cp-product-type" list={typeDatalistId} name="product_type" value={form.product_type} onChange={handleChange} onBlur={handleTypeBlur} placeholder="Select or type product type" autoComplete="off" />
                   <datalist id={typeDatalistId}>{allTypeOptions.map((t) => <option key={t} value={t} />)}</datalist>
                 </Field>
-                <Field label="Product Category" id="cp-product-category">
-                  <CustomSelect name="product_category" value={form.product_category} onChange={(e) => setField("product_category", e.target.value)} placeholder="Select category" options={["", ...productCategories]} />
+                <Field label="Product Category" id="cp-product-category" hint="Pick one, or type a new category to create it.">
+                  <FormInput id="cp-product-category" list={categoryDatalistId} name="product_category" value={form.product_category} onChange={handleChange} onBlur={handleCategoryBlur} placeholder="Select or type product category" autoComplete="off" />
+                  <datalist id={categoryDatalistId}>{allCategoryOptions.map((c) => <option key={c} value={c} />)}</datalist>
                 </Field>
                 <div className="hidden sm:block" aria-hidden />
                 <Field label="Unit Price (₹)" required id="cp-product-price">

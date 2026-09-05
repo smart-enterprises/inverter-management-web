@@ -6,9 +6,8 @@ import { T } from "./m3/tokens";
 import Swal from "sweetalert2";
 
 import CustomSelect from "../components/CustomSelect";
-import { fetchProductById, updateProduct } from "../api/products";
+import { fetchProductById, updateProduct, getProductCategories } from "../api/products";
 import { getAllBrands } from "../api/brands";
-import { PRODUCT_CATEGORIES } from "../utils/constants.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -330,14 +329,21 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
         setProductTypeOptions((prev) => (prev.includes(val) ? prev : [...prev, val]));
     }, [formData.product_type]);
 
+    const handleProductCategoryBlur = useCallback(() => {
+        const val = formData.product_category?.trim().toUpperCase();
+        if (!val) return;
+        setCategories((prev) => (prev.includes(val) ? prev : [...prev, val]));
+    }, [formData.product_category]);
+
     // ─── Load data ───────────────────────────────────────────────────────────
 
     const loadProductData = useCallback(async () => {
         try {
             setError("");
 
-            const [brandsRes, productRes] = await Promise.all([
+            const [brandsRes, categoriesRes, productRes] = await Promise.all([
                 getAllBrands("active"),
+                getProductCategories().catch(() => null),
                 fetchProductById(productId),
             ]);
 
@@ -345,7 +351,9 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                 setBrands(brandsRes.data);
             }
 
-            setCategories(PRODUCT_CATEGORIES);
+            if (categoriesRes?.success && Array.isArray(categoriesRes.data)) {
+                setCategories(categoriesRes.data);
+            }
 
             if (!productRes?.success || !productRes?.data) {
                 setError("Failed to load product data.");
@@ -428,7 +436,7 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                 product_name: formData.product_name.trim(),
                 model: formData.model,
                 product_type: formData.product_type.trim(),
-                product_category: formData.product_category,
+                product_category: formData.product_category?.trim(),
                 brand: formData.brand,
                 product_price: toFloat(formData.product_price),
                 product_cost: toFloat(formData.product_cost),
@@ -589,14 +597,18 @@ const EditProductModal = ({ isOpen, onClose, onProductUpdated, productId }) => {
                                         options={productTypeOptions}
                                     />
 
-                                    <SelectField
+                                    <ComboInput
+                                        id="edit-product-category"
                                         label="Product Category"
                                         required
+                                        listId="edit-product-category-options"
                                         name="product_category"
                                         value={formData.product_category}
                                         onChange={handleChange}
-                                        options={["", ...categories]}
-                                        placeholder="Select category"
+                                        onBlur={handleProductCategoryBlur}
+                                        placeholder="Select or type product category"
+                                        options={categories}
+                                        hint="Pick one, or type a new category to create it."
                                     />
                                 </div>
                             </section>
